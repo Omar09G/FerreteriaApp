@@ -1,0 +1,57 @@
+# ============================================================================
+# 40-migration-job.yaml — Job que ejecuta los scripts SQL 01..05 (esquema,
+# tablas, parametría, admin, demo) contra el primario.
+#
+# PRERREQUISITO: crear el ConfigMap con los scripts del proyecto:
+#   kubectl -n ferreteria create configmap ferreteria-sql \
+#     --from-file=../../scripts/
+#
+# Ejecutar la migración:
+#   kubectl -n ferreteria apply -f 40-migration-job.yaml
+#   kubectl -n ferreteria logs job/ferreteria-db-init -f
+# ============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ferreteria-db-init
+  namespace: ferreteria
+  labels:
+    app.kubernetes.io/part-of: ferreteria
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: db-init
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: psql-runner
+          image: postgres:17-alpine
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: { name: ferreteria-db-secret, key: POSTGRES_PASSWORD }
+          command: ["/bin/sh", "-ecx"]
+          args:
+            - |
+              until pg_isready -h postgres-rw.ferreteria.svc.cluster.local -U postgres -q; do
+                echo "Esperando a PostgreSQL..."; sleep 3;
+              done
+              cd /sql   # \ir de vistas_core.sql resuelve relativo al archivo incluido
+              for f in /sql/0*.sql; do
+                echo ">>> Ejecutando $$f";
+                psql -h postgres-rw.ferreteria.svc.cluster.local \
+                     -U postgres -d ferreteria \
+                     -v ON_ERROR_STOP=1 -f "$$f" || exit 1;
+              done
+              echo "MIGRACIÓN COMPLETA"
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+      volumes:
+        - name: sql
+          configMap:
+            name: ferreteria-sql

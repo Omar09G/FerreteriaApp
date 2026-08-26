@@ -1,0 +1,29 @@
+# Copiar a terraform.tfvars y ajustar.
+# NUNCA hacer commit de credenciales reales (usar TF_VAR_*, Vault, etc.)
+
+# Credenciales
+admin_password       = "CambiaAdmin2026!"
+app_password         = "CambiaApp2026!"
+replication_password = "CambiaReplica2026!"
+
+# Imágenes
+pg_image         = "postgres:17-alpine"
+pgbouncer_image  = "pgbouncer/pgbouncer:1.23.1"
+
+# Escalamiento VERTICAL de PostgreSQL (ajustar a la capacidad del clúster)
+pg_cpu_request    = "500m"
+pg_cpu_limit      = "2000m"
+pg_memory_request = "1Gi"
+pg_memory_limit   = "4Gi"
+storage_class     = ""      # vacío = default; usar SSD/NVMe en producción
+storage_size      = "20Gi"
+
+# Escalamiento HORIZONTAL del pool
+pgbouncer_replicas        = 2
+pgbouncer_hpa_min         = 2
+pgbouncer_hpa_max         = 6
+pgbouncer_hpa_cpu_target  = 70
+
+# Migración
+load_demo_data = true   # false para producción (omite 05_dummy.sql)
+run_migration  = true

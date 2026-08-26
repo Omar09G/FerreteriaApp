@@ -1,0 +1,121 @@
+# ============================================================================
+# 20-pgbouncer.yaml — Pooling de conexiones
+# Aquí vive el ESCALAMIENTO HORIZONTAL del acceso a datos: Deployment con
+# múltiples réplicas + HPA automático por CPU. El POS nunca toca al primario.
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: ferreteria
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+        tier: db-proxy
+    spec:
+      containers:
+        - name: pgbouncer
+          image: pgbouncer/pgbouncer:1.23.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DB_HOST
+              value: postgres-rw.ferreteria.svc.cluster.local
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: ferreteria
+            - name: DB_USER
+              value: ferreteria_app
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: ferreteria-db-secret, key: POSTGRES_APP_PASSWORD }
+            - name: AUTH_TYPE
+              value: scram-sha-256
+            - name: POOL_MODE
+              value: transaction
+            - name: LISTEN_ADDR
+              value: 0.0.0.0
+            - name: LISTEN_PORT
+              value: "6432"
+            - name: MAX_CLIENT_CONN
+              value: "1000"
+            - name: DEFAULT_POOL_SIZE
+              value: "50"
+            - name: MIN_POOL_SIZE
+              value: "10"
+            - name: RESERVE_POOL_SIZE
+              value: "10"
+            - name: MAX_DB_CONNECTIONS
+              value: "120"
+          ports:
+            - containerPort: 6432
+              name: bouncer
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits:   { cpu: 500m, memory: 512Mi }
+          readinessProbe:
+            tcpSocket: { port: 6432 }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 6432 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer
+  namespace: ferreteria
+spec:
+  type: ClusterIP
+  selector:
+    app: pgbouncer
+  ports:
+    - name: bouncer
+      port: 6432
+      targetPort: 6432
+---
+# Escalamiento horizontal automático del pool ante picos (fin de día, campañas)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pgbouncer-hpa
+  namespace: ferreteria
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pgbouncer
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300   # no encoger durante pausas cortas
+---
+# Garantiza capacidad de pooling durante mantenimientos de nodo
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pgbouncer-pdb
+  namespace: ferreteria
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: pgbouncer

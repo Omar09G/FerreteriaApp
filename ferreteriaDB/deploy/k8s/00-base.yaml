@@ -1,0 +1,75 @@
+# ============================================================================
+# 00-base.yaml — Namespace, Secret y ConfigMap de PostgreSQL tunado
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ferreteria
+  labels:
+    app.kubernetes.io/part-of: ferreteria
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ferreteria-db-secret
+  namespace: ferreteria
+type: Opaque
+# NOTA: en producción usar SealedSecrets / ExternalSecrets / Vault, no texto plano.
+stringData:
+  POSTGRES_PASSWORD: "CambiaAdmin2026!"
+  POSTGRES_APP_PASSWORD: "CambiaApp2026!"
+  REPLICATION_PASSWORD: "CambiaReplica2026!"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ferreteria-postgres-conf
+  namespace: ferreteria
+data:
+  postgresql.conf: |
+    # Tuning OLTP + réplicas (escalamiento vertical vía resources del StatefulSet)
+    listen_addresses = '*'
+    max_connections = 300
+    password_encryption = scram-sha-256
+
+    shared_buffers = 512MB
+    effective_cache_size = 1536MB
+    work_mem = 16MB
+    maintenance_work_mem = 256MB
+    temp_buffers = 8MB
+
+    max_worker_processes = 8
+    max_parallel_workers = 8
+    max_parallel_workers_per_gather = 4
+    max_parallel_maintenance_workers = 4
+    jit = off
+
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    default_statistics_target = 150
+
+    wal_level = replica
+    max_wal_senders = 5
+    max_replication_slots = 5
+    wal_buffers = 16MB
+    min_wal_size = 512MB
+    max_wal_size = 2GB
+    checkpoint_timeout = 15min
+    checkpoint_completion_target = 0.9
+    wal_compression = on
+
+    autovacuum_max_workers = 4
+    autovacuum_naptime = 30s
+    autovacuum_vacuum_scale_factor = 0.05
+
+    shared_preload_libraries = 'pg_stat_statements'
+    track_io_timing = on
+    log_checkpoints = on
+    log_min_duration_statement = 500
+    timezone = 'America/Mexico_City'
+    log_timezone = 'America/Mexico_City'
+    idle_in_transaction_session_timeout = 10min
+
+  pg_hba.conf: |
+    host ferreteria ferreteria_app 0.0.0.0/0 scram-sha-256
+    host replication replicator 0.0.0.0/0 scram-sha-256

@@ -1,0 +1,173 @@
+# ============================================================================
+# docker-compose.yml — Sistema Integral de Ferretería · PostgreSQL
+# Compatible con: podman compose | podman-compose | docker compose
+#
+# ARRANQUE BÁSICO:
+#   cp .env.example .env      # editar credenciales
+#   podman compose up -d
+#
+# CON RÉPLICA DE LECTURA (escalamiento horizontal de lecturas):
+#   podman compose --profile replica up -d
+#
+# Arquitectura:
+#   App ──► PgBouncer:6432 (pool transaccional, 1000 clientes)
+#              └─► postgres-primary:5432 (escrituras, tuning OLTP)
+#                      └─► [profile replica] postgres-replica:5433 (lecturas/reportes)
+# La BD se crea sola ejecutando ../scripts/01..05 en orden al primer arranque.
+# ============================================================================
+
+name: ferreteria-db
+
+services:
+
+  # ------------------------------------------------------------------
+  # PostgreSQL PRIMARIO (escrituras) — tuning en conf/postgresql.conf
+  # ------------------------------------------------------------------
+  postgres-primary:
+    image: ${PG_IMAGE:-postgres:17-alpine}
+    container_name: ferreteria-postgres-primary
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ferreteria
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Define POSTGRES_ADMIN_PASSWORD en .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Define POSTGRES_APP_PASSWORD en .env}
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-cambia_replica}
+      TZ: America/Mexico_City
+      LANG: es_MX.utf8
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+    volumes:
+      - pg_data_primary:/var/lib/postgresql/data
+      # Init plano (el entrypoint ignora subdirectorios): roles primero,
+      # luego scripts SQL en orden lexicográfico. vistas_core.sql es incluido
+      # por \ir desde 02_tablas.sql y también se ejecuta al final (idempotente).
+      - ./conf/init/00_replica_user.sh:/docker-entrypoint-initdb.d/00_replica_user.sh:ro
+      - ./conf/init/99_app_password.sh:/docker-entrypoint-initdb.d/99_app_password.sh:ro
+      - ../scripts/01_base_esquemas.sql:/docker-entrypoint-initdb.d/10_01_base_esquemas.sql:ro
+      - ../scripts/02_tablas.sql:/docker-entrypoint-initdb.d/11_02_tablas.sql:ro
+      - ../scripts/vistas_core.sql:/docker-entrypoint-initdb.d/vistas_core.sql:ro
+      - ../scripts/03_parametria.sql:/docker-entrypoint-initdb.d/12_03_parametria.sql:ro
+      - ../scripts/04_admin.sql:/docker-entrypoint-initdb.d/13_04_admin.sql:ro
+      - ../scripts/05_dummy.sql:/docker-entrypoint-initdb.d/14_05_dummy.sql:ro
+      # Configuración tunada
+      - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    ports:
+      - "5432:5432"
+    shm_size: ${PG_SHM_SIZE:-256mb}          # paralelismo y hash joins
+    mem_limit: ${PG_MEM_LIMIT:-2g}           # escalamiento vertical (ajustar en .env)
+    cpus: ${PG_CPUS:-2.0}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ferreteria -q"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      - db-backend
+
+  # ------------------------------------------------------------------
+  # RÉPLICA DE LECTURA (escalamiento horizontal de lecturas/reportes)
+  # Activar con: podman compose --profile replica up -d
+  # ------------------------------------------------------------------
+  postgres-replica:
+    image: ${PG_IMAGE:-postgres:17-alpine}
+    container_name: ferreteria-postgres-replica
+    restart: unless-stopped
+    profiles: ["replica"]
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?}
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:?}
+      PRIMARY_HOST: ${PRIMARY_HOST:-postgres-primary}
+      TZ: America/Mexico_City
+    user: postgres
+    entrypoint: ["/usr/local/bin/bootstrap-replica.sh"]
+    volumes:
+      - pg_data_replica:/var/lib/postgresql/data
+      - ./conf/replica/bootstrap-replica.sh:/usr/local/bin/bootstrap-replica.sh:ro
+      - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    ports:
+      - "5433:5432"
+    shm_size: 256mb
+    mem_limit: ${PG_MEM_LIMIT:-2g}
+    cpus: ${PG_CPUS:-2.0}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -q && psql -U postgres -d ferreteria -tc 'SELECT pg_is_in_recovery();' | grep -q t"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    networks:
+      - db-backend
+
+  # ------------------------------------------------------------------
+  # PgBOUNCER — pooling de conexiones (concurrencia masiva del POS)
+  # La aplicación SIEMPRE debe conectarse aquí, no directo al primary.
+  # Config renderizada al arranque desde .env (sin imágenes de terceros).
+  # ------------------------------------------------------------------
+  pgbouncer:
+    image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:latest}
+    container_name: ferreteria-pgbouncer
+    restart: unless-stopped
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    entrypoint: []          # ignorar el validador del entrypoint oficial
+    environment:
+      DB_HOST: postgres-primary
+      DB_USER: ferreteria_app
+      DB_PASSWORD: ${POSTGRES_APP_PASSWORD:?}
+      ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?}
+    ports:
+      - "6432:6432"
+    # Renderiza pgbouncer.ini + userlist y arranca el proceso en modo daemon-less
+    command:
+      - /bin/sh
+      - -ecx
+      - |
+        mkdir -p /etc/pgbouncer
+        {
+          echo '[databases]'
+          echo "ferreteria = host=$${DB_HOST} port=5432 dbname=ferreteria"
+          echo ''
+          echo '[pgbouncer]'
+          echo 'listen_addr = 0.0.0.0'
+          echo 'listen_port = 6432'
+          echo 'auth_type = scram-sha-256'
+          echo 'auth_file = /etc/pgbouncer/userlist.txt'
+          echo 'pool_mode = transaction'
+          echo 'max_client_conn = 1000'
+          echo 'default_pool_size = 50'
+          echo 'min_pool_size = 10'
+          echo 'reserve_pool_size = 10'
+          echo 'reserve_pool_timeout = 3'
+          echo 'server_reset_query = DISCARD ALL'
+          echo 'ignore_startup_parameters = extra_float_digits,options'
+          echo 'admin_users = ferreteria_app'
+        } > /etc/pgbouncer/pgbouncer.ini
+        printf '"%s" "%s"\n"postgres" "%s"\n' \
+          "$${DB_USER}" "$${DB_PASSWORD}" "$${ADMIN_PASSWORD}" > /etc/pgbouncer/userlist.txt
+        exec /opt/pgbouncer/pgbouncer /etc/pgbouncer/pgbouncer.ini
+    healthcheck:
+      test: ["CMD-SHELL", "psql 'host=localhost port=6432 dbname=ferreteria user=ferreteria_app password=$${DB_PASSWORD}' -tc 'SELECT 1;' >/dev/null"]
+      interval: 15s
+      timeout: 6s
+      retries: 8
+      start_period: 15s
+    networks:
+      - db-backend
+
+networks:
+  db-backend:
+    driver: bridge
+
+volumes:
+  pg_data_primary:
+  pg_data_replica:
