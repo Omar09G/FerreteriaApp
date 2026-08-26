@@ -493,3 +493,60 @@ ORDER BY cp.fecha_vencimiento, saldo DESC;
 
 GRANT SELECT ON ALL TABLES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
     TO ferreteria_app;
+
+-- ===== Cortes de caja: histórico y cierre diario =====
+CREATE OR REPLACE VIEW fin.vw_historico_cortes AS
+SELECT c.corte_id,
+       c.fecha,
+       ca.nombre                    AS caja,
+       a.nombre                     AS almacen,
+       uc.username                  AS cerrado_por,
+       c.apertura_en,
+       c.cierre_en,
+       EXTRACT(epoch FROM (c.cierre_en - c.apertura_en))/3600 AS horas_turno,
+       c.num_ventas,
+       c.subtotal,
+       c.iva,
+       c.descuentos,
+       c.total_vendido,
+       c.costo_ventas,
+       c.utilidad_bruta,
+       c.margen_pct,
+       c.perdidas_inventario        AS perdidas,
+       c.fondo_apertura,
+       c.entradas_efectivo,
+       c.salidas_efectivo,
+       c.ingresos_no_efectivo,
+       c.egresos_no_efectivo,
+       c.dinero_esperado,
+       c.dinero_contado,
+       c.diferencia,
+       CASE WHEN c.diferencia = 0 THEN 'CUADRADO'
+            WHEN c.diferencia > 0  THEN 'SOBRANTE'
+            ELSE 'FALTANTE' END    AS resultado_caja,
+       c.desglose_entradas,
+       c.desglose_salidas,
+       c.desglose_formas_pago,
+       c.observaciones
+FROM fin.cortes_caja c
+JOIN fin.cajas ca      ON ca.caja_id    = c.caja_id
+JOIN inv.almacenes a   ON a.almacen_id  = c.almacen_id
+JOIN seg.usuarios uc   ON uc.usuario_id = c.usuario_cierre_id;
+
+CREATE OR REPLACE VIEW fin.vw_cierre_diario AS
+SELECT fecha,
+       COUNT(*)                                  AS num_cortes,
+       SUM(num_ventas)                           AS tickets,
+       SUM(total_vendido)::numeric(14,2)         AS total_vendido,
+       SUM(utilidad_bruta)::numeric(14,2)        AS utilidad_bruta,
+       ROUND(SUM(subtotal) / NULLIF(SUM(costo_ventas),0) * 100 - 100, 2) AS margen_pct_promedio,
+       SUM(perdidas_inventario)::numeric(14,2)   AS perdidas,
+       SUM(entradas_efectivo)::numeric(14,2)     AS entradas_efectivo,
+       SUM(salidas_efectivo)::numeric(14,2)      AS salidas_efectivo,
+       SUM(dinero_contado)::numeric(14,2)        AS efectivo_depositado,
+       SUM(diferencia)::numeric(14,2)            AS diferencia_total,
+       SUM(ingresos_no_efectivo)::numeric(14,2)  AS ingresos_digitales,
+       BOOL_AND(diferencia = 0)                  AS todo_cuadrado
+FROM fin.cortes_caja
+GROUP BY fecha
+ORDER BY fecha DESC;

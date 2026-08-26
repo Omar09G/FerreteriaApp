@@ -1125,6 +1125,63 @@ CREATE TABLE fin.ingresos_otros (
 );
 ```
 
+### 13.6 Corte de caja e histórico diario
+
+`fin.turnos_caja` guarda el corte **físico** (apertura/esperado/contado/diferencia). El
+**histórico consolidado** vive en `fin.cortes_caja`: una fila inmutable por turno cerrado
+que congela ventas, utilidad, margen, pérdidas y desgloses de flujo del día.
+
+```sql
+CREATE TABLE fin.cortes_caja (
+    corte_id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    turno_caja_id       BIGINT NOT NULL UNIQUE REFERENCES fin.turnos_caja(turno_caja_id),
+    caja_id             INTEGER NOT NULL REFERENCES fin.cajas(caja_id),
+    almacen_id          INTEGER NOT NULL REFERENCES inv.almacenes(almacen_id),
+    usuario_id          INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),   -- cajero
+    usuario_cierre_id   INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),   -- quien corta
+    fecha               DATE NOT NULL DEFAULT CURRENT_DATE,
+    apertura_en         TIMESTAMPTZ NOT NULL,
+    cierre_en           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    num_ventas          INTEGER  NOT NULL DEFAULT 0,
+    subtotal            NUMERIC(14,2) NOT NULL DEFAULT 0,
+    iva                 NUMERIC(14,2) NOT NULL DEFAULT 0,
+    descuentos          NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total_vendido       NUMERIC(14,2) NOT NULL DEFAULT 0,
+    costo_ventas        NUMERIC(14,2) NOT NULL DEFAULT 0,
+    utilidad_bruta      NUMERIC(14,2) GENERATED ALWAYS AS (subtotal - costo_ventas) STORED,
+    margen_pct          NUMERIC(6,2)  GENERATED ALWAYS AS
+                        ((subtotal - costo_ventas) / NULLIF(subtotal,0) * 100) STORED,
+    fondo_apertura      NUMERIC(14,2) NOT NULL DEFAULT 0,
+    entradas_efectivo   NUMERIC(14,2) NOT NULL DEFAULT 0,
+    salidas_efectivo    NUMERIC(14,2) NOT NULL DEFAULT 0,
+    dinero_esperado     NUMERIC(14,2) NOT NULL DEFAULT 0,
+    dinero_contado      NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (dinero_contado >= 0),
+    diferencia          NUMERIC(14,2) NOT NULL DEFAULT 0,
+    ingresos_no_efectivo NUMERIC(14,2) NOT NULL DEFAULT 0,
+    egresos_no_efectivo  NUMERIC(14,2) NOT NULL DEFAULT 0,
+    perdidas_inventario  NUMERIC(14,2) NOT NULL DEFAULT 0,  -- deterioro/uso interno/muestras a costo
+    desglose_entradas    JSONB NOT NULL DEFAULT '{}',        -- {"COBRANZA_CREDITO":5000,...}
+    desglose_salidas     JSONB NOT NULL DEFAULT '{}',
+    desglose_formas_pago JSONB NOT NULL DEFAULT '{}',
+    observaciones        TEXT,
+    creado_en            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_cortes_fecha ON fin.cortes_caja(fecha DESC);
+CREATE INDEX idx_cortes_caja  ON fin.cortes_caja(caja_id, fecha DESC);
+```
+
+**Función de cierre** (`fin.fn_cerrar_turno(p_turno, p_monto_contado [, p_usuario_cierre, p_notas])`):
+en una sola transacción valida el turno abierto (`FOR UPDATE`), calcula ventas/costo/utilidad
+del turno desde `ven.ventas`+`venta_detalles`, separa movimientos efectivo vs digital,
+suma pérdidas de inventario a costo (kardex DETERIORO/USO_INTERNO/MUESTRA del periodo),
+cierra el turno con `diferencia = contado − esperado` e **inserta la fila histórica** con
+desgloses `JSONB` congelados. Falla si el turno ya está cerrado (idempotencia).
+
+**Vistas de consulta** (sección 16/21): `fin.vw_historico_cortes` (detalle por corte con
+`resultado_caja` CUADRADO/SOBRANTE/FALTANTE y horas_turno) y `fin.vw_cierre_diario`
+(consolidado por fecha: tickets, vendido, utilidad, margen promedio, pérdidas, efectivo
+depositado, `todo_cuadrado`).
+
 ---
 
 ## 14. Funciones y triggers
@@ -2207,6 +2264,7 @@ Checklist contra lo solicitado:
 | Dashboard: **mejor categoría de venta** | Cumple | §21.4 `ven.vw_mejores_categorias` |
 | Dashboard: **productos que no se venden** (base para promociones) | Cumple | §21.5 `inv.vw_productos_sin_movimiento` |
 | KPIs consolidados para dashboard | Cumple | §21.7 `ven.vw_resumen_dashboard` |
+| **Corte de caja con histórico** (cuadre fin de día: vendido, ganancia, margen, pérdidas, entradas/salidas guardados para consulta) | Cumple | §13.6 `fin.cortes_caja` + `fn_cerrar_turno()` + vistas `vw_historico_cortes` / `vw_cierre_diario` — probado en vivo (corte CUADRADO, utilidad y margen congelados) |
 | Últimas 15 facturas de cada proveedor | Cumple | §21.8 `com.vw_ultimas_facturas_proveedor` (ventana por proveedor) |
 | Facturas de proveedor **vencidas** | Cumple | §21.8 `com.vw_facturas_vencidas` (con antigüedad de mora 1-30/31-60/61-90/+90) |
 | Facturas **pendientes / no pagadas** | Cumple | §21.8 `com.vw_facturas_pendientes` (VENCIDA / POR_VENCER / CORRIENTE) |
@@ -2228,7 +2286,7 @@ Checklist contra lo solicitado:
 
 **Scripts ejecutables validados end-to-end en PostgreSQL 17**: `scripts/01..05` + `vistas_core.sql`.
 
-**Total final: 69 tablas, 21 vistas, 20+ funciones/triggers, 9 esquemas.**
+**Total final: 71 tablas, 23 vistas, 22+ funciones/triggers, 9 esquemas.**
 
 ---
 
