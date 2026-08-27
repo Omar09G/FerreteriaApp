@@ -1047,20 +1047,28 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_folio_ventas ON ven.ventas;
 CREATE TRIGGER trg_folio_ventas      BEFORE INSERT ON ven.ventas
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('VENTA');
+DROP TRIGGER IF EXISTS trg_folio_compras ON com.compras;
 CREATE TRIGGER trg_folio_compras     BEFORE INSERT ON com.compras
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('COMPRA');
+DROP TRIGGER IF EXISTS trg_folio_dev_ven ON ven.devoluciones_venta;
 CREATE TRIGGER trg_folio_dev_ven     BEFORE INSERT ON ven.devoluciones_venta
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('DEVOLUCION_VENTA');
+DROP TRIGGER IF EXISTS trg_folio_dev_com ON com.devoluciones_compra;
 CREATE TRIGGER trg_folio_dev_com     BEFORE INSERT ON com.devoluciones_compra
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('DEVOLUCION_COMPRA');
+DROP TRIGGER IF EXISTS trg_folio_rentas ON ven.rentas;
 CREATE TRIGGER trg_folio_rentas      BEFORE INSERT ON ven.rentas
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('RENTA');
+DROP TRIGGER IF EXISTS trg_folio_cotiza ON ven.cotizaciones;
 CREATE TRIGGER trg_folio_cotiza      BEFORE INSERT ON ven.cotizaciones
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('COTIZACION');
+DROP TRIGGER IF EXISTS trg_folio_gastos ON fin.gastos;
 CREATE TRIGGER trg_folio_gastos      BEFORE INSERT ON fin.gastos
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('GASTO');
+DROP TRIGGER IF EXISTS trg_folio_traslados ON inv.traslados;
 CREATE TRIGGER trg_folio_traslados   BEFORE INSERT ON inv.traslados
     FOR EACH ROW WHEN (NEW.folio IS NULL) EXECUTE FUNCTION common_asigna_folio('TRASLADO');
 
@@ -1083,16 +1091,22 @@ BEGIN
     RETURN COALESCE(NEW, OLD);
 END $$;
 
+DROP TRIGGER IF EXISTS trg_audit_producto ON inv.productos;
 CREATE TRIGGER trg_audit_producto  AFTER INSERT OR UPDATE OR DELETE ON inv.productos
     FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('producto_id');
+DROP TRIGGER IF EXISTS trg_audit_cliente ON ven.clientes;
 CREATE TRIGGER trg_audit_cliente   AFTER INSERT OR UPDATE OR DELETE ON ven.clientes
     FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('cliente_id');
+DROP TRIGGER IF EXISTS trg_audit_proveedor ON com.proveedores;
 CREATE TRIGGER trg_audit_proveedor AFTER INSERT OR UPDATE OR DELETE ON com.proveedores
     FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('proveedor_id');
+DROP TRIGGER IF EXISTS trg_audit_usuario ON seg.usuarios;
 CREATE TRIGGER trg_audit_usuario   AFTER INSERT OR UPDATE OR DELETE ON seg.usuarios
     FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('usuario_id');
+DROP TRIGGER IF EXISTS trg_audit_venta ON ven.ventas;
 CREATE TRIGGER trg_audit_venta     AFTER UPDATE OR DELETE ON ven.ventas
     FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('venta_id');
+DROP TRIGGER IF EXISTS trg_audit_gasto ON fin.gastos;
 CREATE TRIGGER trg_audit_gasto     AFTER UPDATE OR DELETE ON fin.gastos
     FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('gasto_id');
 
@@ -1100,10 +1114,13 @@ CREATE OR REPLACE FUNCTION common_touch_updated_at() RETURNS TRIGGER
 LANGUAGE plpgsql AS $$
 BEGIN NEW.actualizado_en := now(); RETURN NEW; END $$;
 
+DROP TRIGGER IF EXISTS trg_touch_producto ON inv.productos;
 CREATE TRIGGER trg_touch_producto  BEFORE UPDATE ON inv.productos
     FOR EACH ROW EXECUTE FUNCTION common_touch_updated_at();
+DROP TRIGGER IF EXISTS trg_touch_cliente ON ven.clientes;
 CREATE TRIGGER trg_touch_cliente   BEFORE UPDATE ON ven.clientes
     FOR EACH ROW EXECUTE FUNCTION common_touch_updated_at();
+DROP TRIGGER IF EXISTS trg_touch_proveedor ON com.proveedores;
 CREATE TRIGGER trg_touch_proveedor BEFORE UPDATE ON com.proveedores
     FOR EACH ROW EXECUTE FUNCTION common_touch_updated_at();
 
@@ -1123,7 +1140,7 @@ BEGIN
 
     SELECT estado INTO v_abierto FROM fin.turnos_caja WHERE turno_caja_id = p_turno;
     IF v_abierto IS DISTINCT FROM 'ABIERTO' THEN
-        RAISE EXCEPTION 'El turno % no está abierto', p_turno;
+        RAISE EXCEPTION 'El turno % no está abierto', p_turno USING ERRCODE = 'P0300';
     END IF;
 
     INSERT INTO fin.movimientos_caja
@@ -1168,7 +1185,7 @@ BEGIN
         IF COALESCE((SELECT valor::boolean FROM cfg.configuracion
                      WHERE clave = 'permitir_stock_negativo'), false) = false THEN
             RAISE EXCEPTION 'Stock negativo no permitido: producto % quedaria en %',
-                NEW.producto_id, v_nuevo;
+                NEW.producto_id, v_nuevo USING ERRCODE = 'P0100';
         END IF;
     END IF;
 
@@ -1180,13 +1197,15 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_mov_stock ON inv.movimientos_inventario;
 CREATE TRIGGER trg_mov_stock AFTER INSERT ON inv.movimientos_inventario
 FOR EACH ROW EXECUTE FUNCTION inv.fn_aplica_movimiento_stock();
 
 CREATE OR REPLACE FUNCTION inv.fn_kardex_solo_insert()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN RAISE EXCEPTION 'movimientos_inventario es append-only'; END $$;
+BEGIN RAISE EXCEPTION 'movimientos_inventario es append-only' USING ERRCODE = 'P0999'; END $$;
 
+DROP TRIGGER IF EXISTS trg_kardex_no_upd ON inv.movimientos_inventario;
 CREATE TRIGGER trg_kardex_no_upd BEFORE UPDATE OR DELETE ON inv.movimientos_inventario
 FOR EACH ROW EXECUTE FUNCTION inv.fn_kardex_solo_insert();
 
@@ -1207,13 +1226,14 @@ BEGIN
             FROM cfg.configuracion WHERE clave = 'permitir_stock_negativo';
             IF COALESCE(v_permitir_neg, false) = false THEN
                 RAISE EXCEPTION 'Stock insuficiente producto % disponible % solicitado %',
-                    NEW.producto_id, COALESCE(v_disp, 0), NEW.cantidad;
+                    NEW.producto_id, COALESCE(v_disp, 0), NEW.cantidad USING ERRCODE = 'P0100';
             END IF;
         END IF;
     END IF;
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_det_venta_valida ON ven.venta_detalles;
 CREATE TRIGGER trg_det_venta_valida BEFORE INSERT ON ven.venta_detalles
 FOR EACH ROW EXECUTE FUNCTION ven.fn_detalle_valida_stock();
 
@@ -1230,6 +1250,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_det_venta_salida ON ven.venta_detalles;
 CREATE TRIGGER trg_det_venta_salida AFTER INSERT ON ven.venta_detalles
 FOR EACH ROW EXECUTE FUNCTION ven.fn_detalle_genera_salida();
 
@@ -1240,7 +1261,7 @@ DECLARE v_cli BIGINT; v_disp NUMERIC;
 BEGIN
     SELECT cliente_id INTO v_cli FROM ven.ventas WHERE venta_id = p_venta;
     IF v_cli IS NULL THEN
-        RAISE EXCEPTION 'Venta a credito requiere cliente identificado';
+        RAISE EXCEPTION 'Venta a credito requiere cliente identificado' USING ERRCODE = 'P0201';
     END IF;
 
     SELECT lc.monto_autorizado - COALESCE(SUM(cc.monto_total - cc.monto_pagado), 0)
@@ -1254,11 +1275,11 @@ BEGIN
     GROUP BY lc.monto_autorizado;
 
     IF v_disp IS NULL THEN
-        RAISE EXCEPTION 'Cliente % sin linea de credito activa', v_cli;
+        RAISE EXCEPTION 'Cliente % sin linea de credito activa', v_cli USING ERRCODE = 'P0201';
     END IF;
     IF v_disp < p_total THEN
         RAISE EXCEPTION 'Credito insuficiente para cliente %: disponible %, venta %',
-            v_cli, v_disp, p_total;
+            v_cli, v_disp, p_total USING ERRCODE = 'P0200';
     END IF;
 END $$;
 
@@ -1349,6 +1370,7 @@ BEGIN
     RETURN NULL;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_det_venta_totales ON ven.venta_detalles;
 CREATE TRIGGER trg_det_venta_totales
 AFTER INSERT OR DELETE ON ven.venta_detalles
 FOR EACH ROW EXECUTE FUNCTION ven.fn_recalc_totales_venta();
@@ -1370,6 +1392,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_pago_cliente_post ON ven.pagos_cliente;
 CREATE TRIGGER trg_pago_cliente_post AFTER INSERT ON ven.pagos_cliente
 FOR EACH ROW EXECUTE FUNCTION ven.fn_pago_cliente_post();
 
@@ -1389,6 +1412,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_devolucion_detalle ON ven.devolucion_detalles;
 CREATE TRIGGER trg_devolucion_detalle AFTER INSERT ON ven.devolucion_detalles
 FOR EACH ROW EXECUTE FUNCTION ven.fn_devolucion_detalle_post();
 
@@ -1419,6 +1443,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_det_compra_entrada ON com.compra_detalles;
 CREATE TRIGGER trg_det_compra_entrada AFTER INSERT ON com.compra_detalles
 FOR EACH ROW EXECUTE FUNCTION com.fn_detalle_compra_entrada();
 
@@ -1487,6 +1512,7 @@ BEGIN
     RETURN NULL;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_det_compra_totales ON com.compra_detalles;
 CREATE TRIGGER trg_det_compra_totales
 AFTER INSERT OR DELETE ON com.compra_detalles
 FOR EACH ROW EXECUTE FUNCTION com.fn_recalc_totales_compra();
@@ -1508,6 +1534,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_pago_proveedor_post ON com.pagos_proveedor;
 CREATE TRIGGER trg_pago_proveedor_post AFTER INSERT ON com.pagos_proveedor
 FOR EACH ROW EXECUTE FUNCTION com.fn_pago_proveedor_post();
 
@@ -1526,6 +1553,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_devolucion_compra_detalle ON com.devolucion_compra_detalles;
 CREATE TRIGGER trg_devolucion_compra_detalle AFTER INSERT ON com.devolucion_compra_detalles
 FOR EACH ROW EXECUTE FUNCTION com.fn_devolucion_detalle_post();
 
@@ -1540,6 +1568,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_gasto_post ON fin.gastos;
 CREATE TRIGGER trg_gasto_post AFTER INSERT ON fin.gastos
 FOR EACH ROW EXECUTE FUNCTION fin.fn_gasto_post();
 
@@ -1554,6 +1583,7 @@ BEGIN
     RETURN NEW;
 END $$;
 
+DROP TRIGGER IF EXISTS trg_ingreso_otro_post ON fin.ingresos_otros;
 CREATE TRIGGER trg_ingreso_otro_post AFTER INSERT ON fin.ingresos_otros
 FOR EACH ROW EXECUTE FUNCTION fin.fn_ingreso_otro_post();
 
@@ -1578,10 +1608,10 @@ BEGIN
       INTO v_estado, v_caja, v_usr, v_apertura, v_apertura_en
     FROM fin.turnos_caja WHERE turno_caja_id = p_turno FOR UPDATE;
 
-    IF v_estado IS NULL THEN RAISE EXCEPTION 'Turno % no existe', p_turno; END IF;
-    IF v_estado <> 'ABIERTO' THEN RAISE EXCEPTION 'El turno % ya esta cerrado', p_turno; END IF;
+    IF v_estado IS NULL THEN RAISE EXCEPTION 'Turno % no existe', p_turno USING ERRCODE = 'P0301'; END IF;
+    IF v_estado <> 'ABIERTO' THEN RAISE EXCEPTION 'El turno % ya esta cerrado', p_turno USING ERRCODE = 'P0300'; END IF;
     IF p_monto_contado IS NULL OR p_monto_contado < 0 THEN
-        RAISE EXCEPTION 'El monto contado es obligatorio y no puede ser negativo';
+        RAISE EXCEPTION 'El monto contado es obligatorio y no puede ser negativo' USING ERRCODE = 'P0302';
     END IF;
 
     SELECT almacen_id INTO v_alm FROM fin.cajas WHERE caja_id = v_caja;
@@ -1728,7 +1758,7 @@ BEGIN
     FROM ven.promociones WHERE promocion_id = p_promocion FOR UPDATE;
 
     IF v_max_total IS NOT NULL AND v_usados >= v_max_total THEN
-        RAISE EXCEPTION 'Promocion % agotada', p_promocion;
+        RAISE EXCEPTION 'Promocion % agotada', p_promocion USING ERRCODE = 'P0400';
     END IF;
 
     IF v_max_cli IS NOT NULL AND p_cliente IS NOT NULL THEN
@@ -1736,7 +1766,7 @@ BEGIN
         FROM ven.promocion_usos
         WHERE promocion_id = p_promocion AND cliente_id = p_cliente;
         IF v_usos_cli >= v_max_cli THEN
-            RAISE EXCEPTION 'El cliente alcanzo el limite de usos de esta promocion';
+            RAISE EXCEPTION 'El cliente alcanzo el limite de usos de esta promocion' USING ERRCODE = 'P0401';
         END IF;
     END IF;
 

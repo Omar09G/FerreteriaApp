@@ -1,0 +1,66 @@
+package mx.ferreteria.api.fin.api;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.fin.dto.FinDtos;
+import mx.ferreteria.api.fin.service.CajaService;
+
+@RestController
+@RequestMapping("/api/v1/cajas")
+@RequiredArgsConstructor
+@Validated
+public class CajaController {
+
+    private final CajaService service;
+
+    @GetMapping
+    public List<FinDtos.CajaResponse> list() {
+        return service.listCajas();
+    }
+
+    @GetMapping("/{cajaId}/turnos")
+    public Page<FinDtos.TurnoCajaResponse> listTurnos(
+            @PathVariable Integer cajaId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort) {
+        return service.listTurnos(cajaId, PageQuery.of(page, size, sort).toPageable());
+    }
+
+    @PostMapping("/{cajaId}/turnos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public FinDtos.TurnoCajaResponse abrirTurno(
+            @PathVariable Integer cajaId,
+            @Valid @RequestBody FinDtos.TurnoAperturaRequest req) {
+        var fullReq = new FinDtos.TurnoAperturaRequest(cajaId, req.montoApertura());
+        return service.abrirTurno(fullReq);
+    }
+
+    @PostMapping("/{cajaId}/turnos/{turnoId}/movimientos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public FinDtos.MovimientoCajaResponse registrarMovimiento(
+            @PathVariable Long turnoId,
+            @Valid @RequestBody FinDtos.MovimientoCajaRequest req) {
+        return service.registrarMovimiento(turnoId, req);
+    }
+
+    @GetMapping("/{cajaId}/turnos/{turnoId}/movimientos")
+    public List<FinDtos.MovimientoCajaResponse> listMovimientos(@PathVariable Long turnoId) {
+        return service.listMovimientos(turnoId);
+    }
+
+    @PostMapping("/{cajaId}/turnos/{turnoId}/corte")
+    public FinDtos.CorteCajaResponse cerrarTurno(
+            @PathVariable Long turnoId,
+            @Valid @RequestBody FinDtos.CorteRequest req) {
+        return service.cerrarTurno(turnoId, req);
+    }
+}

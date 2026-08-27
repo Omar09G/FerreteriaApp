@@ -1,0 +1,95 @@
+@Token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInVpZCI6MSwiZW1wIjoxLCJyb2wiOlsiQURNSU5JU1RSQURPUiJdLCJ0eXAiOiJhY2MiLCJpYXQiOjE3ODc4NjQwODMsImV4cCI6MTc4Nzg5Mjg4M30.EgVbe5Bud4ahmwxQdBezqa2xpGcyMoy4Y1sy8dRWdkI
+@username = admin
+@password = Admin123*
+@URL=http://localhost:8080
+@ROUTE_AUTH = /api/v1/auth
+@contentType = application/json
+
+@TokenCajero = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjYWplcm8xIiwidWlkIjoyLCJlbXAiOjIsInJvbCI6WyJFTkNBUkdBRE9fQ0FKQSJdLCJ0eXAiOiJhY2MiLCJpYXQiOjE3ODc4Njg2ODAsImV4cCI6MTc4Nzg5NzQ4MH0.eFUymqlwb5Z1km65TKTMbBm_XbHh0evJ6BYH1oRUNnI
+####LOGIN
+
+POST {{URL}}{{ROUTE_AUTH}}/login
+Content-Type: {{contentType}}
+
+{
+  "username":"{{username}}",
+  "password":"{{password}}"
+}
+
+
+####LOGIN cajero
+POST {{URL}}{{ROUTE_AUTH}}/login
+Content-Type: {{contentType}}
+
+{
+  "username":"cajero1",
+  "password":"Secreta123"
+}
+
+####LOGIN cajero ME
+GET {{URL}}{{ROUTE_AUTH}}/me
+Content-Type: {{contentType}}
+Accept: application/json
+Authorization: Bearer {{TokenCajero}}
+
+####ME 
+GET {{URL}}{{ROUTE_AUTH}}/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+
+#URL DE API ENDPOINTS 
+@URLAlmacen=/api/v1/almacenes
+@URLConteos=/api/v1/conteos-fisicos
+@URLMarcas=/api/v1/marcas
+@URLProveedores=/api/v1/proveedores
+@URLUnidadMedida=/api/v1/unidades-medida
+@URLCajas=/api/v1/cajas
+@URLConteosFisicos=/api/v1/conteos-fisicos
+@URLInventario=/api/v1/inventario
+@URLMovimientos=/api/v1/movimientos
+###
+GET {{URL}}{{URLAlmacen}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+#####
+GET {{URL}}{{URLConteos}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+#####
+GET {{URL}}{{URLMarcas}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+####
+GET {{URL}}{{URLProveedores}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+###Get Unidad de Medida
+GET {{URL}}{{URLUnidadMedida}} 
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+###Get Cajas
+GET {{URL}}{{URLCajas}} 
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+
+#####
+GET {{URL}}{{URLConteosFisicos}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+####
+GET {{URL}}{{URLInventario}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+#####
+GET {{URL}}{{URLMovimientos}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "java-springboot": {
+      "source": "github/awesome-copilot",
+      "sourceType": "autoskills-registry",
+      "computedHash": "0947c4f2c304d6897abc063e3ad53dc5a0ba4525d12fa5019a39b8ec5e31d8d5"
+    }
+  }
+}
