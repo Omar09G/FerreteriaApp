@@ -43,9 +43,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 String raw = header.substring(BEARER.length());
-                log.debug("Auth header crudo len={} head={} tail={}", header.length(),
-                        header.substring(0, Math.min(12, header.length())),
-                        header.substring(Math.max(0, header.length() - 8)));
                 Claims claims = jwtService.parseAccess(raw);
                 int uid = claims.get(JwtService.CLAIM_UID, Integer.class);
                 Integer emp = claims.get(JwtService.CLAIM_EMP, Integer.class);

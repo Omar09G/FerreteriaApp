@@ -1,5 +1,6 @@
 package mx.ferreteria.api.common.config;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,7 +24,7 @@ import mx.ferreteria.api.common.security.RestAuthEntryPoint;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-        private final JwtAuthFilter jwtAuthFilter; // Se inyecta aquí de manera normal
+        private final JwtAuthFilter jwtAuthFilter;
         private final RestAuthEntryPoint entryPoint;
 
         @Bean
@@ -31,15 +32,10 @@ public class SecurityConfig {
                 return new BCryptPasswordEncoder();
         }
 
-        /**
-         * CORRECCIÓN AQUÍ: Al pasar 'jwtAuthFilter' directamente, le aseguramos al
-         * contenedor de Servlets de Spring Boot que NO registre este filtro de manera
-         * global.
-         */
         @Bean
-        public org.springframework.boot.web.servlet.FilterRegistrationBean<JwtAuthFilter> jwtFilterRegistration() {
-                var reg = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(this.jwtAuthFilter);
-                reg.setEnabled(false); // Evita el doble registro global fuera de Spring Security
+        public FilterRegistrationBean<JwtAuthFilter> jwtFilterRegistration() {
+                var reg = new FilterRegistrationBean<>(this.jwtAuthFilter);
+                reg.setEnabled(false);
                 return reg;
         }
 
@@ -61,8 +57,6 @@ public class SecurityConfig {
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                                 .formLogin(f -> f.disable())
                                 .httpBasic(b -> b.disable())
-                                // Se añade explícitamente para deshabilitar el fallback por defecto de Spring
-                                // Boot
                                 .anonymous(a -> a.disable())
                                 .logout(l -> l.disable())
                                 .build();
