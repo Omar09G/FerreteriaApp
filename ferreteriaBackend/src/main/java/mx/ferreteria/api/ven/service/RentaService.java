@@ -18,6 +18,7 @@ import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
@@ -63,7 +64,7 @@ public class RentaService {
                 .fechaDevEsperada(req.fechaDevEsperada())
                 .deposito(req.deposito())
                 .costoTotal(BigDecimal.ZERO)
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         Renta saved = repo.save(entity);
 

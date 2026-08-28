@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.inv.dto.InvDtos.TrasladoDetalleRequest;
 import mx.ferreteria.api.inv.dto.InvDtos.TrasladoDetalleResponse;
 import mx.ferreteria.api.inv.dto.InvDtos.TrasladoRequest;
@@ -76,7 +77,7 @@ public class TrasladoService {
                 .folio("TR-" + System.currentTimeMillis())
                 .almacenOrigen(req.almacenOrigen())
                 .almacenDestino(req.almacenDestino())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         Traslado savedTraslado = repo.save(traslado);
 
@@ -102,7 +103,7 @@ public class TrasladoService {
                     .refTabla("TRASLADO")
                     .refId(savedTraslado.getTrasladoId())
                     .trasladoId(savedTraslado.getTrasladoId())
-                    .usuarioId(1)
+                    .usuarioId(UserPrincipal.actual().usuarioId())
                     .build());
 
             movimientoRepo.save(MovimientoInventario.builder()
@@ -114,7 +115,7 @@ public class TrasladoService {
                     .refTabla("TRASLADO")
                     .refId(savedTraslado.getTrasladoId())
                     .trasladoId(savedTraslado.getTrasladoId())
-                    .usuarioId(1)
+                    .usuarioId(UserPrincipal.actual().usuarioId())
                     .build());
         }
 

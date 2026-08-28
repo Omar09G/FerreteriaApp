@@ -23,6 +23,11 @@ import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
+import mx.ferreteria.api.common.security.UserPrincipal;
+import mx.ferreteria.api.fin.entity.Caja;
+import mx.ferreteria.api.fin.entity.TurnoCaja;
+import mx.ferreteria.api.fin.repo.CajaRepository;
+import mx.ferreteria.api.fin.repo.TurnoCajaRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.CuentaCobrar;
 import mx.ferreteria.api.ven.entity.PagoCliente;
@@ -46,6 +51,8 @@ public class VentaService {
     private final ProductoRepository productoRepo;
     private final FormaPagoRepository formaPagoRepo;
     private final CuentaCobrarRepository cuentaRepo;
+    private final TurnoCajaRepository turnoRepo;
+    private final CajaRepository cajaRepo;
 
     @Transactional(readOnly = true)
     public Page<VenDtos.VentaResponse> list(Integer almacenId, Instant desde, Instant hasta, Pageable pageable) {
@@ -75,6 +82,8 @@ public class VentaService {
         formaPagoRepo.findById(req.formaPagoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
 
+        Long turnoCajaId = resolverTurno(req.cajaId(), req.almacenId());
+
         Venta venta = Venta.builder()
                 .almacenId(req.almacenId())
                 .clienteId(req.clienteId())
@@ -85,7 +94,8 @@ public class VentaService {
                 .iva(BigDecimal.ZERO)
                 .descuentoTotal(BigDecimal.ZERO)
                 .total(BigDecimal.ZERO)
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
+                .turnoCajaId(turnoCajaId)
                 .notas(req.notas())
                 .build();
         Venta savedVenta = ventaRepo.save(venta);
@@ -114,6 +124,26 @@ public class VentaService {
         v.setEstado("CANCELADA");
         ventaRepo.save(v);
         return toResponse(v);
+    }
+
+    /**
+     * Si la petición incluye cajaId, devuelve el id del turno actualmente abierto para esa caja.
+     * Sin cajaId, la venta queda sin turno (compatibilidad hacia atrás: ventas que no pasan por caja).
+     * Lanza {@link ErrorCode#TURNO_NO_ABIERTO} si la caja no tiene turno ABIERTO.
+     * Lanza {@link ErrorCode#CAJA_ALMACEN_INCOMPATIBLE} si la caja del turno no pertenece
+     * al mismo almacén que la venta (protege contra errores de captura del POS).
+     */
+    private Long resolverTurno(Integer cajaId, int almacenVenta) {
+        if (cajaId == null) return null;
+        TurnoCaja turno = turnoRepo.findByCajaIdAndEstado(cajaId, "ABIERTO")
+                .orElseThrow(() -> new ReglaNegocioException(ErrorCode.TURNO_NO_ABIERTO, cajaId));
+        Caja caja = cajaRepo.findById(cajaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        if (caja.getAlmacenId() != null && caja.getAlmacenId() != almacenVenta) {
+            throw new ReglaNegocioException(ErrorCode.CAJA_ALMACEN_INCOMPATIBLE,
+                    cajaId, caja.getAlmacenId(), almacenVenta);
+        }
+        return turno.getTurnoCajaId();
     }
 
     private VenDtos.VentaResponse toResponse(Venta v) {

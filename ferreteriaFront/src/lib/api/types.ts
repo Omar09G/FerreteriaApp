@@ -392,6 +392,7 @@ export interface Venta {
 
 export interface VentaRequest {
   almacenId: number
+  cajaId?: number
   clienteId?: number
   cotizacionId?: number
   formaPagoId: number

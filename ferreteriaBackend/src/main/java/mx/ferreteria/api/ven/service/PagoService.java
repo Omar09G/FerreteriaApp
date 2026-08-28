@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.PagoCliente;
 import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
@@ -27,7 +28,7 @@ public class PagoService {
                 .formaPagoId(req.formaPagoId())
                 .monto(req.monto())
                 .referencia(req.referencia())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .turnoCajaId(req.turnoCajaId())
                 .build();
         PagoCliente saved = repo.save(pago);

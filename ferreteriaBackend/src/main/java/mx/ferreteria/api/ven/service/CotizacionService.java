@@ -17,6 +17,7 @@ import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.Cotizacion;
 import mx.ferreteria.api.ven.entity.CotizacionDetalle;
@@ -55,7 +56,7 @@ public class CotizacionService {
                 .subtotal(BigDecimal.ZERO)
                 .iva(BigDecimal.ZERO)
                 .total(BigDecimal.ZERO)
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         Cotizacion saved = repo.save(entity);
         for (VenDtos.CotizacionDetalleRequest d : req.detalles()) {

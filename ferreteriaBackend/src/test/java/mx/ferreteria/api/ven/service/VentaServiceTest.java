@@ -181,7 +181,7 @@ class VentaServiceTest {
                 .thenReturn(Optional.of(Producto.builder().productoId(1L).nombre("Martillo").build()));
 
         VenDtos.VentaRequest req = new VenDtos.VentaRequest(
-                1, null, null, 1,
+                1, null, null, null, 1,
                 List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("50.00"))),
                 List.of(new VenDtos.PagoRequest(1, new BigDecimal("116.00"), null)),
                 null);
@@ -200,7 +200,7 @@ class VentaServiceTest {
         when(almacenRepo.findById(99)).thenReturn(Optional.empty());
 
         VenDtos.VentaRequest req = new VenDtos.VentaRequest(
-                99, null, null, 1,
+                99, null, null, null, 1,
                 List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("1.000"), new BigDecimal("10.00"))),
                 List.of(new VenDtos.PagoRequest(1, new BigDecimal("10.00"), null)),
                 null);

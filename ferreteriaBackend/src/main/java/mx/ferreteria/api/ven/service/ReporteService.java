@@ -3,8 +3,9 @@ package mx.ferreteria.api.ven.service;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,15 @@ public class ReporteService {
 
     private final JdbcTemplate jdbc;
 
+    /**
+     * Mapper seguro para Java records. A diferencia de {@link org.springframework.jdbc.core.BeanPropertyRowMapper},
+     * que requiere constructor sin argumentos + setters, {@link DataClassRowMapper} usa el constructor
+     * canónico y resuelve los nombres de columna snake_case a camelCase automáticamente.
+     */
+    private static <T> RowMapper<T> mapper(Class<T> tipo) {
+        return DataClassRowMapper.newInstance(tipo);
+    }
+
     public List<ReportDtos.TopProductoResponse> topProductos(LocalDate inicio, LocalDate fin) {
         return jdbc.query(
             """
@@ -33,7 +43,7 @@ public class ReporteService {
                    SUM(d.total_linea)::numeric(14,2)                    AS ingreso_total,
                    SUM(d.cantidad * d.costo_unitario)::numeric(14,2)    AS costo_total,
                    (SUM(d.total_linea) - SUM(d.cantidad * d.costo_unitario))::numeric(14,2)
-                                                                        AS utilidad,
+                                                                       AS utilidad,
                    RANK() OVER (ORDER BY SUM(d.total_linea) DESC)       AS ranking_mes,
                    RANK() OVER (ORDER BY SUM(d.cantidad) DESC)          AS ranking_unidades
             FROM ven.venta_detalles d
@@ -45,7 +55,7 @@ public class ReporteService {
             ORDER BY ingreso_total DESC
             LIMIT 20
             """,
-            new BeanPropertyRowMapper<>(ReportDtos.TopProductoResponse.class),
+            mapper(ReportDtos.TopProductoResponse.class),
             inicio, inicio, fin);
     }
 
@@ -65,14 +75,14 @@ public class ReporteService {
             ORDER BY total_comprado DESC
             LIMIT 20
             """,
-            new BeanPropertyRowMapper<>(ReportDtos.MejorClienteResponse.class),
+            mapper(ReportDtos.MejorClienteResponse.class),
             inicio, inicio, fin);
     }
 
     public List<ReportDtos.VentaTotalResponse> ventasTotales(LocalDate inicio, LocalDate fin) {
         return jdbc.query(
             "SELECT * FROM ven.vw_ventas_totales WHERE fecha BETWEEN ? AND ? ORDER BY fecha",
-            new BeanPropertyRowMapper<>(ReportDtos.VentaTotalResponse.class),
+            mapper(ReportDtos.VentaTotalResponse.class),
             inicio, fin);
     }
 
@@ -89,9 +99,9 @@ public class ReporteService {
                    SUM(v.total)::numeric(14,2)                     AS total_vendido,
                    ROUND(AVG(v.total), 2)                          AS ticket_promedio,
                    (SUM(v.subtotal) - COALESCE(SUM(c.costo), 0))::numeric(14,2)
-                                                                   AS utilidad_generada,
-                   RANK() OVER (ORDER BY SUM(v.total) DESC)        AS ranking_mes,
-                   RANK() OVER (ORDER BY SUM(v.total) DESC)        AS ranking_historico
+                                                                  AS utilidad_generada,
+                   RANK() OVER (ORDER BY SUM(v.total) DESC)       AS ranking_mes,
+                   RANK() OVER (ORDER BY SUM(v.total) DESC)       AS ranking_historico
             FROM ven.ventas v
             JOIN seg.usuarios u ON u.usuario_id = v.usuario_id
             LEFT JOIN rh.empleados e ON e.empleado_id = u.empleado_id
@@ -101,7 +111,7 @@ public class ReporteService {
             ORDER BY total_vendido DESC
             LIMIT 20
             """,
-            new BeanPropertyRowMapper<>(ReportDtos.MejorVendedorResponse.class),
+            mapper(ReportDtos.MejorVendedorResponse.class),
             inicio, inicio, fin);
     }
 
@@ -118,7 +128,7 @@ public class ReporteService {
             GROUP BY EXTRACT(HOUR FROM v.fecha)
             ORDER BY hora
             """,
-            new BeanPropertyRowMapper<>(ReportDtos.VentaPorHoraResponse.class),
+            mapper(ReportDtos.VentaPorHoraResponse.class),
             inicio, fin);
     }
 
@@ -142,7 +152,7 @@ public class ReporteService {
             GROUP BY EXTRACT(ISODOW FROM v.fecha)
             ORDER BY ranking
             """,
-            new BeanPropertyRowMapper<>(ReportDtos.MejorDiaVentaResponse.class),
+            mapper(ReportDtos.MejorDiaVentaResponse.class),
             inicio, fin);
     }
 
@@ -166,21 +176,21 @@ public class ReporteService {
                  FROM inv.inventario i JOIN inv.productos p ON p.producto_id = i.producto_id
                  WHERE p.tipo = 'PRODUCTO')::numeric(14,2)                   AS valor_inventario,
               (SELECT COUNT(*) FROM inv.vw_stock_bajo WHERE alerta = 'AGOTADO')
-                                                                            AS productos_agotados,
+                                                                         AS productos_agotados,
               (SELECT COUNT(*) FROM ven.promociones
                 WHERE estado = 'ACTIVA' AND CURRENT_TIMESTAMP BETWEEN vigencia_desde
                   AND COALESCE(vigencia_hasta, 'infinity'::timestamptz))    AS promociones_activas,
               (SELECT COUNT(*) FROM fin.turnos_caja WHERE estado = 'ABIERTO')
-                                                                            AS cajas_abiertas
+                                                                         AS cajas_abiertas
             """,
-            new BeanPropertyRowMapper<>(ReportDtos.ResumenDashboardResponse.class),
+            mapper(ReportDtos.ResumenDashboardResponse.class),
             inicio, fin, inicio, fin, inicio, fin);
     }
 
     public List<ReportDtos.CierreDiarioResponse> cierreDiario(LocalDate inicio, LocalDate fin) {
         return jdbc.query(
             "SELECT * FROM fin.vw_cierre_diario WHERE fecha BETWEEN ? AND ? ORDER BY fecha",
-            new BeanPropertyRowMapper<>(ReportDtos.CierreDiarioResponse.class),
+            mapper(ReportDtos.CierreDiarioResponse.class),
             inicio, fin);
     }
 }

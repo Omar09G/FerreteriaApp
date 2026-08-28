@@ -16,6 +16,7 @@ import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.DevolucionDetalle;
 import mx.ferreteria.api.ven.entity.DevolucionVenta;
@@ -59,7 +60,7 @@ public class DevolucionService {
                 .motivo(req.motivo())
                 .total(BigDecimal.ZERO)
                 .formaDevolucionId(req.formaDevolucionId())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         DevolucionVenta saved = repo.save(dev);
 

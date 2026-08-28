@@ -6,6 +6,15 @@ export async function apiCajas(): Promise<Caja[]> {
   return data.data
 }
 
+/**
+ * Devuelve el turno actualmente ABIERTO de la caja o lanza ApiError(RECURSO_NO_ENCONTRADO) si no existe.
+ * Útil para que el POS pregunte antes de permitir ventas.
+ */
+export async function apiTurnoActual(cajaId: number): Promise<TurnoCaja> {
+  const { data } = await http.get<Envelope<TurnoCaja>>(`/cajas/${cajaId}/turno-actual`)
+  return data.data
+}
+
 export async function apiTurnos(cajaId: number, page: number, size = 10): Promise<PageEnvelope<TurnoCaja>> {
   const { data } = await http.get<PageEnvelope<TurnoCaja>>(`/cajas/${cajaId}/turnos`, { params: { page, size } })
   return data

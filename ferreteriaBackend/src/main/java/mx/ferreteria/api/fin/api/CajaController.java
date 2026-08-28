@@ -35,6 +35,11 @@ public class CajaController {
         return service.listTurnos(cajaId, PageQuery.of(page, size, sort).toPageable());
     }
 
+    @GetMapping("/{cajaId}/turno-actual")
+    public FinDtos.TurnoCajaResponse turnoActual(@PathVariable Integer cajaId) {
+        return service.getTurnoActual(cajaId);
+    }
+
     @PostMapping("/{cajaId}/turnos")
     @ResponseStatus(HttpStatus.CREATED)
     public FinDtos.TurnoCajaResponse abrirTurno(

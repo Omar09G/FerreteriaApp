@@ -42,6 +42,7 @@ public final class VenDtos {
     // ─── Venta (checkout) ───────────────────────────────────────────
     public record VentaRequest(
         @NotNull Integer almacenId,
+        Integer cajaId,
         Long clienteId,
         Long cotizacionId,
         @NotNull Integer formaPagoId,

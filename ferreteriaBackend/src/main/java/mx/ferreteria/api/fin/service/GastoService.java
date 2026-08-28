@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.fin.dto.FinDtos;
 import mx.ferreteria.api.fin.entity.Gasto;
 import mx.ferreteria.api.fin.entity.IngresoOtro;
@@ -38,7 +39,7 @@ public class GastoService {
                 .proveedorId(req.proveedorId())
                 .turnoCajaId(req.turnoCajaId())
                 .facturaUuid(req.facturaUuid())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         Gasto saved = gastoRepo.save(g);
         return toGastoResponse(saved);
@@ -58,7 +59,7 @@ public class GastoService {
                 .fecha(req.fecha() != null ? req.fecha() : java.time.LocalDate.now())
                 .formaPagoId(req.formaPagoId())
                 .turnoCajaId(req.turnoCajaId())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         IngresoOtro saved = ingresoRepo.save(io);
         return toIngresoResponse(saved);

@@ -22,9 +22,8 @@ import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
 function EstadoVenta({ estado }: { estado: string }) {
-  if (estado === 'PAGADA') return <Badge tone="success">Pagada</Badge>
+  if (estado === 'COMPLETADA') return <Badge tone="success">Completada</Badge>
   if (estado === 'CANCELADA') return <Badge tone="danger">Cancelada</Badge>
-  if (estado === 'CREDITO') return <Badge tone="info">Crédito</Badge>
   return <Badge>{estado}</Badge>
 }
 

@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.fin.dto.FinDtos;
 import mx.ferreteria.api.fin.entity.Caja;
 import mx.ferreteria.api.fin.entity.CorteCaja;
@@ -55,7 +56,7 @@ public class CajaService {
 
         TurnoCaja turno = TurnoCaja.builder()
                 .cajaId(req.cajaId())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .montoApertura(req.montoApertura())
                 .estado("ABIERTO")
                 .build();
@@ -79,6 +80,22 @@ public class CajaService {
                 });
     }
 
+    /**
+     * Devuelve el turno actualmente ABIERTO de la caja. Si no existe, lanza
+     * {@link ErrorCode#RECURSO_NO_ENCONTRADO} (404) — útil para que el POS
+     * pregunte antes de permitir ventas.
+     */
+    @Transactional(readOnly = true)
+    public FinDtos.TurnoCajaResponse getTurnoActual(Integer cajaId) {
+        if (!cajaRepo.existsById(cajaId)) {
+            throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
+        }
+        TurnoCaja t = turnoRepo.findByCajaIdAndEstado(cajaId, "ABIERTO")
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        String nombre = cajaRepo.findById(t.getCajaId()).map(Caja::getNombre).orElse(null);
+        return toTurnoResponse(t, nombre);
+    }
+
     // ─── Movimientos ────────────────────────────────────────────────
 
     public FinDtos.MovimientoCajaResponse registrarMovimiento(Long turnoId, FinDtos.MovimientoCajaRequest req) {
@@ -92,7 +109,7 @@ public class CajaService {
                 .formaPagoId(req.formaPagoId())
                 .refTabla(req.refTabla())
                 .refId(req.refId())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         MovimientoCaja saved = movRepo.save(mc);
         return toMovimientoResponse(saved);
@@ -107,10 +124,11 @@ public class CajaService {
     // ─── Corte de caja ──────────────────────────────────────────────
 
     public FinDtos.CorteCajaResponse cerrarTurno(Long turnoId, FinDtos.CorteRequest req) {
+        int usuarioCierreId = UserPrincipal.actual().usuarioId();
         Long corteId = jdbc.queryForObject(
-                "SELECT fin.fn_cerrar_turno(?, ?, 1, ?)",
+                "SELECT fin.fn_cerrar_turno(?, ?, ?, ?)",
                 Long.class,
-                turnoId, req.montoContado(), req.observaciones());
+                turnoId, req.montoContado(), usuarioCierreId, req.observaciones());
 
         CorteCaja corte = corteRepo.findById(corteId)
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));

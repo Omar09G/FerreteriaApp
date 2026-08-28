@@ -25,6 +25,7 @@ import mx.ferreteria.api.com.repo.CompraDetalleRepository;
 import mx.ferreteria.api.com.repo.CompraRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 
@@ -92,7 +93,7 @@ public class CompraService {
                 .descuentoTotal(BigDecimal.ZERO)
                 .total(BigDecimal.ZERO)
                 .estado("RECIBIDA")
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .turnoCajaId(req.turnoCajaId())
                 .notas(req.notas())
                 .build();

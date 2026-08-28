@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.inv.dto.InvDtos.ConteoFisicoDetalleRequest;
 import mx.ferreteria.api.inv.dto.InvDtos.ConteoFisicoRequest;
 import mx.ferreteria.api.inv.dto.InvDtos.ConteoFisicoResponse;
@@ -54,7 +55,7 @@ public class ConteoFisicoService {
         ConteoFisico conteo = ConteoFisico.builder()
                 .almacenId(req.almacenId())
                 .observaciones(req.observaciones())
-                .usuarioId(1)
+                .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         ConteoFisico savedConteo = repo.save(conteo);
 
