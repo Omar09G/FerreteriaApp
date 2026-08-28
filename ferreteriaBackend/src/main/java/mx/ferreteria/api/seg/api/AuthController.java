@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import mx.ferreteria.api.common.security.UserPrincipal;
+import mx.ferreteria.api.common.web.RateLimited;
 import mx.ferreteria.api.seg.dto.AuthDtos.ChangePasswordRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LoginRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LogoutOk;
@@ -37,6 +38,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
+    @RateLimited("auth")
     public TokenResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest http) {
         return authService.login(req, meta(http));
     }
@@ -46,6 +48,7 @@ public class AuthController {
      * de operar). Nunca asigna ADMIN: ver AuthService.register.
      */
     @PostMapping("/register")
+    @RateLimited("auth")
     public RegisterResponse register(@Valid @RequestBody RegisterRequest req) {
         return authService.register(req);
     }

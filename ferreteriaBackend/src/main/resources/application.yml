@@ -42,6 +42,30 @@ app:
     access-minutes: ${ACCESS_MINUTES:480} #Son 8 horas, para que coincida con el refresh-hours
     refresh-hours: ${REFRESH_HOURS:72} #Son 3 días, para que coincida con el access-minutes
   zona: ${ZONA:America/Mexico_City}
+  # CORS restrictivo por origen configurado (PLAN M7)
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+    exposed-headers: ${CORS_EXPOSED_HEADERS:X-Request-Id,X-RateLimit-Limit,X-RateLimit-Remaining,Retry-After}
+    max-age-seconds: ${CORS_MAX_AGE:3600}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:false}
+  # Rate limit bucket4j por controller (PLAN M7)
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    scope-by-user: ${RATE_LIMIT_SCOPE_BY_USER:true}
+    cache-max-size: ${RATE_LIMIT_CACHE_MAX_SIZE:200000}
+    cache-ttl-minutes: ${RATE_LIMIT_CACHE_TTL_MINUTES:30}
+    grupos:
+      default:
+        capacity: ${RATE_LIMIT_DEFAULT_CAPACITY:300}
+        refill-per-second: ${RATE_LIMIT_DEFAULT_REFILL:10}
+      auth:
+        capacity: ${RATE_LIMIT_AUTH_CAPACITY:10}
+        refill-per-second: ${RATE_LIMIT_AUTH_REFILL:1}
+      catalogo:
+        capacity: ${RATE_LIMIT_CATALOGO_CAPACITY:1200}
+        refill-per-second: ${RATE_LIMIT_CATALOGO_REFILL:40}
 
 management:
   endpoints:

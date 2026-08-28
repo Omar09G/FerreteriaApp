@@ -17,6 +17,8 @@ public enum ErrorCode {
     REFERENCIA_INVALIDA("error.validacion.referencia-invalida", HttpStatus.BAD_REQUEST),
     FALTA_REQUEST_ID("error.validacion.falta-request-id", HttpStatus.BAD_REQUEST),
     REQUEST_ID_INVALIDO("error.validacion.request-id-invalido", HttpStatus.BAD_REQUEST),
+    IDIOMA_INVALIDO("error.validacion.idioma-invalido", HttpStatus.BAD_REQUEST),
+    LIMITE_VELOCIDAD_EXCEDIDO("error.validacion.limite-velocidad-excedido", HttpStatus.TOO_MANY_REQUESTS),
 
     // negocio (ERRCODE clase P0 en la BD, ver PLAN §4.3)
     STOCK_INSUFICIENTE("error.negocio.stock-insuficiente", HttpStatus.CONFLICT),

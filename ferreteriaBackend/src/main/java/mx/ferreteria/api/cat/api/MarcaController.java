@@ -23,11 +23,13 @@ import mx.ferreteria.api.cat.dto.CatDtos.MarcaRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.MarcaResponse;
 import mx.ferreteria.api.cat.service.MarcaService;
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.common.web.RateLimited;
 
 @RestController
 @RequestMapping("/api/v1/marcas")
 @RequiredArgsConstructor
 @Validated
+@RateLimited("catalogo")
 public class MarcaController {
 
     private final MarcaService service;

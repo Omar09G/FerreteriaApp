@@ -2,9 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Languages, Lock, Monitor, Moon, Sun, User } from 'lucide-react'
 
-import http, { mensajeError } from '@/lib/api/client'
+import { mensajeError } from '@/lib/api/client'
 import { apiLogin } from '@/lib/api/endpoints'
-import type { Envelope, TokenResponse } from '@/lib/api/types'
 import { useAuthStore } from '@/store/auth'
 import { useUiStore, type Tema } from '@/store/ui'
 import { useT } from '@/i18n'
@@ -42,10 +41,6 @@ export default function Login() {
     try {
       const token = await apiLogin({ username, password })
       setSession(token)
-      // Sesión única: efectuamos el refresh rotativo de forma transparente.
-      if (token.refreshToken) {
-        void http.post<Envelope<TokenResponse>>('/auth/refresh', { refreshToken: token.refreshToken })
-      }
       navigate(destino, { replace: true })
     } catch (err) {
       setError(mensajeError(err))

@@ -25,11 +25,13 @@ import mx.ferreteria.api.cat.dto.CatDtos.CategoriaRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.CategoriaResponse;
 import mx.ferreteria.api.cat.service.CategoriaService;
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.common.web.RateLimited;
 
 @RestController
 @RequestMapping("/api/v1/categorias")
 @RequiredArgsConstructor
 @Validated
+@RateLimited("catalogo")
 public class CategoriaController {
 
     private final CategoriaService service;

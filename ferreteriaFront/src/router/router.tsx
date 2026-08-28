@@ -34,6 +34,7 @@ const CuentasPagarPage = lazy(() => import('@/features/compras/CuentasPagarPage'
 const EmpleadosPage = lazy(() => import('@/features/rrhh/EmpleadosPage'))
 const UsuariosPage = lazy(() => import('@/features/seguridad/UsuariosPage'))
 const CobranzaPage = lazy(() => import('@/features/ventas/CobranzaPage'))
+const VentasPage = lazy(() => import('@/features/ventas/VentasPage'))
 const GastosPage = lazy(() => import('@/features/caja/GastosPage'))
 const ProveedoresPage = lazy(() => import('@/features/catalogo/ProveedoresPage'))
 const CotizacionesPage = lazy(() => import('@/features/ventas/CotizacionesPage'))
@@ -91,6 +92,8 @@ export const router = createBrowserRouter([
             { path: 'cuentas-pagar', element: <Suspense fallback={spinners.full}><CuentasPagarPage /></Suspense> },
           ]},
           { path: 'ventas', children: [
+            { index: true, element: <Navigate to="/ventas/historial" replace /> },
+            { path: 'historial', element: <Suspense fallback={spinners.full}><VentasPage /></Suspense> },
             { path: 'cobranza', element: <Suspense fallback={spinners.full}><CobranzaPage /></Suspense> },
             { path: 'cotizaciones', element: <Suspense fallback={spinners.full}><CotizacionesPage /></Suspense> },
             { path: 'rentas', element: <Suspense fallback={spinners.full}><RentasPage /></Suspense> },
@@ -99,6 +102,7 @@ export const router = createBrowserRouter([
           { path: 'caja', children: [
             { path: 'cajas', element: <Suspense fallback={spinners.full}><CajaPage /></Suspense> },
             { path: 'gastos', element: <Suspense fallback={spinners.full}><GastosPage /></Suspense> },
+            { path: 'ingresos', element: <Suspense fallback={spinners.full}><GastosPage /></Suspense> },
             { path: 'cortes', element: <Suspense fallback={spinners.full}><CajaPage /></Suspense> },
           ]},
           { path: 'rrhh', children: [

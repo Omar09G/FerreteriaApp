@@ -23,11 +23,13 @@ import mx.ferreteria.api.cat.dto.CatDtos.ProveedorRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProveedorResponse;
 import mx.ferreteria.api.cat.service.ProveedorService;
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.common.web.RateLimited;
 
 @RestController
 @RequestMapping("/api/v1/proveedores")
 @RequiredArgsConstructor
 @Validated
+@RateLimited("catalogo")
 public class ProveedorController {
 
     private final ProveedorService service;

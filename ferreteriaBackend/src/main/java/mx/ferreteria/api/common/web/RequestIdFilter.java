@@ -90,13 +90,12 @@ public class RequestIdFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Default es-MX fijo (PLAN §4.4); Accept-Language del request puede forzar en.
+     * Default es-MX fijo (PLAN §4.4). Acepta forzar via query param
+     * {@code ?lang=es|en} (validado por {@link LangParamFilter}, PLAN M7.1)
+     * o via header {@code Accept-Language}. Delegado a {@link LocaleResolver}
+     * para que todos los puntos del API compartan la misma precedencia.
      */
     public static Locale resolveLocale(HttpServletRequest req) {
-        String al = req.getHeader("Accept-Language");
-        if (al != null && al.toLowerCase(java.util.Locale.ROOT).startsWith("en")) {
-            return Locale.ENGLISH;
-        }
-        return Locale.of("es", "MX");
+        return LocaleResolver.resolve(req);
     }
 }

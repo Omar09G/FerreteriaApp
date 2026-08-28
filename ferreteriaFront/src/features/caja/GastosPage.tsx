@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownToLine, ReceiptText } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { esApiError } from '@/lib/api/client'
@@ -153,8 +154,10 @@ export default function GastosPage() {
   useDocumentTitle('Gastos e ingresos')
   const { error: mostrarError, success: mostrarExito } = useToast()
   const queryClient = useQueryClient()
+  const location = useLocation()
+  const tabInicial: 'gastos' | 'ingresos' = location.pathname.endsWith('/ingresos') ? 'ingresos' : 'gastos'
 
-  const [tab, setTab] = useState<'gastos' | 'ingresos'>('gastos')
+  const [tab, setTab] = useState<'gastos' | 'ingresos'>(tabInicial)
   const [page, setPage] = useState(0)
   const [dialogo, setDialogo] = useState<'gasto' | 'ingreso' | null>(null)
 
@@ -212,8 +215,12 @@ export default function GastosPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink">Gastos e ingresos de caja</h1>
-          <p className="text-sm text-muted">Egresos (gastos) y entradas (ingresos no provenientes de venta).</p>
+          <h1 className="text-xl font-bold text-ink">
+            {tab === 'gastos' ? 'Gastos de caja' : 'Ingresos de caja'}
+          </h1>
+          <p className="text-sm text-muted">
+            {tab === 'gastos' ? 'Egresos registrados en caja.' : 'Entradas no provenientes de venta (cobros especiales, ventas de activo, etc.).'}
+          </p>
         </div>
         <Button onClick={() => setDialogo(tab === 'gastos' ? 'gasto' : 'ingreso')}>
           {tab === 'gastos' ? <ReceiptText className="h-4 w-4" /> : <ArrowDownToLine className="h-4 w-4" />} {tab === 'gastos' ? 'Registrar gasto' : 'Registrar ingreso'}

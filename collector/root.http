@@ -1,4 +1,4 @@
-@Token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInVpZCI6MSwiZW1wIjoxLCJyb2wiOlsiQURNSU5JU1RSQURPUiJdLCJ0eXAiOiJhY2MiLCJpYXQiOjE3ODc4NjQwODMsImV4cCI6MTc4Nzg5Mjg4M30.EgVbe5Bud4ahmwxQdBezqa2xpGcyMoy4Y1sy8dRWdkI
+@Token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInVpZCI6MSwiZW1wIjoxLCJyb2wiOlsiQURNSU5JU1RSQURPUiJdLCJ0eXAiOiJhY2MiLCJpYXQiOjE3ODc5Mzc1MjYsImV4cCI6MTc4Nzk2NjMyNn0.N1k6D09SRAGK4A_u78BGMz1iCoM2rT-PDJCwGAD98oI
 @username = admin
 @password = Admin123*
 @URL=http://localhost:8080
@@ -48,6 +48,7 @@ Authorization: Bearer {{Token}}
 @URLConteosFisicos=/api/v1/conteos-fisicos
 @URLInventario=/api/v1/inventario
 @URLMovimientos=/api/v1/movimientos
+@URLVentas=/api/v1/ventas
 ###
 GET {{URL}}{{URLAlmacen}}
 Content-Type: {{contentType}}
@@ -91,5 +92,10 @@ Authorization: Bearer {{Token}}
 
 #####
 GET {{URL}}{{URLMovimientos}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+####VENTAS
+GET {{URL}}{{URLVentas}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{Token}}

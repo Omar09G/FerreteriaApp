@@ -23,11 +23,13 @@ import mx.ferreteria.api.cat.dto.CatDtos.ProductoRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoResponse;
 import mx.ferreteria.api.cat.service.ProductoService;
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.common.web.RateLimited;
 
 @RestController
 @RequestMapping("/api/v1/productos")
 @RequiredArgsConstructor
 @Validated
+@RateLimited("catalogo")
 public class ProductoController {
 
     private final ProductoService service;

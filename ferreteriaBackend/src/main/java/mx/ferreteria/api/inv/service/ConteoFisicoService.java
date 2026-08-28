@@ -47,9 +47,10 @@ public class ConteoFisicoService {
     }
 
     public ConteoFisicoResponse create(ConteoFisicoRequest req) {
-        Almacen almacen = almacenRepo.findById(req.almacenId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
 
+        if (!almacenRepo.existsById(req.almacenId())) {
+            throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
+        }
         ConteoFisico conteo = ConteoFisico.builder()
                 .almacenId(req.almacenId())
                 .observaciones(req.observaciones())

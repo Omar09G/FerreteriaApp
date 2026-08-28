@@ -4,6 +4,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,11 +13,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import lombok.RequiredArgsConstructor;
 
 import mx.ferreteria.api.common.security.JwtAuthFilter;
 import mx.ferreteria.api.common.security.RestAuthEntryPoint;
+import mx.ferreteria.api.common.web.CorsConfigurationFactory;
+import mx.ferreteria.api.common.web.CorsProperties;
 
 @Configuration
 @EnableWebSecurity
@@ -26,10 +30,16 @@ public class SecurityConfig {
 
         private final JwtAuthFilter jwtAuthFilter;
         private final RestAuthEntryPoint entryPoint;
+        private final CorsProperties corsProperties;
 
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                return CorsConfigurationFactory.source(corsProperties);
         }
 
         @Bean
@@ -43,6 +53,7 @@ public class SecurityConfig {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 return http
                                 .csrf(csrf -> csrf.disable())
+                                .cors(Customizer.withDefaults())
                                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
                                 .authorizeHttpRequests(auth -> auth

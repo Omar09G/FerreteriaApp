@@ -23,11 +23,13 @@ import mx.ferreteria.api.cat.dto.CatDtos.UnidadMedidaRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.UnidadMedidaResponse;
 import mx.ferreteria.api.cat.service.UnidadMedidaService;
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.common.web.RateLimited;
 
 @RestController
 @RequestMapping("/api/v1/unidades-medida")
 @RequiredArgsConstructor
 @Validated
+@RateLimited("catalogo")
 public class UnidadMedidaController {
 
     private final UnidadMedidaService service;

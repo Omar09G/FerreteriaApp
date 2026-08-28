@@ -6,9 +6,14 @@ import lombok.*;
 
 @Entity
 @Table(name = "venta_detalles", schema = "ven")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class VentaDetalle {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long ventaDetalleId;
 
     @Column(nullable = false)
@@ -24,12 +29,14 @@ public class VentaDetalle {
     private BigDecimal precioUnitario;
 
     @Column(nullable = false, precision = 12, scale = 2)
-    @Builder.Default private BigDecimal costoUnitario = BigDecimal.ZERO;
+    @Builder.Default
+    private BigDecimal costoUnitario = BigDecimal.ZERO;
 
     @Column(nullable = false, precision = 12, scale = 2)
-    @Builder.Default private BigDecimal descuentoLinea = BigDecimal.ZERO;
+    @Builder.Default
+    private BigDecimal descuentoLinea = BigDecimal.ZERO;
 
-    @Column(columnDefinition = "numeric(14,2) generated always as (cantidad * precio_unitario - descuento_linea) stored")
+    @Column(columnDefinition = "numeric(14,2) generated always as (cantidad * precio_unitario - descuento_linea) stored", insertable = false, updatable = false)
     private BigDecimal totalLinea;
 
     private Long promocionId;

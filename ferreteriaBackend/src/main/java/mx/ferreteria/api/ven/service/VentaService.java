@@ -2,6 +2,8 @@ package mx.ferreteria.api.ven.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -22,9 +24,11 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
+import mx.ferreteria.api.ven.entity.CuentaCobrar;
 import mx.ferreteria.api.ven.entity.PagoCliente;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
+import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
 import mx.ferreteria.api.ven.repo.PagoClienteRepository;
 import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
@@ -41,6 +45,7 @@ public class VentaService {
     private final ClienteRepository clienteRepo;
     private final ProductoRepository productoRepo;
     private final FormaPagoRepository formaPagoRepo;
+    private final CuentaCobrarRepository cuentaRepo;
 
     @Transactional(readOnly = true)
     public Page<VenDtos.VentaResponse> list(Integer almacenId, Instant desde, Instant hasta, Pageable pageable) {
@@ -63,8 +68,10 @@ public class VentaService {
     }
 
     public VenDtos.VentaResponse checkout(VenDtos.VentaRequest req) {
-        Almacen almacen = almacenRepo.findById(req.almacenId())
-                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        if (!almacenRepo.existsById(req.almacenId())) {
+            throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
+        }
+
         formaPagoRepo.findById(req.formaPagoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
 
@@ -91,17 +98,6 @@ public class VentaService {
                     .precioUnitario(d.precioUnitario())
                     .build();
             detalleRepo.save(det);
-        }
-
-        for (VenDtos.PagoRequest p : req.pagos()) {
-            PagoCliente pago = PagoCliente.builder()
-                    .cuentaCobrarId(null)
-                    .formaPagoId(p.formaPagoId())
-                    .monto(p.monto())
-                    .referencia(p.referencia())
-                    .usuarioId(1)
-                    .build();
-            pagoRepo.save(pago);
         }
 
         ventaRepo.flush();

@@ -1,11 +1,16 @@
 import { useState, type ReactNode } from 'react'
-import { Boxes, BarChart3, Building2, CalendarCheck2, FileText, HardHat, Languages, LayoutDashboard, LogOut, Menu, Monitor, Moon, ReceiptText, Settings, ShoppingCart, Sun, Truck, Undo2, UserCog, Users2, Warehouse, X } from 'lucide-react'
+import { Boxes, BarChart3, Building2, CalendarCheck2, CircleDollarSign, FileText, HardHat, KeyRound, Languages, LayoutDashboard, LogOut, Menu, Monitor, Moon, ReceiptText, Settings, ShoppingCart, Sun, Truck, Undo2, UserCog, Users2, Warehouse, X } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { useAuthStore, tieneRol } from '@/store/auth'
 import { useUiStore, type Tema } from '@/store/ui'
 import { useT } from '@/i18n'
+import { apiCambiarPassword, apiLogout } from '@/lib/api/endpoints'
+import { esApiError } from '@/lib/api/client'
 import { Button } from '@/components/ui/Button'
+import { Dialog } from '@/components/ui/Dialog'
+import { Input } from '@/components/ui/Input'
+import { useToast } from '@/components/ui/Toast'
 
 interface Item {
   clave: string
@@ -42,6 +47,7 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
   {
     clave: 'comercial',
     items: [
+      { clave: 'historial', a: '/ventas/historial', icono: <ReceiptText className="h-4 w-4" /> },
       { clave: 'cobranza', a: '/ventas/cobranza', icono: <Building2 className="h-4 w-4" /> },
       { clave: 'cotizaciones', a: '/ventas/cotizaciones', icono: <FileText className="h-4 w-4" /> },
       { clave: 'rentas', a: '/ventas/rentas', icono: <HardHat className="h-4 w-4" /> },
@@ -55,6 +61,7 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
     items: [
       { clave: 'caja', a: '/caja/cajas', icono: <Building2 className="h-4 w-4" /> },
       { clave: 'gastos', a: '/caja/gastos', icono: <FileText className="h-4 w-4" /> },
+      { clave: 'ingresos', a: '/caja/ingresos', icono: <CircleDollarSign className="h-4 w-4" /> },
       { clave: 'nomina', a: '/rrhh/nomina', icono: <Users2 className="h-4 w-4" /> },
       { clave: 'empleados', a: '/rrhh/empleados', icono: <Users2 className="h-4 w-4" />, roles: ['ADMINISTRADOR'] },
       { clave: 'usuarios', a: '/seguridad/usuarios', icono: <UserCog className="h-4 w-4" />, roles: ['ADMINISTRADOR'] },
@@ -66,6 +73,84 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
 
 const TEMA_SIGUIENTE: Record<Tema, Tema> = { light: 'dark', dark: 'system', system: 'light' }
 const ICONO_TEMA = { light: Sun, dark: Moon, system: Monitor }
+
+function CambiarPasswordForm({ onExito, onClose }: { onExito: () => void; onClose: () => void }) {
+  const { error: mostrarError, success: mostrarExito } = useToast()
+  const [actual, setActual] = useState('')
+  const [nueva, setNueva] = useState('')
+  const [confirmacion, setConfirmacion] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [errorCampo, setErrorCampo] = useState<string | null>(null)
+
+  const enviar = async () => {
+    setErrorCampo(null)
+    if (actual.length === 0 || nueva.length < 8) {
+      setErrorCampo('La nueva contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+    if (nueva !== confirmacion) {
+      setErrorCampo('La confirmación no coincide.')
+      return
+    }
+    setEnviando(true)
+    try {
+      await apiCambiarPassword({ passwordActual: actual, nuevaPassword: nueva })
+      mostrarExito('Contraseña actualizada.')
+      onExito()
+      onClose()
+    } catch (err) {
+      mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err))
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <Input
+        label="Contraseña actual"
+        type="password"
+        required
+        value={actual}
+        onChange={(e) => setActual(e.target.value)}
+        autoComplete="current-password"
+      />
+      <Input
+        label="Nueva contraseña (mín. 8)"
+        type="password"
+        required
+        value={nueva}
+        onChange={(e) => setNueva(e.target.value)}
+        autoComplete="new-password"
+      />
+      <Input
+        label="Confirmar nueva contraseña"
+        type="password"
+        required
+        value={confirmacion}
+        onChange={(e) => setConfirmacion(e.target.value)}
+        autoComplete="new-password"
+        error={errorCampo ?? undefined}
+      />
+      <div className="flex justify-end gap-2 pt-1">
+        <Button variant="ghost" disabled={enviando} onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button disabled={enviando} onClick={enviar}>
+          {enviando ? 'Guardando…' : 'Guardar'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function CambiarPasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onClose={onClose} title="Cambiar contraseña" width="max-w-md">
+      {open && <CambiarPasswordForm onExito={() => undefined} onClose={onClose} />}
+    </Dialog>
+  )
+}
 
 function SidebarNav() {
   const roles = useAuthStore((s) => s.usuario?.roles)
@@ -139,12 +224,21 @@ function Preferencias() {
 
 export function AppShell() {
   const [menuAbierto, setMenuAbierto] = useState(false)
+  const [passwordAbierto, setPasswordAbierto] = useState(false)
   const t = useT()
   const usuario = useAuthStore((s) => s.usuario)
+  const refreshToken = useAuthStore((s) => s.refreshToken)
   const clearSession = useAuthStore((s) => s.clearSession)
   const navigate = useNavigate()
 
-  const cerrarSesion = () => {
+  const cerrarSesion = async () => {
+    if (refreshToken) {
+      try {
+        await apiLogout(refreshToken)
+      } catch {
+        // best-effort: si falla, igual limpiamos local
+      }
+    }
     clearSession()
     navigate('/login', { replace: true })
   }
@@ -175,6 +269,15 @@ export function AppShell() {
           </div>
           <Button variant="ghost" size="sm" onClick={cerrarSesion} className="mt-2 w-full text-orange-100 hover:bg-orange-900/40">
             <LogOut className="h-4 w-4" /> {t('appshell.cerrarSesion')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setPasswordAbierto(true)}
+            className="mt-1 w-full text-orange-100 hover:bg-orange-900/40"
+            aria-label="Cambiar contraseña"
+          >
+            <KeyRound className="h-4 w-4" /> Cambiar contraseña
           </Button>
         </div>
       </aside>
@@ -214,6 +317,8 @@ export function AppShell() {
           <Outlet />
         </div>
       </main>
+
+      <CambiarPasswordDialog open={passwordAbierto} onClose={() => setPasswordAbierto(false)} />
     </div>
   )
 }

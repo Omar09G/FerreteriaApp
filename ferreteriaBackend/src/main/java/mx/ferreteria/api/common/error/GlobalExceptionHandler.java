@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+
+import mx.ferreteria.api.common.web.LocaleResolver;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +41,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApi(ApiException ex, HttpServletRequest req) {
         return ResponseEntity.status(ex.errorCode().http())
-                .body(errorBody(ex.errorCode(), ex.args(), currentLocale(), req));
+                .body(errorBody(ex.errorCode(), ex.args(), currentLocale(req), req));
     }
 
     @ExceptionHandler(DataAccessException.class)
@@ -49,19 +51,19 @@ public class GlobalExceptionHandler {
                 .map(code -> {
                     log.warn("ERRCODE de negocio traducido: {} -> {}", code, ex.getMostSpecificCause().getMessage());
                     return ResponseEntity.status(code.http())
-                            .<Map<String, Object>>body(errorBody(code, new Object[0], currentLocale(), req));
+                            .<Map<String, Object>>body(errorBody(code, new Object[0], currentLocale(req), req));
                 })
                 .orElseGet(() -> {
                     log.error("DataAccessException sin contrato", ex);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(), req));
+                            .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(req), req));
                 });
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex,
                                                                HttpServletRequest req) {
-        Map<String, Object> body = errorBody(ErrorCode.CAMPO_REQUERIDO, new Object[0], currentLocale(), req);
+        Map<String, Object> body = errorBody(ErrorCode.CAMPO_REQUERIDO, new Object[0], currentLocale(req), req);
         List<Map<String, String>> details = new ArrayList<>();
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
             Map<String, String> d = new LinkedHashMap<>();
@@ -77,7 +79,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex, HttpServletRequest req) {
         log.error("Error no controlado en {}", req.getRequestURI(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(), req));
+                .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(req), req));
     }
 
     /** Construcción central: {success, data, errorCode, codigo, errorMessage, requestId, instance} */
@@ -98,7 +100,13 @@ public class GlobalExceptionHandler {
         return body;
     }
 
-    private Locale currentLocale() {
+    private Locale currentLocale(jakarta.servlet.http.HttpServletRequest req) {
+        if (req != null) {
+            Object cached = req.getAttribute(LocaleResolver.ATTR_LOCALE);
+            if (cached instanceof Locale l) {
+                return l;
+            }
+        }
         return LocaleContextHolder.getLocale();
     }
 
