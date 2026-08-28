@@ -1,6 +1,12 @@
 spring:
   application:
     name: ferreteria-backend
+  autoconfigure:
+    exclude:
+      # Auth es 100% JWT contra seg.usuarios. Sin esta exclusión el auto-config de
+      # Spring Security registra un usuario in-memory y loguea
+      # "Using generated security password: ..." (warn de arranque).
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
     url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:6432}/${PG_DATABASE:ferreteria}
     username: ${PG_USER:ferreteria_app}

@@ -32,13 +32,7 @@ public enum ErrorCode {
 
     // genéricas / internas
     ERROR_INTERNO("error.interno.inesperado", HttpStatus.INTERNAL_SERVER_ERROR),
-    SERVICIO_NO_DISPONIBLE("error.interno.servicio-no-disponible", HttpStatus.SERVICE_UNAVAILABLE),
-
-    // JWT secret configuration errors
-    JWT_SECRET_NO_CONFIGURADO("error.interno.jwt-secret-no-configurado", HttpStatus.INTERNAL_SERVER_ERROR),
-    JWT_SECRET_INVALIDO("error.interno.jwt-secret-invalido", HttpStatus.INTERNAL_SERVER_ERROR),
-    JWT_MINUTES_INVALIDO("error.interno.jwt.minutes-invalido", HttpStatus.INTERNAL_SERVER_ERROR),
-    JWT_HOURS_INVALIDO("error.interno.jwt.hours-invalido", HttpStatus.INTERNAL_SERVER_ERROR);
+    SERVICIO_NO_DISPONIBLE("error.interno.servicio-no-disponible", HttpStatus.SERVICE_UNAVAILABLE);
 
     private final String key;
     private final HttpStatus http;

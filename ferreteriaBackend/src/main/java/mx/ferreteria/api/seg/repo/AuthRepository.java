@@ -78,10 +78,34 @@ public class AuthRepository implements AuthUserGateway {
         }
 
         @Override
+        public Optional<RefreshRow> findRefreshRow(String tokenHash) {
+                return jdbc.sql("""
+                                SELECT usuario_id, expires_at, revoked_at
+                                FROM seg.refresh_tokens WHERE token_hash = :h
+                                """)
+                                .param("h", tokenHash)
+                                .query((rs, n) -> {
+                                        Timestamp rev = rs.getTimestamp("revoked_at");
+                                        return new RefreshRow(rs.getInt("usuario_id"),
+                                                        rs.getTimestamp("expires_at").toInstant(),
+                                                        rev == null ? null : rev.toInstant());
+                                })
+                                .optional();
+        }
+
+        @Override
         public void revokeByHash(String tokenHash) {
                 jdbc.sql("UPDATE seg.refresh_tokens SET revoked_at = now() "
                                 + "WHERE token_hash = :h AND revoked_at IS NULL")
                                 .param("h", tokenHash)
+                                .update();
+        }
+
+        @Override
+        public void revokeAllRefreshTokens(int usuarioId) {
+                jdbc.sql("UPDATE seg.refresh_tokens SET revoked_at = now() "
+                                + "WHERE usuario_id = :id AND revoked_at IS NULL")
+                                .param("id", usuarioId)
                                 .update();
         }
 

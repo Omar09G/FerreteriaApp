@@ -1,0 +1,310 @@
+import { useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Minus, Plus, Search, ShoppingBasket, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { esApiError } from '@/lib/api/client'
+import { apiProductos, apiAlmacenes, apiClientes } from '@/lib/api/catalogo'
+import { apiCheckout } from '@/lib/api/venta'
+import { FORMAS_PAGO, type Producto, type Venta } from '@/lib/api/types'
+import { formatoMoneda } from '@/lib/format'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Dialog } from '@/components/ui/Dialog'
+import { Input, Select } from '@/components/ui/Input'
+import { Spinner } from '@/components/ui/Spinner'
+import { useToast } from '@/components/ui/Toast'
+
+interface Linea {
+  productoId: number
+  codigo: string | null
+  nombre: string
+  cantidad: number
+  precioUnitario: number
+}
+
+export default function PosPage() {
+  useDocumentTitle('Punto de venta')
+  const { error: mostrarError, success: mostrarExito } = useToast()
+
+  const [almacenId, setAlmacenId] = useState<number | ''>('')
+  const [clienteId, setClienteId] = useState<string>('')
+  const [busqueda, setBusqueda] = useState('')
+  const [q, setQ] = useState('')
+  const [lineas, setLineas] = useState<Linea[]>([])
+  const [formaPagoId, setFormaPagoId] = useState<number>(1)
+  const [recibido, setRecibido] = useState('')
+  const [referencia, setReferencia] = useState('')
+  const [notas, setNotas] = useState('')
+  const [ventaResultado, setVentaResultado] = useState<Venta | null>(null)
+
+  const almacenes = useQuery({ queryKey: ['almacenes'], queryFn: apiAlmacenes })
+  const clientes = useQuery({ queryKey: ['clientes-pos'], queryFn: () => apiClientes({ page: 0, size: 50 }) })
+  const resultados = useQuery({
+    queryKey: ['productos-pos', q],
+    queryFn: () => apiProductos({ q: q || undefined, page: 0, size: 20 }),
+    enabled: q.length > 0,
+  })
+
+  const checkout = useMutation({
+    mutationFn: () => {
+      const monto = Number(recibido) > 0 ? Number(recibido) : 0
+      return apiCheckout({
+        almacenId: Number(almacenId),
+        clienteId: clienteId ? Number(clienteId) : undefined,
+        formaPagoId,
+        detalles: lineas.map((l) => ({ productoId: l.productoId, cantidad: l.cantidad, precioUnitario: l.precioUnitario })),
+        pagos: [{ formaPagoId, monto, referencia: referencia.trim() || undefined }],
+        notas: notas.trim() || undefined,
+      })
+    },
+    onSuccess: (venta) => {
+      mostrarExito(`Venta ${venta.folio} registrada.`)
+      setVentaResultado(venta)
+      setLineas([])
+      setBusqueda('')
+      setQ('')
+      setRecibido('')
+      setReferencia('')
+      setNotas('')
+    },
+    onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+  })
+
+  const total = lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0)
+  const forma = FORMAS_PAGO.find((f) => f.id === formaPagoId) ?? FORMAS_PAGO[0]
+  const esEfectivo = forma.esEfectivo
+  const cambio = esEfectivo && Number(recibido) >= total ? Number(recibido) - total : 0
+
+  const puedeVender =
+    almacenId !== '' && lineas.length > 0 && lineas.every((l) => l.cantidad > 0 && l.precioUnitario >= 0) && (!esEfectivo || Number(recibido) >= total)
+
+  const agregar = (p: Producto) => {
+    setLineas((prev) => {
+      const exist = prev.find((l) => l.productoId === p.productoId)
+      if (exist) return prev.map((l) => (l.productoId === p.productoId ? { ...l, cantidad: l.cantidad + 1 } : l))
+      return [...prev, { productoId: p.productoId, codigo: p.codigo, nombre: p.nombre, cantidad: 1, precioUnitario: p.precioMenudeo }]
+    })
+  }
+
+  const cambiarCantidad = (id: number, n: number) => setLineas((prev) => prev.map((l) => (l.productoId === id ? { ...l, cantidad: Math.max(0, n) } : l)))
+  const cambiarPrecio = (id: number, p: number) => setLineas((prev) => prev.map((l) => (l.productoId === id ? { ...l, precioUnitario: Math.max(0, p) } : l)))
+
+  return (
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Punto de venta</h1>
+          <p className="text-sm text-muted">Registra ventas al instante: busca el producto, cobra y entrega el ticket.</p>
+        </div>
+      </header>
+
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="space-y-4 lg:col-span-3">
+          <Card>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select label="Almacén / punto de venta" required value={almacenId} onChange={(e) => setAlmacenId(e.target.value ? Number(e.target.value) : '')}>
+                <option value="">Selecciona…</option>
+                {almacenes.data?.map((a) => (
+                  <option key={a.almacenId} value={a.almacenId}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </Select>
+              <Select label="Cliente (opcional)" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+                <option value="">Consumidor final</option>
+                {clientes.data?.data.map((c) => (
+                  <option key={c.clienteId} value={c.clienteId}>
+                    {c.razonSocial}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-end gap-2">
+              <Input
+                label="Buscar producto"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setQ(busqueda.trim())
+                  }
+                }}
+                placeholder="Nombre del artículo / servicio"
+                className="w-72"
+              />
+              <Button
+                onClick={() => setQ(busqueda.trim())}
+                disabled={resultados.isFetching || busqueda.trim() === q}
+              >
+                <Search className="h-4 w-4" /> Buscar
+              </Button>
+            </div>
+
+            {q && resultados.isLoading && <Spinner />}
+            {q && resultados.data && (
+              <div className="mt-3 max-h-56 overflow-auto rounded-md border border-line">
+                {resultados.data.data.length === 0 && <p className="p-3 text-sm text-muted">Sin coincidencias para “{q}”.</p>}
+                {resultados.data.data.map((p) => (
+                  <button
+                    key={p.productoId}
+                    type="button"
+                    onClick={() => agregar(p)}
+                    className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2 text-left hover:bg-primary-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-ink">{p.nombre}</span>
+                      <span className="text-xs text-muted">
+                        {p.codigo ?? '—'} · {p.unidadMedidaClave} · {p.categoriaNombre}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-sm font-semibold text-primary">{formatoMoneda(p.precioMenudeo)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {resultados.error && (
+            <p className="text-sm text-red-600">{esApiError(resultados.error) ? resultados.error.mensajeParaUsuario() : String(resultados.error)}</p>
+          )}
+        </div>
+
+        <div className="space-y-4 lg:col-span-2">
+          <Card titulo={`Ticket (${lineas.length})`}>
+            {lineas.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted">Agrega productos con el buscador.</p>
+            ) : (
+              <div className="space-y-2">
+                {lineas.map((l) => (
+                  <div key={l.productoId} className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5">
+                    <button type="button" aria-label="Quitar" className="text-muted hover:text-red-600" onClick={() => setLineas((prev) => prev.filter((x) => x.productoId !== l.productoId))}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-ink">{l.nombre}</p>
+                      <div className="flex items-center gap-2">
+                        <button type="button" aria-label="Menos" onClick={() => cambiarCantidad(l.productoId, l.cantidad - 1)} className="rounded bg-warmbg p-0.5 hover:bg-warmbg">
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="1"
+                          value={l.cantidad}
+                          onChange={(e) => cambiarCantidad(l.productoId, Number(e.target.value))}
+                          className="w-14 rounded border border-line px-1 py-0.5 text-center text-sm"
+                          aria-label={`Cantidad de ${l.nombre}`}
+                        />
+                        <button type="button" aria-label="Más" onClick={() => cambiarCantidad(l.productoId, l.cantidad + 1)} className="rounded bg-warmbg p-0.5 hover:bg-warmbg">
+                          <Plus className="h-3 w-3" />
+                        </button>
+                        <span className="text-xs text-muted">×</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          value={l.precioUnitario}
+                          onChange={(e) => cambiarPrecio(l.productoId, Number(e.target.value))}
+                          className="w-24 rounded border border-line px-1 py-0.5 text-right text-sm"
+                          aria-label={`Precio de ${l.nombre}`}
+                        />
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums">{formatoMoneda(l.cantidad * l.precioUnitario)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2 text-base font-bold text-ink">
+                  <span>Total</span>
+                  <span className="tabular-nums">{formatoMoneda(total)}</span>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          <Card titulo="Cobro">
+            <div className="grid grid-cols-2 gap-3">
+              <Select label="Forma de pago" value={formaPagoId} onChange={(e) => setFormaPagoId(Number(e.target.value))}>
+                {FORMAS_PAGO.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nombre}
+                  </option>
+                ))}
+              </Select>
+              {esEfectivo ? (
+                <Input
+                  label="Recibido"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={recibido}
+                  onChange={(e) => setRecibido(e.target.value)}
+                  placeholder={String(total)}
+                />
+              ) : (
+                <Input
+                  label="Referencia"
+                  value={referencia}
+                  onChange={(e) => setReferencia(e.target.value)}
+                  required={forma.requiereReferencia}
+                  placeholder={forma.requiereReferencia ? 'Últimos 4 dígitos / SPEI' : ''}
+                  disabled={!forma.requiereReferencia}
+                />
+              )}
+            </div>
+            {esEfectivo && (
+              <div className="mt-2 flex items-center justify-between rounded-md bg-canvas px-3 py-2 text-sm">
+                <span className="text-muted">Cambio</span>
+                <span className="font-semibold tabular-nums text-ink">{formatoMoneda(cambio)}</span>
+              </div>
+            )}
+            <Input label="Notas (opcional)" value={notas} onChange={(e) => setNotas(e.target.value)} className="mt-3" />
+            <Button
+              type="button"
+              disabled={!puedeVender || checkout.isPending}
+              onClick={() => checkout.mutate()}
+              className="mt-3 w-full"
+              size="lg"
+            >
+              <ShoppingBasket className="h-5 w-5" />
+              {checkout.isPending ? 'Registrando…' : `Cobrar ${formatoMoneda(total)}`}
+            </Button>
+          </Card>
+        </div>
+      </div>
+
+      <Dialog open={ventaResultado !== null} onClose={() => setVentaResultado(null)} title="Venta registrada" width="max-w-md">
+        {ventaResultado && (
+          <div className="space-y-3 text-center">
+            <Badge tone="success">Pagada</Badge>
+            <div>
+              <p className="text-sm text-muted">Folio</p>
+              <p className="text-lg font-bold text-ink">{ventaResultado.folio}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 text-left text-sm">
+              <span className="text-muted">Total</span>
+              <span className="text-right font-semibold tabular-nums">{formatoMoneda(ventaResultado.total)}</span>
+              <span className="text-muted">Pago</span>
+              <span className="text-right font-medium">{ventaResultado.formaPagoNombre}</span>
+              <span className="text-muted">Fecha</span>
+              <span className="text-right tabular-nums">{new Date(ventaResultado.fecha).toLocaleString('es-MX')}</span>
+            </div>
+            <div className="flex justify-center gap-2">
+              <Link to="/ventas/cobranza" className="text-sm text-primary hover:underline">
+                Ver cobranza
+              </Link>
+              <Link to="/dashboard" className="text-sm text-primary hover:underline">
+                Ir al inicio
+              </Link>
+            </div>
+          </div>
+        )}
+      </Dialog>
+    </div>
+  )
+}

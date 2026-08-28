@@ -1,5 +1,6 @@
 package mx.ferreteria.api.ven.api;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,7 +21,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
-import mx.ferreteria.api.ven.dto.ReportDtos;
+import mx.ferreteria.api.ven.dto.ReportDtos.CierreDiarioResponse;
+import mx.ferreteria.api.ven.dto.ReportDtos.ResumenDashboardResponse;
+import mx.ferreteria.api.ven.dto.ReportDtos.TopProductoResponse;
+import mx.ferreteria.api.ven.dto.ReportDtos.VentaPorHoraResponse;
+import mx.ferreteria.api.ven.service.ReporteService;
 
 @WebMvcTest(controllers = ReporteController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
@@ -35,7 +40,7 @@ class ReporteControllerTest {
     MockMvc mvc;
 
     @MockBean
-    mx.ferreteria.api.ven.service.ReporteService service;
+    ReporteService service;
 
     @org.springframework.boot.test.context.TestConfiguration
     static class SliceConfig {
@@ -46,79 +51,105 @@ class ReporteControllerTest {
         }
     }
 
-    // ── GET /api/v1/reportes/top-productos ─────────────────────
-
     @Test
-    @DisplayName("GET /api/v1/reportes/top-productos -> 200 con data array")
+    @DisplayName("GET /api/v1/reportes/top-productos -> 200")
     void topProductos_returns200() throws Exception {
-        var r1 = new ReportDtos.TopProductoResponse(
-                LocalDate.now(), 1L, "TAL-001", "Taladro 1/2\"",
-                "Herramientas", new BigDecimal("15"), new BigDecimal("7500"),
-                new BigDecimal("4500"), new BigDecimal("3000"), 1L, 1L);
-        when(service.topProductos()).thenReturn(List.of(r1));
+        TopProductoResponse r1 = new TopProductoResponse(
+                LocalDate.now(), 1L, "P-001", "Martillo",
+                "Herramientas", new BigDecimal("120.000"),
+                new BigDecimal("15000.00"), new BigDecimal("9000.00"),
+                new BigDecimal("6000.00"), 1L, 1L);
+        when(service.topProductos(any(), any())).thenReturn(List.of(r1));
 
         mvc.perform(get("/api/v1/reportes/top-productos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].producto").value("Martillo"));
     }
 
-    // ── GET /api/v1/reportes/dashboard ─────────────────────────
+    @Test
+    @DisplayName("GET /api/v1/reportes/top-productos con rango -> 200 y envía rango al servicio")
+    void topProductos_conRango_returns200() throws Exception {
+        when(service.topProductos(any(), any())).thenReturn(List.of());
+
+        mvc.perform(get("/api/v1/reportes/top-productos")
+                        .param("fechaInicio", "2026-01-01")
+                        .param("fechaFin", "2026-01-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
 
     @Test
-    @DisplayName("GET /api/v1/reportes/dashboard -> 200 con data.ventasHoy")
+    @DisplayName("GET /api/v1/reportes/top-productos con rango invertido -> 400 VALOR_INVALIDO")
+    void topProductos_rangoInvalido_400() throws Exception {
+        mvc.perform(get("/api/v1/reportes/top-productos")
+                        .param("fechaInicio", "2026-02-01")
+                        .param("fechaFin", "2026-01-31"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.codigo").value("VALOR_INVALIDO"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/reportes/dashboard -> 200 con KPIs")
     void dashboard_returns200() throws Exception {
-        var resp = new ReportDtos.ResumenDashboardResponse(
-                new BigDecimal("15000"), 25L,
-                new BigDecimal("350000"), new BigDecimal("600"),
-                new BigDecimal("12000"), BigDecimal.ZERO,
-                new BigDecimal("500000"), 3L, 5L, 2L);
-        when(service.resumenDashboard()).thenReturn(resp);
+        ResumenDashboardResponse r1 = new ResumenDashboardResponse(
+                new BigDecimal("15000.00"), 25L, new BigDecimal("800.00"),
+                new BigDecimal("40000.00"), new BigDecimal("5000.00"),
+                new BigDecimal("1800000.00"), 3L, 2L, 1L);
+        when(service.resumenDashboard(any(), any())).thenReturn(r1);
 
         mvc.perform(get("/api/v1/reportes/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.ventasHoy").value(15000))
-                .andExpect(jsonPath("$.data.ticketsHoy").value(25));
+                .andExpect(jsonPath("$.data.ventasEnRango").value(15000.00))
+                .andExpect(jsonPath("$.data.ticketsEnRango").value(25));
     }
 
-    // ── GET /api/v1/reportes/horas-pico ────────────────────────
-
     @Test
-    @DisplayName("GET /api/v1/reportes/horas-pico -> 200 con data array")
-    void ventasPorHora_returns200() throws Exception {
-        var r1 = new ReportDtos.VentaPorHoraResponse(
-                12, 15L, new BigDecimal("45000"), new BigDecimal("3000"), 1L);
-        var r2 = new ReportDtos.VentaPorHoraResponse(
-                13, 12L, new BigDecimal("36000"), new BigDecimal("3000"), 2L);
-        when(service.ventasPorHora()).thenReturn(List.of(r1, r2));
+    @DisplayName("GET /api/v1/reportes/horas-pico -> 200")
+    void horasPico_returns200() throws Exception {
+        VentaPorHoraResponse r1 = new VentaPorHoraResponse(
+                17, 20L, new BigDecimal("30000.00"),
+                new BigDecimal("1500.00"), 1L);
+        when(service.ventasPorHora(any(), any())).thenReturn(List.of(r1));
 
         mvc.perform(get("/api/v1/reportes/horas-pico"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2));
+                .andExpect(jsonPath("$.data[0].hora").value(17))
+                .andExpect(jsonPath("$.data[0].rankingHorario").value(1));
     }
 
-    // ── GET /api/v1/reportes/cierre-diario ─────────────────────
+    @Test
+    @DisplayName("GET /api/v1/reportes/horas-pico con rango -> 200")
+    void horasPico_conRango_returns200() throws Exception {
+        when(service.ventasPorHora(any(), any())).thenReturn(List.of());
+
+        mvc.perform(get("/api/v1/reportes/horas-pico")
+                        .param("fechaInicio", "2026-01-01")
+                        .param("fechaFin", "2026-01-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
 
     @Test
-    @DisplayName("GET /api/v1/reportes/cierre-diario -> 200 con data array")
+    @DisplayName("GET /api/v1/reportes/cierre-diario -> 200")
     void cierreDiario_returns200() throws Exception {
-        var r1 = new ReportDtos.CierreDiarioResponse(
-                LocalDate.now(), 3L, 25L,
-                new BigDecimal("150000"), new BigDecimal("45000"),
-                new BigDecimal("30"), BigDecimal.ZERO,
-                new BigDecimal("80000"), new BigDecimal("5000"),
-                new BigDecimal("75000"), BigDecimal.ZERO,
-                new BigDecimal("70000"), true);
-        when(service.cierreDiario()).thenReturn(List.of(r1));
+        CierreDiarioResponse r1 = new CierreDiarioResponse(
+                LocalDate.now(), 2L, 40L,
+                new BigDecimal("45000.00"), new BigDecimal("18000.00"),
+                new BigDecimal("40.00"), new BigDecimal("500.00"),
+                new BigDecimal("40000.00"), new BigDecimal("1000.00"),
+                new BigDecimal("39000.00"), BigDecimal.ZERO,
+                new BigDecimal("5000.00"), true);
+        when(service.cierreDiario(any(), any())).thenReturn(List.of(r1));
 
         mvc.perform(get("/api/v1/reportes/cierre-diario"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data[0].todoCuadrado").value(true));
     }
 }

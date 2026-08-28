@@ -26,7 +26,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
-import mx.ferreteria.api.fin.dto.FinDtos;
+import mx.ferreteria.api.fin.dto.FinDtos.GastoResponse;
+import mx.ferreteria.api.fin.dto.FinDtos.IngresoOtroResponse;
+import mx.ferreteria.api.fin.service.GastoService;
 
 @WebMvcTest(controllers = GastoController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
@@ -41,7 +43,7 @@ class GastoControllerTest {
     MockMvc mvc;
 
     @MockBean
-    mx.ferreteria.api.fin.service.GastoService service;
+    GastoService service;
 
     @org.springframework.boot.test.context.TestConfiguration
     static class SliceConfig {
@@ -52,77 +54,69 @@ class GastoControllerTest {
         }
     }
 
-    // ── GET /api/v1/gastos ─────────────────────────────────────
-
     @Test
-    @DisplayName("GET /api/v1/gastos -> 200 con envelope {success, data, meta}")
+    @DisplayName("GET /api/v1/gastos -> 200")
     void listGastos_returns200() throws Exception {
-        var r1 = new FinDtos.GastoResponse(
-                1L, "GTO-001", 1, "Papelería", "Compra de papelería",
-                new BigDecimal("250"), LocalDate.now(), 1, "Efectivo",
-                null, null, null, 10, Instant.now());
-        when(service.listGastos(PageRequest.of(0, 20)))
+        GastoResponse r1 = new GastoResponse(
+                1L, "G-001", 1, null, "Renta local",
+                new BigDecimal("15000.00"), LocalDate.now(),
+                1, null, null, null, null, 1, Instant.now());
+        when(service.listGastos(any()))
                 .thenReturn(new PageImpl<>(List.of(r1), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/gastos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data[0].descripcion").value("Renta local"))
+                .andExpect(jsonPath("$.meta.totalElements").value(1));
     }
 
-    // ── POST /api/v1/gastos ────────────────────────────────────
-
     @Test
-    @DisplayName("POST /api/v1/gastos válido -> 201")
+    @DisplayName("POST /api/v1/gastos -> 201")
     void createGasto_ok() throws Exception {
-        var resp = new FinDtos.GastoResponse(
-                10L, "GTO-010", 1, "Papelería", "Compra papelería",
-                new BigDecimal("500"), LocalDate.now(), 1, "Efectivo",
-                null, null, null, 10, Instant.now());
-        when(service.createGasto(any(FinDtos.GastoRequest.class))).thenReturn(resp);
+        GastoResponse resp = new GastoResponse(
+                1L, "G-001", 1, null, "Renta local",
+                new BigDecimal("15000.00"), LocalDate.now(),
+                1, null, null, null, null, 1, Instant.now());
+        when(service.createGasto(any())).thenReturn(resp);
 
         mvc.perform(post("/api/v1/gastos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"tipoGastoId\":1,\"descripcion\":\"Compra papelería\",\"monto\":500,\"formaPagoId\":1}"))
+                        .content("{\"tipoGastoId\":1,\"descripcion\":\"Renta local\",\"monto\":15000,\"formaPagoId\":1}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.gastoId").value(10));
+                .andExpect(jsonPath("$.data.gastoId").value(1))
+                .andExpect(jsonPath("$.data.folio").value("G-001"));
     }
 
-    // ── GET /api/v1/ingresos-otros ─────────────────────────────
-
     @Test
-    @DisplayName("GET /api/v1/ingresos-otros -> 200 con envelope {success, data, meta}")
+    @DisplayName("GET /api/v1/ingresos-otros -> 200")
     void listIngresos_returns200() throws Exception {
-        var r1 = new FinDtos.IngresoOtroResponse(
-                1L, "Alquiler de equipo", new BigDecimal("3000"),
-                LocalDate.now(), 1, "Efectivo", null, 10, Instant.now());
-        when(service.listIngresos(PageRequest.of(0, 20)))
+        IngresoOtroResponse r1 = new IngresoOtroResponse(
+                1L, "Venta de chatarra", new BigDecimal("250.00"),
+                LocalDate.now(), 1, null, null, 1, Instant.now());
+        when(service.listIngresos(any()))
                 .thenReturn(new PageImpl<>(List.of(r1), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/ingresos-otros"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data[0].concepto").value("Venta de chatarra"));
     }
 
-    // ── POST /api/v1/ingresos-otros ────────────────────────────
-
     @Test
-    @DisplayName("POST /api/v1/ingresos-otros válido -> 201")
+    @DisplayName("POST /api/v1/ingresos-otros -> 201")
     void createIngreso_ok() throws Exception {
-        var resp = new FinDtos.IngresoOtroResponse(
-                10L, "Comisión por venta", new BigDecimal("500"),
-                LocalDate.now(), 1, "Transferencia", null, 10, Instant.now());
-        when(service.createIngreso(any(FinDtos.IngresoOtroRequest.class))).thenReturn(resp);
+        IngresoOtroResponse resp = new IngresoOtroResponse(
+                1L, "Venta de chatarra", new BigDecimal("250.00"),
+                LocalDate.now(), 1, null, null, 1, Instant.now());
+        when(service.createIngreso(any())).thenReturn(resp);
 
         mvc.perform(post("/api/v1/ingresos-otros")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"concepto\":\"Comisión por venta\",\"monto\":500,\"formaPagoId\":1}"))
+                        .content("{\"concepto\":\"Venta de chatarra\",\"monto\":250,\"formaPagoId\":1}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.ingresoOtroId").value(10));
+                .andExpect(jsonPath("$.data.ingresoOtroId").value(1));
     }
 }

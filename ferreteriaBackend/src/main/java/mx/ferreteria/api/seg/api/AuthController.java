@@ -13,16 +13,21 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import mx.ferreteria.api.common.security.UserPrincipal;
+import mx.ferreteria.api.seg.dto.AuthDtos.ChangePasswordRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LoginRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LogoutOk;
 import mx.ferreteria.api.seg.dto.AuthDtos.MeResponse;
+import mx.ferreteria.api.seg.dto.AuthDtos.PasswordOk;
 import mx.ferreteria.api.seg.dto.AuthDtos.RefreshRequest;
+import mx.ferreteria.api.seg.dto.AuthDtos.RegisterRequest;
+import mx.ferreteria.api.seg.dto.AuthDtos.RegisterResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse;
 import mx.ferreteria.api.seg.service.AuthService;
 import mx.ferreteria.api.seg.service.RequestMeta;
 
 /**
- * Autenticación M1: login, rotación de refresh, logout y perfil (PLAN §5/§6).
+ * Autenticación M1: login, rotación de refresh, logout, registro público
+ * (ENCARGADO_CAJA), cambio de password y perfil (PLAN §5/§6).
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -34,6 +39,30 @@ public class AuthController {
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest http) {
         return authService.login(req, meta(http));
+    }
+
+    /**
+     * Alta pública sin roles (usuario debe recibir rol por ADMINISTRADOR antes
+     * de operar). Nunca asigna ADMIN: ver AuthService.register.
+     */
+    @PostMapping("/register")
+    public RegisterResponse register(@Valid @RequestBody RegisterRequest req) {
+        return authService.register(req);
+    }
+
+    /**
+     * Cambio de password del usuario autenticado (requiere password actual).
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<PasswordOk> changePassword(
+            @Valid @RequestBody ChangePasswordRequest req, java.security.Principal principal) {
+        Object source = principal instanceof org.springframework.security.core.Authentication auth
+                ? auth.getPrincipal()
+                : principal;
+        if (source instanceof UserPrincipal up) {
+            return ResponseEntity.ok(authService.changePassword(up, req));
+        }
+        return ResponseEntity.status(401).build();
     }
 
     @PostMapping("/refresh")

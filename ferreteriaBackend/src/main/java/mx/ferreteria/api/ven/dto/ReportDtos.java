@@ -42,8 +42,8 @@ public final class ReportDtos {
     ) {}
 
     public record ResumenDashboardResponse(
-        BigDecimal ventasHoy, Long ticketsHoy,
-        BigDecimal ventasDelMes, BigDecimal ticketPromedioMes,
+        BigDecimal ventasEnRango, Long ticketsEnRango,
+        BigDecimal ticketPromedioEnRango,
         BigDecimal saldoPorCobrar, BigDecimal cobranzaVencida,
         BigDecimal valorInventario, Long productosAgotados,
         Long promocionesActivas, Long cajasAbiertas

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,21 +74,24 @@ class MovimientoServiceTest {
                 .build();
     }
 
+    private static final LocalDate INICIO = LocalDate.of(2026, 1, 1);
+    private static final LocalDate FIN = LocalDate.of(2026, 1, 31);
+
     // ── listByProducto ──────────────────────────────────────────────
 
     @Test
-    @DisplayName("listByProducto: retorna pagina de movimientos con nombres resueltos")
+    @DisplayName("listByProducto: retorna pagina de movimientos del rango con nombres resueltos")
     void listByProducto_returnsPage() {
         Pageable pg = PageRequest.of(0, 10);
         MovimientoInventario m = sampleMovimiento(1L, 1L, 1, "ENTRADA");
-        when(repo.findByProductoIdOrderByCreadoEnDesc(1L, pg))
+        when(repo.findByProductoEnRango(1L, INICIO, FIN, pg))
                 .thenReturn(new PageImpl<>(List.of(m), pg, 1));
         when(productoRepo.findAllById(List.of(1L)))
                 .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
         when(almacenRepo.findAllById(List.of(1)))
                 .thenReturn(List.of(sampleAlmacen(1, "Central")));
 
-        var result = service.listByProducto(1L, pg);
+        var result = service.listByProducto(1L, INICIO, FIN, pg);
 
         assertThat(result.getContent()).hasSize(1);
         MovimientoInventarioResponse resp = result.getContent().get(0);
@@ -99,18 +103,18 @@ class MovimientoServiceTest {
     // ── listByAlmacen ───────────────────────────────────────────────
 
     @Test
-    @DisplayName("listByAlmacen: retorna pagina de movimientos")
+    @DisplayName("listByAlmacen: retorna pagina de movimientos del rango")
     void listByAlmacen_returnsPage() {
         Pageable pg = PageRequest.of(0, 10);
         MovimientoInventario m = sampleMovimiento(1L, 1L, 1, "SALIDA");
-        when(repo.findByAlmacenIdOrderByCreadoEnDesc(1, pg))
+        when(repo.findByAlmacenEnRango(1, INICIO, FIN, pg))
                 .thenReturn(new PageImpl<>(List.of(m), pg, 1));
         when(productoRepo.findAllById(List.of(1L)))
                 .thenReturn(List.of(sampleProducto(1L, "Clavo")));
         when(almacenRepo.findAllById(List.of(1)))
                 .thenReturn(List.of(sampleAlmacen(1, "Central")));
 
-        var result = service.listByAlmacen(1, pg);
+        var result = service.listByAlmacen(1, INICIO, FIN, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).tipo()).isEqualTo("SALIDA");

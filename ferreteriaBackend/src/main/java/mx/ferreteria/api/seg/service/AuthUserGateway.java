@@ -13,6 +13,9 @@ public interface AuthUserGateway {
     /** Owner de un refresh token activo (join con usuarios para datos frescos). */
     record RefreshOwner(int usuarioId, String username, Integer empleadoId) { }
 
+    /** Estado DB de un refresh token (sin joins) para distinguir revocado/expirado/activo. */
+    record RefreshRow(int usuarioId, Instant expiresAt, Instant revokedAt) { }
+
     Optional<AuthUser> findByUsername(String username);
 
     List<String> rolesOf(int usuarioId);
@@ -21,7 +24,12 @@ public interface AuthUserGateway {
 
     Optional<RefreshOwner> findActiveRefreshOwner(String tokenHash, Instant now);
 
+    Optional<RefreshRow> findRefreshRow(String tokenHash);
+
     void revokeByHash(String tokenHash);
+
+    /** Revoca TODAS las sesiones previas del usuario (login nuevo = single-active). */
+    void revokeAllRefreshTokens(int usuarioId);
 
     void updateUltimoLogin(int usuarioId);
 

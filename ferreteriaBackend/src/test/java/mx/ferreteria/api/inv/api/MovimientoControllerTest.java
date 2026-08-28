@@ -62,7 +62,7 @@ class MovimientoControllerTest {
                 1L, 1L, "Taladro", 1, "Almacén Central",
                 "ENTRADA", new BigDecimal("10"), null,
                 1, null, null, null, null, null, null, null);
-        when(service.listByProducto(eq(1L), any()))
+        when(service.listByProducto(eq(1L), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(r), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/movimientos").param("productoId", "1"))
@@ -71,6 +71,35 @@ class MovimientoControllerTest {
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.meta.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/movimientos con rango de fechas -> 200")
+    void list_conRango_returns200() throws Exception {
+        MovimientoInventarioResponse r = new MovimientoInventarioResponse(
+                1L, 1L, "Taladro", 1, "Almacén Central",
+                "ENTRADA", new BigDecimal("10"), null,
+                1, null, null, null, null, null, null, null);
+        when(service.list(any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(r), PageRequest.of(0, 20), 1));
+
+        mvc.perform(get("/api/v1/movimientos")
+                        .param("fechaInicio", "2026-01-01")
+                        .param("fechaFin", "2026-01-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/movimientos con rango invertido -> 400 VALOR_INVALIDO")
+    void list_rangoInvalido_400() throws Exception {
+        mvc.perform(get("/api/v1/movimientos")
+                        .param("fechaInicio", "2026-02-01")
+                        .param("fechaFin", "2026-01-31"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.codigo").value("VALOR_INVALIDO"));
     }
 
     // ── POST /api/v1/movimientos ──────────────────────────────────

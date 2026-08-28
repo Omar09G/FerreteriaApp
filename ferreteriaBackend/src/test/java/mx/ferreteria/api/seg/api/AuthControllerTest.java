@@ -21,8 +21,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import mx.ferreteria.api.seg.dto.AuthDtos.ChangePasswordRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LoginRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.MeResponse;
+import mx.ferreteria.api.seg.dto.AuthDtos.PasswordOk;
+import mx.ferreteria.api.seg.dto.AuthDtos.RegisterRequest;
+import mx.ferreteria.api.seg.dto.AuthDtos.RegisterResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse;
 import mx.ferreteria.api.seg.service.AuthService;
 import mx.ferreteria.api.seg.service.RequestMeta;
@@ -54,7 +58,7 @@ class AuthControllerTest {
     }
 
     private static final MeResponse ME =
-            new MeResponse(7, "cajero1", 42, List.of("VENDEDOR"), null);
+            new MeResponse(7, "cajero1", 42, List.of("VENDEDOR"), null, null);
 
     @Test
     @DisplayName("POST /auth/login valido -> 200 success:true con tokens en data")
@@ -136,6 +140,78 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.errorCode").value(400))
+                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+    }
+
+    @Test
+    @DisplayName("POST /auth/register valido -> 200 success:true empleado+usuario+rol ENCARGADO_CAJA")
+    void register_valid_createsEmpleadoYUsuario() throws Exception {
+        Mockito.when(authService.register(any(RegisterRequest.class)))
+                .thenReturn(new RegisterResponse(9, 5, "nuevo01", "nuevo01@ejemplo.mx"));
+
+        mvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"nuevo01\",\"email\":\"nuevo01@ejemplo.mx\","
+                                + "\"password\":\"Secreta123\",\"nombre\":\"Juan\","
+                                + "\"apellidoPaterno\":\"Pérez\",\"puestoId\":3}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.usuarioId").value(9))
+                .andExpect(jsonPath("$.data.empleadoId").value(5))
+                .andExpect(jsonPath("$.data.email").value("nuevo01@ejemplo.mx"));
+    }
+
+    @Test
+    @DisplayName("POST /auth/register sin datos de empleado -> 400 CAMPO_REQUERIDO")
+    void register_withoutEmpleadoData_badRequest() throws Exception {
+        mvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"nuevo01\",\"email\":\"nuevo01@ejemplo.mx\","
+                                + "\"password\":\"Secreta123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+    }
+
+    @Test
+    @DisplayName("POST /auth/register con password corta -> 400 CAMPO_REQUERIDO")
+    void register_shortPassword_rejectedByValidation() throws Exception {
+        mvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"nuevo01\",\"email\":\"nuevo01@ejemplo.mx\","
+                                + "\"password\":\"1234\",\"nombre\":\"Juan\","
+                                + "\"apellidoPaterno\":\"Pérez\",\"puestoId\":3}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+    }
+
+    @Test
+    @DisplayName("POST /auth/change-password autenticado -> 200 success:true cambiada")
+    void changePassword_validPrincipal_ok() throws Exception {
+        var up = new mx.ferreteria.api.common.security.UserPrincipal(7, "cajero1", 42,
+                List.of("VENDEDOR"));
+        Mockito.when(authService.changePassword(eq(up), any(ChangePasswordRequest.class)))
+                .thenReturn(new PasswordOk(true));
+
+        mvc.perform(post("/api/v1/auth/change-password").principal(up)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"passwordActual\":\"Secreta123\","
+                                + "\"nuevaPassword\":\"NuevaClave99\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.cambiada").value(true));
+    }
+
+    @Test
+    @DisplayName("POST /auth/change-password con campos vacios -> 400 CAMPO_REQUERIDO")
+    void changePassword_blankFields_badRequest() throws Exception {
+        var up = new mx.ferreteria.api.common.security.UserPrincipal(7, "cajero1", 42,
+                List.of("VENDEDOR"));
+        mvc.perform(post("/api/v1/auth/change-password").principal(up)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
     }
 }

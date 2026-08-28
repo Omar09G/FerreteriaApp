@@ -16,8 +16,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
-import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
-import mx.ferreteria.api.common.i18n.ErrorCode;
 
 /**
  * Emisión y validación de tokens (access typ=acc con roles; refresh typ=ref sin
@@ -42,18 +40,10 @@ public class JwtService {
     public JwtService(JwtProperties props) {
         byte[] secret = props.secret().getBytes(StandardCharsets.UTF_8);
         if (secret.length < 32) {
-            throw new RecursoNoEncontradoException(
-                    ErrorCode.JWT_SECRET_NO_CONFIGURADO);
+            throw new IllegalStateException(
+                    "JWT secret debe tener al menos 32 bytes; configure JWT_SECRET");
         }
         this.key = Keys.hmacShaKeyFor(secret);
-        if (props.accessMinutes() <= 0) {
-            throw new RecursoNoEncontradoException(
-                    ErrorCode.JWT_MINUTES_INVALIDO);
-        }
-        if (props.refreshHours() <= 0) {
-            throw new RecursoNoEncontradoException(
-                    ErrorCode.JWT_HOURS_INVALIDO);
-        }
         this.accessTtl = Duration.ofMinutes(props.accessMinutes());
         this.refreshTtl = Duration.ofHours(props.refreshHours());
     }

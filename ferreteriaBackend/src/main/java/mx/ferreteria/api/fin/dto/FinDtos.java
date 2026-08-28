@@ -27,7 +27,7 @@ public final class FinDtos {
     }
 
     public record TurnoAperturaRequest(
-            @NotNull Integer cajaId,
+            Integer cajaId,
             @NotNull @Min(0) BigDecimal montoApertura) {
     }
 

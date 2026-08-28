@@ -1,5 +1,6 @@
 package mx.ferreteria.api.inv.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,8 +33,8 @@ public class MovimientoService {
     private final AlmacenRepository almacenRepo;
 
     @Transactional(readOnly = true)
-    public Page<MovimientoInventarioResponse> list(Pageable pageable) {
-        Page<MovimientoInventario> page = repo.findAll(pageable);
+    public Page<MovimientoInventarioResponse> list(LocalDate inicio, LocalDate fin, Pageable pageable) {
+        Page<MovimientoInventario> page = repo.findAllEnRango(inicio, fin, pageable);
         Map<Long, Producto> productos = productoRepo.findAllById(extractProductoIds(page.getContent())).stream()
                 .collect(Collectors.toMap(Producto::getProductoId, p -> p));
         Map<Integer, Almacen> almacenes = loadAlmacenes(page.getContent());
@@ -41,8 +42,9 @@ public class MovimientoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<MovimientoInventarioResponse> listByProducto(Long productoId, Pageable pageable) {
-        Page<MovimientoInventario> page = repo.findByProductoIdOrderByCreadoEnDesc(productoId, pageable);
+    public Page<MovimientoInventarioResponse> listByProducto(Long productoId, LocalDate inicio, LocalDate fin,
+            Pageable pageable) {
+        Page<MovimientoInventario> page = repo.findByProductoEnRango(productoId, inicio, fin, pageable);
         Map<Long, Producto> productos = productoRepo.findAllById(extractProductoIds(page.getContent())).stream()
                 .collect(Collectors.toMap(Producto::getProductoId, p -> p));
         Map<Integer, Almacen> almacenes = loadAlmacenes(page.getContent());
@@ -50,8 +52,9 @@ public class MovimientoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<MovimientoInventarioResponse> listByAlmacen(Integer almacenId, Pageable pageable) {
-        Page<MovimientoInventario> page = repo.findByAlmacenIdOrderByCreadoEnDesc(almacenId, pageable);
+    public Page<MovimientoInventarioResponse> listByAlmacen(Integer almacenId, LocalDate inicio, LocalDate fin,
+            Pageable pageable) {
+        Page<MovimientoInventario> page = repo.findByAlmacenEnRango(almacenId, inicio, fin, pageable);
         Map<Long, Producto> productos = productoRepo.findAllById(extractProductoIds(page.getContent())).stream()
                 .collect(Collectors.toMap(Producto::getProductoId, p -> p));
         Map<Integer, Almacen> almacenes = loadAlmacenes(page.getContent());
