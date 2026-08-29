@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, ReceiptText } from 'lucide-react'
+import { ArrowDownToLine, Edit, ReceiptText, Trash2 } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { esApiError } from '@/lib/api/client'
-import { apiGastos, apiCrearGasto, apiIngresosOtros, apiCrearIngreso } from '@/lib/api/caja'
+import { apiGastos, apiCrearGasto, apiActualizarGasto, apiEliminarGasto, apiIngresosOtros, apiCrearIngreso, apiActualizarIngreso, apiEliminarIngreso } from '@/lib/api/caja'
 import { apiProveedores } from '@/lib/api/catalogo'
 import type { Gasto, GastoRequest, IngresoOtro, IngresoOtroRequest } from '@/lib/api/types'
 import { FORMAS_PAGO, TIPOS_GASTO } from '@/lib/api/types'
 import { formatoFecha, formatoFechaHora, formatoMoneda } from '@/lib/format'
+import { useTieneRol } from '@/store/auth'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
@@ -26,18 +28,20 @@ function GastoForm({
   guardando,
   onGuardar,
   onClose,
+  inicial,
 }: {
   guardando: boolean
   onGuardar: (body: GastoRequest) => void
   onClose: () => void
+  inicial?: Gasto
 }) {
   const proveedores = useQuery({ queryKey: ['proveedores-gasto'], queryFn: () => apiProveedores() })
-  const [tipoGastoId, setTipoGastoId] = useState<number | ''>('')
-  const [descripcion, setDescripcion] = useState('')
-  const [monto, setMonto] = useState('')
-  const [formaPagoId, setFormaPagoId] = useState(1)
-  const [proveedorId, setProveedorId] = useState<number | ''>('')
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
+  const [tipoGastoId, setTipoGastoId] = useState<number | ''>(inicial?.tipoGastoId ?? '')
+  const [descripcion, setDescripcion] = useState(inicial?.descripcion ?? '')
+  const [monto, setMonto] = useState(inicial ? String(inicial.monto) : '')
+  const [formaPagoId, setFormaPagoId] = useState(inicial?.formaPagoId ?? 1)
+  const [proveedorId, setProveedorId] = useState<number | ''>(inicial?.proveedorId ?? '')
+  const [fecha, setFecha] = useState(inicial?.fechaGasto ?? new Date().toISOString().slice(0, 10))
   const [intento, setIntento] = useState(false)
 
   const invalido = tipoGastoId === '' || descripcion.trim() === '' || Number(monto) <= 0
@@ -93,8 +97,8 @@ function GastoForm({
         <Button type="button" variant="ghost" onClick={onClose}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={guardando}>
-          {guardando ? 'Guardando…' : 'Registrar gasto'}
+        <Button type="submit" disabled={guardando} variant={inicial ? 'primary' : 'primary'}>
+          {guardando ? 'Guardando…' : inicial ? 'Guardar cambios' : 'Registrar gasto'}
         </Button>
       </div>
     </form>
@@ -105,15 +109,17 @@ function IngresoForm({
   guardando,
   onGuardar,
   onClose,
+  inicial,
 }: {
   guardando: boolean
   onGuardar: (body: IngresoOtroRequest) => void
   onClose: () => void
+  inicial?: IngresoOtro
 }) {
-  const [concepto, setConcepto] = useState('')
-  const [monto, setMonto] = useState('')
-  const [formaPagoId, setFormaPagoId] = useState(1)
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
+  const [concepto, setConcepto] = useState(inicial?.concepto ?? '')
+  const [monto, setMonto] = useState(inicial ? String(inicial.monto) : '')
+  const [formaPagoId, setFormaPagoId] = useState(inicial?.formaPagoId ?? 1)
+  const [fecha, setFecha] = useState(inicial?.fecha ?? new Date().toISOString().slice(0, 10))
   const [intento, setIntento] = useState(false)
 
   const invalido = concepto.trim() === '' || Number(monto) <= 0
@@ -143,7 +149,7 @@ function IngresoForm({
           Cancelar
         </Button>
         <Button type="submit" disabled={guardando}>
-          {guardando ? 'Guardando…' : 'Registrar ingreso'}
+          {guardando ? 'Guardando…' : inicial ? 'Guardar cambios' : 'Registrar ingreso'}
         </Button>
       </div>
     </form>
@@ -160,6 +166,11 @@ export default function GastosPage() {
   const [tab, setTab] = useState<'gastos' | 'ingresos'>(tabInicial)
   const [page, setPage] = useState(0)
   const [dialogo, setDialogo] = useState<'gasto' | 'ingreso' | null>(null)
+  const [editandoGasto, setEditandoGasto] = useState<Gasto | null>(null)
+  const [editandoIngreso, setEditandoIngreso] = useState<IngresoOtro | null>(null)
+  const [borrandoGasto, setBorrandoGasto] = useState<Gasto | null>(null)
+  const [borrandoIngreso, setBorrandoIngreso] = useState<IngresoOtro | null>(null)
+  const esAdmin = useTieneRol(['ADMINISTRADOR'])
 
   const gastos = useQuery({ queryKey: ['gastos', page], queryFn: () => apiGastos(page) })
   const ingresos = useQuery({ queryKey: ['ingresos-otros', page], queryFn: () => apiIngresosOtros(page) })
@@ -193,6 +204,104 @@ export default function GastosPage() {
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
   })
 
+  const actualizarGasto = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: GastoRequest }) => apiActualizarGasto(id, body),
+    onSuccess: () => {
+      mostrarExito('Gasto actualizado.')
+      setEditandoGasto(null)
+      queryClient.invalidateQueries({ queryKey: ['gastos'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+  })
+
+  const eliminarGasto = useMutation({
+    mutationFn: (id: number) => apiEliminarGasto(id),
+    onSuccess: () => {
+      mostrarExito('Gasto eliminado.')
+      setBorrandoGasto(null)
+      queryClient.invalidateQueries({ queryKey: ['gastos'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+  })
+
+  const actualizarIngreso = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: IngresoOtroRequest }) => apiActualizarIngreso(id, body),
+    onSuccess: () => {
+      mostrarExito('Ingreso actualizado.')
+      setEditandoIngreso(null)
+      queryClient.invalidateQueries({ queryKey: ['ingresos-otros'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+  })
+
+  const eliminarIngreso = useMutation({
+    mutationFn: (id: number) => apiEliminarIngreso(id),
+    onSuccess: () => {
+      mostrarExito('Ingreso eliminado.')
+      setBorrandoIngreso(null)
+      queryClient.invalidateQueries({ queryKey: ['ingresos-otros'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+  })
+
+  const accionesGasto = (v: Gasto) => {
+    if (!esAdmin) return null
+    const congelado = v.turnoCajaId != null
+    return (
+      <div className="flex justify-end gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={congelado}
+          title={congelado ? 'Ligado a un turno de caja: no modificable' : 'Editar'}
+          onClick={() => setEditandoGasto(v)}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={congelado}
+          title={congelado ? 'Ligado a un turno de caja: no eliminable' : 'Eliminar'}
+          onClick={() => setBorrandoGasto(v)}
+        >
+          <Trash2 className="h-4 w-4 text-red-600" />
+        </Button>
+      </div>
+    )
+  }
+
+  const accionesIngreso = (v: IngresoOtro) => {
+    if (!esAdmin) return null
+    const congelado = v.turnoCajaId != null
+    return (
+      <div className="flex justify-end gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={congelado}
+          title={congelado ? 'Ligado a un turno de caja: no modificable' : 'Editar'}
+          onClick={() => setEditandoIngreso(v)}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={congelado}
+          title={congelado ? 'Ligado a un turno de caja: no eliminable' : 'Eliminar'}
+          onClick={() => setBorrandoIngreso(v)}
+        >
+          <Trash2 className="h-4 w-4 text-red-600" />
+        </Button>
+      </div>
+    )
+  }
+
   const colGastos: Columna<Gasto>[] = [
     { key: 't', header: 'Tipo', render: (v) => <span className="font-medium text-ink">{tipoGastoDe(v.tipoGastoId)}</span> },
     { key: 'd', header: 'Descripción', render: (v) => <span className="max-w-[24rem] truncate">{v.descripcion}</span> },
@@ -202,6 +311,7 @@ export default function GastosPage() {
     { key: 'c', header: 'Registrado', render: (v) => <span className="text-xs tabular-nums text-muted">{formatoFechaHora(v.creadoEn)}</span> },
     { key: 'm', header: 'Monto', align: 'right', render: (v) => <span className="font-medium tabular-nums text-red-700">−{formatoMoneda(v.monto)}</span> },
   ]
+  if (esAdmin) colGastos.push({ key: 'acc', header: '', align: 'right', render: accionesGasto })
 
   const colIngresos: Columna<IngresoOtro>[] = [
     { key: 'c', header: 'Concepto', render: (v) => <span className="font-medium text-ink">{v.concepto}</span> },
@@ -210,6 +320,7 @@ export default function GastosPage() {
     { key: 'c2', header: 'Registrado', render: (v) => <span className="text-xs tabular-nums text-muted">{formatoFechaHora(v.creadoEn)}</span> },
     { key: 'm', header: 'Monto', align: 'right', render: (v) => <span className="font-medium tabular-nums text-green-700">+{formatoMoneda(v.monto)}</span> },
   ]
+  if (esAdmin) colIngresos.push({ key: 'acc', align: 'right', header: '', render: accionesIngreso })
 
   return (
     <div className="space-y-4">
@@ -273,6 +384,63 @@ export default function GastosPage() {
       <Dialog open={dialogo === 'ingreso'} onClose={() => !crearIngreso.isPending && setDialogo(null)} title="Registrar ingreso" width="max-w-lg">
         <IngresoForm guardando={crearIngreso.isPending} onGuardar={(body) => crearIngreso.mutate(body)} onClose={() => setDialogo(null)} />
       </Dialog>
+
+      <Dialog open={editandoGasto != null} onClose={() => !actualizarGasto.isPending && setEditandoGasto(null)} title="Editar gasto" width="max-w-lg">
+        {editandoGasto && (
+          <GastoForm
+            key={editandoGasto.gastoId}
+            inicial={editandoGasto}
+            guardando={actualizarGasto.isPending}
+            onGuardar={(body) => actualizarGasto.mutate({ id: editandoGasto.gastoId, body })}
+            onClose={() => setEditandoGasto(null)}
+          />
+        )}
+      </Dialog>
+
+      <Dialog open={editandoIngreso != null} onClose={() => !actualizarIngreso.isPending && setEditandoIngreso(null)} title="Editar ingreso" width="max-w-lg">
+        {editandoIngreso && (
+          <IngresoForm
+            key={editandoIngreso.ingresoOtroId}
+            inicial={editandoIngreso}
+            guardando={actualizarIngreso.isPending}
+            onGuardar={(body) => actualizarIngreso.mutate({ id: editandoIngreso.ingresoOtroId, body })}
+            onClose={() => setEditandoIngreso(null)}
+          />
+        )}
+      </Dialog>
+
+      <ConfirmDialog
+        open={borrandoGasto != null}
+        title="Eliminar gasto"
+        confirmLabel="Eliminar"
+        busy={eliminarGasto.isPending}
+        onCancel={() => setBorrandoGasto(null)}
+        onConfirm={() => borrandoGasto && eliminarGasto.mutate(borrandoGasto.gastoId)}
+      >
+        {borrandoGasto && (
+          <p>
+            Se eliminará el gasto {borrandoGasto.folio} (<span className="font-medium">−{formatoMoneda(borrandoGasto.monto)}</span>).
+            Esta acción no se puede deshacer. Solo es posible mientras el gasto no esté ligado a un turno de caja.
+          </p>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={borrandoIngreso != null}
+        title="Eliminar ingreso"
+        confirmLabel="Eliminar"
+        busy={eliminarIngreso.isPending}
+        onCancel={() => setBorrandoIngreso(null)}
+        onConfirm={() => borrandoIngreso && eliminarIngreso.mutate(borrandoIngreso.ingresoOtroId)}
+      >
+        {borrandoIngreso && (
+          <p>
+            Se eliminará el ingreso <span className="font-medium">“{borrandoIngreso.concepto}”</span>{' '}
+            (<span className="font-medium">+{formatoMoneda(borrandoIngreso.monto)}</span>). Esta acción no se puede deshacer.
+            Solo es posible mientras el ingreso no esté ligado a un turno de caja.
+          </p>
+        )}
+      </ConfirmDialog>
     </div>
   )
 }

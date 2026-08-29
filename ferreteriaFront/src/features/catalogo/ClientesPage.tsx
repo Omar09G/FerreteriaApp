@@ -10,6 +10,7 @@ import { formatoMoneda } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
@@ -116,6 +117,7 @@ export default function ClientesPage() {
   const [page, setPage] = useState(0)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [editando, setEditando] = useState<Cliente | null>(null)
+  const [eliminarConfirmacion, setEliminarConfirmacion] = useState<Cliente | null>(null)
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['clientes', filtroQ, page],
@@ -146,6 +148,7 @@ export default function ClientesPage() {
     mutationFn: (id: number) => apiEliminarCliente(id),
     onSuccess: () => {
       mostrarExito('Cliente desactivado.')
+      setEliminarConfirmacion(null)
       invalidar()
     },
     onError: (err) => {
@@ -182,11 +185,7 @@ export default function ClientesPage() {
             type="button"
             aria-label={`Desactivar ${v.razonSocial}`}
             className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-            onClick={() => {
-              if (window.confirm(`¿Desactivar el cliente "${v.razonSocial}"?`)) {
-                eliminar.mutate(v.clienteId)
-              }
-            }}
+            onClick={() => setEliminarConfirmacion(v)}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -272,6 +271,19 @@ export default function ClientesPage() {
           onClose={() => setDialogoAbierto(false)}
         />
       </Dialog>
+
+      <ConfirmDialog
+        open={eliminarConfirmacion !== null}
+        title="Confirmar desactivación"
+        confirmLabel="Sí, desactivar"
+        busy={eliminar.isPending}
+        onCancel={() => setEliminarConfirmacion(null)}
+        onConfirm={() => eliminarConfirmacion && eliminar.mutate(eliminarConfirmacion.clienteId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Desactivar el cliente <span className="font-semibold">&quot;{eliminarConfirmacion?.razonSocial}&quot;</span>? Dejará de estar disponible en nuevos documentos, pero se conserva su historial.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

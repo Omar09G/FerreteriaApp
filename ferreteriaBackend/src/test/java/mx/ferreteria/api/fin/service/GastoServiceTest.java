@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -18,11 +17,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
+import mx.ferreteria.api.common.error.ReglaNegocioException;
+import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.fin.dto.FinDtos.GastoRequest;
 import mx.ferreteria.api.fin.dto.FinDtos.IngresoOtroRequest;
 import mx.ferreteria.api.fin.entity.Gasto;
@@ -33,91 +31,140 @@ import mx.ferreteria.api.fin.repo.IngresoOtroRepository;
 @ExtendWith(MockitoExtension.class)
 class GastoServiceTest {
 
-    @Mock
-    GastoRepository gastoRepo;
-
-    @Mock
-    IngresoOtroRepository ingresoRepo;
+    @Mock GastoRepository gastoRepo;
+    @Mock IngresoOtroRepository ingresoRepo;
 
     @InjectMocks
     GastoService service;
 
-    private Gasto sampleGasto(Long id) {
-        return Gasto.builder()
-                .gastoId(id).folio("G-00" + id)
-                .tipoGastoId(1).descripcion("Renta local")
-                .monto(new BigDecimal("15000.00"))
-                .fechaGasto(LocalDate.now())
-                .formaPagoId(1).usuarioId(1)
-                .creadoEn(Instant.now())
-                .build();
-    }
-
-    private IngresoOtro sampleIngreso(Long id) {
-        return IngresoOtro.builder()
-                .ingresoOtroId(id).concepto("Venta de chatarra")
+    private Gasto sampleGasto(Long id, Long turnoCajaId) {
+        return Gasto.builder().gastoId(id)
+                .folio("G-000001")
+                .tipoGastoId(1).descripcion("Limpieza")
                 .monto(new BigDecimal("250.00"))
-                .fecha(LocalDate.now())
-                .formaPagoId(1).usuarioId(1)
-                .creadoEn(Instant.now())
-                .build();
+                .fechaGasto(LocalDate.of(2026, 1, 10))
+                .formaPagoId(1).proveedorId(3)
+                .turnoCajaId(turnoCajaId).usuarioId(1)
+                .creadoEn(Instant.now()).build();
+    }
+
+    private IngresoOtro sampleIngreso(Long id, Long turnoCajaId) {
+        return IngresoOtro.builder().ingresoOtroId(id)
+                .concepto("Renta de exhibidor")
+                .monto(new BigDecimal("500.00"))
+                .fecha(LocalDate.of(2026, 1, 10))
+                .formaPagoId(1)
+                .turnoCajaId(turnoCajaId).usuarioId(1)
+                .creadoEn(Instant.now()).build();
+    }
+
+    private GastoRequest gastoRequest() {
+        return new GastoRequest(2, "Cambio de descripcion", new BigDecimal("300.00"),
+                LocalDate.of(2026, 1, 11), 2, null, null, null);
+    }
+
+    private IngresoOtroRequest ingresoRequest() {
+        return new IngresoOtroRequest("Venta de chatarra", new BigDecimal("120.00"),
+                LocalDate.of(2026, 1, 11), 2, null);
+    }
+
+    // ─── Gasto guardado sin turno: modificable ───────────────────────
+
+    @Test
+    @DisplayName("updateGasto modifica un gasto sin turno ligado")
+    void updateGasto_sinTurno_actualiza() {
+        Gasto g = sampleGasto(10L, null);
+        when(gastoRepo.findById(10L)).thenReturn(Optional.of(g));
+        when(gastoRepo.save(any(Gasto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var res = service.updateGasto(10L, gastoRequest());
+
+        assertThat(res.monto()).isEqualByComparingTo("300.00");
+        assertThat(res.descripcion()).isEqualTo("Cambio de descripcion");
+        assertThat(res.tipoGastoId()).isEqualTo(2);
+        assertThat(g.getTurnoCajaId()).isNull();
+        verify(gastoRepo).save(g);
     }
 
     @Test
-    @DisplayName("listGastos: retorna pagina con items")
-    void listGastos_returnsPage() {
-        Pageable pg = PageRequest.of(0, 10);
-        Gasto g = sampleGasto(1L);
-        when(gastoRepo.findAllByOrderByCreadoEnDesc(pg))
-                .thenReturn(new PageImpl<>(List.of(g), pg, 1));
+    @DisplayName("updateGasto bloqueado para gasto ligado a un turno")
+    void updateGasto_conTurno_rechaza() {
+        Gasto g = sampleGasto(10L, 7L);
+        when(gastoRepo.findById(10L)).thenReturn(Optional.of(g));
 
-        var result = service.listGastos(pg);
-
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).folio()).isEqualTo("G-001");
+        assertThatThrownBy(() -> service.updateGasto(10L, gastoRequest()))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(e -> assertThat(((ReglaNegocioException) e).errorCode())
+                        .isEqualTo(ErrorCode.REGISTRO_NO_MODIFICABLE));
     }
 
     @Test
-    @DisplayName("createGasto: save y retorna GastoResponse")
-    void createGasto_ok() {
-        GastoRequest req = new GastoRequest(
-                1, "Renta local", new BigDecimal("15000.00"),
-                LocalDate.now(), 1, null, null, null);
-        when(gastoRepo.save(any(Gasto.class))).thenReturn(sampleGasto(10L));
+    @DisplayName("updateGasto lanza 404 si no existe")
+    void updateGasto_inexistente_recursoNoEncontrado() {
+        when(gastoRepo.findById(10L)).thenReturn(Optional.empty());
 
-        var resp = service.createGasto(req);
-
-        assertThat(resp.gastoId()).isEqualTo(10L);
-        assertThat(resp.descripcion()).isEqualTo("Renta local");
-        verify(gastoRepo).save(any(Gasto.class));
+        assertThatThrownBy(() -> service.updateGasto(10L, gastoRequest()))
+                .isInstanceOf(RecursoNoEncontradoException.class);
     }
 
     @Test
-    @DisplayName("listIngresos: retorna pagina con items")
-    void listIngresos_returnsPage() {
-        Pageable pg = PageRequest.of(0, 10);
-        IngresoOtro io = sampleIngreso(1L);
-        when(ingresoRepo.findAllByOrderByCreadoEnDesc(pg))
-                .thenReturn(new PageImpl<>(List.of(io), pg, 1));
+    @DisplayName("deleteGasto elimina un gasto sin turno y bloquea uno ligado")
+    void deleteGasto_respetaLigadoATurno() {
+        Gasto libre = sampleGasto(10L, null);
+        Gasto ligado = sampleGasto(11L, 7L);
+        when(gastoRepo.findById(10L)).thenReturn(Optional.of(libre));
+        when(gastoRepo.findById(11L)).thenReturn(Optional.of(ligado));
 
-        var result = service.listIngresos(pg);
+        service.deleteGasto(10L);
+        verify(gastoRepo).delete(libre);
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).concepto()).isEqualTo("Venta de chatarra");
+        assertThatThrownBy(() -> service.deleteGasto(11L))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(e -> assertThat(((ReglaNegocioException) e).errorCode())
+                        .isEqualTo(ErrorCode.REGISTRO_NO_MODIFICABLE));
+    }
+
+    // ─── Ingreso otro ────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("updateIngreso modifica un ingreso sin turno ligado")
+    void updateIngreso_sinTurno_actualiza() {
+        IngresoOtro io = sampleIngreso(5L, null);
+        when(ingresoRepo.findById(5L)).thenReturn(Optional.of(io));
+        when(ingresoRepo.save(any(IngresoOtro.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var res = service.updateIngreso(5L, ingresoRequest());
+
+        assertThat(res.monto()).isEqualByComparingTo("120.00");
+        assertThat(res.concepto()).isEqualTo("Venta de chatarra");
+        verify(ingresoRepo).save(io);
     }
 
     @Test
-    @DisplayName("createIngreso: save y retorna IngresoOtroResponse")
-    void createIngreso_ok() {
-        IngresoOtroRequest req = new IngresoOtroRequest(
-                "Venta de chatarra", new BigDecimal("250.00"),
-                LocalDate.now(), 1, null);
-        when(ingresoRepo.save(any(IngresoOtro.class))).thenReturn(sampleIngreso(5L));
+    @DisplayName("updateIngreso bloqueado para ingreso ligado a un turno")
+    void updateIngreso_conTurno_rechaza() {
+        when(ingresoRepo.findById(5L)).thenReturn(Optional.of(sampleIngreso(5L, 7L)));
 
-        var resp = service.createIngreso(req);
+        assertThatThrownBy(() -> service.updateIngreso(5L, ingresoRequest()))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(e -> assertThat(((ReglaNegocioException) e).errorCode())
+                        .isEqualTo(ErrorCode.REGISTRO_NO_MODIFICABLE));
+    }
 
-        assertThat(resp.ingresoOtroId()).isEqualTo(5L);
-        assertThat(resp.concepto()).isEqualTo("Venta de chatarra");
-        verify(ingresoRepo).save(any(IngresoOtro.class));
+    @Test
+    @DisplayName("deleteIngreso elimina sin turno y bloquea uno ligado")
+    void deleteIngreso_respetaLigadoATurno() {
+        IngresoOtro libre = sampleIngreso(5L, null);
+        IngresoOtro ligado = sampleIngreso(6L, 7L);
+        when(ingresoRepo.findById(5L)).thenReturn(Optional.of(libre));
+        when(ingresoRepo.findById(6L)).thenReturn(Optional.of(ligado));
+
+        service.deleteIngreso(5L);
+        verify(ingresoRepo).delete(libre);
+
+        assertThatThrownBy(() -> service.deleteIngreso(6L))
+                .isInstanceOf(ReglaNegocioException.class)
+                .satisfies(e -> assertThat(((ReglaNegocioException) e).errorCode())
+                        .isEqualTo(ErrorCode.REGISTRO_NO_MODIFICABLE));
     }
 }

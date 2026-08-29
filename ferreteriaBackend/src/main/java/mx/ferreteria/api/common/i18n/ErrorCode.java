@@ -34,6 +34,7 @@ public enum ErrorCode {
     PROMOCION_AGOTADA("error.negocio.promocion-agotada", HttpStatus.CONFLICT),
     PROMOCION_LIMITE_CLIENTE("error.negocio.promocion-limite-cliente", HttpStatus.CONFLICT),
     KARDEX_APPEND_ONLY("error.negocio.kardex-append-only", HttpStatus.CONFLICT),
+    REGISTRO_NO_MODIFICABLE("error.negocio.registro-no-modificable", HttpStatus.CONFLICT),
 
     // genéricas / internas
     ERROR_INTERNO("error.interno.inesperado", HttpStatus.INTERNAL_SERVER_ERROR),

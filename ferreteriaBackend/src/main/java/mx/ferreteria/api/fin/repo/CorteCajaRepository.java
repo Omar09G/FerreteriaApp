@@ -13,8 +13,8 @@ public interface CorteCajaRepository extends JpaRepository<CorteCaja, Long> {
 
     @Query("""
             SELECT c FROM CorteCaja c
-            WHERE (:desde IS NULL OR c.fecha >= :desde)
-              AND (:hasta IS NULL OR c.fecha <= :hasta)
+            WHERE c.fecha >= COALESCE(:desde, c.fecha)
+              AND c.fecha <= COALESCE(:hasta, c.fecha)
             ORDER BY c.fecha DESC, c.corteId DESC
             """)
     Page<CorteCaja> findAllByRangoFecha(LocalDate desde, LocalDate hasta, Pageable pageable);

@@ -11,6 +11,7 @@ import { formatoMoneda } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
@@ -162,6 +163,7 @@ export default function ProductosPage() {
   const [page, setPage] = useState(0)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [editando, setEditando] = useState<Producto | null>(null)
+  const [eliminarConfirmacion, setEliminarConfirmacion] = useState<Producto | null>(null)
 
   const aplicarBusqueda = () => {
     setFiltroTipo('')
@@ -208,6 +210,7 @@ export default function ProductosPage() {
     mutationFn: (id: number) => apiEliminarProducto(id),
     onSuccess: () => {
       mostrarExito('Producto desactivado.')
+      setEliminarConfirmacion(null)
       invalidar()
     },
     onError: (err) => {
@@ -245,11 +248,7 @@ export default function ProductosPage() {
             type="button"
             aria-label={`Desactivar ${v.nombre}`}
             className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-            onClick={() => {
-              if (window.confirm(`¿Desactivar el producto "${v.nombre}"?`)) {
-                eliminar.mutate(v.productoId)
-              }
-            }}
+            onClick={() => setEliminarConfirmacion(v)}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -335,6 +334,19 @@ export default function ProductosPage() {
           />
         )}
       </Dialog>
+
+      <ConfirmDialog
+        open={eliminarConfirmacion !== null}
+        title="Confirmar desactivación"
+        confirmLabel="Sí, desactivar"
+        busy={eliminar.isPending}
+        onCancel={() => setEliminarConfirmacion(null)}
+        onConfirm={() => eliminarConfirmacion && eliminar.mutate(eliminarConfirmacion.productoId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Desactivar el producto <span className="font-semibold">&quot;{eliminarConfirmacion?.nombre}&quot;</span>? Dejará de estar disponible en la venta, pero se conserva su historial.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

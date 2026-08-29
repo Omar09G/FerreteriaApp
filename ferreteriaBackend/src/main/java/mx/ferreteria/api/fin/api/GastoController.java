@@ -2,6 +2,7 @@ package mx.ferreteria.api.fin.api;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +34,19 @@ public class GastoController {
         return service.createGasto(req);
     }
 
+    @PutMapping("/gastos/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public FinDtos.GastoResponse updateGasto(@PathVariable Long id,
+            @Valid @RequestBody FinDtos.GastoRequest req) {
+        return service.updateGasto(id, req);
+    }
+
+    @DeleteMapping("/gastos/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public void deleteGasto(@PathVariable Long id) {
+        service.deleteGasto(id);
+    }
+
     @GetMapping("/ingresos-otros")
     public Page<FinDtos.IngresoOtroResponse> listIngresos(
             @RequestParam(required = false) Integer page,
@@ -45,5 +59,18 @@ public class GastoController {
     @ResponseStatus(HttpStatus.CREATED)
     public FinDtos.IngresoOtroResponse createIngreso(@Valid @RequestBody FinDtos.IngresoOtroRequest req) {
         return service.createIngreso(req);
+    }
+
+    @PutMapping("/ingresos-otros/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public FinDtos.IngresoOtroResponse updateIngreso(@PathVariable Long id,
+            @Valid @RequestBody FinDtos.IngresoOtroRequest req) {
+        return service.updateIngreso(id, req);
+    }
+
+    @DeleteMapping("/ingresos-otros/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public void deleteIngreso(@PathVariable Long id) {
+        service.deleteIngreso(id);
     }
 }

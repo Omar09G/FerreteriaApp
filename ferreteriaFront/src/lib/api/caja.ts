@@ -60,6 +60,15 @@ export async function apiCrearGasto(body: GastoRequest): Promise<Gasto> {
   return data.data
 }
 
+export async function apiActualizarGasto(id: number, body: GastoRequest): Promise<Gasto> {
+  const { data } = await http.put<Envelope<Gasto>>(`/gastos/${id}`, body)
+  return data.data
+}
+
+export async function apiEliminarGasto(id: number): Promise<void> {
+  await http.delete(`/gastos/${id}`)
+}
+
 export async function apiIngresosOtros(page: number, size = 15): Promise<PageEnvelope<IngresoOtro>> {
   const { data } = await http.get<PageEnvelope<IngresoOtro>>('/ingresos-otros', { params: { page, size } })
   return data
@@ -68,4 +77,13 @@ export async function apiIngresosOtros(page: number, size = 15): Promise<PageEnv
 export async function apiCrearIngreso(body: IngresoOtroRequest): Promise<IngresoOtro> {
   const { data } = await http.post<Envelope<IngresoOtro>>('/ingresos-otros', body)
   return data.data
+}
+
+export async function apiActualizarIngreso(id: number, body: IngresoOtroRequest): Promise<IngresoOtro> {
+  const { data } = await http.put<Envelope<IngresoOtro>>(`/ingresos-otros/${id}`, body)
+  return data.data
+}
+
+export async function apiEliminarIngreso(id: number): Promise<void> {
+  await http.delete(`/ingresos-otros/${id}`)
 }

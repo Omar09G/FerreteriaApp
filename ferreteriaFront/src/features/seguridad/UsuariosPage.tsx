@@ -10,6 +10,7 @@ import { formatoFechaHora } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input } from '@/components/ui/Input'
@@ -85,6 +86,7 @@ export default function UsuariosPage() {
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [editandoRoles, setEditandoRoles] = useState<Usuario | null>(null)
   const [rolesSel, setRolesSel] = useState<string[]>([])
+  const [eliminarConfirmacion, setEliminarConfirmacion] = useState<Usuario | null>(null)
 
   const roles = useQuery({ queryKey: ['roles'], queryFn: apiRoles })
   const { data, isLoading, error, isFetching } = useQuery({
@@ -131,6 +133,7 @@ export default function UsuariosPage() {
     mutationFn: (id: number) => apiEliminarUsuario(id),
     onSuccess: () => {
       mostrarExito('Usuario eliminado.')
+      setEliminarConfirmacion(null)
       invalidar()
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -186,9 +189,7 @@ export default function UsuariosPage() {
             type="button"
             aria-label={`Eliminar ${v.username}`}
             className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-            onClick={() => {
-              if (window.confirm(`¿Eliminar el usuario "${v.username}"?`)) eliminar.mutate(v.usuarioId)
-            }}
+            onClick={() => setEliminarConfirmacion(v)}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -244,6 +245,19 @@ export default function UsuariosPage() {
           </div>
         </div>
       </Dialog>
+
+      <ConfirmDialog
+        open={eliminarConfirmacion !== null}
+        title="Confirmar eliminación"
+        confirmLabel="Sí, eliminar"
+        busy={eliminar.isPending}
+        onCancel={() => setEliminarConfirmacion(null)}
+        onConfirm={() => eliminarConfirmacion && eliminar.mutate(eliminarConfirmacion.usuarioId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Eliminar el usuario <span className="font-semibold">&quot;{eliminarConfirmacion?.username}&quot;</span>? Esta acción no se puede deshacer.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { aLocalDate, formatoFecha, formatoFechaHora, formatoMoneda } from '@/lib
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
@@ -295,6 +296,7 @@ export default function RentasPage() {
   const [page, setPage] = useState(0)
   const [nuevaAbierta, setNuevaAbierta] = useState(false)
   const [devolviendo, setDevolviendo] = useState<Renta | null>(null)
+  const [cancelarConfirmacion, setCancelarConfirmacion] = useState<Renta | null>(null)
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['rentas', estado, page],
@@ -330,6 +332,7 @@ export default function RentasPage() {
     mutationFn: (id: number) => apiCancelarRenta(id),
     onSuccess: () => {
       mostrarExito('Renta cancelada.')
+      setCancelarConfirmacion(null)
       queryClient.invalidateQueries({ queryKey: ['rentas'] })
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -361,9 +364,7 @@ export default function RentasPage() {
               aria-label="Cancelar renta"
               title="Cancelar renta"
               className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-              onClick={() => {
-                if (window.confirm(`¿Cancelar la renta ${v.folio}?`)) cancelar.mutate(v.rentaId)
-              }}
+              onClick={() => setCancelarConfirmacion(v)}
             >
               <X className="h-4 w-4" />
             </button>
@@ -417,6 +418,19 @@ export default function RentasPage() {
       <Dialog open={devolviendo !== null} onClose={() => !devolver.isPending && setDevolviendo(null)} title="Registrar devolución" width="max-w-lg">
         {devolviendo && <DevolucionForm renta={devolviendo} guardando={devolver.isPending} onGuardar={(body) => devolver.mutate({ id: devolviendo.rentaId, body })} onClose={() => setDevolviendo(null)} />}
       </Dialog>
+
+      <ConfirmDialog
+        open={cancelarConfirmacion !== null}
+        title="Confirmar cancelación"
+        confirmLabel="Sí, cancelar renta"
+        busy={cancelar.isPending}
+        onCancel={() => setCancelarConfirmacion(null)}
+        onConfirm={() => cancelarConfirmacion && cancelar.mutate(cancelarConfirmacion.rentaId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Cancelar la renta <span className="font-semibold">{cancelarConfirmacion?.folio}</span>? Se devuelve el depósito de garantía y se libera el artículo.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

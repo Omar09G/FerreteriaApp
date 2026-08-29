@@ -9,6 +9,7 @@ import type { Proveedor, ProveedorRequest } from '@/lib/api/types'
 import { formatoMoneda } from '@/lib/format'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input } from '@/components/ui/Input'
@@ -94,6 +95,7 @@ export default function ProveedoresPage() {
   const [page, setPage] = useState(0)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [editando, setEditando] = useState<Proveedor | null>(null)
+  const [eliminarConfirmacion, setEliminarConfirmacion] = useState<Proveedor | null>(null)
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['proveedores-list', filtroQ, page],
@@ -124,6 +126,7 @@ export default function ProveedoresPage() {
     mutationFn: (id: number) => apiEliminarProveedor(id),
     onSuccess: () => {
       mostrarExito('Proveedor eliminado.')
+      setEliminarConfirmacion(null)
       invalidar()
     },
     onError: (err) => {
@@ -160,11 +163,7 @@ export default function ProveedoresPage() {
             type="button"
             aria-label={`Eliminar ${v.razonSocial}`}
             className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-            onClick={() => {
-              if (window.confirm(`¿Eliminar el proveedor "${v.razonSocial}"?`)) {
-                eliminar.mutate(v.proveedorId)
-              }
-            }}
+            onClick={() => setEliminarConfirmacion(v)}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -250,6 +249,19 @@ export default function ProveedoresPage() {
           onClose={() => setDialogoAbierto(false)}
         />
       </Dialog>
+
+      <ConfirmDialog
+        open={eliminarConfirmacion !== null}
+        title="Confirmar eliminación"
+        confirmLabel="Sí, eliminar"
+        busy={eliminar.isPending}
+        onCancel={() => setEliminarConfirmacion(null)}
+        onConfirm={() => eliminarConfirmacion && eliminar.mutate(eliminarConfirmacion.proveedorId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Eliminar el proveedor <span className="font-semibold">&quot;{eliminarConfirmacion?.razonSocial}&quot;</span>? Esta acción no se puede deshacer.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

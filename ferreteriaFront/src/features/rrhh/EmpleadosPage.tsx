@@ -11,6 +11,7 @@ import { formatoFecha, formatoMoneda } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
@@ -124,6 +125,7 @@ export default function EmpleadosPage() {
 
   const [page, setPage] = useState(0)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const [bajaConfirmacion, setBajaConfirmacion] = useState<Empleado | null>(null)
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['empleados', page],
@@ -148,6 +150,7 @@ export default function EmpleadosPage() {
     mutationFn: (id: number) => apiBajaEmpleado(id),
     onSuccess: () => {
       mostrarExito('Empleado dado de baja.')
+      setBajaConfirmacion(null)
       queryClient.invalidateQueries({ queryKey: ['empleados'] })
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -179,9 +182,7 @@ export default function EmpleadosPage() {
             type="button"
             aria-label={`Baja de ${v.nombre}`}
             className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-            onClick={() => {
-              if (window.confirm(`¿Dar de baja a ${v.nombre} ${v.apellidoPaterno}?`)) baja.mutate(v.empleadoId)
-            }}
+            onClick={() => setBajaConfirmacion(v)}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -212,6 +213,19 @@ export default function EmpleadosPage() {
       <Dialog open={dialogoAbierto} onClose={() => !crear.isPending && setDialogoAbierto(false)} title="Nuevo empleado" width="max-w-2xl">
         <EmpleadoForm guardando={crear.isPending} onGuardar={(body) => crear.mutate(body)} onClose={() => setDialogoAbierto(false)} />
       </Dialog>
+
+      <ConfirmDialog
+        open={bajaConfirmacion !== null}
+        title="Confirmar baja"
+        confirmLabel="Sí, dar de baja"
+        busy={baja.isPending}
+        onCancel={() => setBajaConfirmacion(null)}
+        onConfirm={() => bajaConfirmacion && baja.mutate(bajaConfirmacion.empleadoId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Dar de baja a <span className="font-semibold">{bajaConfirmacion?.nombre} {bajaConfirmacion?.apellidoPaterno}</span>? Se inactivará su usuario y dejará de operar en el sistema.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

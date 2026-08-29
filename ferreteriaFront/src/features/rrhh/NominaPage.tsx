@@ -10,6 +10,7 @@ import { aLocalDate, formatoFecha, formatoMoneda, hoyLocal } from '@/lib/format'
 import { EstadoBadge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
@@ -116,6 +117,8 @@ export default function NominaPage() {
   const [page, setPage] = useState(0)
   const [estado, setEstado] = useState('')
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const [pagarConfirmacion, setPagarConfirmacion] = useState<Nomina | null>(null)
+  const [cancelarConfirmacion, setCancelarConfirmacion] = useState<Nomina | null>(null)
 
   const empleados = useQuery({
     queryKey: ['empleados', 0],
@@ -148,6 +151,7 @@ export default function NominaPage() {
     mutationFn: (id: number) => apiPagarNomina(id),
     onSuccess: () => {
       mostrarExito('Nómina pagada.')
+      setPagarConfirmacion(null)
       invalidar()
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -157,6 +161,7 @@ export default function NominaPage() {
     mutationFn: (id: number) => apiCancelarNomina(id),
     onSuccess: () => {
       mostrarExito('Nómina cancelada.')
+      setCancelarConfirmacion(null)
       invalidar()
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -191,9 +196,7 @@ export default function NominaPage() {
               title="Pagar"
               aria-label={`Pagar nómina de ${v.empleado}`}
               className="rounded p-1.5 text-muted hover:bg-green-50 hover:text-green-600"
-              onClick={() => {
-                if (window.confirm(`¿Pagar la nómina de ${v.empleado} por ${formatoMoneda(v.netoPagar)}?`)) pagar.mutate(v.nominaId)
-              }}
+              onClick={() => setPagarConfirmacion(v)}
             >
               <Banknote className="h-4 w-4" />
             </button>
@@ -202,9 +205,7 @@ export default function NominaPage() {
               title="Cancelar"
               aria-label={`Cancelar nómina de ${v.empleado}`}
               className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-              onClick={() => {
-                if (window.confirm(`¿Cancelar la nómina pendiente de ${v.empleado}?`)) cancelar.mutate(v.nominaId)
-              }}
+              onClick={() => setCancelarConfirmacion(v)}
             >
               <XCircle className="h-4 w-4" />
             </button>
@@ -260,6 +261,43 @@ export default function NominaPage() {
           onClose={() => setDialogoAbierto(false)}
         />
       </Dialog>
+
+      <Dialog
+        open={pagarConfirmacion !== null}
+        onClose={() => !pagar.isPending && setPagarConfirmacion(null)}
+        title="Confirmar pago de nómina"
+        width="max-w-md"
+        footer={
+          <>
+            <Button variant="ghost" disabled={pagar.isPending} onClick={() => setPagarConfirmacion(null)}>
+              Cancelar
+            </Button>
+            <Button disabled={pagar.isPending} onClick={() => pagarConfirmacion && pagar.mutate(pagarConfirmacion.nominaId)}>
+              {pagar.isPending ? 'Pagando…' : 'Sí, pagar'}
+            </Button>
+          </>
+        }
+      >
+        {pagarConfirmacion && (
+          <p className="text-sm text-ink">
+            ¿Pagar la nómina de <span className="font-semibold">{pagarConfirmacion.empleado}</span> por{' '}
+            <span className="font-semibold tabular-nums">{formatoMoneda(pagarConfirmacion.netoPagar)}</span>?
+          </p>
+        )}
+      </Dialog>
+
+      <ConfirmDialog
+        open={cancelarConfirmacion !== null}
+        title="Confirmar cancelación"
+        confirmLabel="Sí, cancelar"
+        busy={cancelar.isPending}
+        onCancel={() => setCancelarConfirmacion(null)}
+        onConfirm={() => cancelarConfirmacion && cancelar.mutate(cancelarConfirmacion.nominaId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Cancelar la nómina pendiente de <span className="font-semibold">{cancelarConfirmacion?.empleado}</span>? La liquidación no se pagará.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

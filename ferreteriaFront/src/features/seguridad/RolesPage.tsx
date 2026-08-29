@@ -9,6 +9,7 @@ import type { Permiso, Rol, RolRequest } from '@/lib/api/types'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input } from '@/components/ui/Input'
@@ -153,6 +154,7 @@ export default function RolesPage() {
   const [dialogoCreado, setDialogoCreado] = useState(false)
   const [editando, setEditando] = useState<Rol | null>(null)
   const [permisosDe, setPermisosDe] = useState<Rol | null>(null)
+  const [eliminarConfirmacion, setEliminarConfirmacion] = useState<Rol | null>(null)
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['roles', 'roles-container', page],
@@ -189,6 +191,7 @@ export default function RolesPage() {
     mutationFn: (id: number) => apiEliminarRol(id),
     onSuccess: () => {
       mostrarExito('Rol eliminado.')
+      setEliminarConfirmacion(null)
       invalidar()
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -230,9 +233,7 @@ export default function RolesPage() {
             type="button"
             aria-label={`Eliminar ${v.nombre}`}
             className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-            onClick={() => {
-              if (window.confirm(`¿Eliminar el rol "${v.nombre}"?`)) eliminar.mutate(v.rolId)
-            }}
+            onClick={() => setEliminarConfirmacion(v)}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -272,6 +273,19 @@ export default function RolesPage() {
       <Dialog open={permisosDe !== null} onClose={() => setPermisosDe(null)} title={`Permisos de ${permisosDe?.clave ?? ''}`} width="max-w-2xl">
         {permisosDe && <PermisosDialog rol={permisosDe} onClose={() => setPermisosDe(null)} />}
       </Dialog>
+
+      <ConfirmDialog
+        open={eliminarConfirmacion !== null}
+        title="Confirmar eliminación"
+        confirmLabel="Sí, eliminar"
+        busy={eliminar.isPending}
+        onCancel={() => setEliminarConfirmacion(null)}
+        onConfirm={() => eliminarConfirmacion && eliminar.mutate(eliminarConfirmacion.rolId)}
+      >
+        <p className="text-sm text-ink">
+          ¿Eliminar el rol <span className="font-semibold">&quot;{eliminarConfirmacion?.nombre}&quot;</span>? Esta acción no se puede deshacer.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }
