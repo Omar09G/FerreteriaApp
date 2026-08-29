@@ -1,8 +1,7 @@
 # ferreteria-backend
 
 API REST Spring Boot 3 / Java 21 sobre PostgreSQL (`../ferreteriaDB`).
-Especificación del negocio: `../ferreteriaDB/base_de_datos_ferreteria.md`.
-Frontend: `../ferreteriaFront`.
+Frontend: `../ferreteriaFront` · Index raíz: `../README.md`.
 
 ## Requisitos
 

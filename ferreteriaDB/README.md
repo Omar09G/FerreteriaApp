@@ -1,8 +1,6 @@
 # ferreteria-db — PostgreSQL del Sistema Integral de Ferretería
 
 Base de datos del sistema (motor objetivo PostgreSQL 14+, zona `America/Mexico_City`).
-Especificación completa (módulos, DDL, funciones, triggers, vistas y semillas):
-[`base_de_datos_ferreteria.md`](base_de_datos_ferreteria.md).
 Despliegue (dev, clúster y código): [`deploy/README.md`](deploy/README.md).
 
 ## Estructura
@@ -12,7 +10,6 @@ Despliegue (dev, clúster y código): [`deploy/README.md`](deploy/README.md).
 | `scripts/` | **Fuente de verdad** del esquema: 01 base/esquemas, 02 tablas, 03 parámetros (semilla), 04 admin, 05 dummy (demo) y `vistas_core.sql` |
 | `migrations/` | Deltas SQL (`delta_*.sql`) para evolución incremental del esquema |
 | `deploy/` | Despliegue: Podman Compose, Kubernetes (`k8s/`), Terraform (`terraform/`) y guía Podman |
-| `base_de_datos_ferreteria.md` | Especificación de referencia del modelo de datos |
 
 ## Convenciones
 
@@ -20,8 +17,7 @@ Despliegue (dev, clúster y código): [`deploy/README.md`](deploy/README.md).
   configuran con `timezone = 'America/Mexico_City'`.
 - Integridad centralizada en funciones/triggers y validaciones de negocio en CHECKs.
 - Esquemas por módulo: `cat`, `cfg`, `rh`, `seg`, `inv`, `com`, `ven`, `fin`, `fis`.
-- Índices estratégicos, vistas de negocio (incluidas las del dashboard) y datos semilla
-  definidos en la especificación.
+- Índices estratégicos, vistas de negocio (incluidas las del dashboard) y datos semilla.
 
 ## Cómo se usa desde el backend
 

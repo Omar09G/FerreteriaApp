@@ -1,8 +1,9 @@
 # ferreteria-front — SPA de la Ferretería (React 19 + Vite 8 + TS)
 
 Frontend del Sistema Integral de Ferretería: SPA de escritorio interna (caja, inventario,
-compras, reportes) responsive para tablet. Documento fuente: [`docs/PLAN_FRONTEND.md`](docs/PLAN_FRONTEND.md).
+compras, reportes) responsive para tablet.
 Backend: [`../ferreteriaBackend`](../ferreteriaBackend) · Base de datos: [`../ferreteriaDB`](../ferreteriaDB).
+Index raíz: [`../README.md`](../README.md).
 
 ## Stack
 
