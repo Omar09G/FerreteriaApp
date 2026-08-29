@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import lombok.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "cortes_caja", schema = "fin")
@@ -56,9 +58,11 @@ public class CorteCaja {
     @Builder.Default private BigDecimal costoVentas = BigDecimal.ZERO;
 
     @Column(columnDefinition = "numeric(14,2) generated always as (subtotal - costo_ventas) stored")
+    @Generated(event = EventType.INSERT)
     private BigDecimal utilidadBruta;
 
     @Column(columnDefinition = "numeric(6,2) generated always as ((subtotal - costo_ventas) / nullif(subtotal,0) * 100) stored")
+    @Generated(event = EventType.INSERT)
     private BigDecimal margenPct;
 
     @Column(nullable = false, precision = 14, scale = 2)

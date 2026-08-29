@@ -3,6 +3,8 @@ package mx.ferreteria.api.ven.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import lombok.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "cotizacion_detalles", schema = "ven")
@@ -21,6 +23,12 @@ public class CotizacionDetalle {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal precioUnitario;
 
-    @Column(columnDefinition = "numeric(14,2) generated always as (cantidad * precio_unitario) stored")
+    /**
+     * Columna GENERATED ALWAYS AS (cantidad * precio_unitario) STORED en BD.
+     * Hibernate no debe escribirla; se marca insertable=false + updatable=false
+     * y se usa @Generated para que el dialect PG la lea tras el INSERT.
+     */
+    @Generated(event = EventType.INSERT)
+    @Column(insertable = false, updatable = false)
     private BigDecimal importeLinea;
 }

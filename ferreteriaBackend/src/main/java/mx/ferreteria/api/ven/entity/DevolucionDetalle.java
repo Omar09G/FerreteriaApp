@@ -3,6 +3,8 @@ package mx.ferreteria.api.ven.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import lombok.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "devolucion_detalles", schema = "ven")
@@ -23,6 +25,8 @@ public class DevolucionDetalle {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal precioUnitario;
 
-    @Column(columnDefinition = "numeric(14,2) generated always as (cantidad * precio_unitario) stored")
+    /** GENERATED ALWAYS AS (cantidad * precio_unitario) STORED en BD — no escribirla desde JPA. */
+    @Generated(event = EventType.INSERT)
+    @Column(insertable = false, updatable = false)
     private BigDecimal importeLinea;
 }
