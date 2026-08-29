@@ -3,6 +3,7 @@ package mx.ferreteria.api.ven.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
@@ -203,5 +204,63 @@ public final class VenDtos {
     public record TurnoCierreRequest(
         @NotNull BigDecimal montoContado,
         String observaciones
+    ) {}
+
+    // ─── Promociones ─────────────────────────────────────────────────
+    /**
+     * Cuerpo de alta/edición de una promoción. productos/categorias pueden ir
+     * vacíos si la promoción aplica a "todos" o si solo usa los triggers
+     * por categoría. diasSemana en [1..7]; vacío = sin restricciones.
+     */
+    public record PromocionRequest(
+        @NotBlank @Size(max = 150) String nombre,
+        @Size(max = 1000) String descripcion,
+        @NotBlank String tipo,
+        BigDecimal valorPct,
+        BigDecimal valorMonto,
+        BigDecimal precioEspecial,
+        BigDecimal compraMinTotal,
+        BigDecimal compraMinCantidad,
+        BigDecimal lleva,
+        BigDecimal paga,
+        Integer maxUsosTotal,
+        Integer maxUsosCliente,
+        Instant vigenciaDesde,
+        Instant vigenciaHasta,
+        List<Short> diasSemana,
+        LocalTime horaDesde,
+        LocalTime horaHasta,
+        Boolean soloMayoristas,
+        String estado,
+        List<Long> productos,
+        List<Integer> categorias
+    ) {}
+
+    public record PromocionResponse(
+        Long promocionId,
+        String nombre,
+        String descripcion,
+        String tipo,
+        BigDecimal valorPct,
+        BigDecimal valorMonto,
+        BigDecimal precioEspecial,
+        BigDecimal compraMinTotal,
+        BigDecimal compraMinCantidad,
+        BigDecimal lleva,
+        BigDecimal paga,
+        Integer maxUsosTotal,
+        Integer maxUsosCliente,
+        Integer usosActual,
+        Instant vigenciaDesde,
+        Instant vigenciaHasta,
+        List<Short> diasSemana,
+        LocalTime horaDesde,
+        LocalTime horaHasta,
+        Boolean soloMayoristas,
+        String estado,
+        List<Long> productos,
+        List<Integer> categorias,
+        Integer usuarioId,
+        Instant creadoEn
     ) {}
 }

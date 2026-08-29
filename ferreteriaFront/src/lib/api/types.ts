@@ -1030,3 +1030,85 @@ export interface FacturaXml {
   tipo: string
   cfdiXml: string | null
 }
+/* ── Promociones ─────────────────────────────────────────────────── */
+
+export type TipoPromocion =
+  | 'DESCUENTO_PRODUCTO'
+  | 'DESCUENTO_TOTAL_VENTA'
+  | 'POR_CANTIDAD'
+  | 'NXM'
+  | 'PRECIO_ESPECIAL'
+
+export type EstadoPromocion = 'ACTIVA' | 'PROGRAMADA' | 'FINALIZADA' | 'CANCELADA'
+
+export interface Promocion {
+  promocionId: number
+  nombre: string
+  descripcion?: string
+  tipo: TipoPromocion
+  valorPct?: number
+  valorMonto?: number
+  precioEspecial?: number
+  compraMinTotal?: number
+  compraMinCantidad?: number
+  lleva?: number
+  paga?: number
+  maxUsosTotal?: number
+  maxUsosCliente?: number
+  usosActual: number
+  vigenciaDesde: string
+  vigenciaHasta?: string
+  diasSemana: number[]
+  horaDesde?: string
+  horaHasta?: string
+  soloMayoristas: boolean
+  estado: EstadoPromocion
+  productos: number[]
+  categorias: number[]
+  usuarioId: number
+  creadoEn: string
+}
+
+export interface PromocionRequest {
+  nombre: string
+  descripcion?: string
+  tipo: TipoPromocion
+  valorPct?: number
+  valorMonto?: number
+  precioEspecial?: number
+  compraMinTotal?: number
+  compraMinCantidad?: number
+  lleva?: number
+  paga?: number
+  maxUsosTotal?: number
+  maxUsosCliente?: number
+  vigenciaDesde?: string
+  vigenciaHasta?: string
+  diasSemana: number[]
+  horaDesde?: string
+  horaHasta?: string
+  soloMayoristas?: boolean
+  estado?: EstadoPromocion
+  productos: number[]
+  categorias: number[]
+}
+
+/* ── Auditoría ─────────────────────────────────────────────────── */
+
+export interface Auditoria {
+  auditoriaId: number
+  esquema: string
+  tabla: string
+  registroId: number
+  accion: 'INSERT' | 'UPDATE' | 'DELETE'
+  datosAnteriores?: string
+  datosNuevos?: string
+  usuarioId?: number
+  usuario?: string
+  creadoEn: string
+}
+
+export interface AuditoriaTabla {
+  esquema: string
+  tabla: string
+}

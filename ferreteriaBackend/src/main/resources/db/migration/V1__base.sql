@@ -1202,6 +1202,10 @@ DROP TRIGGER IF EXISTS trg_audit_gasto ON fin.gastos;
 CREATE TRIGGER trg_audit_gasto     AFTER UPDATE OR DELETE ON fin.gastos
     FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('gasto_id');
 
+DROP TRIGGER IF EXISTS trg_audit_promocion ON ven.promociones;
+CREATE TRIGGER trg_audit_promocion AFTER INSERT OR UPDATE OR DELETE ON ven.promociones
+    FOR EACH ROW EXECUTE FUNCTION seg.fn_auditar('promocion_id');
+
 CREATE OR REPLACE FUNCTION common_touch_updated_at() RETURNS TRIGGER
 LANGUAGE plpgsql AS $$
 BEGIN NEW.actualizado_en := now(); RETURN NEW; END $$;

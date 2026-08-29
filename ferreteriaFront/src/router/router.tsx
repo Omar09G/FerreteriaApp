@@ -27,6 +27,7 @@ const MovimientosPage = lazy(() => import('@/features/inventario/MovimientosPage
 const StockPage = lazy(() => import('@/features/inventario/StockPage'))
 const ProductosPage = lazy(() => import('@/features/catalogo/ProductosPage'))
 const ClientesPage = lazy(() => import('@/features/catalogo/ClientesPage'))
+const PromocionesPage = lazy(() => import('@/features/catalogo/PromocionesPage'))
 const PosPage = lazy(() => import('@/features/pos/PosPage'))
 const CajaPage = lazy(() => import('@/features/caja/CajaPage'))
 const ComprasPage = lazy(() => import('@/features/compras/ComprasPage'))
@@ -44,6 +45,7 @@ const TrasladosPage = lazy(() => import('@/features/inventario/TrasladosPage'))
 const ConteosPage = lazy(() => import('@/features/inventario/ConteosPage'))
 const NominaPage = lazy(() => import('@/features/rrhh/NominaPage'))
 const RolesPage = lazy(() => import('@/features/seguridad/RolesPage'))
+const AuditoriaPage = lazy(() => import('@/features/seguridad/AuditoriaPage'))
 const FacturasPage = lazy(() => import('@/features/fiscal/FacturasPage'))
 
 const pos = (roles: string[], el: ReactNode) => <RequiereRol roles={roles}>{el}</RequiereRol>
@@ -79,6 +81,7 @@ export const router = createBrowserRouter([
           { path: 'catalogo', children: [
             { path: 'productos', element: <Suspense fallback={spinners.full}><ProductosPage /></Suspense> },
             { path: 'clientes', element: <Suspense fallback={spinners.full}><ClientesPage /></Suspense> },
+            { path: 'promociones', element: pos(['ADMINISTRADOR', 'GERENTE'], <Suspense fallback={spinners.full}><PromocionesPage /></Suspense>) },
           ]},
           { path: 'inventario', children: [
             { path: 'stock', element: <Suspense fallback={spinners.full}><StockPage /></Suspense> },
@@ -112,6 +115,7 @@ export const router = createBrowserRouter([
           { path: 'seguridad', children: [
             { path: 'usuarios', element: pos(['ADMINISTRADOR'], <Suspense fallback={spinners.full}><UsuariosPage /></Suspense>) },
             { path: 'roles', element: pos(['ADMINISTRADOR'], <Suspense fallback={spinners.full}><RolesPage /></Suspense>) },
+            { path: 'auditoria', element: pos(['ADMINISTRADOR', 'AUDITOR'], <Suspense fallback={spinners.full}><AuditoriaPage /></Suspense>) },
           ]},
           { path: 'fiscal', children: [
             { path: 'facturas', element: <Suspense fallback={spinners.full}><FacturasPage /></Suspense> },

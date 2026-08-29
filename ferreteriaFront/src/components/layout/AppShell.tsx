@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Boxes, BarChart3, Building2, CalendarCheck2, CircleDollarSign, FileText, HardHat, KeyRound, Languages, LayoutDashboard, LogOut, Menu, Monitor, Moon, ReceiptText, Settings, ShoppingCart, Sun, Truck, Undo2, UserCog, Users2, Warehouse, X } from 'lucide-react'
+import { Boxes, BarChart3, Building2, CalendarCheck2, CircleDollarSign, FileText, HardHat, History, KeyRound, Languages, LayoutDashboard, LogOut, Menu, Monitor, Moon, Percent, ReceiptText, Settings, ShoppingCart, Sun, Truck, Undo2, UserCog, Users2, Warehouse, X } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { useAuthStore, tieneRol } from '@/store/auth'
@@ -32,6 +32,7 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
     items: [
       { clave: 'productos', a: '/catalogo/productos', icono: <Boxes className="h-4 w-4" /> },
       { clave: 'clientes', a: '/catalogo/clientes', icono: <Users2 className="h-4 w-4" /> },
+      { clave: 'promociones', a: '/catalogo/promociones', icono: <Percent className="h-4 w-4" />, roles: ['ADMINISTRADOR', 'GERENTE'] },
       { clave: 'proveedores', a: '/compras/proveedores', icono: <Truck className="h-4 w-4" /> },
     ],
   },
@@ -66,6 +67,7 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
       { clave: 'empleados', a: '/rrhh/empleados', icono: <Users2 className="h-4 w-4" />, roles: ['ADMINISTRADOR'] },
       { clave: 'usuarios', a: '/seguridad/usuarios', icono: <UserCog className="h-4 w-4" />, roles: ['ADMINISTRADOR'] },
       { clave: 'roles', a: '/seguridad/roles', icono: <Settings className="h-4 w-4" />, roles: ['ADMINISTRADOR'] },
+      { clave: 'auditoria', a: '/seguridad/auditoria', icono: <History className="h-4 w-4" />, roles: ['ADMINISTRADOR', 'AUDITOR'] },
       { clave: 'facturas', a: '/fiscal/facturas', icono: <FileText className="h-4 w-4" /> },
     ],
   },
