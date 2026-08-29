@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -302,5 +303,159 @@ class CompraServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).proveedor()).isEqualTo("Ferritas SA");
+    }
+
+    @Test
+    @DisplayName("abonar: liquida la cuenta al cubrir el saldo y registra salida en caja")
+    void abonar_liquidaCuenta() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        var finalizada = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "LIQUIDADA", new BigDecimal("1160.00"),
+                new BigDecimal("1160.00"), BigDecimal.ZERO, 1);
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
+                .thenReturn(List.of(inicial), List.of(finalizada));
+        when(jdbc.queryForObject(anyString(), eq(Long.class),
+                any(), any(), any(), any(), any(), any())).thenReturn(99L);
+        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()));
+        when(cajaService.resolverTurnoAbierto(5, 1)).thenReturn(6L);
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("560.00"), 1, 5, null);
+
+        var resp = service.abonar(1L, req);
+
+        assertThat(resp.pagoProveedorId()).isEqualTo(99L);
+        assertThat(resp.estado()).isEqualTo("LIQUIDADA");
+        assertThat(resp.saldo()).isEqualByComparingTo("0.00");
+        assertThat(resp.compraFolio()).isEqualTo("COMPRA-0001");
+        verify(cajaService).resolverTurnoAbierto(5, 1);
+        verify(jdbc).queryForObject(anyString(), eq(Long.class),
+                eq(1L), eq(1), eq("ABONO"), eq(new BigDecimal("560.00")), eq(0), eq(6L));
+    }
+
+    @Test
+    @DisplayName("abonar: abono parcial deja la cuenta en PARCIAL con saldo restante")
+    void abonar_parcial() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        var parcial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "PARCIAL", new BigDecimal("1160.00"),
+                new BigDecimal("900.00"), new BigDecimal("260.00"), 1);
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
+                .thenReturn(List.of(inicial), List.of(parcial));
+        when(jdbc.queryForObject(anyString(), eq(Long.class),
+                any(), any(), any(), any(), any(), any())).thenReturn(1L);
+        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()));
+        when(cajaService.resolverTurnoAbierto(5, 1)).thenReturn(6L);
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("300.00"), 1, 5, "ABONO PARCIAL 2");
+
+        var resp = service.abonar(1L, req);
+
+        assertThat(resp.estado()).isEqualTo("PARCIAL");
+        assertThat(resp.saldo()).isEqualByComparingTo("260.00");
+        verify(jdbc).queryForObject(anyString(), eq(Long.class),
+                eq(1L), eq(1), eq("ABONO PARCIAL 2"), eq(new BigDecimal("300.00")), eq(0), eq(6L));
+    }
+
+    @Test
+    @DisplayName("abonar: cuenta liquidada o cancelada -> ESTADO_INVALIDO")
+    void abonar_cuentaCerrada() {
+        var cerrada = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "LIQUIDADA", new BigDecimal("1160.00"),
+                new BigDecimal("1160.00"), BigDecimal.ZERO, 1);
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
+                .thenReturn(List.of(cerrada));
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("10.00"), 1, 5, null);
+
+        ReglaNegocioException ex = org.assertj.core.api.Assertions
+                .catchThrowableOfType(() -> service.abonar(1L, req), ReglaNegocioException.class);
+        assertThat(ex.errorCode()).isEqualTo(ErrorCode.ESTADO_INVALIDO);
+        org.mockito.Mockito.verifyNoInteractions(cajaService, formaPagoRepo);
+    }
+
+    @Test
+    @DisplayName("abonar: cuenta inexistente -> RecursoNoEncontradoException")
+    void abonar_cuentaInexistente() {
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(999L)))
+                .thenReturn(java.util.Collections.emptyList());
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("10.00"), 1, 5, null);
+
+        assertThatThrownBy(() -> service.abonar(999L, req))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
+    @Test
+    @DisplayName("abonar: monto mayor al saldo -> VALOR_INVALIDO")
+    void abonar_montoExcedeSaldo() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
+                .thenReturn(List.of(inicial));
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("600.00"), 1, 5, null);
+
+        ReglaNegocioException ex = org.assertj.core.api.Assertions
+                .catchThrowableOfType(() -> service.abonar(1L, req), ReglaNegocioException.class);
+        assertThat(ex.errorCode()).isEqualTo(ErrorCode.VALOR_INVALIDO);
+    }
+
+    @Test
+    @DisplayName("abonar contado sin caja: CAMPO_REQUERIDO")
+    void abonar_contadoSinCaja() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
+                .thenReturn(List.of(inicial));
+        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()));
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("560.00"), 1, null, null);
+
+        ReglaNegocioException ex = org.assertj.core.api.Assertions
+                .catchThrowableOfType(() -> service.abonar(1L, req), ReglaNegocioException.class);
+        assertThat(ex.errorCode()).isEqualTo(ErrorCode.CAMPO_REQUERIDO);
+        org.mockito.Mockito.verifyNoInteractions(cajaService);
+    }
+
+    @Test
+    @DisplayName("abonar credito: no exige caja ni registra salida")
+    void abonar_creditoSinCaja() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        var parcial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "PARCIAL", new BigDecimal("1160.00"),
+                new BigDecimal("900.00"), new BigDecimal("260.00"), 1);
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
+                .thenReturn(List.of(inicial), List.of(parcial));
+        when(jdbc.queryForObject(anyString(), eq(Long.class),
+                any(), any(), any(), any(), any(), any())).thenReturn(2L);
+        when(formaPagoRepo.findById(6)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()));
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("300.00"), 6, null, null);
+
+        var resp = service.abonar(1L, req);
+
+        assertThat(resp.turnoCajaId()).isNull();
+        org.mockito.Mockito.verifyNoInteractions(cajaService);
+        verify(jdbc).queryForObject(anyString(), eq(Long.class),
+                eq(1L), eq(6), eq("ABONO"), eq(new BigDecimal("300.00")), eq(0), isNull());
     }
 }

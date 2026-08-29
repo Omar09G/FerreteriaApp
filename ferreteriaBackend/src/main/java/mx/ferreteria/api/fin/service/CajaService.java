@@ -1,7 +1,9 @@
 package mx.ferreteria.api.fin.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import mx.ferreteria.api.cat.entity.FormaPago;
+import mx.ferreteria.api.cat.repo.FormaPagoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
@@ -31,9 +35,16 @@ import mx.ferreteria.api.inv.repo.AlmacenRepository;
 @Transactional
 public class CajaService {
 
+    /** Conceptos registrables manualmente en caja (los demás los generan los flujos). */
+    private static final Set<String> CONCEPTOS_MANUALES = Set.of(
+            "OTRO_INGRESO", "COBRANZA_CREDITO", "DEPOSITO_GARANTIA_RENTA",
+            "GASTO_OPERATIVO", "NOMINA", "RETIRO_EFECTIVO",
+            "DEVOLUCION_CLIENTE", "DEVOLUCION_DEPOSITO_RENTA");
+
     private final CajaRepository cajaRepo;
     private final TurnoCajaRepository turnoRepo;
     private final MovimientoCajaRepository movRepo;
+    private final FormaPagoRepository formaPagoRepo;
     private final CorteCajaRepository corteRepo;
     private final AlmacenRepository almacenRepo;
     private final JdbcTemplate jdbc;
@@ -119,6 +130,9 @@ public class CajaService {
     // ─── Movimientos ────────────────────────────────────────────────
 
     public FinDtos.MovimientoCajaResponse registrarMovimiento(Long turnoId, FinDtos.MovimientoCajaRequest req) {
+        if (!CONCEPTOS_MANUALES.contains(req.concepto())) {
+            throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO, "'" + req.concepto() + "'");
+        }
         turnoRepo.findById(turnoId)
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
         MovimientoCaja mc = MovimientoCaja.builder()
@@ -141,6 +155,35 @@ public class CajaService {
                 .map(this::toMovimientoResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public FinDtos.EsperadoCajaResponse obtenerEsperado(Long turnoId) {
+        turnoRepo.findById(turnoId)
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        return jdbc.query("""
+                SELECT t.monto_apertura AS montoApertura,
+                       COALESCE(SUM(mc.monto) FILTER (
+                           WHERE mc.tipo = 'ENTRADA'
+                             AND COALESCE(fp.es_efectivo, true)), 0) AS entradasEfectivo,
+                       COALESCE(SUM(mc.monto) FILTER (
+                           WHERE mc.tipo = 'SALIDA'
+                             AND COALESCE(fp.es_efectivo, true)), 0) AS salidasEfectivo
+                FROM fin.turnos_caja t
+                LEFT JOIN fin.movimientos_caja mc ON mc.turno_caja_id = t.turno_caja_id
+                    AND mc.concepto <> 'APERTURA'
+                LEFT JOIN cat.formas_pago fp ON fp.forma_pago_id = mc.forma_pago_id
+                WHERE t.turno_caja_id = ?
+                GROUP BY t.monto_apertura
+                """, rs -> {
+            rs.next();
+            BigDecimal apertura = rs.getBigDecimal("montoApertura");
+            BigDecimal entradas = rs.getBigDecimal("entradasEfectivo");
+            BigDecimal salidas = rs.getBigDecimal("salidasEfectivo");
+            return new FinDtos.EsperadoCajaResponse(
+                    apertura, entradas, salidas,
+                    apertura.add(entradas).subtract(salidas));
+        }, turnoId);
+    }
+
     // ─── Corte de caja ──────────────────────────────────────────────
 
     public FinDtos.CorteCajaResponse cerrarTurno(Long turnoId, FinDtos.CorteRequest req) {
@@ -156,8 +199,8 @@ public class CajaService {
     }
 
     @Transactional(readOnly = true)
-    public Page<FinDtos.CorteCajaResponse> listCortes(Pageable pageable) {
-        return corteRepo.findAllByOrderByFechaDescCorteIdDesc(pageable)
+    public Page<FinDtos.CorteCajaResponse> listCortes(LocalDate desde, LocalDate hasta, Pageable pageable) {
+        return corteRepo.findAllByRangoFecha(desde, hasta, pageable)
                 .map(this::toCorteResponse);
     }
 
@@ -180,11 +223,24 @@ public class CajaService {
     }
 
     private FinDtos.MovimientoCajaResponse toMovimientoResponse(MovimientoCaja mc) {
+        String formaPagoNombre = mc.getFormaPagoId() == null ? null
+                : formaPagoRepo.findById(mc.getFormaPagoId())
+                        .map(FormaPago::getNombre).orElse(null);
+        String refDescripcion = null;
+        if ("com.pagos_proveedor".equals(mc.getRefTabla()) && mc.getRefId() != null) {
+            refDescripcion = jdbc.query("""
+                    SELECT c.folio
+                    FROM com.pagos_proveedor p
+                    JOIN com.cuentas_pagar cp ON cp.cuenta_pagar_id = p.cuenta_pagar_id
+                    JOIN com.compras c ON c.compra_id = cp.compra_id
+                    WHERE p.pago_proveedor_id = ?
+                    """, rs -> rs.next() ? rs.getString(1) : null, mc.getRefId());
+        }
         return new FinDtos.MovimientoCajaResponse(
                 mc.getMovimientoId(), mc.getTurnoCajaId(), mc.getTipo(),
                 mc.getConcepto(), mc.getMonto(),
-                mc.getFormaPagoId(), null,
-                mc.getRefTabla(), mc.getRefId(), mc.getCreadoEn());
+                mc.getFormaPagoId(), formaPagoNombre,
+                mc.getRefTabla(), mc.getRefId(), mc.getCreadoEn(), refDescripcion);
     }
 
     private FinDtos.CorteCajaResponse toCorteResponse(CorteCaja c) {

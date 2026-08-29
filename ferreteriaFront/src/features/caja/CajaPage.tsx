@@ -4,7 +4,7 @@ import { ArrowDownCircle, ArrowUpCircle, Banknote, Lock, Unlock } from 'lucide-r
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { esApiError } from '@/lib/api/client'
-import { apiAbrirTurno, apiCajas, apiCerrarTurno, apiCortes, apiMovimientosTurno, apiRegistrarMovimiento, apiTurnos } from '@/lib/api/caja'
+import { apiAbrirTurno, apiCajas, apiCerrarTurno, apiCortes, apiEsperadoTurno, apiMovimientosTurno, apiRegistrarMovimiento, apiTurnos } from '@/lib/api/caja'
 import type { CorteCaja, CorteRequest, MovimientoCajaRequest, TurnoCaja } from '@/lib/api/types'
 import { formatoFechaHora, formatoMoneda, formatoNumero } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
@@ -22,7 +22,33 @@ function EstadoTurno({ estado }: { estado: string }) {
   return <Badge>{estado}</Badge>
 }
 
+const CONCEPTOS_MANUALES: Record<string, string[]> = {
+  ENTRADA: ['OTRO_INGRESO', 'COBRANZA_CREDITO', 'DEPOSITO_GARANTIA_RENTA'],
+  SALIDA: ['GASTO_OPERATIVO', 'NOMINA', 'RETIRO_EFECTIVO', 'DEVOLUCION_CLIENTE', 'DEVOLUCION_DEPOSITO_RENTA'],
+}
+
+const ETIQUETA_CONCEPTO: Record<string, string> = {
+  OTRO_INGRESO: 'Otro ingreso',
+  COBRANZA_CREDITO: 'Cobranza de crédito',
+  DEPOSITO_GARANTIA_RENTA: 'Depósito de garantía (renta)',
+  GASTO_OPERATIVO: 'Gasto operativo',
+  NOMINA: 'Nómina',
+  RETIRO_EFECTIVO: 'Retiro de efectivo',
+  DEVOLUCION_CLIENTE: 'Devolución a cliente',
+  DEVOLUCION_DEPOSITO_RENTA: 'Devolución de depósito (renta)',
+}
+
 function ResumenCorte({ corte }: { corte: CorteCaja }) {
+  const desglose = (raw: string): [string, number][] => {
+    if (!raw || raw === '') return []
+    try {
+      return Object.entries(JSON.parse(raw)) as [string, number][]
+    } catch {
+      return []
+    }
+  }
+  const salidas = desglose(corte.desgloseSalidas)
+  const formas = desglose(corte.desgloseFormasPago)
   const filas: [string, string][] = [
     ['Total vendido', formatoMoneda(corte.totalVendido)],
     ['Utilidad bruta', formatoMoneda(corte.utilidadBruta)],
@@ -30,6 +56,8 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
     ['Fondo de apertura', formatoMoneda(corte.fondoApertura)],
     ['Entradas efectivo', formatoMoneda(corte.entradasEfectivo)],
     ['Salidas efectivo', formatoMoneda(corte.salidasEfectivo)],
+    ['Egresos no efectivo', formatoMoneda(corte.egresosNoEfectivo)],
+    ['Pérdidas inventario', formatoMoneda(corte.perdidasInventario)],
     ['Esperado', formatoMoneda(corte.dineroEsperado)],
     ['Contado', formatoMoneda(corte.dineroContado)],
   ]
@@ -49,6 +77,30 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
           </div>
         ))}
       </dl>
+      {(salidas.length > 0 || formas.length > 0) && (
+        <div className="mt-2 space-y-1 rounded-md bg-canvas px-2 py-1.5 text-xs">
+          {salidas.length > 0 && (
+            <div className="flex flex-wrap gap-x-3">
+              <span className="text-muted">Salidas:</span>
+              {salidas.map(([k, v]) => (
+                <span key={k} className="font-medium text-red-700">
+                  {k} −{formatoMoneda(Math.abs(v))}
+                </span>
+              ))}
+            </div>
+          )}
+          {formas.length > 0 && (
+            <div className="flex flex-wrap gap-x-3">
+              <span className="text-muted">Formas de pago:</span>
+              {formas.map(([k, v]) => (
+                <span key={k} className="font-medium text-ink">
+                  {k} {formatoMoneda(Math.abs(v))}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {corte.observaciones && <p className="mt-2 text-xs text-muted">{corte.observaciones}</p>}
     </div>
   )
@@ -59,16 +111,25 @@ export default function CajaPage() {
   const { error: mostrarError, success: mostrarExito } = useToast()
   const queryClient = useQueryClient()
 
+  const hoyLocal = () => {
+    const d = new Date()
+    const mes = String(d.getMonth() + 1).padStart(2, '0')
+    const dia = String(d.getDate()).padStart(2, '0')
+    return `${d.getFullYear()}-${mes}-${dia}`
+  }
+
   const [cajaId, setCajaId] = useState<number | ''>('')
   const [pageTurnos, setPageTurnos] = useState(0)
   const [pageCortes, setPageCortes] = useState(0)
+  const [desde, setDesde] = useState(hoyLocal)
+  const [hasta, setHasta] = useState(hoyLocal)
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<TurnoCaja | null>(null)
   const [abrirAbierto, setAbrirAbierto] = useState(false)
   const [montoApertura, setMontoApertura] = useState('0')
   const [cerrarAbierto, setCerrarAbierto] = useState(false)
   const [montoContado, setMontoContado] = useState('')
   const [observaciones, setObservaciones] = useState('')
-  const [mov, setMov] = useState({ tipo: 'SALIDA', concepto: '', monto: '' })
+  const [mov, setMov] = useState({ tipo: 'SALIDA', concepto: 'GASTO_OPERATIVO', monto: '' })
 
   const cajas = useQuery({ queryKey: ['cajas'], queryFn: apiCajas })
   const turnos = useQuery({
@@ -76,11 +137,19 @@ export default function CajaPage() {
     queryFn: () => apiTurnos(Number(cajaId), pageTurnos),
     enabled: cajaId !== '',
   })
-  const cortes = useQuery({ queryKey: ['cortes', pageCortes], queryFn: () => apiCortes(pageCortes) })
+  const cortes = useQuery({
+    queryKey: ['cortes', pageCortes, desde, hasta],
+    queryFn: () => apiCortes(pageCortes, 10, desde || undefined, hasta || undefined),
+  })
   const movimientos = useQuery({
     queryKey: ['movimientos-turno', turnoSeleccionado?.turnoCajaId],
     queryFn: () => apiMovimientosTurno(turnoSeleccionado!.cajaId, turnoSeleccionado!.turnoCajaId),
     enabled: turnoSeleccionado !== null,
+  })
+  const esperado = useQuery({
+    queryKey: ['esperado-turno', turnoSeleccionado?.turnoCajaId],
+    queryFn: () => apiEsperadoTurno(turnoSeleccionado!.cajaId, turnoSeleccionado!.turnoCajaId),
+    enabled: cerrarAbierto && turnoSeleccionado !== null,
   })
 
   useEffect(() => {
@@ -95,6 +164,9 @@ export default function CajaPage() {
   useEffect(() => {
     if (movimientos.error) mostrarError(esApiError(movimientos.error) ? movimientos.error.mensajeParaUsuario() : String(movimientos.error))
   }, [movimientos.error, mostrarError])
+  useEffect(() => {
+    if (esperado.error) mostrarError(esApiError(esperado.error) ? esperado.error.mensajeParaUsuario() : String(esperado.error))
+  }, [esperado.error, mostrarError])
 
   const invalidarTurnos = () => {
     queryClient.invalidateQueries({ queryKey: ['turnos'] })
@@ -116,7 +188,7 @@ export default function CajaPage() {
     mutationFn: (body: MovimientoCajaRequest) => apiRegistrarMovimiento(turnoSeleccionado!.cajaId, turnoSeleccionado!.turnoCajaId, body),
     onSuccess: () => {
       mostrarExito('Movimiento registrado.')
-      setMov({ tipo: 'SALIDA', concepto: '', monto: '' })
+      setMov({ tipo: 'SALIDA', concepto: 'GASTO_OPERATIVO', monto: '' })
       invalidarTurnos()
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -206,8 +278,11 @@ export default function CajaPage() {
                                   ) : (
                                     <ArrowDownCircle className="h-4 w-4 shrink-0 text-red-600" />
                                   )}
-                                  <span className="truncate">{m.concepto}</span>
-                                  {m.formaPagoNombre && <span className="text-xs text-muted">· {m.formaPagoNombre}</span>}
+                                  <span className="truncate">
+                                    {m.concepto}
+                                    {m.refDescripcion && <span className="text-xs text-muted"> · {m.refDescripcion}</span>}
+                                    {m.formaPagoNombre && <span className="text-xs text-muted"> · {m.formaPagoNombre}</span>}
+                                  </span>
                                 </span>
                                 <span className={`shrink-0 font-medium tabular-nums ${m.tipo === 'ENTRADA' ? 'text-green-700' : 'text-red-700'}`}>
                                   {m.tipo === 'ENTRADA' ? '+' : '−'} {formatoMoneda(m.monto)}
@@ -222,17 +297,28 @@ export default function CajaPage() {
                             <Select
                               label="Tipo"
                               value={mov.tipo}
-                              onChange={(e) => setMov((m) => ({ ...m, tipo: e.target.value }))}
+                              onChange={(e) =>
+                                setMov((m) => ({
+                                  ...m,
+                                  tipo: e.target.value,
+                                  concepto: CONCEPTOS_MANUALES[e.target.value][0],
+                                }))
+                              }
                             >
                               <option value="SALIDA">Salida</option>
                               <option value="ENTRADA">Entrada</option>
                             </Select>
-                            <Input
+                            <Select
                               label="Concepto"
                               value={mov.concepto}
                               onChange={(e) => setMov((m) => ({ ...m, concepto: e.target.value }))}
-                              placeholder="Ej. Compra de material"
-                            />
+                            >
+                              {CONCEPTOS_MANUALES[mov.tipo]?.map((c) => (
+                                <option key={c} value={c}>
+                                  {ETIQUETA_CONCEPTO[c]}
+                                </option>
+                              ))}
+                            </Select>
                             <Input
                               label="Monto"
                               type="number"
@@ -265,12 +351,35 @@ export default function CajaPage() {
         </div>
 
         <div>
-          <Card titulo="Cortes recientes">
+          <Card titulo="Cortes de caja">
+            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <Input
+                label="Desde"
+                type="date"
+                value={desde}
+                onChange={(e) => { setDesde(e.target.value); setPageCortes(0) }}
+              />
+              <Input
+                label="Hasta"
+                type="date"
+                value={hasta}
+                onChange={(e) => { setHasta(e.target.value); setPageCortes(0) }}
+              />
+              <div className="flex items-end">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => { setDesde(hoyLocal()); setHasta(hoyLocal()); setPageCortes(0) }}
+                >
+                  Hoy
+                </Button>
+              </div>
+            </div>
             {cortes.isLoading ? (
               <Spinner />
             ) : cortes.data && (
               <div className="space-y-3">
-                {cortes.data.data.length === 0 && <p className="py-4 text-center text-sm text-muted">Sin cortes aún.</p>}
+                {cortes.data.data.length === 0 && <p className="py-4 text-center text-sm text-muted">Sin cortes para el rango seleccionado.</p>}
                 {cortes.data.data.map((c) => (
                   <ResumenCorte key={c.corteId} corte={c} />
                 ))}
@@ -310,6 +419,25 @@ export default function CajaPage() {
 
       <Dialog open={cerrarAbierto} onClose={() => setCerrarAbierto(false)} title="Cerrar turno y generar corte">
         <div className="space-y-3">
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-sm font-medium text-ink">Monto esperado en caja</span>
+              {esperado.isLoading && <Spinner />}
+              {esperado.data && (
+                <span className="font-semibold tabular-nums text-ink">{formatoMoneda(esperado.data.esperado)}</span>
+              )}
+            </div>
+            {esperado.data && (
+              <div className="flex flex-col gap-0.5 rounded-md bg-canvas px-2 py-1.5 text-xs text-muted">
+                <span>Fondo de apertura: {formatoMoneda(esperado.data.montoApertura)}</span>
+                <span>Entradas en efectivo: +{formatoMoneda(esperado.data.entradasEfectivo)}</span>
+                <span>Salidas en efectivo: −{formatoMoneda(esperado.data.salidasEfectivo)}</span>
+              </div>
+            )}
+            <p className="mt-1 text-xs text-muted">
+              Valida que tu conteo físico coincida con este monto antes de registrar.
+            </p>
+          </div>
           <Input
             label="Dinero contado en caja"
             type="number"

@@ -92,7 +92,7 @@ class CajaControllerTest {
     void registrarMovimiento_ok() throws Exception {
         MovimientoCajaResponse resp = new MovimientoCajaResponse(
                 5L, 1L, "SALIDA", "GASTO_OPERATIVO",
-                new BigDecimal("100.00"), 1, null, null, null, Instant.now());
+                new BigDecimal("100.00"), 1, null, null, null, Instant.now(), null);
         when(service.registrarMovimiento(eq(1L), any())).thenReturn(resp);
 
         mvc.perform(post("/api/v1/cajas/1/turnos/1/movimientos")
@@ -109,7 +109,7 @@ class CajaControllerTest {
     void listMovimientos_returns200() throws Exception {
         when(service.listMovimientos(1L)).thenReturn(List.of(
                 new MovimientoCajaResponse(1L, 1L, "ENTRADA", "APERTURA",
-                        new BigDecimal("5000.00"), 1, null, null, null, Instant.now())));
+                        new BigDecimal("5000.00"), 1, null, null, null, Instant.now(), null)));
 
         mvc.perform(get("/api/v1/cajas/1/turnos/1/movimientos"))
                 .andExpect(status().isOk())

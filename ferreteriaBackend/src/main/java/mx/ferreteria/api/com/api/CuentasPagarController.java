@@ -2,9 +2,12 @@ package mx.ferreteria.api.com.api;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.com.dto.ComDtos;
 import mx.ferreteria.api.com.service.CompraService;
@@ -37,5 +40,13 @@ public class CuentasPagarController {
     public List<ComDtos.FacturaProveedorResponse> facturasProveedor(
             @PathVariable Integer proveedorId) {
         return service.facturasProveedor(proveedorId);
+    }
+
+    @PostMapping("/cuentas-pagar/{cuentaPagarId}/abonos")
+    public ResponseEntity<ComDtos.PagoProveedorResponse> abonar(
+            @PathVariable Long cuentaPagarId,
+            @Valid @RequestBody ComDtos.PagoProveedorRequest body) {
+        ComDtos.PagoProveedorResponse resp = service.abonar(cuentaPagarId, body);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 }

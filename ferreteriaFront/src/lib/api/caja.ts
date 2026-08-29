@@ -1,5 +1,5 @@
 import http from './client'
-import type { Caja, CorteCaja, CorteRequest, Envelope, Gasto, GastoRequest, IngresoOtro, IngresoOtroRequest, MovimientoCaja, MovimientoCajaRequest, PageEnvelope, TurnoCaja } from './types'
+import type { Caja, CorteCaja, CorteRequest, Envelope, EsperadoCaja, Gasto, GastoRequest, IngresoOtro, IngresoOtroRequest, MovimientoCaja, MovimientoCajaRequest, PageEnvelope, TurnoCaja } from './types'
 
 export async function apiCajas(): Promise<Caja[]> {
   const { data } = await http.get<Envelope<Caja[]>>('/cajas')
@@ -40,8 +40,13 @@ export async function apiCerrarTurno(cajaId: number, turnoId: number, body: Cort
   return data.data
 }
 
-export async function apiCortes(page: number, size = 10): Promise<PageEnvelope<CorteCaja>> {
-  const { data } = await http.get<PageEnvelope<CorteCaja>>('/cortes-caja', { params: { page, size } })
+export async function apiEsperadoTurno(cajaId: number, turnoId: number): Promise<EsperadoCaja> {
+  const { data } = await http.get<Envelope<EsperadoCaja>>(`/cajas/${cajaId}/turnos/${turnoId}/esperado`)
+  return data.data
+}
+
+export async function apiCortes(page: number, size = 10, desde?: string, hasta?: string): Promise<PageEnvelope<CorteCaja>> {
+  const { data } = await http.get<PageEnvelope<CorteCaja>>('/cortes-caja', { params: { page, size, desde, hasta } })
   return data
 }
 

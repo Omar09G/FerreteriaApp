@@ -537,6 +537,7 @@ export interface MovimientoCaja {
   refTabla: string | null
   refId: number | null
   creadoEn: string
+  refDescripcion: string | null
 }
 
 export interface MovimientoCajaRequest {
@@ -549,6 +550,13 @@ export interface MovimientoCajaRequest {
 export interface CorteRequest {
   montoContado: number
   observaciones?: string
+}
+
+export interface EsperadoCaja {
+  montoApertura: number
+  entradasEfectivo: number
+  salidasEfectivo: number
+  esperado: number
 }
 
 export interface CorteCaja {
@@ -681,6 +689,25 @@ export interface CuentasPagar {
   fechaVencimiento: string
   diasVencido: number
   estado: string
+}
+
+export interface AbonoProveedorRequest {
+  monto: number
+  formaPagoId: number
+  cajaId: number
+  referencia?: string
+}
+
+export interface AbonoProveedorResponse {
+  pagoProveedorId: number
+  estado: string
+  montoTotal: number
+  montoPagado: number
+  saldo: number
+  compraFolio: string
+  formaPagoId: number
+  turnoCajaId: number | null
+  monto: number
 }
 
 export interface FacturaPendiente {

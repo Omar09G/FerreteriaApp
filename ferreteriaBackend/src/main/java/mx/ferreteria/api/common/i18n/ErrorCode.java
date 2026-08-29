@@ -27,6 +27,7 @@ public enum ErrorCode {
     TURNO_YA_CERRADO("error.negocio.turno-ya-cerrado", HttpStatus.CONFLICT),
     TURNO_NO_ABIERTO("error.negocio.turno-no-abierto", HttpStatus.CONFLICT),
     CAJA_ALMACEN_INCOMPATIBLE("error.negocio.caja-almacen-incompatible", HttpStatus.CONFLICT),
+    ESTADO_INVALIDO("error.negocio.estado-invalido", HttpStatus.CONFLICT),
     FOLIO_DUPLICADO("error.negocio.folio-duplicado", HttpStatus.CONFLICT),
     REGISTRO_DUPLICADO("error.negocio.registro-duplicado", HttpStatus.CONFLICT),
     RECURSO_NO_ENCONTRADO("error.negocio.recurso-no-encontrado", HttpStatus.NOT_FOUND),

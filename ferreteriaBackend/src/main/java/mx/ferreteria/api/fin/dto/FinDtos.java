@@ -41,7 +41,8 @@ public final class FinDtos {
             Long movimientoId, Long turnoCajaId, String tipo,
             String concepto, BigDecimal monto,
             Integer formaPagoId, String formaPagoNombre,
-            String refTabla, Long refId, Instant creadoEn) {
+            String refTabla, Long refId, Instant creadoEn,
+            String refDescripcion) {
     }
 
     public record MovimientoCajaRequest(
@@ -77,6 +78,14 @@ public final class FinDtos {
     public record CorteRequest(
             @NotNull BigDecimal montoContado,
             String observaciones) {
+    }
+
+    // ─── Esperado (previsualización de corte) ───────────────────────
+    public record EsperadoCajaResponse(
+            BigDecimal montoApertura,
+            BigDecimal entradasEfectivo,
+            BigDecimal salidasEfectivo,
+            BigDecimal esperado) {
     }
 
     // ─── Gasto ──────────────────────────────────────────────────────

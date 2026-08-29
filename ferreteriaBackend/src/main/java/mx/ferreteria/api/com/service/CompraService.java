@@ -168,6 +168,62 @@ public class CompraService {
                 mapper(ComDtos.FacturaProveedorResponse.class), proveedorId);
     }
 
+    // ─── Abonos a cuentas por pagar (POST) ─────────────────────────────
+    // Java orquesta el abono: valida cuenta y monto, resuelve turno/caja y
+    // deja que la BD haga el cierre (trigger fn_pago_proveedor_post pasa la
+    // cuenta a PARCIAL/LIQUIDADA y registra SALIDA PAGO_PROVEEDOR).
+    private static final String SQL_CUENTA_ABONO = """
+            SELECT cp.cuenta_pagar_id, c.folio AS compra_folio, cp.estado,
+                   cp.monto_total, cp.monto_pagado,
+                   cp.monto_total - cp.monto_pagado AS saldo, c.almacen_id
+            FROM com.cuentas_pagar cp
+            JOIN com.compras c ON c.compra_id = cp.compra_id
+            WHERE cp.cuenta_pagar_id = ?
+            """;
+
+    @Transactional
+    public ComDtos.PagoProveedorResponse abonar(Long cuentaPagarId, ComDtos.PagoProveedorRequest req) {
+        List<ComDtos.CuentaPagoDetalle> filas = jdbc.query(SQL_CUENTA_ABONO,
+                mapper(ComDtos.CuentaPagoDetalle.class), cuentaPagarId);
+        if (filas.isEmpty()) {
+            throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
+        }
+        ComDtos.CuentaPagoDetalle cuenta = filas.get(0);
+        if ("LIQUIDADA".equals(cuenta.estado()) || "CANCELADA".equals(cuenta.estado())) {
+            throw new ReglaNegocioException(ErrorCode.ESTADO_INVALIDO, cuenta.estado());
+        }
+        if (req.monto() == null || req.monto().compareTo(cuenta.saldo()) > 0) {
+            throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
+        }
+        FormaPago formaPago = formaPagoRepo.findById(req.formaPagoId())
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+
+        Long turnoCajaId = null;
+        if (!"CREDITO".equals(formaPago.getClave())) {
+            if (req.cajaId() == null) {
+                throw new ReglaNegocioException(ErrorCode.CAMPO_REQUERIDO);
+            }
+            turnoCajaId = cajaService.resolverTurnoAbierto(req.cajaId(), cuenta.almacenId());
+        }
+
+        String referencia = (req.referencia() == null || req.referencia().isBlank())
+                ? "ABONO" : req.referencia().trim();
+        Long pagoProveedorId = jdbc.queryForObject("""
+                INSERT INTO com.pagos_proveedor
+                    (cuenta_pagar_id, forma_pago_id, referencia, monto, usuario_id, turno_caja_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING pago_proveedor_id
+                """, Long.class, cuentaPagarId, formaPago.getFormaPagoId(), referencia,
+                req.monto(), UserPrincipal.actual().usuarioId(), turnoCajaId);
+
+        ComDtos.CuentaPagoDetalle actualizada = jdbc.query(SQL_CUENTA_ABONO,
+                mapper(ComDtos.CuentaPagoDetalle.class), cuentaPagarId).get(0);
+        return new ComDtos.PagoProveedorResponse(
+                pagoProveedorId, actualizada.estado(), actualizada.montoTotal(),
+                actualizada.montoPagado(), actualizada.saldo(), actualizada.compraFolio(),
+                formaPago.getFormaPagoId(), turnoCajaId, req.monto());
+    }
+
     // ─── Mapper ─────────────────────────────────────────────────────
 
     private ComDtos.CompraResponse toResponse(Compra c) {

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,10 +25,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 
+import mx.ferreteria.api.cat.entity.FormaPago;
+import mx.ferreteria.api.cat.repo.FormaPagoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.fin.dto.FinDtos.CorteRequest;
+import mx.ferreteria.api.fin.dto.FinDtos.EsperadoCajaResponse;
 import mx.ferreteria.api.fin.dto.FinDtos.MovimientoCajaRequest;
 import mx.ferreteria.api.fin.dto.FinDtos.TurnoAperturaRequest;
 import mx.ferreteria.api.fin.entity.Caja;
@@ -47,6 +52,7 @@ class CajaServiceTest {
     @Mock CajaRepository cajaRepo;
     @Mock TurnoCajaRepository turnoRepo;
     @Mock MovimientoCajaRepository movRepo;
+    @Mock FormaPagoRepository formaPagoRepo;
     @Mock CorteCajaRepository corteRepo;
     @Mock AlmacenRepository almacenRepo;
     @Mock JdbcTemplate jdbc;
@@ -152,6 +158,15 @@ class CajaServiceTest {
     }
 
     @Test
+    @DisplayName("registrarMovimiento: concepto no permitido -> ReglaNegocioException")
+    void registrarMovimiento_conceptoInvalido() {
+        assertThatThrownBy(() -> service.registrarMovimiento(1L,
+                new MovimientoCajaRequest("ENTRADA", "DInero",
+                        new BigDecimal("10000.00"), null, null, null)))
+                .isInstanceOf(ReglaNegocioException.class);
+    }
+
+    @Test
     @DisplayName("listMovimientos: retorna lista ordenada")
     void listMovimientos_returnsList() {
         when(movRepo.findByTurnoCajaIdOrderByCreadoEnAsc(1L))
@@ -163,12 +178,60 @@ class CajaServiceTest {
         assertThat(result.get(0).movimientoId()).isEqualTo(1L);
     }
 
+    @Test
+    @DisplayName("listMovimientos: enriquece forma de pago y folio del abono a proveedor")
+    void listMovimientos_abonoEnriqueceFormaYFolio() {
+        MovimientoCaja abono = MovimientoCaja.builder().movimientoId(7L).turnoCajaId(1L)
+                .tipo("SALIDA").concepto("PAGO_PROVEEDOR")
+                .monto(new BigDecimal("3500.00"))
+                .formaPagoId(4).refTabla("com.pagos_proveedor").refId(99L)
+                .creadoEn(Instant.now()).build();
+        when(movRepo.findByTurnoCajaIdOrderByCreadoEnAsc(1L))
+                .thenReturn(List.of(abono));
+        when(formaPagoRepo.findById(4)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(4).nombre("Transferencia SPEI").build()));
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.ResultSetExtractor.class), eq(99L)))
+                .thenReturn("C-00000003");
+
+        var result = service.listMovimientos(1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).formaPagoNombre()).isEqualTo("Transferencia SPEI");
+        assertThat(result.get(0).refDescripcion()).isEqualTo("C-00000003");
+    }
+
+    @Test
+    @DisplayName("obtenerEsperado: calcula apertura + entradas - salidas efectivo")
+    void obtenerEsperado_computaEsperado() {
+        when(turnoRepo.findById(1L)).thenReturn(Optional.of(sampleTurno(1L, "ABIERTO")));
+        when(jdbc.query(anyString(), any(ResultSetExtractor.class), eq(1L)))
+                .thenReturn(new EsperadoCajaResponse(
+                        new BigDecimal("5000.00"), new BigDecimal("1160.00"), new BigDecimal("3500.00"),
+                        new BigDecimal("2660.00")));
+
+        var resp = service.obtenerEsperado(1L);
+
+        assertThat(resp.esperado()).isEqualByComparingTo("2660.00");
+        assertThat(resp.montoApertura()).isEqualByComparingTo("5000.00");
+        assertThat(resp.entradasEfectivo()).isEqualByComparingTo("1160.00");
+        assertThat(resp.salidasEfectivo()).isEqualByComparingTo("3500.00");
+    }
+
+    @Test
+    @DisplayName("obtenerEsperado: turno no existe -> RecursoNoEncontradoException")
+    void obtenerEsperado_turnoNotFound() {
+        when(turnoRepo.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.obtenerEsperado(99L))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
     // ─── corte ──────────────────────────────────────────────────────
 
     @Test
     @DisplayName("cerrarTurno: llama fn_cerrar_turno y re-lee el corte")
     void cerrarTurno_ok() {
-        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(1L), any(), any()))
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(1L), any(), any(), any()))
                 .thenReturn(1L);
         when(cajaRepo.findById(1)).thenReturn(Optional.of(sampleCaja(1, "Caja Central")));
         when(almacenRepo.findById(1)).thenReturn(Optional.of(
@@ -179,14 +242,14 @@ class CajaServiceTest {
 
         assertThat(resp.corteId()).isEqualTo(1L);
         assertThat(resp.resultadoCaja()).isEqualTo("CUADRADO");
-        verify(jdbc).queryForObject(eq("SELECT fin.fn_cerrar_turno(?, ?, 1, ?)"),
-                eq(Long.class), eq(1L), any(), any());
+        verify(jdbc).queryForObject(eq("SELECT fin.fn_cerrar_turno(?, ?, ?, ?)"),
+                eq(Long.class), eq(1L), eq(new BigDecimal("6160.00")), eq(0), isNull());
     }
 
     @Test
     @DisplayName("cerrarTurno: corte no encontrado -> RecursoNoEncontradoException")
     void cerrarTurno_corteNotFound() {
-        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(1L), any(), any()))
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(1L), any(), any(), any()))
                 .thenReturn(99L);
         when(corteRepo.findById(99L)).thenReturn(Optional.empty());
 
@@ -200,15 +263,34 @@ class CajaServiceTest {
     void listCortes_returnsPage() {
         Pageable pg = PageRequest.of(0, 10);
         CorteCaja c = sampleCorte(1L);
-        when(corteRepo.findAllByOrderByFechaDescCorteIdDesc(pg))
+        when(corteRepo.findAllByRangoFecha(isNull(), isNull(), eq(pg)))
                 .thenReturn(new PageImpl<>(List.of(c), pg, 1));
         when(cajaRepo.findById(1)).thenReturn(Optional.of(sampleCaja(1, "Caja Central")));
         when(almacenRepo.findById(1)).thenReturn(Optional.of(
                 Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
 
-        var result = service.listCortes(pg);
+        var result = service.listCortes(null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).resultadoCaja()).isEqualTo("CUADRADO");
+    }
+
+    @Test
+    @DisplayName("listCortes: filtra por rango de fechas")
+    void listCortes_conRangoFechas() {
+        Pageable pg = PageRequest.of(0, 10);
+        LocalDate desde = LocalDate.of(2026, 8, 1);
+        LocalDate hasta = LocalDate.of(2026, 8, 31);
+        when(corteRepo.findAllByRangoFecha(desde, hasta, pg))
+                .thenReturn(new PageImpl<>(List.of(sampleCorte(2L)), pg, 1));
+        when(cajaRepo.findById(1)).thenReturn(Optional.of(sampleCaja(1, "Caja Central")));
+        when(almacenRepo.findById(1)).thenReturn(Optional.of(
+                Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
+
+        var result = service.listCortes(desde, hasta, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).corteId()).isEqualTo(2L);
+        verify(corteRepo).findAllByRangoFecha(desde, hasta, pg);
     }
 }

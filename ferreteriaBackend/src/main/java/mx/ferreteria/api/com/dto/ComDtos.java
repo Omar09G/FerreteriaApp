@@ -56,6 +56,27 @@ public final class ComDtos {
             LocalDate fechaVencimiento, Integer diasVencido, String estado) {
     }
 
+    // ─── Abono a cuenta por pagar (com.pagos_proveedor) ──────────────
+    public record PagoProveedorRequest(
+            @NotNull @DecimalMin("0.01") BigDecimal monto,
+            @NotNull Integer formaPagoId,
+            Integer cajaId,
+            String referencia) {
+    }
+
+    public record PagoProveedorResponse(
+            Long pagoProveedorId, String estado, BigDecimal montoTotal,
+            BigDecimal montoPagado, BigDecimal saldo, String compraFolio,
+            Integer formaPagoId, Long turnoCajaId, BigDecimal monto) {
+    }
+
+    /** Contexto de una cuenta por pagar para registrar abonos (com.cuentas_pagar + com.compras). */
+    public record CuentaPagoDetalle(
+            Long cuentaPagarId, String compraFolio, String estado,
+            BigDecimal montoTotal, BigDecimal montoPagado, BigDecimal saldo,
+            Integer almacenId) {
+    }
+
     // ─── Facturas del proveedor (com.vw_ultimas_facturas_proveedor) ─
     public record FacturaProveedorResponse(
             Integer numeroMasReciente, Integer proveedorId, String proveedor,

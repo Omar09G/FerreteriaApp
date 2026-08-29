@@ -1,6 +1,7 @@
 package mx.ferreteria.api.fin.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -66,7 +67,7 @@ class CorteControllerTest {
                 BigDecimal.ZERO, "CUADRADO",
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 "{}", "{}", "{}", null);
-        when(service.listCortes(any()))
+        when(service.listCortes(isNull(), isNull(), any()))
                 .thenReturn(new PageImpl<>(List.of(r1), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/cortes-caja"))

@@ -1,5 +1,5 @@
 import http from './client'
-import type { Compra, CompraRequest, CuentasPagar, Envelope, FacturaPendiente, FacturaVencida, PageEnvelope } from './types'
+import type { AbonoProveedorRequest, AbonoProveedorResponse, Compra, CompraRequest, CuentasPagar, Envelope, FacturaPendiente, FacturaVencida, PageEnvelope } from './types'
 
 export async function apiCompras(p: {
   almacenId?: number
@@ -35,5 +35,10 @@ export async function apiFacturasPendientes(): Promise<FacturaPendiente[]> {
 
 export async function apiFacturasVencidas(): Promise<FacturaVencida[]> {
   const { data } = await http.get<Envelope<FacturaVencida[]>>('/reportes/facturas-vencidas')
+  return data.data
+}
+
+export async function apiAbonarCuentaPagar(cuentaPagarId: number, body: AbonoProveedorRequest): Promise<AbonoProveedorResponse> {
+  const { data } = await http.post<Envelope<AbonoProveedorResponse>>(`/cuentas-pagar/${cuentaPagarId}/abonos`, body)
   return data.data
 }

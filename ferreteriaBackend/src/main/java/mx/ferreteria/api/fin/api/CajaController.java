@@ -62,6 +62,11 @@ public class CajaController {
         return service.listMovimientos(turnoId);
     }
 
+    @GetMapping("/{cajaId}/turnos/{turnoId}/esperado")
+    public FinDtos.EsperadoCajaResponse obtenerEsperado(@PathVariable Long turnoId) {
+        return service.obtenerEsperado(turnoId);
+    }
+
     @PostMapping("/{cajaId}/turnos/{turnoId}/corte")
     public FinDtos.CorteCajaResponse cerrarTurno(
             @PathVariable Long turnoId,
