@@ -1,7 +1,8 @@
 # ferreteria-backend
 
-API REST Spring Boot 3 / Java 21 sobre PostgreSQL (`../ferreteriaDB`). Plan maestro:
-`docs/PLAN_IMPLEMENTACION_BACKEND.md`.
+API REST Spring Boot 3 / Java 21 sobre PostgreSQL (`../ferreteriaDB`).
+Especificación del negocio: `../ferreteriaDB/base_de_datos_ferreteria.md`.
+Frontend: `../ferreteriaFront`.
 
 ## Requisitos
 
