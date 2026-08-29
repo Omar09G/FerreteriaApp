@@ -3,7 +3,6 @@ package mx.ferreteria.api.ven.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -61,6 +60,24 @@ public class VentaService {
             page = ventaRepo.findByAlmacenIdAndFechaBetweenOrderByFechaDesc(almacenId, desde, hasta, pageable);
         } else if (desde != null && hasta != null) {
             page = ventaRepo.findByFechaBetweenOrderByFechaDesc(desde, hasta, pageable);
+        } else {
+            page = ventaRepo.findAll(pageable);
+        }
+        return page.map(this::toResponse);
+    }
+
+    /**
+     * Listado por fecha_local (DATE generada en BD según TZ America/Mexico_City).
+     * Variante preferida para queries tipo "ventas del día" — evita el desfase
+     * de zona horaria que ocurre al convertir LocalDate → Instant en el backend.
+     */
+    @Transactional(readOnly = true)
+    public Page<VenDtos.VentaResponse> listByFechaLocal(Integer almacenId, LocalDate desde, LocalDate hasta, Pageable pageable) {
+        Page<Venta> page;
+        if (almacenId != null && desde != null && hasta != null) {
+            page = ventaRepo.findByAlmacenIdAndFechaLocalBetweenOrderByFechaDesc(almacenId, desde, hasta, pageable);
+        } else if (desde != null && hasta != null) {
+            page = ventaRepo.findByFechaLocalBetweenOrderByFechaDesc(desde, hasta, pageable);
         } else {
             page = ventaRepo.findAll(pageable);
         }

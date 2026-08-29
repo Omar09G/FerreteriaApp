@@ -1,7 +1,7 @@
 package mx.ferreteria.api.ven.api;
 
 import java.time.Instant;
-
+import java.time.LocalDate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,15 +23,20 @@ public class VentaController {
 
     private final VentaService service;
 
+    /**
+     * `desde` / `hasta` llegan como LocalDate (yyyy-MM-dd) desde el front.
+     * El backend usa el método listByFechaLocal (consulta por fecha_local,
+     * generada en BD con TZ America/Mexico_City) para evitar desfases de zona.
+     */
     @GetMapping
     public Page<VenDtos.VentaResponse> list(
             @RequestParam(required = false) Integer almacenId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant desde,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant hasta,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
-        return service.list(almacenId, desde, hasta, PageQuery.of(page, size, sort).toPageable());
+        return service.listByFechaLocal(almacenId, desde, hasta, PageQuery.of(page, size, sort).toPageable());
     }
 
     @GetMapping("/{id}")

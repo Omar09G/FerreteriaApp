@@ -1,5 +1,14 @@
 import http from './client'
-import type { ConteoFisico, ConteoFisicoRequest, Envelope, PageEnvelope, Traslado, TrasladoRequest } from './types'
+import type {
+  ConteoFisico,
+  ConteoFisicoRequest,
+  Envelope,
+  MovimientoInventario,
+  MovimientoInventarioRequest,
+  PageEnvelope,
+  Traslado,
+  TrasladoRequest,
+} from './types'
 
 export async function apiTraslados(p: { estado?: string; page: number; size: number }): Promise<PageEnvelope<Traslado>> {
   const params: Record<string, string | number> = { page: p.page, size: p.size }
@@ -20,5 +29,14 @@ export async function apiConteos(p: { page: number; size: number }): Promise<Pag
 
 export async function apiCrearConteo(body: ConteoFisicoRequest): Promise<ConteoFisico> {
   const { data } = await http.post<Envelope<ConteoFisico>>('/conteos-fisicos', body)
+  return data.data
+}
+
+/**
+ * Registra un movimiento manual de inventario (entrada o salida).
+ * El trigger `trg_mov_stock` en BD actualiza automáticamente `inv.inventario.stock`.
+ */
+export async function apiCrearMovimiento(body: MovimientoInventarioRequest): Promise<MovimientoInventario> {
+  const { data } = await http.post<Envelope<MovimientoInventario>>('/movimientos', body)
   return data.data
 }

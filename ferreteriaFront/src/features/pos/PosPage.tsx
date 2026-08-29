@@ -234,14 +234,25 @@ export default function PosPage() {
       })
     },
     onSuccess: (venta) => {
+      // Cierra el dialog de confirmación de inmediato y muestra el ticket.
+      setConfirmAbierto(false)
       mostrarExito(`Venta ${venta.folio} registrada.`)
       setVentaResultado(venta)
       limpiarTicket()
       setVentasDiaAbierto(false) // fuerza refetch la próxima vez
       queryClient.invalidateQueries({ queryKey: ['ventas-pos-hoy'] })
+      // Auto-cierra el ticket a los 3s para que la pantalla quede limpia
+      // y lista para la siguiente venta (UX de caja rápida).
+      window.setTimeout(() => setVentaResultado(null), 3000)
     },
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
   })
+
+  /** El click en "Confirmar y cobrar" cierra el dialog de inmediato para evitar doble-submit. */
+  const confirmarYcobrar = () => {
+    setConfirmAbierto(false)
+    checkout.mutate()
+  }
 
   const total = lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0)
   const resumen = resumenVenta(lineas)
@@ -698,7 +709,7 @@ export default function PosPage() {
                 <Button
                   ref={confirmarRef}
                   disabled={checkout.isPending}
-                  onClick={() => checkout.mutate()}
+                  onClick={confirmarYcobrar}
                   title="Enter"
                 >
                   <ShoppingBasket className="h-4 w-4" />

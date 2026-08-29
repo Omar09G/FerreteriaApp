@@ -51,9 +51,9 @@ class PageQueryTest {
     }
 
     @Test
-    @DisplayName("size 101 (>100) throws PaginacionInvalidException")
+    @DisplayName("size por encima del tope por defecto (501) throws PaginacionInvalidException")
     void toPageable_overMaxSize_throws() {
-        PageQuery pq = PageQuery.of(0, 101, null);
+        PageQuery pq = PageQuery.of(0, PageQuery.DEFAULT_MAX_SIZE + 1, null);
         assertThatThrownBy(pq::toPageable)
                 .isInstanceOf(PaginacionInvalidException.class);
     }
@@ -61,10 +61,10 @@ class PageQueryTest {
     // ── Valid size boundary ─────────────────────────────────────────
 
     @Test
-    @DisplayName("size 100 is valid (max allowed)")
+    @DisplayName("size DEFAULT_MAX_SIZE es válido (tope)")
     void toPageable_maxSize_isValid() {
-        PageQuery pq = PageQuery.of(0, 100, null);
-        assertThat(pq.toPageable().getPageSize()).isEqualTo(100);
+        PageQuery pq = PageQuery.of(0, PageQuery.DEFAULT_MAX_SIZE, null);
+        assertThat(pq.toPageable().getPageSize()).isEqualTo(PageQuery.DEFAULT_MAX_SIZE);
     }
 
     @Test

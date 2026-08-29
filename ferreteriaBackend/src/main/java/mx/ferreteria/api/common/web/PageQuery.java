@@ -9,11 +9,16 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 
 /**
  * Validación centralizada de parámetros de paginación (PLAN §4.1).
- * ?page=0&size=20&sort=campo,desc  |  max size=100  |  page<0 o size<=0 → 400.
+ * ?page=0&size=20&sort=campo,desc  |  max size configurable  |  page<0 o size<=0 → 400.
  */
 public record PageQuery(int page, int size, String sort) {
 
-    private static final int MAX_SIZE = 100;
+    /**
+     * Tope por defecto para listas generales. Endpoints de catálogo pequeño
+     * (marcas, unidades de medida, categorías) suelen pedir todo en una sola
+     * llamada; si necesitas más, expón un parámetro o un endpoint sin paginar.
+     */
+    public static final int DEFAULT_MAX_SIZE = 500;
 
     public static PageQuery of(Integer page, Integer size, String sort) {
         return new PageQuery(
@@ -23,11 +28,15 @@ public record PageQuery(int page, int size, String sort) {
     }
 
     public Pageable toPageable() {
+        return toPageable(DEFAULT_MAX_SIZE);
+    }
+
+    public Pageable toPageable(int maxSize) {
         if (page < 0) {
-            throw new PaginacionInvalidException(ErrorCode.PAGINACION_INVALIDA, "page", page, ">=0");
+            throw new PaginacionInvalidException(ErrorCode.PAGINACION_INVALIDA, "page", page, 0, maxSize);
         }
-        if (size <= 0 || size > MAX_SIZE) {
-            throw new PaginacionInvalidException(ErrorCode.PAGINACION_INVALIDA, "size", size, "1-" + MAX_SIZE);
+        if (size <= 0 || size > maxSize) {
+            throw new PaginacionInvalidException(ErrorCode.PAGINACION_INVALIDA, "size", size, 1, maxSize);
         }
         Sort s = Sort.unsorted();
         if (sort != null && !sort.isBlank()) {
