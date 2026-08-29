@@ -43,4 +43,6 @@ public class Renta {
     private Integer usuarioId;
 
     private Long turnoCajaId;
+
+    private Integer formaPagoId;
 }

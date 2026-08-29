@@ -23,17 +23,12 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.common.security.UserPrincipal;
-import mx.ferreteria.api.fin.entity.Caja;
-import mx.ferreteria.api.fin.entity.TurnoCaja;
-import mx.ferreteria.api.fin.repo.CajaRepository;
-import mx.ferreteria.api.fin.repo.TurnoCajaRepository;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.CuentaCobrar;
-import mx.ferreteria.api.ven.entity.PagoCliente;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
 import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
-import mx.ferreteria.api.ven.repo.PagoClienteRepository;
 import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
 
@@ -44,14 +39,12 @@ public class VentaService {
 
     private final VentaRepository ventaRepo;
     private final VentaDetalleRepository detalleRepo;
-    private final PagoClienteRepository pagoRepo;
     private final AlmacenRepository almacenRepo;
     private final ClienteRepository clienteRepo;
     private final ProductoRepository productoRepo;
     private final FormaPagoRepository formaPagoRepo;
     private final CuentaCobrarRepository cuentaRepo;
-    private final TurnoCajaRepository turnoRepo;
-    private final CajaRepository cajaRepo;
+    private final CajaService cajaService;
 
     @Transactional(readOnly = true)
     public Page<VenDtos.VentaResponse> list(Integer almacenId, Instant desde, Instant hasta, Pageable pageable) {
@@ -99,7 +92,7 @@ public class VentaService {
         formaPagoRepo.findById(req.formaPagoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
 
-        Long turnoCajaId = resolverTurno(req.cajaId(), req.almacenId());
+        Long turnoCajaId = cajaService.resolverTurnoAbierto(req.cajaId(), req.almacenId());
 
         Venta venta = Venta.builder()
                 .almacenId(req.almacenId())
@@ -150,19 +143,6 @@ public class VentaService {
      * Lanza {@link ErrorCode#CAJA_ALMACEN_INCOMPATIBLE} si la caja del turno no pertenece
      * al mismo almacén que la venta (protege contra errores de captura del POS).
      */
-    private Long resolverTurno(Integer cajaId, int almacenVenta) {
-        if (cajaId == null) return null;
-        TurnoCaja turno = turnoRepo.findByCajaIdAndEstado(cajaId, "ABIERTO")
-                .orElseThrow(() -> new ReglaNegocioException(ErrorCode.TURNO_NO_ABIERTO, cajaId));
-        Caja caja = cajaRepo.findById(cajaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-        if (caja.getAlmacenId() != null && caja.getAlmacenId() != almacenVenta) {
-            throw new ReglaNegocioException(ErrorCode.CAJA_ALMACEN_INCOMPATIBLE,
-                    cajaId, caja.getAlmacenId(), almacenVenta);
-        }
-        return turno.getTurnoCajaId();
-    }
-
     private VenDtos.VentaResponse toResponse(Venta v) {
         String clienteNombre = null;
         if (v.getClienteId() != null) {

@@ -767,7 +767,8 @@ CREATE TABLE IF NOT EXISTS ven.rentas (
     estado              VARCHAR(12) NOT NULL DEFAULT 'ABIERTA'
                         CHECK (estado IN ('ABIERTA','DEVUELTA','VENCIDA','CANCELADA')),
     usuario_id          INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
-    turno_caja_id       BIGINT
+    turno_caja_id       BIGINT,
+    forma_pago_id       INTEGER REFERENCES cat.formas_pago(forma_pago_id)
 );
 
 CREATE TABLE IF NOT EXISTS ven.renta_detalles (
@@ -1423,8 +1424,13 @@ BEGIN
             FROM ven.ventas WHERE venta_id = v_vid
             RETURNING cuenta_cobrar_id INTO v_cc;
         ELSIF v_prev <> v_tot THEN
+            -- Al llegar aquí el trigger pudo ejecutarse varias veces (chequeo de
+            -- venta_detalles insertados uno por uno desde la app). Una cuenta de
+            -- CONTADO puede ya estar LIQUIDADA por el pago auto generado en la
+            -- primera línea; aun así hay que sincronizar monto_total con v_tot y
+            -- dejar que el bloque CONCILIA_PAGOS ajuste los pagos CONTADO.
             UPDATE ven.cuentas_cobrar SET monto_total = v_tot
-            WHERE cuenta_cobrar_id = v_cc AND estado <> 'LIQUIDADA';
+            WHERE cuenta_cobrar_id = v_cc AND estado <> 'CANCELADA';
         END IF;
 
         IF v_fp <> 'CREDITO' THEN
@@ -1677,6 +1683,21 @@ END $$;
 DROP TRIGGER IF EXISTS trg_ingreso_otro_post ON fin.ingresos_otros;
 CREATE TRIGGER trg_ingreso_otro_post AFTER INSERT ON fin.ingresos_otros
 FOR EACH ROW EXECUTE FUNCTION fin.fn_ingreso_otro_post();
+
+-- Depósito de renta toca caja (ENTRADA al turno asociado)
+CREATE OR REPLACE FUNCTION ven.fn_renta_post()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.turno_caja_id IS NOT NULL AND NEW.deposito > 0 THEN
+        PERFORM fin.fn_movimiento_caja(NEW.turno_caja_id, 'ENTRADA', 'DEPOSITO_GARANTIA_RENTA',
+            NEW.deposito, NEW.forma_pago_id, 'ven.rentas', NEW.renta_id, NEW.usuario_id);
+    END IF;
+    RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_renta_post ON ven.rentas;
+CREATE TRIGGER trg_renta_post AFTER INSERT ON ven.rentas
+FOR EACH ROW EXECUTE FUNCTION ven.fn_renta_post();
 
 -- ---------- Corte de caja: cierra turno y congela histórico ----------
 CREATE OR REPLACE FUNCTION fin.fn_cerrar_turno(

@@ -96,6 +96,26 @@ public class CajaService {
         return toTurnoResponse(t, nombre);
     }
 
+    /**
+     * Resuelve el turno ABIERTO de una caja para ligar una operación (venta/renta).
+     * Devuelve {@code null} si {@code cajaId} es {@code null} (la operación queda
+     * fuera de caja). Lanza {@link ErrorCode#CAJA_ALMACEN_INCOMPATIBLE} si la caja
+     * del turno no pertenece al mismo almacén que la operación.
+     */
+    @Transactional(readOnly = true)
+    public Long resolverTurnoAbierto(Integer cajaId, int almacenId) {
+        if (cajaId == null) return null;
+        TurnoCaja turno = turnoRepo.findByCajaIdAndEstado(cajaId, "ABIERTO")
+                .orElseThrow(() -> new ReglaNegocioException(ErrorCode.TURNO_NO_ABIERTO, cajaId));
+        Caja caja = cajaRepo.findById(cajaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        if (caja.getAlmacenId() != null && caja.getAlmacenId() != almacenId) {
+            throw new ReglaNegocioException(ErrorCode.CAJA_ALMACEN_INCOMPATIBLE,
+                    cajaId, caja.getAlmacenId(), almacenId);
+        }
+        return turno.getTurnoCajaId();
+    }
+
     // ─── Movimientos ────────────────────────────────────────────────
 
     public FinDtos.MovimientoCajaResponse registrarMovimiento(Long turnoId, FinDtos.MovimientoCajaRequest req) {

@@ -3,6 +3,7 @@ package mx.ferreteria.api.ven.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,11 +27,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import mx.ferreteria.api.cat.entity.Cliente;
+import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
+import mx.ferreteria.api.cat.repo.FormaPagoRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
@@ -48,6 +52,8 @@ class RentaServiceTest {
     @Mock AlmacenRepository almacenRepo;
     @Mock ClienteRepository clienteRepo;
     @Mock ProductoRepository productoRepo;
+    @Mock FormaPagoRepository formaPagoRepo;
+    @Mock CajaService cajaService;
 
     @InjectMocks
     RentaService service;
@@ -138,10 +144,12 @@ class RentaServiceTest {
         Renta saved = sampleRenta(10L, "ABIERTA");
         when(repo.save(any(Renta.class))).thenReturn(saved);
         when(repo.findById(10L)).thenReturn(Optional.of(saved));
+        when(formaPagoRepo.findById(anyInt()))
+                .thenReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
         stubToResponse();
 
         VenDtos.RentaRequest req = new VenDtos.RentaRequest(
-                1L, 1, LocalDate.now().plusDays(14),
+                1L, 1, null, 1, LocalDate.now().plusDays(14),
                 new BigDecimal("500.00"),
                 List.of(new VenDtos.RentaDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("25.00"))));
 
@@ -156,7 +164,7 @@ class RentaServiceTest {
     @DisplayName("create fecha pasada: lanza ReglaNegocioException")
     void create_pastDate() {
         VenDtos.RentaRequest req = new VenDtos.RentaRequest(
-                1L, 1, LocalDate.now().minusDays(1),
+                1L, 1, null, 1, LocalDate.now().minusDays(1),
                 new BigDecimal("500.00"), List.of());
 
         assertThatThrownBy(() -> service.create(req))

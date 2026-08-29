@@ -59,6 +59,7 @@ class RentaControllerTest {
                 1L, "R-001", 1L, "Cliente", 1, "Almacen",
                 Instant.now(), LocalDate.now().plusDays(7), null,
                 new BigDecimal("500.00"), BigDecimal.ZERO,
+                1, 1L,
                 "ABIERTA", 1, List.of());
     }
 
@@ -91,6 +92,8 @@ class RentaControllerTest {
                                 {
                                   "clienteId": 1,
                                   "almacenId": 1,
+                                  "cajaId": 1,
+                                  "formaPagoId": 1,
                                   "fechaDevEsperada": "%s",
                                   "deposito": 500.00,
                                   "detalles": [{"productoId": 1, "cantidad": 1, "costoDia": 50.00}]

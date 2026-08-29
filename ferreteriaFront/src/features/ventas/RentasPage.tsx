@@ -4,9 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { esApiError } from '@/lib/api/client'
+import { apiCajas, apiTurnoActual } from '@/lib/api/caja'
 import { apiAlmacenes, apiClientes, apiProductos } from '@/lib/api/catalogo'
 import { apiCrearRenta, apiDevolucionRenta, apiRentas } from '@/lib/api/venta'
-import type { Producto, Renta, RentaDevolucionRequest, RentaRequest } from '@/lib/api/types'
+import { FORMAS_PAGO, type Producto, type Renta, type RentaDevolucionRequest, type RentaRequest } from '@/lib/api/types'
 import { aLocalDate, formatoFecha, formatoFechaHora, formatoMoneda } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -41,9 +42,12 @@ interface PartidaRenta {
 function RentaForm({ guardando, onGuardar, onClose }: { guardando: boolean; onGuardar: (body: RentaRequest) => void; onClose: () => void }) {
   const clientes = useQuery({ queryKey: ['clientes-renta'], queryFn: () => apiClientes({ page: 0, size: 50 }) })
   const almacenes = useQuery({ queryKey: ['almacenes-renta'], queryFn: apiAlmacenes })
+  const cajas = useQuery({ queryKey: ['cajas'], queryFn: apiCajas })
 
   const [clienteId, setClienteId] = useState<number | ''>('')
   const [almacenId, setAlmacenId] = useState<number | ''>('')
+  const [cajaId, setCajaId] = useState<number | ''>('')
+  const [formaPagoId, setFormaPagoId] = useState<number>(1)
   const [fechaDevEsperada, setFechaDevEsperada] = useState(hoyMasTres())
   const [deposito, setDeposito] = useState('0')
   const [partidas, setPartidas] = useState<PartidaRenta[]>([])
@@ -67,8 +71,19 @@ function RentaForm({ guardando, onGuardar, onClose }: { guardando: boolean; onGu
 
   const depositoNum = Number(deposito)
   const totalPartidas = partidas.reduce((acc, x) => acc + x.cantidad * x.costoDia, 0)
+
+  const cajasDeAlmacen = cajas.data?.filter((c) => c.almacenId === (almacenId === '' ? -1 : Number(almacenId))) ?? []
+  const turno = useQuery({
+    queryKey: ['turnoActual', cajaId],
+    queryFn: () => apiTurnoActual(Number(cajaId)),
+    enabled: cajaId !== '',
+    retry: false,
+  })
+  const cajaConTurno = cajaId !== '' && turno.isSuccess
+  const cajaSinTurno = cajaId !== '' && turno.isError
+
   const invalido =
-    clienteId === '' || almacenId === '' || fechaDevEsperada === '' || partidas.length === 0 || partidas.some((x) => x.cantidad <= 0 || x.costoDia < 0) || depositoNum < 0
+    clienteId === '' || almacenId === '' || cajaId === '' || cajaSinTurno || fechaDevEsperada === '' || partidas.length === 0 || partidas.some((x) => x.cantidad <= 0 || x.costoDia < 0) || depositoNum < 0
 
   const enviar = (e: { preventDefault: () => void }) => {
     e.preventDefault()
@@ -77,6 +92,8 @@ function RentaForm({ guardando, onGuardar, onClose }: { guardando: boolean; onGu
     onGuardar({
       clienteId: Number(clienteId),
       almacenId: Number(almacenId),
+      cajaId: Number(cajaId),
+      formaPagoId,
       fechaDevEsperada,
       deposito: depositoNum,
       detalles: partidas.map((x) => ({ productoId: x.productoId, cantidad: x.cantidad, costoDia: x.costoDia })),
@@ -104,7 +121,26 @@ function RentaForm({ guardando, onGuardar, onClose }: { guardando: boolean; onGu
         </Select>
         <Input label="Devolución esperada" type="date" required value={fechaDevEsperada} onChange={(e) => setFechaDevEsperada(e.target.value)} />
         <Input label="Depósito" type="number" inputMode="decimal" min="0" step="0.01" value={deposito} onChange={(e) => setDeposito(e.target.value)} />
+        <Select label="Forma de pago" required value={formaPagoId} onChange={(e) => setFormaPagoId(Number(e.target.value))}>
+          {FORMAS_PAGO.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.nombre}
+            </option>
+          ))}
+        </Select>
+        <Select label="Caja" required value={cajaId} onChange={(e) => setCajaId(e.target.value ? Number(e.target.value) : '')}>
+          <option value="">Selecciona…</option>
+          {cajasDeAlmacen.map((c) => (
+            <option key={c.cajaId} value={c.cajaId}>
+              {c.nombre}
+            </option>
+          ))}
+        </Select>
       </div>
+
+      {cajaId !== '' && turno.isLoading && <p className="text-xs text-muted">Verificando turno abierto…</p>}
+      {cajaConTurno && <p className="text-xs text-emerald-600">Turno abierto: el depósito se registrará a esa caja.</p>}
+      {cajaSinTurno && <p className="text-xs text-red-600">Esta caja no tiene un turno abierto. Ábrelo en el POS para poder registrar la renta.</p>}
 
       <div className="flex flex-wrap items-end gap-2">
         <Input label="Buscar producto" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setQ(busqueda.trim())} placeholder="Artículo a rentar" className="w-72" />
@@ -173,7 +209,7 @@ function RentaForm({ guardando, onGuardar, onClose }: { guardando: boolean; onGu
         </div>
       )}
 
-      {intento && invalido && <p className="text-xs text-red-600">Completa cliente, almacén, fecha de devolución y al menos una partida.</p>}
+      {intento && invalido && <p className="text-xs text-red-600">Completa cliente, almacén, caja con turno abierto, fecha de devolución y al menos una partida.</p>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onClose}>
           Cancelar

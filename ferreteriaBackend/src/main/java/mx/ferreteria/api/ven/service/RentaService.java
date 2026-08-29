@@ -14,11 +14,13 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.entity.Producto;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
+import mx.ferreteria.api.cat.repo.FormaPagoRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
@@ -37,6 +39,8 @@ public class RentaService {
     private final AlmacenRepository almacenRepo;
     private final ClienteRepository clienteRepo;
     private final ProductoRepository productoRepo;
+    private final FormaPagoRepository formaPagoRepo;
+    private final CajaService cajaService;
 
     @Transactional(readOnly = true)
     public Page<VenDtos.RentaResponse> list(String estado, Pageable pageable) {
@@ -57,6 +61,9 @@ public class RentaService {
         if (req.fechaDevEsperada().isBefore(LocalDate.now())) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
         }
+        formaPagoRepo.findById(req.formaPagoId())
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        Long turnoCajaId = cajaService.resolverTurnoAbierto(req.cajaId(), req.almacenId());
         Renta entity = Renta.builder()
                 .clienteId(req.clienteId())
                 .almacenId(req.almacenId())
@@ -65,6 +72,8 @@ public class RentaService {
                 .deposito(req.deposito())
                 .costoTotal(BigDecimal.ZERO)
                 .usuarioId(UserPrincipal.actual().usuarioId())
+                .turnoCajaId(turnoCajaId)
+                .formaPagoId(req.formaPagoId())
                 .build();
         Renta saved = repo.save(entity);
 
@@ -116,6 +125,7 @@ public class RentaService {
                 r.getFechaRenta(), r.getFechaDevEsperada(),
                 r.getFechaDevReal(),
                 r.getDeposito(), r.getCostoTotal(),
+                r.getFormaPagoId(), r.getTurnoCajaId(),
                 r.getEstado(), r.getUsuarioId(), detalles);
     }
 }

@@ -121,6 +121,8 @@ public final class VenDtos {
     public record RentaRequest(
         @NotNull Long clienteId,
         @NotNull Integer almacenId,
+        Integer cajaId,
+        @NotNull Integer formaPagoId,
         @NotNull LocalDate fechaDevEsperada,
         @NotNull @Min(0) BigDecimal deposito,
         @NotNull List<RentaDetalleRequest> detalles
@@ -137,6 +139,7 @@ public final class VenDtos {
         Instant fechaRenta, LocalDate fechaDevEsperada,
         Instant fechaDevReal,
         BigDecimal deposito, BigDecimal costoTotal,
+        Integer formaPagoId, Long turnoCajaId,
         String estado, Integer usuarioId,
         List<RentaDetalleResponse> detalles
     ) {}

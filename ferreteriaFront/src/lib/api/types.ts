@@ -871,6 +871,8 @@ export interface Renta {
   fechaDevReal: string | null
   deposito: number
   costoTotal: number
+  formaPagoId: number | null
+  turnoCajaId: number | null
   estado: string
   usuarioId: number
   detalles: RentaDetalle[]
@@ -879,6 +881,8 @@ export interface Renta {
 export interface RentaRequest {
   clienteId: number
   almacenId: number
+  cajaId: number
+  formaPagoId: number
   fechaDevEsperada: string
   deposito: number
   detalles: { productoId: number; cantidad: number; costoDia: number }[]

@@ -34,12 +34,11 @@ import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.inv.entity.Almacen;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
-import mx.ferreteria.api.ven.entity.PagoCliente;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
-import mx.ferreteria.api.ven.repo.PagoClienteRepository;
 import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
 
@@ -49,11 +48,11 @@ class VentaServiceTest {
 
     @Mock VentaRepository ventaRepo;
     @Mock VentaDetalleRepository detalleRepo;
-    @Mock PagoClienteRepository pagoRepo;
     @Mock AlmacenRepository almacenRepo;
     @Mock ClienteRepository clienteRepo;
     @Mock ProductoRepository productoRepo;
     @Mock FormaPagoRepository formaPagoRepo;
+    @Mock CajaService cajaService;
 
     @InjectMocks
     VentaService service;
@@ -169,6 +168,7 @@ class VentaServiceTest {
     @DisplayName("checkout ok: guarda venta, detalles y pagos")
     void checkout_ok() {
         Venta saved = sampleVenta(10L, "V-010", "COMPLETADA");
+        when(almacenRepo.existsById(1)).thenReturn(true);
         when(almacenRepo.findById(1))
                 .thenReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
         when(formaPagoRepo.findById(1))
@@ -190,7 +190,6 @@ class VentaServiceTest {
 
         assertThat(resp.ventaId()).isEqualTo(10L);
         verify(detalleRepo).save(any(VentaDetalle.class));
-        verify(pagoRepo).save(any(PagoCliente.class));
         verify(ventaRepo).flush();
     }
 
