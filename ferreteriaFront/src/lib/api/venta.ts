@@ -56,8 +56,8 @@ export async function apiCrearCotizacion(body: CotizacionRequest): Promise<Cotiz
   return data.data
 }
 
-export async function apiConvertirCotizacion(id: number, almacenId: number, formaPagoId: number): Promise<Cotizacion> {
-  const { data } = await http.post<Envelope<Cotizacion>>(`/cotizaciones/${id}/convertir`, null, { params: { almacenId, formaPagoId } })
+export async function apiConvertirCotizacion(id: number, almacenId: number, formaPagoId: number, cajaId?: number): Promise<Cotizacion> {
+  const { data } = await http.post<Envelope<Cotizacion>>(`/cotizaciones/${id}/convertir`, null, { params: { almacenId, formaPagoId, cajaId } })
   return data.data
 }
 

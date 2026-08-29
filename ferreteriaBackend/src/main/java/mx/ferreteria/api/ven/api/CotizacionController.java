@@ -43,7 +43,8 @@ public class CotizacionController {
     public VenDtos.CotizacionResponse convertir(
             @PathVariable Long id,
             @RequestParam Integer almacenId,
-            @RequestParam Integer formaPagoId) {
-        return service.convertirAVenta(id, almacenId, formaPagoId);
+            @RequestParam Integer formaPagoId,
+            @RequestParam(required = false) Integer cajaId) {
+        return service.convertirAVenta(id, almacenId, formaPagoId, cajaId);
     }
 }

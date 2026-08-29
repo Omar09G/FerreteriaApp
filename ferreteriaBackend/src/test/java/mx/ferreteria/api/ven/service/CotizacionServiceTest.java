@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,9 +45,20 @@ class CotizacionServiceTest {
     @Mock CotizacionDetalleRepository detalleRepo;
     @Mock ClienteRepository clienteRepo;
     @Mock ProductoRepository productoRepo;
+    @Mock VentaService ventaService;
 
     @InjectMocks
     CotizacionService service;
+
+    private VenDtos.VentaResponse sampleVentaResponse(Long ventaId) {
+        return new VenDtos.VentaResponse(
+                ventaId, "V-0010", null, null,
+                1, "Almacén Principal", Instant.now(), java.time.LocalDate.now(),
+                1, "Efectivo", new BigDecimal("16.00"), true,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                "COMPLETADA", 1, null, null,
+                List.of(), List.of());
+    }
 
     // ── helpers ──────────────────────────────────────────────────────
 
@@ -158,15 +170,22 @@ class CotizacionServiceTest {
     // ── convertirAVenta ─────────────────────────────────────────────
 
     @Test
-    @DisplayName("convertir ok: cotizacion VIGENTE se marca como CONVERTIDA")
+    @DisplayName("convertir ok: crea venta con caja/turno y marca cotizacion como CONVERTIDA con venta_generada_id")
     void convertir_ok() {
         Cotizacion c = sampleCotizacion(1L, "COT-001", "VIGENTE");
         when(repo.findById(1L)).thenReturn(Optional.of(c));
+        when(ventaService.checkout(any(VenDtos.VentaRequest.class)))
+                .thenReturn(sampleVentaResponse(10L));
         stubToResponse();
 
-        var resp = service.convertirAVenta(1L, 1, 1);
+        var resp = service.convertirAVenta(1L, 1, 1, 2);
 
+        ArgumentCaptor<VenDtos.VentaRequest> captor = ArgumentCaptor.forClass(VenDtos.VentaRequest.class);
+        verify(ventaService).checkout(captor.capture());
+        assertThat(captor.getValue().cajaId()).isEqualTo(2);
+        assertThat(captor.getValue().cotizacionId()).isEqualTo(1L);
         assertThat(c.getEstado()).isEqualTo("CONVERTIDA");
+        assertThat(c.getVentaGeneradaId()).isEqualTo(10L);
         verify(repo).save(c);
         assertThat(resp.estado()).isEqualTo("CONVERTIDA");
     }
@@ -177,7 +196,7 @@ class CotizacionServiceTest {
         Cotizacion c = sampleCotizacion(1L, "COT-001", "CONVERTIDA");
         when(repo.findById(1L)).thenReturn(Optional.of(c));
 
-        assertThatThrownBy(() -> service.convertirAVenta(1L, 1, 1))
+        assertThatThrownBy(() -> service.convertirAVenta(1L, 1, 1, 2))
                 .isInstanceOf(ReglaNegocioException.class);
     }
 
@@ -186,7 +205,7 @@ class CotizacionServiceTest {
     void convertir_notFound() {
         when(repo.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.convertirAVenta(999L, 1, 1))
+        assertThatThrownBy(() -> service.convertirAVenta(999L, 1, 1, 2))
                 .isInstanceOf(RecursoNoEncontradoException.class);
     }
 }

@@ -4,6 +4,7 @@ import { Plus, Search, ShoppingCart, Trash2 } from 'lucide-react'
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { esApiError } from '@/lib/api/client'
+import { apiCajas, apiTurnoActual } from '@/lib/api/caja'
 import { apiAlmacenes, apiClientes, apiProductos } from '@/lib/api/catalogo'
 import { apiConvertirCotizacion, apiCotizaciones, apiCrearCotizacion } from '@/lib/api/venta'
 import { FORMAS_PAGO, type Cotizacion, type CotizacionRequest, type Producto } from '@/lib/api/types'
@@ -181,21 +182,34 @@ function ConvertirForm({
 }: {
   cotizacion: Cotizacion
   guardando: boolean
-  onGuardar: (almacenId: number, formaPagoId: number) => void
+  onGuardar: (almacenId: number, formaPagoId: number, cajaId: number) => void
   onClose: () => void
 }) {
   const almacenes = useQuery({ queryKey: ['almacenes'], queryFn: apiAlmacenes })
+  const cajas = useQuery({ queryKey: ['cajas'], queryFn: apiCajas })
   const [almacenId, setAlmacenId] = useState<number | ''>('')
+  const [cajaId, setCajaId] = useState<number | ''>('')
   const [formaPagoId, setFormaPagoId] = useState<number>(1)
   const [intento, setIntento] = useState(false)
 
-  const invalido = almacenId === ''
+  const cajasDeAlmacen = cajas.data?.filter((c) => c.almacenId === (almacenId === '' ? -1 : Number(almacenId))) ?? []
+
+  const turno = useQuery({
+    queryKey: ['turnoActual', cajaId],
+    queryFn: () => apiTurnoActual(Number(cajaId)),
+    enabled: cajaId !== '',
+    retry: false,
+  })
+  const cajaConTurno = cajaId !== '' && turno.isSuccess
+  const cajaSinTurno = cajaId !== '' && turno.isError
+
+  const invalido = almacenId === '' || cajaId === '' || cajaSinTurno
 
   const enviar = (e: { preventDefault: () => void }) => {
     e.preventDefault()
     setIntento(true)
     if (invalido) return
-    onGuardar(Number(almacenId), formaPagoId)
+    onGuardar(Number(almacenId), formaPagoId, Number(cajaId))
   }
 
   return (
@@ -209,7 +223,7 @@ function ConvertirForm({
         </p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Select label="Almacén" required value={almacenId} onChange={(e) => setAlmacenId(e.target.value ? Number(e.target.value) : '')}>
+        <Select label="Almacén" required value={almacenId} onChange={(e) => { setAlmacenId(e.target.value ? Number(e.target.value) : ''); setCajaId('') }}>
           <option value="">Selecciona…</option>
           {almacenes.data?.map((a) => (
             <option key={a.almacenId} value={a.almacenId}>
@@ -225,7 +239,19 @@ function ConvertirForm({
           ))}
         </Select>
       </div>
-      <p className="text-xs text-muted">La cotización se registrará como venta y dejará de estar vigente.</p>
+      <Select label="Caja" required value={cajaId}
+        onChange={(e) => setCajaId(e.target.value ? Number(e.target.value) : '')}>
+        <option value="">Selecciona…</option>
+        {cajasDeAlmacen.map((c) => (
+          <option key={c.cajaId} value={c.cajaId}>
+            {c.nombre}
+          </option>
+        ))}
+      </Select>
+      {cajaId !== '' && turno.isLoading && <p className="text-xs text-muted">Verificando turno abierto…</p>}
+      {cajaConTurno && <p className="text-xs text-emerald-600">Turno abierto: la venta se asociará a esa caja.</p>}
+      {cajaSinTurno && <p className="text-xs text-red-600">Esta caja no tiene un turno abierto. Ábrelo en el POS para poder registrar la venta.</p>}
+      <p className="text-xs text-muted">La cotización se registrará como venta asociada al turno abierto de la caja y dejará de estar vigente.</p>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onClose}>
           Cancelar
@@ -234,7 +260,7 @@ function ConvertirForm({
           {guardando ? 'Convirtiendo…' : 'Convertir a venta'}
         </Button>
       </div>
-      {intento && invalido && <p className="text-xs text-red-600">Selecciona el almacén de la venta.</p>}
+      {intento && invalido && <p className="text-xs text-red-600">Selecciona el almacén, una caja con turno abierto y la forma de pago.</p>}
     </form>
   )
 }
@@ -271,7 +297,7 @@ export default function CotizacionesPage() {
   })
 
   const convertir = useMutation({
-    mutationFn: (v: { id: number; almacenId: number; formaPagoId: number }) => apiConvertirCotizacion(v.id, v.almacenId, v.formaPagoId),
+    mutationFn: (v: { id: number; almacenId: number; formaPagoId: number; cajaId: number }) => apiConvertirCotizacion(v.id, v.almacenId, v.formaPagoId, v.cajaId),
     onSuccess: (cot) => {
       mostrarExito(`Cotización ${cot.folio} convertida a venta.`)
       setAConvertir(null)
@@ -361,7 +387,7 @@ export default function CotizacionesPage() {
           <ConvertirForm
             cotizacion={aConvertir}
             guardando={convertir.isPending}
-            onGuardar={(almacenId, formaPagoId) => convertir.mutate({ id: aConvertir.cotizacionId, almacenId, formaPagoId })}
+            onGuardar={(almacenId, formaPagoId, cajaId) => convertir.mutate({ id: aConvertir.cotizacionId, almacenId, formaPagoId, cajaId })}
             onClose={() => setAConvertir(null)}
           />
         )}
