@@ -45,4 +45,9 @@ public class RentaController {
             @Valid @RequestBody VenDtos.RentaDevolucionRequest req) {
         return service.devolver(id, req);
     }
+
+    @PostMapping("/{id}/cancelar")
+    public VenDtos.RentaResponse cancelar(@PathVariable Long id) {
+        return service.cancelar(id);
+    }
 }

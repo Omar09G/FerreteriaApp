@@ -212,4 +212,30 @@ class RentaServiceTest {
         assertThatThrownBy(() -> service.devolver(999L, req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
     }
+
+    // ── cancelar ────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("cancelar ok: renta ABIERTA se marca como CANCELADA")
+    void cancelar_ok() {
+        Renta r = sampleRenta(1L, "ABIERTA");
+        when(repo.findById(1L)).thenReturn(Optional.of(r));
+        stubToResponse();
+
+        var resp = service.cancelar(1L);
+
+        assertThat(r.getEstado()).isEqualTo("CANCELADA");
+        verify(repo).save(r);
+        assertThat(resp.estado()).isEqualTo("CANCELADA");
+    }
+
+    @Test
+    @DisplayName("cancelar estado incorrecto (DEVUELTA): lanza ReglaNegocioException")
+    void cancelar_wrongEstado() {
+        Renta r = sampleRenta(1L, "DEVUELTA");
+        when(repo.findById(1L)).thenReturn(Optional.of(r));
+
+        assertThatThrownBy(() -> service.cancelar(1L))
+                .isInstanceOf(ReglaNegocioException.class);
+    }
 }

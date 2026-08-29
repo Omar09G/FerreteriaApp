@@ -104,6 +104,17 @@ public class RentaService {
         return toResponse(r);
     }
 
+    public VenDtos.RentaResponse cancelar(Long rentaId) {
+        Renta r = repo.findById(rentaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        if (!"ABIERTA".equals(r.getEstado()) && !"VENCIDA".equals(r.getEstado())) {
+            throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
+        }
+        r.setEstado("CANCELADA");
+        repo.save(r);
+        return toResponse(r);
+    }
+
     private VenDtos.RentaResponse toResponse(Renta r) {
         String clienteNombre = clienteRepo.findById(r.getClienteId())
                 .map(Cliente::getRazonSocial).orElse(null);

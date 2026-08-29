@@ -87,3 +87,8 @@ export async function apiDevolucionRenta(id: number, body: RentaDevolucionReques
   const { data } = await http.post<Envelope<Renta>>(`/rentas/${id}/devolucion`, body)
   return data.data
 }
+
+export async function apiCancelarRenta(id: number): Promise<Renta> {
+  const { data } = await http.post<Envelope<Renta>>(`/rentas/${id}/cancelar`)
+  return data.data
+}

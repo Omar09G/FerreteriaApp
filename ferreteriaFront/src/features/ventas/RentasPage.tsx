@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { RotateCcw, Search, Plus, Trash2 } from 'lucide-react'
+import { RotateCcw, Search, Plus, Trash2, X } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { esApiError } from '@/lib/api/client'
 import { apiCajas, apiTurnoActual } from '@/lib/api/caja'
 import { apiAlmacenes, apiClientes, apiProductos } from '@/lib/api/catalogo'
-import { apiCrearRenta, apiDevolucionRenta, apiRentas } from '@/lib/api/venta'
+import { apiCancelarRenta, apiCrearRenta, apiDevolucionRenta, apiRentas } from '@/lib/api/venta'
 import { FORMAS_PAGO, type Producto, type Renta, type RentaDevolucionRequest, type RentaRequest } from '@/lib/api/types'
 import { aLocalDate, formatoFecha, formatoFechaHora, formatoMoneda } from '@/lib/format'
 import { Badge } from '@/components/ui/Badge'
@@ -20,9 +20,9 @@ import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
 const TONO_RENTA: Record<string, 'success' | 'info' | 'warning' | 'danger' | 'default'> = {
-  ACTIVA: 'success',
-  PROGRAMADA: 'info',
-  FINALIZADA: 'warning',
+  ABIERTA: 'success',
+  DEVUELTA: 'info',
+  VENCIDA: 'warning',
   CANCELADA: 'danger',
 }
 
@@ -67,6 +67,8 @@ function RentaForm({ guardando, onGuardar, onClose }: { guardando: boolean; onGu
       if (exist) return prev
       return [...prev, { productoId: p.productoId, nombre: p.nombre, cantidad: 1, costoDia: 0 }]
     })
+    setBusqueda('')
+    setQ('')
   }
 
   const depositoNum = Number(deposito)
@@ -165,6 +167,13 @@ function RentaForm({ guardando, onGuardar, onClose }: { guardando: boolean; onGu
 
       {partidas.length > 0 && (
         <div className="space-y-1.5">
+          <div aria-hidden className="flex items-center gap-2 px-2 text-[11px] font-medium uppercase tracking-wide text-muted">
+            <span className="w-4 shrink-0" />
+            <span className="min-w-0 flex-1" />
+            <span className="w-16 shrink-0 text-right">Cant.</span>
+            <span className="w-24 shrink-0 text-right">Costo día</span>
+            <span className="w-24 shrink-0 text-right">Monto</span>
+          </div>
           {partidas.map((x) => (
             <div key={x.productoId} className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5">
               <button type="button" aria-label="Quitar" className="text-muted hover:text-red-600" onClick={() => setPartidas((prev) => prev.filter((y) => y.productoId !== x.productoId))}>
@@ -317,6 +326,15 @@ export default function RentasPage() {
     onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
   })
 
+  const cancelar = useMutation({
+    mutationFn: (id: number) => apiCancelarRenta(id),
+    onSuccess: () => {
+      mostrarExito('Renta cancelada.')
+      queryClient.invalidateQueries({ queryKey: ['rentas'] })
+    },
+    onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+  })
+
   const columnas: Columna<Renta>[] = [
     { key: 'fol', header: 'Folio', render: (v) => <span className="font-medium text-ink">{v.folio}</span> },
     { key: 'cli', header: 'Cliente', render: (v) => v.clienteNombre },
@@ -332,9 +350,22 @@ export default function RentasPage() {
       align: 'right',
       render: (v) => (
         <div className="flex justify-end gap-1">
-          {v.estado === 'ACTIVA' && (
+          {(v.estado === 'ABIERTA' || v.estado === 'VENCIDA') && (
             <button type="button" aria-label="Registrar devolución" title="Registrar devolución" className="rounded p-1.5 text-primary hover:bg-orange-50" onClick={() => setDevolviendo(v)}>
               <RotateCcw className="h-4 w-4" />
+            </button>
+          )}
+          {(v.estado === 'ABIERTA' || v.estado === 'VENCIDA') && (
+            <button
+              type="button"
+              aria-label="Cancelar renta"
+              title="Cancelar renta"
+              className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
+              onClick={() => {
+                if (window.confirm(`¿Cancelar la renta ${v.folio}?`)) cancelar.mutate(v.rentaId)
+              }}
+            >
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -358,9 +389,9 @@ export default function RentasPage() {
         <div className="flex flex-wrap items-end gap-2">
           <Select label="Estado" value={estado} onChange={(e) => { setEstado(e.target.value); setPage(0) }} className="w-48">
             <option value="">Todas</option>
-            <option value="ACTIVA">ACTIVA</option>
-            <option value="PROGRAMADA">PROGRAMADA</option>
-            <option value="FINALIZADA">FINALIZADA</option>
+            <option value="ABIERTA">ABIERTA</option>
+            <option value="DEVUELTA">DEVUELTA</option>
+            <option value="VENCIDA">VENCIDA</option>
             <option value="CANCELADA">CANCELADA</option>
           </Select>
           {estado !== '' && (
