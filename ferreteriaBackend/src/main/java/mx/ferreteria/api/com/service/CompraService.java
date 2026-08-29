@@ -6,8 +6,9 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,8 +25,10 @@ import mx.ferreteria.api.com.entity.CompraDetalle;
 import mx.ferreteria.api.com.repo.CompraDetalleRepository;
 import mx.ferreteria.api.com.repo.CompraRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
+import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 
@@ -41,6 +44,17 @@ public class CompraService {
     private final FormaPagoRepository formaPagoRepo;
     private final ProductoRepository productoRepo;
     private final JdbcTemplate jdbc;
+    private final CajaService cajaService;
+
+    /**
+     * Mapper seguro para Java records. A diferencia de
+     * {@link org.springframework.jdbc.core.BeanPropertyRowMapper}, que requiere
+     * constructor sin argumentos + setters, usa el constructor canónico y resuelve
+     * snake_case a camelCase automáticamente.
+     */
+    private static <T> RowMapper<T> mapper(Class<T> tipo) {
+        return DataClassRowMapper.newInstance(tipo);
+    }
 
     // ─── Lectura ────────────────────────────────────────────────────
 
@@ -78,8 +92,16 @@ public class CompraService {
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
         almacenRepo.findById(req.almacenId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-        formaPagoRepo.findById(req.formaPagoId())
+        FormaPago formaPago = formaPagoRepo.findById(req.formaPagoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+
+        Long turnoCajaId = null;
+        if (!"CREDITO".equals(formaPago.getClave())) {
+            if (req.cajaId() == null) {
+                throw new ReglaNegocioException(ErrorCode.CAMPO_REQUERIDO);
+            }
+            turnoCajaId = cajaService.resolverTurnoAbierto(req.cajaId(), req.almacenId());
+        }
 
         Compra compra = Compra.builder()
                 .facturaProveedor(req.facturaProveedor())
@@ -94,7 +116,7 @@ public class CompraService {
                 .total(BigDecimal.ZERO)
                 .estado("RECIBIDA")
                 .usuarioId(UserPrincipal.actual().usuarioId())
-                .turnoCajaId(req.turnoCajaId())
+                .turnoCajaId(turnoCajaId)
                 .notas(req.notas())
                 .build();
         Compra saved = compraRepo.save(compra);
@@ -122,28 +144,28 @@ public class CompraService {
         if (estado != null && !estado.isBlank()) {
             sql += " WHERE estado = ?";
             return jdbc.query(sql,
-                    new BeanPropertyRowMapper<>(ComDtos.CuentasPagarResponse.class), estado);
+                    mapper(ComDtos.CuentasPagarResponse.class), estado);
         }
         return jdbc.query(sql,
-                new BeanPropertyRowMapper<>(ComDtos.CuentasPagarResponse.class));
+                mapper(ComDtos.CuentasPagarResponse.class));
     }
 
     @Transactional(readOnly = true)
     public List<ComDtos.FacturaVencidaResponse> facturasVencidas() {
         return jdbc.query("SELECT * FROM com.vw_facturas_vencidas",
-                new BeanPropertyRowMapper<>(ComDtos.FacturaVencidaResponse.class));
+                mapper(ComDtos.FacturaVencidaResponse.class));
     }
 
     @Transactional(readOnly = true)
     public List<ComDtos.FacturaPendienteResponse> facturasPendientes() {
         return jdbc.query("SELECT * FROM com.vw_facturas_pendientes",
-                new BeanPropertyRowMapper<>(ComDtos.FacturaPendienteResponse.class));
+                mapper(ComDtos.FacturaPendienteResponse.class));
     }
 
     @Transactional(readOnly = true)
     public List<ComDtos.FacturaProveedorResponse> facturasProveedor(Integer proveedorId) {
         return jdbc.query("SELECT * FROM com.vw_ultimas_facturas_proveedor WHERE proveedor_id = ?",
-                new BeanPropertyRowMapper<>(ComDtos.FacturaProveedorResponse.class), proveedorId);
+                mapper(ComDtos.FacturaProveedorResponse.class), proveedorId);
     }
 
     // ─── Mapper ─────────────────────────────────────────────────────

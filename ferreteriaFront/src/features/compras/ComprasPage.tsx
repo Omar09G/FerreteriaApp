@@ -4,6 +4,7 @@ import { Plus, Search, Trash2 } from 'lucide-react'
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { esApiError } from '@/lib/api/client'
+import { apiCajas, apiTurnoActual } from '@/lib/api/caja'
 import { apiAlmacenes, apiProductos, apiProveedores } from '@/lib/api/catalogo'
 import { apiCompras, apiCrearCompra } from '@/lib/api/compras'
 import { FORMAS_PAGO, type Compra, type CompraRequest, type Producto } from '@/lib/api/types'
@@ -36,8 +37,10 @@ function CompraForm({
 }) {
   const proveedores = useQuery({ queryKey: ['proveedores'], queryFn: () => apiProveedores() })
   const almacenes = useQuery({ queryKey: ['almacenes'], queryFn: apiAlmacenes })
+  const cajas = useQuery({ queryKey: ['cajas'], queryFn: apiCajas })
   const [proveedorId, setProveedorId] = useState<number | ''>('')
   const [almacenId, setAlmacenId] = useState<number | ''>('')
+  const [cajaId, setCajaId] = useState<number | ''>('')
   const [formaPagoId, setFormaPagoId] = useState<number>(4)
   const [factura, setFactura] = useState('')
   const [notas, setNotas] = useState('')
@@ -58,10 +61,25 @@ function CompraForm({
       if (exist) return prev
       return [...prev, { productoId: p.productoId, nombre: p.nombre, cantidad: 1, costoUnitario: p.costoActual || 0 }]
     })
+    setBusqueda('')
+    setQ('')
   }
 
   const total = partidas.reduce((acc, x) => acc + x.cantidad * x.costoUnitario, 0)
-  const invalido = proveedorId === '' || almacenId === '' || partidas.length === 0 || partidas.some((x) => x.cantidad <= 0 || x.costoUnitario < 0)
+
+  const esCredito = FORMAS_PAGO.find((f) => f.id === formaPagoId)?.clave === 'CREDITO'
+  const cajasDeAlmacen = cajas.data?.filter((c) => c.almacenId === (almacenId === '' ? -1 : Number(almacenId))) ?? []
+  const turno = useQuery({
+    queryKey: ['turnoActual', cajaId],
+    queryFn: () => apiTurnoActual(Number(cajaId)),
+    enabled: cajaId !== '' && !esCredito,
+    retry: false,
+  })
+  const cajaConTurno = cajaId !== '' && turno.isSuccess
+  const cajaSinTurno = cajaId !== '' && turno.isError
+
+  const invalido =
+    proveedorId === '' || almacenId === '' || partidas.length === 0 || partidas.some((x) => x.cantidad <= 0 || x.costoUnitario < 0) || (!esCredito && (cajaId === '' || cajaSinTurno))
 
   const enviar = (e: { preventDefault: () => void }) => {
     e.preventDefault()
@@ -71,6 +89,7 @@ function CompraForm({
       proveedorId: Number(proveedorId),
       almacenId: Number(almacenId),
       formaPagoId,
+      cajaId: esCredito ? 0 : Number(cajaId),
       facturaProveedor: factura.trim() || undefined,
       notas: notas.trim() || undefined,
       detalles: partidas.map((x) => ({ productoId: x.productoId, cantidad: x.cantidad, costoUnitario: x.costoUnitario })),
@@ -88,7 +107,7 @@ function CompraForm({
             </option>
           ))}
         </Select>
-        <Select label="Almacén de entrada" required value={almacenId} onChange={(e) => setAlmacenId(e.target.value ? Number(e.target.value) : '')}>
+        <Select label="Almacén de entrada" required value={almacenId} onChange={(e) => { setAlmacenId(e.target.value ? Number(e.target.value) : ''); setCajaId('') }}>
           <option value="">Selecciona…</option>
           {almacenes.data?.map((a) => (
             <option key={a.almacenId} value={a.almacenId}>
@@ -103,8 +122,22 @@ function CompraForm({
             </option>
           ))}
         </Select>
+        {!esCredito && (
+          <Select label="Caja" required value={cajaId} onChange={(e) => setCajaId(e.target.value ? Number(e.target.value) : '')}>
+            <option value="">Selecciona…</option>
+            {cajasDeAlmacen.map((c) => (
+              <option key={c.cajaId} value={c.cajaId}>
+                {c.nombre}
+              </option>
+            ))}
+          </Select>
+        )}
         <Input label="Factura del proveedor" value={factura} onChange={(e) => setFactura(e.target.value)} placeholder="Ej. F-10235" />
       </div>
+
+      {!esCredito && cajaId !== '' && turno.isLoading && <p className="text-xs text-muted">Verificando turno abierto…</p>}
+      {!esCredito && cajaConTurno && <p className="text-xs text-emerald-600">Turno abierto: el pago se registrará como salida en esa caja.</p>}
+      {!esCredito && cajaSinTurno && <p className="text-xs text-red-600">Esta caja no tiene un turno abierto. Ábrelo en el POS para poder registrar la compra.</p>}
 
       <div className="flex flex-wrap items-end gap-2">
         <Input label="Buscar producto" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setQ(busqueda.trim())} placeholder="Artículo a comprar" className="w-72" />

@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import mx.ferreteria.api.cat.entity.FormaPago;
@@ -38,6 +37,9 @@ import mx.ferreteria.api.com.entity.CompraDetalle;
 import mx.ferreteria.api.com.repo.CompraDetalleRepository;
 import mx.ferreteria.api.com.repo.CompraRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
+import mx.ferreteria.api.common.error.ReglaNegocioException;
+import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 
@@ -51,6 +53,7 @@ class CompraServiceTest {
     @Mock FormaPagoRepository formaPagoRepo;
     @Mock ProductoRepository productoRepo;
     @Mock JdbcTemplate jdbc;
+    @Mock CajaService cajaService;
 
     @InjectMocks
     CompraService service;
@@ -116,12 +119,14 @@ class CompraServiceTest {
     @DisplayName("create: guarda cabecera + detalles y re-lee folio asignado por BD")
     void create_ok() {
         Compra saved = sampleCompra(50L);
+        saved.setTurnoCajaId(6L);
         when(proveedorRepo.findById(1)).thenReturn(Optional.of(
                 Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
         when(almacenRepo.findById(1)).thenReturn(Optional.of(
                 Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
         when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Contado").build()));
+                FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()));
+        when(cajaService.resolverTurnoAbierto(5, 1)).thenReturn(6L);
         when(compraRepo.save(any(Compra.class))).thenReturn(saved);
         when(compraRepo.findById(50L)).thenReturn(Optional.of(saved));
         stubNombres();
@@ -129,7 +134,7 @@ class CompraServiceTest {
                 .thenReturn(List.of(sampleDetalle(1L)));
 
         CompraRequest req = new CompraRequest(
-                1, 1, 1, "F-0001", null, null, "Primera compra",
+                1, 1, 1, "F-0001", null, 5, "Primera compra",
                 List.of(new CompraDetalleRequest(10L, new BigDecimal("10.000"),
                         new BigDecimal("100.00"))));
 
@@ -138,8 +143,83 @@ class CompraServiceTest {
         assertThat(resp.compraId()).isEqualTo(50L);
         assertThat(resp.folio()).isEqualTo("COMPRA-0001");
         assertThat(resp.estado()).isEqualTo("RECIBIDA");
+        assertThat(resp.turnoCajaId()).isEqualTo(6L);
+        verify(cajaService).resolverTurnoAbierto(5, 1);
         verify(detalleRepo).save(any(CompraDetalle.class));
         verify(compraRepo).flush();
+    }
+
+    @Test
+    @DisplayName("create credito: no exige caja ni resuelve turno")
+    void create_creditoSinTurno() {
+        Compra saved = sampleCompra(51L);
+        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
+                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
+        when(almacenRepo.findById(1)).thenReturn(Optional.of(
+                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
+        when(formaPagoRepo.findById(6)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()));
+        when(compraRepo.save(any(Compra.class))).thenReturn(saved);
+        when(compraRepo.findById(51L)).thenReturn(Optional.of(saved));
+        when(productoRepo.findById(10L)).thenReturn(Optional.of(
+                Producto.builder().productoId(10L).nombre("Taladro").build()));
+        when(detalleRepo.findByCompraIdOrderByCompraDetalleId(51L))
+                .thenReturn(List.of(sampleDetalle(1L)));
+
+        CompraRequest req = new CompraRequest(
+                1, 1, 6, "F-0002", null, null, null,
+                List.of(new CompraDetalleRequest(10L, new BigDecimal("10.000"),
+                        new BigDecimal("100.00"))));
+
+        var resp = service.create(req);
+
+        assertThat(resp.turnoCajaId()).isNull();
+        org.mockito.Mockito.verifyNoInteractions(cajaService);
+        verify(detalleRepo).save(any(CompraDetalle.class));
+    }
+
+    @Test
+    @DisplayName("create contado sin caja: lanza CAMPO_REQUERIDO")
+    void create_contadoSinCaja() {
+        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
+                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
+        when(almacenRepo.findById(1)).thenReturn(Optional.of(
+                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
+        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()));
+
+        CompraRequest req = new CompraRequest(
+                1, 1, 1, "F-0003", null, null, null,
+                List.of(new CompraDetalleRequest(10L, new BigDecimal("1.000"),
+                        new BigDecimal("10.00"))));
+
+        assertThatThrownBy(() -> service.create(req))
+                .isInstanceOf(ReglaNegocioException.class);
+
+        ReglaNegocioException ex = org.assertj.core.api.Assertions
+                .catchThrowableOfType(() -> service.create(req), ReglaNegocioException.class);
+        assertThat(ex.errorCode()).isEqualTo(ErrorCode.CAMPO_REQUERIDO);
+    }
+
+    @Test
+    @DisplayName("create contado sin turno abierto: propaga la excepcion de caja")
+    void create_sinTurnoAbierto() {
+        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
+                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
+        when(almacenRepo.findById(1)).thenReturn(Optional.of(
+                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
+        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
+                FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()));
+        when(cajaService.resolverTurnoAbierto(5, 1))
+                .thenThrow(new ReglaNegocioException(ErrorCode.TURNO_NO_ABIERTO, 5));
+
+        CompraRequest req = new CompraRequest(
+                1, 1, 1, "F-0004", null, 5, null,
+                List.of(new CompraDetalleRequest(10L, new BigDecimal("1.000"),
+                        new BigDecimal("10.00"))));
+
+        assertThatThrownBy(() -> service.create(req))
+                .isInstanceOf(ReglaNegocioException.class);
     }
 
     @Test
@@ -163,7 +243,7 @@ class CompraServiceTest {
                 1L, "COMPRA-0001", "Ferritas SA",
                 new BigDecimal("1160.00"), new BigDecimal("600.00"),
                 new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE");
-        when(jdbc.query(anyString(), any(BeanPropertyRowMapper.class))).thenReturn(List.of(v));
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class))).thenReturn(List.of(v));
 
         var result = service.cuentasPagar(null);
 
@@ -178,7 +258,7 @@ class CompraServiceTest {
                 1L, "COMPRA-0001", "Ferritas SA",
                 new BigDecimal("1160.00"), new BigDecimal("600.00"),
                 new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE");
-        when(jdbc.query(anyString(), any(BeanPropertyRowMapper.class), eq("PENDIENTE")))
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq("PENDIENTE")))
                 .thenReturn(List.of(v));
 
         var result = service.cuentasPagar("PENDIENTE");
@@ -197,9 +277,9 @@ class CompraServiceTest {
                 BigDecimal.ZERO, java.time.LocalDate.now().minusDays(10),
                 10, "10-20 dias");
         when(jdbc.query(eq("SELECT * FROM com.vw_facturas_vencidas"),
-                any(BeanPropertyRowMapper.class))).thenReturn(List.of(v));
+                any(org.springframework.jdbc.core.RowMapper.class))).thenReturn(List.of(v));
         when(jdbc.query(eq("SELECT * FROM com.vw_facturas_pendientes"),
-                any(BeanPropertyRowMapper.class))).thenReturn(java.util.Collections.emptyList());
+                any(org.springframework.jdbc.core.RowMapper.class))).thenReturn(java.util.Collections.emptyList());
 
         assertThat(service.facturasVencidas()).hasSize(1);
         assertThat(service.facturasPendientes()).isEmpty();
@@ -215,7 +295,7 @@ class CompraServiceTest {
                 new BigDecimal("1160.00"), new BigDecimal("1160.00"),
                 new BigDecimal("1160.00"), BigDecimal.ZERO,
                 "CONTADO", java.time.LocalDate.now().plusDays(55));
-        when(jdbc.query(anyString(), any(BeanPropertyRowMapper.class), eq(1)))
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1)))
                 .thenReturn(List.of(v));
 
         var result = service.facturasProveedor(1);

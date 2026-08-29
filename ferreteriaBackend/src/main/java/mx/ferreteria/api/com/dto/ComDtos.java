@@ -21,7 +21,7 @@ public final class ComDtos {
             @NotNull Integer formaPagoId,
             String facturaProveedor,
             Long ordenCompraId,
-            Long turnoCajaId,
+            Integer cajaId,
             String notas,
             @Valid @NotNull List<CompraDetalleRequest> detalles) {
     }

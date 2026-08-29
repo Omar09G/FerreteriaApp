@@ -665,6 +665,7 @@ export interface CompraRequest {
   proveedorId: number
   almacenId: number
   formaPagoId: number
+  cajaId: number
   facturaProveedor?: string
   notas?: string
   detalles: { productoId: number; cantidad: number; costoUnitario: number }[]
