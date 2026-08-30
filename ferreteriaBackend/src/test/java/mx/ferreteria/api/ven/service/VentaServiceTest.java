@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,7 +25,9 @@ import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import jakarta.persistence.EntityManager;
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
@@ -39,6 +42,8 @@ import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
+import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
+import mx.ferreteria.api.ven.repo.PagoClienteRepository;
 import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
 
@@ -53,9 +58,17 @@ class VentaServiceTest {
     @Mock ProductoRepository productoRepo;
     @Mock FormaPagoRepository formaPagoRepo;
     @Mock CajaService cajaService;
+    @Mock CuentaCobrarRepository cuentaRepo;
+    @Mock PagoClienteRepository pagoRepo;
+    @Mock EntityManager em;
 
     @InjectMocks
     VentaService service;
+
+    @BeforeEach
+    void inyectarEntityManager() {
+        ReflectionTestUtils.setField(service, "em", em);
+    }
 
     // ── helpers ──────────────────────────────────────────────────────
 
@@ -83,6 +96,7 @@ class VentaServiceTest {
         when(formaPagoRepo.findById(1))
                 .thenReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
         when(detalleRepo.findByVentaId(anyLong())).thenReturn(List.of());
+        when(cuentaRepo.findByVentaId(anyLong())).thenReturn(Optional.empty());
         when(productoRepo.findById(anyLong()))
                 .thenReturn(Optional.of(Producto.builder().productoId(1L).nombre("Martillo").build()));
         when(clienteRepo.findById(anyLong())).thenReturn(Optional.empty());
@@ -177,6 +191,7 @@ class VentaServiceTest {
         when(ventaRepo.findById(10L)).thenReturn(Optional.of(saved));
         when(clienteRepo.findById(anyLong())).thenReturn(Optional.empty());
         when(detalleRepo.findByVentaId(10L)).thenReturn(List.of());
+        when(cuentaRepo.findByVentaId(10L)).thenReturn(Optional.empty());
         when(productoRepo.findById(anyLong()))
                 .thenReturn(Optional.of(Producto.builder().productoId(1L).nombre("Martillo").build()));
 

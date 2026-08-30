@@ -3,6 +3,7 @@ package mx.ferreteria.api.ven.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -10,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.entity.FormaPago;
@@ -29,6 +32,7 @@ import mx.ferreteria.api.ven.entity.CuentaCobrar;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
 import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
+import mx.ferreteria.api.ven.repo.PagoClienteRepository;
 import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
 
@@ -45,6 +49,10 @@ public class VentaService {
     private final FormaPagoRepository formaPagoRepo;
     private final CuentaCobrarRepository cuentaRepo;
     private final CajaService cajaService;
+    private final PagoClienteRepository pagoRepo;
+
+    @PersistenceContext
+    private EntityManager em;
 
     @Transactional(readOnly = true)
     public Page<VenDtos.VentaResponse> list(Integer almacenId, Instant desde, Instant hasta, Pageable pageable) {
@@ -110,6 +118,7 @@ public class VentaService {
                 .build();
         Venta savedVenta = ventaRepo.save(venta);
 
+        List<VentaDetalle> detalles = new ArrayList<>();
         for (VenDtos.VentaDetalleRequest d : req.detalles()) {
             VentaDetalle det = VentaDetalle.builder()
                     .ventaId(savedVenta.getVentaId())
@@ -118,11 +127,18 @@ public class VentaService {
                     .precioUnitario(d.precioUnitario())
                     .build();
             detalleRepo.save(det);
+            detalles.add(det);
         }
 
         ventaRepo.flush();
-        Venta refreshed = ventaRepo.findById(savedVenta.getVentaId()).orElse(savedVenta);
-        return toResponse(refreshed);
+        // Los totales (subtotal/iva/descuento_total/total, folio y total_linea de
+        // cada detalle) los calcula la BD vía triggers (trg_folio_ventas y
+        // trg_det_venta_totales) y columnas GENERATED. Hibernate no refleja esos
+        // valores sobre las instancias gestionadas al insertar, así que recargamos
+        // desde BD para devolver montos reales (no ceros).
+        em.refresh(savedVenta);
+        detalles.forEach(em::refresh);
+        return toResponse(savedVenta);
     }
 
     public VenDtos.VentaResponse cancel(Long id, String motivo) {
@@ -163,6 +179,14 @@ public class VentaService {
                             d.getCostoUnitario(), d.getDescuentoLinea(),
                             d.getTotalLinea());
                 }).toList();
+        List<VenDtos.PagoResponse> pagos = cuentaRepo.findByVentaId(v.getVentaId())
+                .map(cc -> pagoRepo.findByCuentaCobrarIdOrderByFechaDesc(cc.getCuentaCobrarId())
+                        .stream()
+                        .map(p -> new VenDtos.PagoResponse(
+                                p.getPagoClienteId(), p.getFormaPagoId(),
+                                p.getReferencia(), p.getMonto(), p.getFecha()))
+                        .toList())
+                .orElse(List.of());
         return new VenDtos.VentaResponse(
                 v.getVentaId(), v.getFolio(),
                 v.getClienteId(), clienteNombre,
@@ -173,6 +197,6 @@ public class VentaService {
                 v.getSubtotal(), v.getIva(),
                 v.getDescuentoTotal(), v.getTotal(),
                 v.getEstado(), v.getUsuarioId(), v.getTurnoCajaId(),
-                v.getNotas(), detalles, List.of());
+                v.getNotas(), detalles, pagos);
     }
 }
