@@ -8,6 +8,7 @@ import { apiCrearDevolucion, apiDevolucionesDeVenta, apiVentas } from '@/lib/api
 import type { DevolucionRequest, Venta, VentaDetalle } from '@/lib/api/types'
 import { FORMAS_PAGO } from '@/lib/api/types'
 import { formatoFechaHora, formatoMoneda } from '@/lib/format'
+import type { RangoFechas } from '@/lib/rango'
 import { EstadoBadge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -15,6 +16,7 @@ import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
 import { Pagination } from '@/components/ui/Pagination'
+import { RangoFiltro } from '@/components/ui/RangoFiltro'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
@@ -230,12 +232,13 @@ export default function DevolucionesPage() {
   const queryClient = useQueryClient()
 
   const [page, setPage] = useState(0)
+  const [rango, setRango] = useState<RangoFechas | null>(null)
   const [ventaSeleccionada, setVentaSeleccionada] = useState<Venta | null>(null)
   const [registrando, setRegistrando] = useState(false)
 
   const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['ventas', page],
-    queryFn: () => apiVentas({ page, size: 15 }),
+    queryKey: ['ventas', rango?.inicio, rango?.fin, page],
+    queryFn: () => apiVentas({ desde: rango?.inicio, hasta: rango?.fin, page, size: 15 }),
   })
 
   useEffect(() => {
@@ -285,9 +288,12 @@ export default function DevolucionesPage() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-xl font-bold text-ink">Devoluciones</h1>
-        <p className="text-sm text-muted">Registra y consulta devoluciones sobre ventas realizadas.</p>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Devoluciones</h1>
+          <p className="text-sm text-muted">Registra y consulta devoluciones sobre ventas realizadas.</p>
+        </div>
+        <RangoFiltro valor={rango} onChange={(siguiente) => { setRango(siguiente); setPage(0) }} />
       </header>
 
       {(isLoading || (isFetching && !data)) && <Spinner />}

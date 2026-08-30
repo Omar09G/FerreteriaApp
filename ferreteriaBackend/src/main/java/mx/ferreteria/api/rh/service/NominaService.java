@@ -1,6 +1,7 @@
 package mx.ferreteria.api.rh.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,11 +26,9 @@ public class NominaService {
     private final JdbcTemplate jdbc;
 
     @Transactional(readOnly = true)
-    public Page<RhDtos.NominaResponse> list(String estado, Pageable pageable) {
-        Page<Nomina> page = (estado != null && !estado.isBlank())
-                ? nominaRepo.findByEstadoOrderByPeriodoFinDesc(estado, pageable)
-                : nominaRepo.findAllByOrderByPeriodoFinDesc(pageable);
-        return page.map(this::toResponse);
+    public Page<RhDtos.NominaResponse> list(String estado,
+            LocalDate desde, LocalDate hasta, Pageable pageable) {
+        return nominaRepo.filtrar(estado, desde, hasta, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

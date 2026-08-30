@@ -10,6 +10,7 @@ import { apiProveedores } from '@/lib/api/catalogo'
 import type { Gasto, GastoRequest, IngresoOtro, IngresoOtroRequest } from '@/lib/api/types'
 import { FORMAS_PAGO, TIPOS_GASTO } from '@/lib/api/types'
 import { formatoFecha, formatoFechaHora, formatoMoneda } from '@/lib/format'
+import type { RangoFechas } from '@/lib/rango'
 import { useTieneRol } from '@/store/auth'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -18,6 +19,7 @@ import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
 import { Pagination } from '@/components/ui/Pagination'
+import { RangoFiltro } from '@/components/ui/RangoFiltro'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
@@ -164,6 +166,7 @@ export default function GastosPage() {
   const tabInicial: 'gastos' | 'ingresos' = location.pathname.endsWith('/ingresos') ? 'ingresos' : 'gastos'
 
   const [tab, setTab] = useState<'gastos' | 'ingresos'>(tabInicial)
+  const [rango, setRango] = useState<RangoFechas | null>(null)
   const [page, setPage] = useState(0)
   const [dialogo, setDialogo] = useState<'gasto' | 'ingreso' | null>(null)
   const [editandoGasto, setEditandoGasto] = useState<Gasto | null>(null)
@@ -172,8 +175,8 @@ export default function GastosPage() {
   const [borrandoIngreso, setBorrandoIngreso] = useState<IngresoOtro | null>(null)
   const esAdmin = useTieneRol(['ADMINISTRADOR'])
 
-  const gastos = useQuery({ queryKey: ['gastos', page], queryFn: () => apiGastos(page) })
-  const ingresos = useQuery({ queryKey: ['ingresos-otros', page], queryFn: () => apiIngresosOtros(page) })
+  const gastos = useQuery({ queryKey: ['gastos', rango?.inicio, rango?.fin, page], queryFn: () => apiGastos(page, 15, rango?.inicio, rango?.fin) })
+  const ingresos = useQuery({ queryKey: ['ingresos-otros', rango?.inicio, rango?.fin, page], queryFn: () => apiIngresosOtros(page, 15, rango?.inicio, rango?.fin) })
 
   useEffect(() => {
     if (gastos.error) mostrarError(esApiError(gastos.error) ? gastos.error.mensajeParaUsuario() : String(gastos.error))
@@ -333,9 +336,12 @@ export default function GastosPage() {
             {tab === 'gastos' ? 'Egresos registrados en caja.' : 'Entradas no provenientes de venta (cobros especiales, ventas de activo, etc.).'}
           </p>
         </div>
-        <Button onClick={() => setDialogo(tab === 'gastos' ? 'gasto' : 'ingreso')}>
-          {tab === 'gastos' ? <ReceiptText className="h-4 w-4" /> : <ArrowDownToLine className="h-4 w-4" />} {tab === 'gastos' ? 'Registrar gasto' : 'Registrar ingreso'}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <RangoFiltro valor={rango} onChange={(siguiente) => { setRango(siguiente); setPage(0) }} />
+          <Button onClick={() => setDialogo(tab === 'gastos' ? 'gasto' : 'ingreso')}>
+            {tab === 'gastos' ? <ReceiptText className="h-4 w-4" /> : <ArrowDownToLine className="h-4 w-4" />} {tab === 'gastos' ? 'Registrar gasto' : 'Registrar ingreso'}
+          </Button>
+        </div>
       </header>
 
       <div className="flex gap-2">

@@ -1,6 +1,9 @@
 package mx.ferreteria.api.ven.api;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +25,12 @@ public class RentaController {
     @GetMapping
     public Page<VenDtos.RentaResponse> list(
             @RequestParam(required = false) String estado,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
-        return service.list(estado, PageQuery.of(page, size, sort).toPageable());
+        return service.list(estado, desde, hasta, PageQuery.of(page, size, sort).toPageable());
     }
 
     @GetMapping("/{id}")

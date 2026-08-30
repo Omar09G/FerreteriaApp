@@ -9,6 +9,7 @@ import { apiAlmacenes, apiClientes, apiProductos } from '@/lib/api/catalogo'
 import { apiConvertirCotizacion, apiCotizaciones, apiCrearCotizacion } from '@/lib/api/venta'
 import { FORMAS_PAGO, type Cotizacion, type CotizacionRequest, type Producto } from '@/lib/api/types'
 import { formatoFecha, formatoFechaHora, formatoMoneda } from '@/lib/format'
+import type { RangoFechas } from '@/lib/rango'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -16,6 +17,7 @@ import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
 import { Pagination } from '@/components/ui/Pagination'
+import { RangoFiltro } from '@/components/ui/RangoFiltro'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
@@ -273,13 +275,14 @@ export default function CotizacionesPage() {
   const queryClient = useQueryClient()
 
   const [estado, setEstado] = useState<string>('')
+  const [rango, setRango] = useState<RangoFechas | null>(null)
   const [page, setPage] = useState(0)
   const [nuevaAbierta, setNuevaAbierta] = useState(false)
   const [aConvertir, setAConvertir] = useState<Cotizacion | null>(null)
 
   const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['cotizaciones', estado, page],
-    queryFn: () => apiCotizaciones({ estado: estado || undefined, page, size: 15 }),
+    queryKey: ['cotizaciones', estado, rango?.inicio, rango?.fin, page],
+    queryFn: () => apiCotizaciones({ estado: estado || undefined, desde: rango?.inicio, hasta: rango?.fin, page, size: 15 }),
   })
 
   useEffect(() => {
@@ -340,9 +343,12 @@ export default function CotizacionesPage() {
           <h1 className="text-xl font-bold text-ink">Cotizaciones</h1>
           <p className="text-sm text-muted">Cotizaciones a clientes y su conversión a venta.</p>
         </div>
-        <Button onClick={() => setNuevaAbierta(true)}>
-          <Plus className="h-4 w-4" /> Nueva cotización
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <RangoFiltro valor={rango} onChange={(siguiente) => { setRango(siguiente); setPage(0) }} />
+          <Button onClick={() => setNuevaAbierta(true)}>
+            <Plus className="h-4 w-4" /> Nueva cotización
+          </Button>
+        </div>
       </header>
 
       <Card>

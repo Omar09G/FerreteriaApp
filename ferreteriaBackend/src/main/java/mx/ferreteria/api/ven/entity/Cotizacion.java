@@ -21,6 +21,10 @@ public class Cotizacion {
     @Column(nullable = false)
     private Instant fecha;
 
+    /** Fecha local (DATE) generada en BD desde `fecha` con TZ America/Mexico_City. */
+    @Column(name = "fecha_local", insertable = false, updatable = false)
+    private LocalDate fechaLocal;
+
     private LocalDate vigenciaHasta;
 
     @Column(nullable = false, precision = 14, scale = 2)

@@ -69,27 +69,28 @@ class CreditoServiceTest {
     // ── listCuentas ─────────────────────────────────────────────────
 
     @Test
-    @DisplayName("listCuentas sin estado: findAll retorna pagina con items")
+    @DisplayName("listCuentas sin filtros: filtrar retorna pagina con items")
     void listCuentas_all() {
         CuentaCobrar cc = sampleCuenta(1L, "VIGENTE");
-        when(cuentaRepo.findAll(pg())).thenReturn(new PageImpl<>(List.of(cc), pg(), 1));
+        when(cuentaRepo.filtrar(null, null, null, null, pg()))
+                .thenReturn(new PageImpl<>(List.of(cc), pg(), 1));
         stubToResponse();
 
-        var result = service.listCuentas(null, pg());
+        var result = service.listCuentas(null, null, null, pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).cuentaCobrarId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("listCuentas por estado: filtrado retorna items")
+    @DisplayName("listCuentas por estado: filtrar retorna items")
     void listCuentas_byEstado() {
         CuentaCobrar cc = sampleCuenta(1L, "VIGENTE");
-        when(cuentaRepo.findByEstadoOrderByCreadoEnDesc("VIGENTE", pg()))
+        when(cuentaRepo.filtrar(null, "VIGENTE", null, null, pg()))
                 .thenReturn(new PageImpl<>(List.of(cc), pg(), 1));
         stubToResponse();
 
-        var result = service.listCuentas("VIGENTE", pg());
+        var result = service.listCuentas(null, null, "VIGENTE", pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).estado()).isEqualTo("VIGENTE");
@@ -101,11 +102,11 @@ class CreditoServiceTest {
     @DisplayName("listCuentasByCliente sin estado: retorna cuentas del cliente")
     void listCuentasByCliente_all() {
         CuentaCobrar cc = sampleCuenta(1L, "VIGENTE");
-        when(cuentaRepo.findByClienteIdOrderByCreadoEnDesc(1L, pg()))
+        when(cuentaRepo.filtrar(1L, null, null, null, pg()))
                 .thenReturn(new PageImpl<>(List.of(cc), pg(), 1));
         stubToResponse();
 
-        var result = service.listCuentasByCliente(1L, null, pg());
+        var result = service.listCuentasByCliente(1L, null, null, null, pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).clienteNombre()).isEqualTo("Maria Lopez");
@@ -115,11 +116,11 @@ class CreditoServiceTest {
     @DisplayName("listCuentasByCliente con estado: retorna cuentas filtradas")
     void listCuentasByCliente_byEstado() {
         CuentaCobrar cc = sampleCuenta(1L, "VIGENTE");
-        when(cuentaRepo.findByClienteIdAndEstadoOrderByCreadoEnDesc(1L, "VIGENTE", pg()))
+        when(cuentaRepo.filtrar(1L, "VIGENTE", null, null, pg()))
                 .thenReturn(new PageImpl<>(List.of(cc), pg(), 1));
         stubToResponse();
 
-        var result = service.listCuentasByCliente(1L, "VIGENTE", pg());
+        var result = service.listCuentasByCliente(1L, null, null, "VIGENTE", pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).estado()).isEqualTo("VIGENTE");

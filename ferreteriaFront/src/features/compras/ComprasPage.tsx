@@ -9,6 +9,7 @@ import { apiAlmacenes, apiProductos, apiProveedores } from '@/lib/api/catalogo'
 import { apiCompras, apiCrearCompra } from '@/lib/api/compras'
 import { FORMAS_PAGO, type Compra, type CompraRequest, type Producto } from '@/lib/api/types'
 import { formatoFechaHora, formatoMoneda } from '@/lib/format'
+import type { RangoFechas } from '@/lib/rango'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -16,6 +17,7 @@ import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
 import { Pagination } from '@/components/ui/Pagination'
+import { RangoFiltro } from '@/components/ui/RangoFiltro'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
@@ -218,14 +220,15 @@ export default function ComprasPage() {
   const queryClient = useQueryClient()
 
   const [proveedorId, setProveedorId] = useState<number | ''>('')
+  const [rango, setRango] = useState<RangoFechas | null>(null)
   const [page, setPage] = useState(0)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
 
   const proveedores = useQuery({ queryKey: ['proveedores-list'], queryFn: () => apiProveedores() })
 
   const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['compras', proveedorId, page],
-    queryFn: () => apiCompras({ proveedorId: proveedorId || undefined, page, size: 15 }),
+    queryKey: ['compras', proveedorId, rango?.inicio, rango?.fin, page],
+    queryFn: () => apiCompras({ proveedorId: proveedorId || undefined, desde: rango?.inicio, hasta: rango?.fin, page, size: 15 }),
   })
 
   useEffect(() => {
@@ -261,9 +264,12 @@ export default function ComprasPage() {
           <h1 className="text-xl font-bold text-ink">Compras</h1>
           <p className="text-sm text-muted">Órdenes de compra a proveedores y su entrada a inventario.</p>
         </div>
-        <Button onClick={() => setDialogoAbierto(true)}>
-          <Plus className="h-4 w-4" /> Nueva compra
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <RangoFiltro valor={rango} onChange={(siguiente) => { setRango(siguiente); setPage(0) }} />
+          <Button onClick={() => setDialogoAbierto(true)}>
+            <Plus className="h-4 w-4" /> Nueva compra
+          </Button>
+        </div>
       </header>
 
       <Card>

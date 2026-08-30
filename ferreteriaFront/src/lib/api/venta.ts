@@ -29,6 +29,8 @@ export async function apiCancelarVenta(id: number, body: VentaCancelRequest): Pr
 export async function apiCuentasCobrar(p: {
   estado?: string
   clienteId?: number
+  desde?: string
+  hasta?: string
   page: number
   size: number
 }): Promise<PageEnvelope<CuentaCobrar>> {
@@ -36,6 +38,8 @@ export async function apiCuentasCobrar(p: {
   if (p.clienteId) params.clienteId = p.clienteId
   const path = p.clienteId ? `/creditos/${p.clienteId}` : '/creditos/cobranza'
   if (p.estado) params.estado = p.estado
+  if (p.desde) params.desde = p.desde
+  if (p.hasta) params.hasta = p.hasta
   const { data } = await http.get<PageEnvelope<CuentaCobrar>>(path, { params })
   return data
 }
@@ -44,9 +48,11 @@ export async function apiPagoCliente(body: PagoClienteRequest): Promise<void> {
   await http.post<Envelope<object>>('/pagos-cliente', body)
 }
 
-export async function apiCotizaciones(p: { estado?: string; page: number; size: number }): Promise<PageEnvelope<Cotizacion>> {
+export async function apiCotizaciones(p: { estado?: string; desde?: string; hasta?: string; page: number; size: number }): Promise<PageEnvelope<Cotizacion>> {
   const params: Record<string, string | number> = { page: p.page, size: p.size }
   if (p.estado) params.estado = p.estado
+  if (p.desde) params.desde = p.desde
+  if (p.hasta) params.hasta = p.hasta
   const { data } = await http.get<PageEnvelope<Cotizacion>>('/cotizaciones', { params })
   return data
 }
@@ -71,9 +77,11 @@ export async function apiCrearDevolucion(body: DevolucionRequest): Promise<Devol
   return data.data
 }
 
-export async function apiRentas(p: { estado?: string; page: number; size: number }): Promise<PageEnvelope<Renta>> {
+export async function apiRentas(p: { estado?: string; desde?: string; hasta?: string; page: number; size: number }): Promise<PageEnvelope<Renta>> {
   const params: Record<string, string | number> = { page: p.page, size: p.size }
   if (p.estado) params.estado = p.estado
+  if (p.desde) params.desde = p.desde
+  if (p.hasta) params.hasta = p.hasta
   const { data } = await http.get<PageEnvelope<Renta>>('/rentas', { params })
   return data
 }

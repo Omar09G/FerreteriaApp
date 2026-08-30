@@ -1,5 +1,7 @@
 package mx.ferreteria.api.fin.service;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,8 +30,11 @@ public class GastoService {
     // ─── Gastos ─────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public Page<FinDtos.GastoResponse> listGastos(Pageable pageable) {
-        return gastoRepo.findAllByOrderByCreadoEnDesc(pageable).map(this::toGastoResponse);
+    public Page<FinDtos.GastoResponse> listGastos(LocalDate desde, LocalDate hasta, Pageable pageable) {
+        Page<Gasto> page = (desde != null && hasta != null)
+                ? gastoRepo.findByFechaGastoBetweenOrderByCreadoEnDesc(desde, hasta, pageable)
+                : gastoRepo.findAllByOrderByCreadoEnDesc(pageable);
+        return page.map(this::toGastoResponse);
     }
 
     public FinDtos.GastoResponse createGasto(FinDtos.GastoRequest req) {
@@ -81,8 +86,11 @@ public class GastoService {
     // ─── Ingresos otros ─────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public Page<FinDtos.IngresoOtroResponse> listIngresos(Pageable pageable) {
-        return ingresoRepo.findAllByOrderByCreadoEnDesc(pageable).map(this::toIngresoResponse);
+    public Page<FinDtos.IngresoOtroResponse> listIngresos(LocalDate desde, LocalDate hasta, Pageable pageable) {
+        Page<IngresoOtro> page = (desde != null && hasta != null)
+                ? ingresoRepo.findByFechaBetweenOrderByCreadoEnDesc(desde, hasta, pageable)
+                : ingresoRepo.findAllByOrderByCreadoEnDesc(pageable);
+        return page.map(this::toIngresoResponse);
     }
 
     public FinDtos.IngresoOtroResponse createIngreso(FinDtos.IngresoOtroRequest req) {

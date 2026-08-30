@@ -68,7 +68,7 @@ class RentaControllerTest {
     @Test
     @DisplayName("GET /api/v1/rentas -> 200 con array")
     void list_returns200() throws Exception {
-        when(service.list(eq(null), any()))
+        when(service.list(eq(null), eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/rentas"))

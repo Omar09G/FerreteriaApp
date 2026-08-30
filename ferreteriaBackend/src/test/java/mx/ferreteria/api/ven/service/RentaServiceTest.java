@@ -85,27 +85,28 @@ class RentaServiceTest {
     // ── list ────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("list sin estado: findAll retorna pagina con items")
+    @DisplayName("list sin estado: filtrar sin filtros retorna pagina con items")
     void list_all() {
         Renta r = sampleRenta(1L, "ABIERTA");
-        when(repo.findAll(pg())).thenReturn(new PageImpl<>(List.of(r), pg(), 1));
+        when(repo.filtrar(null, null, null, pg()))
+                .thenReturn(new PageImpl<>(List.of(r), pg(), 1));
         stubToResponse();
 
-        var result = service.list(null, pg());
+        var result = service.list(null, null, null, pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).rentaId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("list por estado: findByEstadoOrderByFechaRentaDesc retorna filtrado")
+    @DisplayName("list por estado: filtrar retorna filtrado")
     void list_byEstado() {
         Renta r = sampleRenta(1L, "ABIERTA");
-        when(repo.findByEstadoOrderByFechaRentaDesc("ABIERTA", pg()))
+        when(repo.filtrar("ABIERTA", null, null, pg()))
                 .thenReturn(new PageImpl<>(List.of(r), pg(), 1));
         stubToResponse();
 
-        var result = service.list("ABIERTA", pg());
+        var result = service.list("ABIERTA", null, null, pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).estado()).isEqualTo("ABIERTA");

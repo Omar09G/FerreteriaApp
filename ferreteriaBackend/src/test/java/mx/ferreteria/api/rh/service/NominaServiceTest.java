@@ -57,12 +57,12 @@ class NominaServiceTest {
     @DisplayName("list: filtra por estado y enriquece nombre de empleado")
     void list_conEstado() {
         Pageable pg = PageRequest.of(0, 20);
-        when(nominaRepo.findByEstadoOrderByPeriodoFinDesc("PENDIENTE", pg))
+        when(nominaRepo.filtrar("PENDIENTE", null, null, pg))
                 .thenReturn(new PageImpl<>(List.of(sampleNomina(1L, "PENDIENTE")), pg, 1));
         when(jdbc.queryForObject(anyString(), eq(String.class), eq(7)))
                 .thenReturn("Juan Perez");
 
-        var result = service.list("PENDIENTE", pg);
+        var result = service.list("PENDIENTE", null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).empleado()).isEqualTo("Juan Perez");

@@ -608,6 +608,8 @@ CREATE TABLE IF NOT EXISTS ven.cotizaciones (
     folio             TEXT NOT NULL UNIQUE,
     cliente_id        BIGINT REFERENCES ven.clientes(cliente_id),
     fecha             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    fecha_local       DATE GENERATED ALWAYS AS
+                      ((fecha AT TIME ZONE 'America/Mexico_City')::date) STORED,
     vigencia_hasta    DATE,
     subtotal          NUMERIC(14,2) NOT NULL DEFAULT 0,
     iva               NUMERIC(14,2) NOT NULL DEFAULT 0,
@@ -617,6 +619,8 @@ CREATE TABLE IF NOT EXISTS ven.cotizaciones (
     venta_generada_id BIGINT,
     usuario_id        INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id)
 );
+CREATE INDEX IF NOT EXISTS idx_cotizaciones_fecha_local
+    ON ven.cotizaciones(fecha_local DESC);
 
 CREATE TABLE IF NOT EXISTS ven.cotizacion_detalles (
     cotizacion_id   BIGINT NOT NULL REFERENCES ven.cotizaciones(cotizacion_id) ON DELETE CASCADE,
@@ -697,6 +701,8 @@ CREATE TABLE IF NOT EXISTS ven.rentas (
     cliente_id          BIGINT NOT NULL REFERENCES ven.clientes(cliente_id),
     almacen_id          INTEGER NOT NULL REFERENCES inv.almacenes(almacen_id),
     fecha_renta         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    fecha_local         DATE GENERATED ALWAYS AS
+                        ((fecha_renta AT TIME ZONE 'America/Mexico_City')::date) STORED,
     fecha_dev_esperada  DATE NOT NULL,
     fecha_dev_real      TIMESTAMPTZ,
     deposito            NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (deposito >= 0),
@@ -719,6 +725,7 @@ CREATE TABLE IF NOT EXISTS ven.renta_detalles (
 );
 CREATE INDEX IF NOT EXISTS idx_rentas_abiertas ON ven.rentas(estado, fecha_dev_esperada)
     WHERE estado = 'ABIERTA';
+CREATE INDEX IF NOT EXISTS idx_rentas_fecha_local ON ven.rentas(fecha_local DESC);
 
 CREATE TABLE IF NOT EXISTS ven.cuentas_cobrar (
     cuenta_cobrar_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -782,6 +789,8 @@ CREATE TABLE IF NOT EXISTS com.compras (
     orden_compra_id    BIGINT REFERENCES com.ordenes_compra(orden_compra_id),
     almacen_id         INTEGER NOT NULL REFERENCES inv.almacenes(almacen_id),
     fecha              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    fecha_local        DATE GENERATED ALWAYS AS
+                       ((fecha AT TIME ZONE 'America/Mexico_City')::date) STORED,
     forma_pago_id      INTEGER NOT NULL REFERENCES cat.formas_pago(forma_pago_id),
     subtotal           NUMERIC(14,2) NOT NULL DEFAULT 0,
     iva                NUMERIC(14,2) NOT NULL DEFAULT 0,
@@ -793,6 +802,7 @@ CREATE TABLE IF NOT EXISTS com.compras (
     turno_caja_id      BIGINT,
     notas              TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_compras_fecha_local ON com.compras(fecha_local DESC);
 
 CREATE TABLE IF NOT EXISTS com.compra_detalles (
     compra_detalle_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -927,6 +937,7 @@ CREATE TABLE IF NOT EXISTS fin.ingresos_otros (
     usuario_id      INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     creado_en       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_ingresos_otros_fecha ON fin.ingresos_otros(fecha DESC);
 
 -- Histórico de cortes de caja (una fila inmutable por turno cerrado)
 CREATE TABLE IF NOT EXISTS fin.cortes_caja (

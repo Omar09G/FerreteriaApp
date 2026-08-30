@@ -25,6 +25,10 @@ public class Renta {
     @Column(nullable = false)
     @Builder.Default private Instant fechaRenta = Instant.now();
 
+    /** Fecha local (DATE) generada en BD desde `fecha_renta` con TZ America/Mexico_City. */
+    @Column(name = "fecha_local", insertable = false, updatable = false)
+    private LocalDate fechaLocal;
+
     @Column(nullable = false)
     private LocalDate fechaDevEsperada;
 

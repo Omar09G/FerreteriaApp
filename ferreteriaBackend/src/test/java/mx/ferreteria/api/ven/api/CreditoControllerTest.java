@@ -65,7 +65,7 @@ class CreditoControllerTest {
     @Test
     @DisplayName("GET /api/v1/creditos/cobranza -> 200 con array")
     void listCuentas_returns200() throws Exception {
-        when(service.listCuentas(eq(null), any()))
+        when(service.listCuentas(eq(null), eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/creditos/cobranza"))
@@ -80,7 +80,7 @@ class CreditoControllerTest {
     @Test
     @DisplayName("GET /api/v1/creditos/1 -> 200 con array del cliente")
     void listByCliente_returns200() throws Exception {
-        when(service.listCuentasByCliente(eq(1L), eq(null), any()))
+        when(service.listCuentasByCliente(eq(1L), eq(null), eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/creditos/1"))

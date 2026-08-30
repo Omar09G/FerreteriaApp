@@ -1,6 +1,7 @@
 package mx.ferreteria.api.fin.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -61,7 +62,7 @@ class GastoControllerTest {
                 1L, "G-001", 1, null, "Renta local",
                 new BigDecimal("15000.00"), LocalDate.now(),
                 1, null, null, null, null, 1, Instant.now());
-        when(service.listGastos(any()))
+        when(service.listGastos(eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(r1), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/gastos"))
@@ -95,7 +96,7 @@ class GastoControllerTest {
         IngresoOtroResponse r1 = new IngresoOtroResponse(
                 1L, "Venta de chatarra", new BigDecimal("250.00"),
                 LocalDate.now(), 1, null, null, 1, Instant.now());
-        when(service.listIngresos(any()))
+        when(service.listIngresos(eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(r1), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/ingresos-otros"))

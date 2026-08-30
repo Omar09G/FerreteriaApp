@@ -1,6 +1,9 @@
 package mx.ferreteria.api.fin.api;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -22,10 +25,12 @@ public class GastoController {
 
     @GetMapping("/gastos")
     public Page<FinDtos.GastoResponse> listGastos(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
-        return service.listGastos(PageQuery.of(page, size, sort).toPageable());
+        return service.listGastos(desde, hasta, PageQuery.of(page, size, sort).toPageable());
     }
 
     @PostMapping("/gastos")
@@ -49,10 +54,12 @@ public class GastoController {
 
     @GetMapping("/ingresos-otros")
     public Page<FinDtos.IngresoOtroResponse> listIngresos(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
-        return service.listIngresos(PageQuery.of(page, size, sort).toPageable());
+        return service.listIngresos(desde, hasta, PageQuery.of(page, size, sort).toPageable());
     }
 
     @PostMapping("/ingresos-otros")

@@ -9,6 +9,7 @@ import { apiAlmacenes, apiClientes, apiProductos } from '@/lib/api/catalogo'
 import { apiCancelarRenta, apiCrearRenta, apiDevolucionRenta, apiRentas } from '@/lib/api/venta'
 import { FORMAS_PAGO, type Producto, type Renta, type RentaDevolucionRequest, type RentaRequest } from '@/lib/api/types'
 import { aLocalDate, formatoFecha, formatoFechaHora, formatoMoneda } from '@/lib/format'
+import type { RangoFechas } from '@/lib/rango'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -17,6 +18,7 @@ import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
 import { Pagination } from '@/components/ui/Pagination'
+import { RangoFiltro } from '@/components/ui/RangoFiltro'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
@@ -293,14 +295,15 @@ export default function RentasPage() {
   const queryClient = useQueryClient()
 
   const [estado, setEstado] = useState('')
+  const [rango, setRango] = useState<RangoFechas | null>(null)
   const [page, setPage] = useState(0)
   const [nuevaAbierta, setNuevaAbierta] = useState(false)
   const [devolviendo, setDevolviendo] = useState<Renta | null>(null)
   const [cancelarConfirmacion, setCancelarConfirmacion] = useState<Renta | null>(null)
 
   const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['rentas', estado, page],
-    queryFn: () => apiRentas({ estado: estado || undefined, page, size: 15 }),
+    queryKey: ['rentas', estado, rango?.inicio, rango?.fin, page],
+    queryFn: () => apiRentas({ estado: estado || undefined, desde: rango?.inicio, hasta: rango?.fin, page, size: 15 }),
   })
 
   useEffect(() => {
@@ -381,9 +384,12 @@ export default function RentasPage() {
           <h1 className="text-xl font-bold text-ink">Rentas</h1>
           <p className="text-sm text-muted">Renta de herramientas y su devolución con días cobrados.</p>
         </div>
-        <Button onClick={() => setNuevaAbierta(true)}>
-          <Plus className="h-4 w-4" /> Nueva renta
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <RangoFiltro valor={rango} onChange={(siguiente) => { setRango(siguiente); setPage(0) }} />
+          <Button onClick={() => setNuevaAbierta(true)}>
+            <Plus className="h-4 w-4" /> Nueva renta
+          </Button>
+        </div>
       </header>
 
       <Card>

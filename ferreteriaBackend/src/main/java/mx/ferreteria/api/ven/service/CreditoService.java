@@ -1,5 +1,7 @@
 package mx.ferreteria.api.ven.service;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,20 +27,17 @@ public class CreditoService {
         private final ClienteRepository clienteRepo;
 
         @Transactional(readOnly = true)
-        public Page<VenDtos.CuentaCobrarResponse> listCuentas(String estado, Pageable pageable) {
-                Page<CuentaCobrar> page = (estado != null)
-                                ? cuentaRepo.findByEstadoOrderByCreadoEnDesc(estado, pageable)
-                                : cuentaRepo.findAll(pageable);
-                return page.map(this::toCuentaResponse);
+        public Page<VenDtos.CuentaCobrarResponse> listCuentas(
+                        LocalDate desde, LocalDate hasta, String estado, Pageable pageable) {
+                return cuentaRepo.filtrar(null, estado, desde, hasta, pageable)
+                                .map(this::toCuentaResponse);
         }
 
         @Transactional(readOnly = true)
-        public Page<VenDtos.CuentaCobrarResponse> listCuentasByCliente(Long clienteId, String estado,
-                        Pageable pageable) {
-                Page<CuentaCobrar> page = (estado != null)
-                                ? cuentaRepo.findByClienteIdAndEstadoOrderByCreadoEnDesc(clienteId, estado, pageable)
-                                : cuentaRepo.findByClienteIdOrderByCreadoEnDesc(clienteId, pageable);
-                return page.map(this::toCuentaResponse);
+        public Page<VenDtos.CuentaCobrarResponse> listCuentasByCliente(Long clienteId,
+                        LocalDate desde, LocalDate hasta, String estado, Pageable pageable) {
+                return cuentaRepo.filtrar(clienteId, estado, desde, hasta, pageable)
+                                .map(this::toCuentaResponse);
         }
 
         private VenDtos.CuentaCobrarResponse toCuentaResponse(CuentaCobrar cc) {

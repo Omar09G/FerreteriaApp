@@ -79,9 +79,11 @@ export async function apiSetPermisosRol(id: number, permisos: string[]): Promise
   return data.data
 }
 
-export async function apiNomina(p: { estado?: string; page: number; size: number }): Promise<PageEnvelope<Nomina>> {
+export async function apiNomina(p: { estado?: string; desde?: string; hasta?: string; page: number; size: number }): Promise<PageEnvelope<Nomina>> {
   const params: Record<string, string | number> = { page: p.page, size: p.size }
   if (p.estado) params.estado = p.estado
+  if (p.desde) params.desde = p.desde
+  if (p.hasta) params.hasta = p.hasta
   const { data } = await http.get<PageEnvelope<Nomina>>('/nomina', { params })
   return data
 }

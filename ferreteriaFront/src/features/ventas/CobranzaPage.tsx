@@ -9,6 +9,7 @@ import { apiCuentasCobrar, apiPagoCliente } from '@/lib/api/venta'
 import type { CuentaCobrar, PagoClienteRequest } from '@/lib/api/types'
 import { FORMAS_PAGO } from '@/lib/api/types'
 import { formatoFecha, formatoMoneda } from '@/lib/format'
+import type { RangoFechas } from '@/lib/rango'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -16,6 +17,7 @@ import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
 import { Pagination } from '@/components/ui/Pagination'
+import { RangoFiltro } from '@/components/ui/RangoFiltro'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
@@ -124,6 +126,7 @@ export default function CobranzaPage() {
 
   const [estado, setEstado] = useState<string>('')
   const [clienteId, setClienteId] = useState<number | ''>('')
+  const [rango, setRango] = useState<RangoFechas | null>(null)
   const [page, setPage] = useState(0)
   const [abonando, setAbonando] = useState<CuentaCobrar | null>(null)
   const [historial, setHistorial] = useState<CuentaCobrar | null>(null)
@@ -131,11 +134,13 @@ export default function CobranzaPage() {
   const clientes = useQuery({ queryKey: ['clientes-cobranza'], queryFn: () => apiClientes({ page: 0, size: 50 }) })
 
   const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['cuentas-cobrar', estado, clienteId, page],
+    queryKey: ['cuentas-cobrar', estado, clienteId, rango?.inicio, rango?.fin, page],
     queryFn: () =>
       apiCuentasCobrar({
         estado: estado || undefined,
         clienteId: clienteId || undefined,
+        desde: rango?.inicio,
+        hasta: rango?.fin,
         page,
         size: 15,
       }),
@@ -204,9 +209,12 @@ export default function CobranzaPage() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-xl font-bold text-ink">Cobranza</h1>
-        <p className="text-sm text-muted">Cuentas por cobrar de ventas a crédito interna. Registra abonos y vigila vencimientos.</p>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Cobranza</h1>
+          <p className="text-sm text-muted">Cuentas por cobrar de ventas a crédito interna. Registra abonos y vigila vencimientos.</p>
+        </div>
+        <RangoFiltro valor={rango} onChange={(siguiente) => { setRango(siguiente); setPage(0) }} />
       </header>
 
       <Card>

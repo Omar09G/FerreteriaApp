@@ -50,8 +50,8 @@ export async function apiCortes(page: number, size = 10, desde?: string, hasta?:
   return data
 }
 
-export async function apiGastos(page: number, size = 15): Promise<PageEnvelope<Gasto>> {
-  const { data } = await http.get<PageEnvelope<Gasto>>('/gastos', { params: { page, size } })
+export async function apiGastos(page: number, size = 15, desde?: string, hasta?: string): Promise<PageEnvelope<Gasto>> {
+  const { data } = await http.get<PageEnvelope<Gasto>>('/gastos', { params: { page, size, desde, hasta } })
   return data
 }
 
@@ -69,8 +69,8 @@ export async function apiEliminarGasto(id: number): Promise<void> {
   await http.delete(`/gastos/${id}`)
 }
 
-export async function apiIngresosOtros(page: number, size = 15): Promise<PageEnvelope<IngresoOtro>> {
-  const { data } = await http.get<PageEnvelope<IngresoOtro>>('/ingresos-otros', { params: { page, size } })
+export async function apiIngresosOtros(page: number, size = 15, desde?: string, hasta?: string): Promise<PageEnvelope<IngresoOtro>> {
+  const { data } = await http.get<PageEnvelope<IngresoOtro>>('/ingresos-otros', { params: { page, size, desde, hasta } })
   return data
 }
 

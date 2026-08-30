@@ -3,6 +3,7 @@ package mx.ferreteria.api.com.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import lombok.*;
 
 @Entity
@@ -28,6 +29,10 @@ public class Compra {
 
     @Column(nullable = false)
     @Builder.Default private Instant fecha = Instant.now();
+
+    /** Fecha local (DATE) generada en BD desde `fecha` con TZ America/Mexico_City. */
+    @Column(name = "fecha_local", insertable = false, updatable = false)
+    private LocalDate fechaLocal;
 
     @Column(nullable = false)
     private Integer formaPagoId;

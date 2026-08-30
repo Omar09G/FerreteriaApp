@@ -91,27 +91,28 @@ class CotizacionServiceTest {
     // ── list ────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("list sin estado: findAll retorna pagina con items")
+    @DisplayName("list sin estado: filtrar sin filtros retorna pagina con items")
     void list_all() {
         Cotizacion c = sampleCotizacion(1L, "COT-001", "VIGENTE");
-        when(repo.findAll(pg())).thenReturn(new PageImpl<>(List.of(c), pg(), 1));
+        when(repo.filtrar(null, null, null, pg()))
+                .thenReturn(new PageImpl<>(List.of(c), pg(), 1));
         stubToResponse();
 
-        var result = service.list(null, pg());
+        var result = service.list(null, null, null, pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).cotizacionId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("list por estado: findByEstadoOrderByFechaDesc retorna filtrado")
+    @DisplayName("list por estado: filtrar retorna filtrado")
     void list_byEstado() {
         Cotizacion c = sampleCotizacion(1L, "COT-001", "VIGENTE");
-        when(repo.findByEstadoOrderByFechaDesc("VIGENTE", pg()))
+        when(repo.filtrar("VIGENTE", null, null, pg()))
                 .thenReturn(new PageImpl<>(List.of(c), pg(), 1));
         stubToResponse();
 
-        var result = service.list("VIGENTE", pg());
+        var result = service.list("VIGENTE", null, null, pg());
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).estado()).isEqualTo("VIGENTE");

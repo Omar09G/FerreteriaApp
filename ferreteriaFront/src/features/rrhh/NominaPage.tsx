@@ -7,6 +7,7 @@ import { esApiError } from '@/lib/api/client'
 import { apiCancelarNomina, apiCrearNomina, apiEmpleados, apiNomina, apiPagarNomina } from '@/lib/api/admin'
 import type { Empleado, Nomina, NominaRequest } from '@/lib/api/types'
 import { aLocalDate, formatoFecha, formatoMoneda, hoyLocal } from '@/lib/format'
+import type { RangoFechas } from '@/lib/rango'
 import { EstadoBadge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -15,6 +16,7 @@ import { DataTable, type Columna } from '@/components/ui/DataTable'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input, Select } from '@/components/ui/Input'
 import { Pagination } from '@/components/ui/Pagination'
+import { RangoFiltro } from '@/components/ui/RangoFiltro'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 
@@ -116,6 +118,7 @@ export default function NominaPage() {
 
   const [page, setPage] = useState(0)
   const [estado, setEstado] = useState('')
+  const [rango, setRango] = useState<RangoFechas | null>(null)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [pagarConfirmacion, setPagarConfirmacion] = useState<Nomina | null>(null)
   const [cancelarConfirmacion, setCancelarConfirmacion] = useState<Nomina | null>(null)
@@ -126,8 +129,8 @@ export default function NominaPage() {
   })
 
   const { data, isLoading, error, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ['nomina', page, estado],
-    queryFn: () => apiNomina({ estado: estado || undefined, page, size: 15 }),
+    queryKey: ['nomina', page, estado, rango?.inicio, rango?.fin],
+    queryFn: () => apiNomina({ estado: estado || undefined, desde: rango?.inicio, hasta: rango?.fin, page, size: 15 }),
     placeholderData: (prev) => prev,
   })
 
@@ -221,7 +224,8 @@ export default function NominaPage() {
           <h1 className="text-xl font-bold text-ink">Nómina</h1>
           <p className="text-sm text-muted">Liquidaciones por empleado y periodo. Solo administrador.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <RangoFiltro valor={rango} onChange={(siguiente) => { setRango(siguiente); setPage(0) }} />
           <Select aria-label="Filtrar por estado" value={estado} onChange={(e) => {
             setEstado(e.target.value)
             setPage(0)

@@ -2,6 +2,7 @@ package mx.ferreteria.api.com.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -60,16 +61,16 @@ public class CompraService {
 
     @Transactional(readOnly = true)
     public Page<ComDtos.CompraResponse> list(Integer almacenId, Integer proveedorId,
-            Instant desde, Instant hasta, Pageable pageable) {
+            LocalDate desde, LocalDate hasta, Pageable pageable) {
         Page<Compra> page;
         if (almacenId != null && desde != null && hasta != null) {
-            page = compraRepo.findByAlmacenIdAndFechaBetweenOrderByFechaDesc(almacenId, desde, hasta, pageable);
+            page = compraRepo.findByAlmacenIdAndFechaLocalBetweenOrderByFechaDesc(almacenId, desde, hasta, pageable);
         } else if (almacenId != null) {
             page = compraRepo.findByAlmacenIdOrderByFechaDesc(almacenId, pageable);
         } else if (proveedorId != null) {
             page = compraRepo.findByProveedorIdOrderByFechaDesc(proveedorId, pageable);
         } else if (desde != null && hasta != null) {
-            page = compraRepo.findByFechaBetweenOrderByFechaDesc(desde, hasta, pageable);
+            page = compraRepo.findByFechaLocalBetweenOrderByFechaDesc(desde, hasta, pageable);
         } else {
             page = compraRepo.findAll(pageable);
         }

@@ -1,6 +1,7 @@
 package mx.ferreteria.api.rh.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -67,7 +68,7 @@ class NominaControllerTest {
     @Test
     @DisplayName("GET /api/v1/nomina -> 200 con paginacion")
     void list_returns200() throws Exception {
-        when(service.list(any(), any())).thenReturn(new PageImpl<>(
+        when(service.list(any(), eq(null), eq(null), any())).thenReturn(new PageImpl<>(
                 List.of(sampleResponse("PENDIENTE")), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/nomina"))

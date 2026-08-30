@@ -43,11 +43,9 @@ public class RentaService {
     private final CajaService cajaService;
 
     @Transactional(readOnly = true)
-    public Page<VenDtos.RentaResponse> list(String estado, Pageable pageable) {
-        Page<Renta> page = (estado != null)
-                ? repo.findByEstadoOrderByFechaRentaDesc(estado, pageable)
-                : repo.findAll(pageable);
-        return page.map(this::toResponse);
+    public Page<VenDtos.RentaResponse> list(String estado,
+            LocalDate desde, LocalDate hasta, Pageable pageable) {
+        return repo.filtrar(estado, desde, hasta, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

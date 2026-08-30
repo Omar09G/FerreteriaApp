@@ -3,6 +3,7 @@ package mx.ferreteria.api.ven.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -66,11 +67,9 @@ public class CotizacionService {
     private record Totales(BigDecimal subtotal, BigDecimal iva, BigDecimal total) {}
 
     @Transactional(readOnly = true)
-    public Page<VenDtos.CotizacionResponse> list(String estado, Pageable pageable) {
-        Page<Cotizacion> page = (estado != null)
-                ? repo.findByEstadoOrderByFechaDesc(estado, pageable)
-                : repo.findAll(pageable);
-        return page.map(this::toResponse);
+    public Page<VenDtos.CotizacionResponse> list(String estado,
+            LocalDate desde, LocalDate hasta, Pageable pageable) {
+        return repo.filtrar(estado, desde, hasta, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
