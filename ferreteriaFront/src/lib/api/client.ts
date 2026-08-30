@@ -51,7 +51,12 @@ function nuevoRequestId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) || '/api/v1'
+// DEV sin proxy: flag en .env que SOLO en desarrollo hace que el front llame
+// directo al backend (baseURL absoluta) sin pasar por el proxy de Vite.
+const devSinProxy = import.meta.env.DEV && import.meta.env.VITE_DEV_SIN_PROXY === 'true'
+const apiUrl = import.meta.env.VITE_API_URL as string | undefined
+const proxyHost = (import.meta.env.VITE_API_PROXY as string | undefined) || 'http://localhost:8080'
+const BASE_URL = apiUrl || (devSinProxy ? `${proxyHost}/api/v1` : '/api/v1')
 
 /** Instancia sin interceptores: para refrescar tokens (evita recursión). */
 const rawHttp: AxiosInstance = axios.create({ baseURL: BASE_URL })
