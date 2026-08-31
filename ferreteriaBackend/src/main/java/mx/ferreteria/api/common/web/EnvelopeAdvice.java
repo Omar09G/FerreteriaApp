@@ -37,6 +37,14 @@ public class EnvelopeAdvice implements ResponseBodyAdvice<Object> {
         if (body instanceof Map<?, ?> m && m.containsKey("success")) {
             return body;
         }
+        // Respuestas raw que no son de la API se devuelven sin envolver:
+        // springdoc devuelve byte[] (o el advice romperia ByteArrayHttpMessageConverter)
+        // y actuator (health/probes/metrics) mantiene su formato estandar.
+        String path = request.getURI().getPath();
+        if (body instanceof byte[] || path.startsWith("/actuator")
+                || path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
+            return body;
+        }
         Map<String, Object> envelope = new HashMap<>();
         envelope.put("success", true);
         if (body instanceof org.springframework.data.domain.Page<?> page) {

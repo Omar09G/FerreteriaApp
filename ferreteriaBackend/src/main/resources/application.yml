@@ -20,9 +20,9 @@ spring:
   jpa:
     open-in-view: false
     properties:
-      hibernate.jdbc.time_zone: ${ZONA:America/Mexico_City}  # alineado con el cluster PG
-      hibernate.jdbc.batch_size: 50
-      hibernate.order_inserts: true
+      '[hibernate.jdbc.time_zone]': ${ZONA:America/Mexico_City}  # alineado con el cluster PG
+      '[hibernate.jdbc.batch_size]': 50
+      '[hibernate.order_inserts]': true
   flyway:
     locations: classpath:db/migration   # generadas por :generateMigrations
     #Solo para DESA enabled: false

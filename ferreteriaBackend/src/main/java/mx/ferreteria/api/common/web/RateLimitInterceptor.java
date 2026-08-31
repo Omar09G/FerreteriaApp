@@ -20,7 +20,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
-import io.github.bucket4j.Refill;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mx.ferreteria.api.common.i18n.ErrorCode;
@@ -36,18 +35,23 @@ import mx.ferreteria.api.common.security.UserPrincipal;
  * determina la capacidad y el ritmo de recarga; el controller determina la
  * identidad del bucket.
  *
- * <p>Resolucion de clave:
+ * <p>
+ * Resolucion de clave:
  * <ul>
- *   <li>Si el usuario esta autenticado y {@code scopeByUser=true}: {@code u<uid>}.</li>
- *   <li>Si no: {@code ip:<xff-or-remote>} (primer hop de {@code X-Forwarded-For}
- *       o, en su defecto, {@link HttpServletRequest#getRemoteAddr()}).</li>
+ * <li>Si el usuario esta autenticado y {@code scopeByUser=true}:
+ * {@code u<uid>}.</li>
+ * <li>Si no: {@code ip:<xff-or-remote>} (primer hop de {@code X-Forwarded-For}
+ * o, en su defecto, {@link HttpServletRequest#getRemoteAddr()}).</li>
  * </ul>
  *
- * <p>Si la rafaga se agota responde 429 con el sobre estandar (§4.6) y cabeceras
- * {@code X-RateLimit-Limit}, {@code X-RateLimit-Remaining} y {@code Retry-After}
+ * <p>
+ * Si la rafaga se agota responde 429 con el sobre estandar (§4.6) y cabeceras
+ * {@code X-RateLimit-Limit}, {@code X-RateLimit-Remaining} y
+ * {@code Retry-After}
  * (segundos derivados del tiempo de espera para la siguiente recarga).
  *
- * <p><b>Por que NO es {@code @Component}:</b> el filtro de tipo
+ * <p>
+ * <b>Por que NO es {@code @Component}:</b> el filtro de tipo
  * {@code WebMvcTypeExcludeFilter} de {@code @WebMvcTest} escanea clases que
  * implementan {@code HandlerInterceptor}; marcarlas como componentes rompe los
  * slices. Por eso se instancia manualmente desde {@code RateLimitConfig}.
@@ -70,7 +74,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws IOException {
         if (!props.enabled()) {
             return true;
         }
@@ -155,9 +160,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     private static Bucket nuevoBucket(RateLimitProperties.Grupo g) {
-        Bandwidth limit = Bandwidth.classic(
-                Math.max(1L, g.capacity()),
-                Refill.greedy(Math.max(1L, g.refillPerSecond()), Duration.ofSeconds(1)));
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(Math.max(1L, g.capacity()))
+                .refillGreedy(Math.max(1L, g.refillPerSecond()), Duration.ofSeconds(1))
+                .build();
+
         return Bucket.builder().addLimit(limit).build();
     }
 
@@ -167,9 +174,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         return Math.max(1L, segundos + 1L);
     }
 
-    private void escribirRechazo(HttpServletRequest req, HttpServletResponse res, long retrySeconds) throws IOException {
+    private void escribirRechazo(HttpServletRequest req, HttpServletResponse res, long retrySeconds)
+            throws IOException {
         ErrorCode code = ErrorCode.LIMITE_VELOCIDAD_EXCEDIDO;
-        String msg = messages.getMessage(code.key(), new Object[] { retrySeconds }, code.name(), LocaleResolver.resolve(req));
+        String msg = messages.getMessage(code.key(), new Object[] { retrySeconds }, code.name(),
+                LocaleResolver.resolve(req));
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("success", false);
         body.put("data", null);

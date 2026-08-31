@@ -1,10 +1,8 @@
 package mx.ferreteria.api.ven.service;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import lombok.RequiredArgsConstructor;
@@ -34,16 +32,17 @@ import mx.ferreteria.api.ven.repo.PromocionRepository;
 /**
  * CRUD de promociones (PLAN §7 ven).
  *
- * <p>Reglas de negocio:
+ * <p>
+ * Reglas de negocio:
  * <ul>
- *   <li>Solo ADMINISTRADOR o GERENTE pueden crear/editar/eliminar.</li>
- *   <li>Una promoción con {@code usos_actual > 0} NO se elimina: ya quedó
- *       reflejada en ventas; borrarla rompería reportes. Se devuelve
- *       {@code REGISTRO_NO_MODIFICABLE} (HTTP 409) con mensaje claro.</li>
- *   <li>El {@code usuario_id} creador se conserva en update (trazabilidad).</li>
- *   <li>Validación de coherencia por tipo (NXM requiere lleva/paga; el resto
- *       exige al menos un valor de descuento). Las CHECKs de BD son red de
- *       seguridad y devuelven 422 / 409 vía DbErrorTranslator.</li>
+ * <li>Solo ADMINISTRADOR o GERENTE pueden crear/editar/eliminar.</li>
+ * <li>Una promoción con {@code usos_actual > 0} NO se elimina: ya quedó
+ * reflejada en ventas; borrarla rompería reportes. Se devuelve
+ * {@code REGISTRO_NO_MODIFICABLE} (HTTP 409) con mensaje claro.</li>
+ * <li>El {@code usuario_id} creador se conserva en update (trazabilidad).</li>
+ * <li>Validación de coherencia por tipo (NXM requiere lleva/paga; el resto
+ * exige al menos un valor de descuento). Las CHECKs de BD son red de
+ * seguridad y devuelven 422 / 409 vía DbErrorTranslator.</li>
  * </ul>
  */
 @Service
@@ -59,7 +58,7 @@ public class PromocionService {
     private final PromocionCategoriaRepository categoriasRepo;
 
     public Page<PromocionResponse> listar(String nombre, String tipo, String estado,
-                                          Instant desde, Instant hasta, Pageable pageable) {
+            Instant desde, Instant hasta, Pageable pageable) {
         Specification<Promocion> spec = (root, q, cb) -> cb.conjunction();
 
         if (nombre != null && !nombre.isBlank()) {
@@ -141,13 +140,16 @@ public class PromocionService {
         p.setPaga(req.paga());
         p.setMaxUsosTotal(req.maxUsosTotal());
         p.setMaxUsosCliente(req.maxUsosCliente());
-        if (req.vigenciaDesde() != null) p.setVigenciaDesde(req.vigenciaDesde());
+        if (req.vigenciaDesde() != null)
+            p.setVigenciaDesde(req.vigenciaDesde());
         p.setVigenciaHasta(req.vigenciaHasta());
-        if (req.diasSemana() != null && !req.diasSemana().isEmpty()) p.setDiasSemana(req.diasSemana());
+        if (req.diasSemana() != null && !req.diasSemana().isEmpty())
+            p.setDiasSemana(req.diasSemana());
         p.setHoraDesde(req.horaDesde());
         p.setHoraHasta(req.horaHasta());
         p.setSoloMayoristas(Boolean.TRUE.equals(req.soloMayoristas()));
-        if (req.estado() != null) p.setEstado(req.estado());
+        if (req.estado() != null)
+            p.setEstado(req.estado());
         // usuarioId, usosActual, creadoEn son inmutables.
         repo.save(p);
         guardarRelaciones(promocionId, req.productos(), req.categorias());
@@ -198,7 +200,8 @@ public class PromocionService {
                     throw new ValidacionException(ErrorCode.VALOR_INVALIDO);
                 }
             }
-            default -> {}
+            default -> {
+            }
         }
         if (req.diasSemana() != null) {
             for (Short d : req.diasSemana()) {

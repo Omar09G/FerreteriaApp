@@ -17,7 +17,6 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.seg.dto.AuditoriaDtos.AuditoriaResponse;
 import mx.ferreteria.api.seg.dto.AuditoriaDtos.TablaAuditoriaResponse;
 import mx.ferreteria.api.seg.service.AuditoriaGateway.AuditoriaRow;
-import mx.ferreteria.api.seg.service.AuditoriaGateway.TablaRow;
 
 /**
  * Listado y filtros de auditoría. Acceso EXCLUSIVO de ADMINISTRADOR o
@@ -31,11 +30,11 @@ public class AuditoriaService {
     private final AuditoriaGateway gateway;
 
     public Page<AuditoriaResponse> buscar(String esquema, String tabla, String accion, String usuario,
-                                          Long registroId, LocalDate fechaInicio, LocalDate fechaFin,
-                                          String texto, Pageable pageable) {
+            Long registroId, LocalDate fechaInicio, LocalDate fechaFin,
+            String texto, Pageable pageable) {
         validarRango(fechaInicio, fechaFin);
         Instant desde = fechaInicio == null ? null : fechaInicio.atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant hasta = fechaFin   == null ? null : fechaFin.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant hasta = fechaFin == null ? null : fechaFin.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
         AuditoriaGateway.Filtro f = new AuditoriaGateway.Filtro(
                 esquema, tabla, accion, usuario, registroId,

@@ -28,7 +28,6 @@ import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.ven.dto.VenDtos;
-import mx.ferreteria.api.ven.entity.CuentaCobrar;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
 import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
@@ -73,7 +72,8 @@ public class VentaService {
      * de zona horaria que ocurre al convertir LocalDate → Instant en el backend.
      */
     @Transactional(readOnly = true)
-    public Page<VenDtos.VentaResponse> listByFechaLocal(Integer almacenId, LocalDate desde, LocalDate hasta, Pageable pageable) {
+    public Page<VenDtos.VentaResponse> listByFechaLocal(Integer almacenId, LocalDate desde, LocalDate hasta,
+            Pageable pageable) {
         Page<Venta> page;
         if (almacenId != null && desde != null && hasta != null) {
             page = ventaRepo.findByAlmacenIdAndFechaLocalBetweenOrderByFechaDesc(almacenId, desde, hasta, pageable);
@@ -153,10 +153,13 @@ public class VentaService {
     }
 
     /**
-     * Si la petición incluye cajaId, devuelve el id del turno actualmente abierto para esa caja.
-     * Sin cajaId, la venta queda sin turno (compatibilidad hacia atrás: ventas que no pasan por caja).
+     * Si la petición incluye cajaId, devuelve el id del turno actualmente abierto
+     * para esa caja.
+     * Sin cajaId, la venta queda sin turno (compatibilidad hacia atrás: ventas que
+     * no pasan por caja).
      * Lanza {@link ErrorCode#TURNO_NO_ABIERTO} si la caja no tiene turno ABIERTO.
-     * Lanza {@link ErrorCode#CAJA_ALMACEN_INCOMPATIBLE} si la caja del turno no pertenece
+     * Lanza {@link ErrorCode#CAJA_ALMACEN_INCOMPATIBLE} si la caja del turno no
+     * pertenece
      * al mismo almacén que la venta (protege contra errores de captura del POS).
      */
     private VenDtos.VentaResponse toResponse(Venta v) {
