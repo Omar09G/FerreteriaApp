@@ -38,7 +38,13 @@ public class ProductoService {
         Page<Producto> page;
 
         if (StringUtils.hasText(q)) {
-            page = repo.findByActivoTrueAndNombreContainingIgnoreCase(q, pageable);
+            String termino = q.trim();
+            // El código es la búsqueda principal (escaneo de código de barras):
+            // si coincide exactamente el código, se regresa ese producto; si no
+            // existe, se busca por nombre.
+            Page<Producto> porCodigo = repo.findByActivoTrueAndCodigoIgnoreCase(termino, pageable);
+            page = porCodigo.hasContent() ? porCodigo
+                    : repo.findByActivoTrueAndNombreContainingIgnoreCase(termino, pageable);
         } else if (categoriaId != null) {
             page = repo.findByCategoriaCategoriaIdAndActivoTrue(categoriaId, pageable);
         } else if (marcaId != null) {

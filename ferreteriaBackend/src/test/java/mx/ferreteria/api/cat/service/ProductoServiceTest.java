@@ -3,6 +3,7 @@ package mx.ferreteria.api.cat.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,16 +80,50 @@ class ProductoServiceTest {
     }
 
     @Test
-    @DisplayName("list con query: usa findByActivoTrueAndNombreContainingIgnoreCase")
+    @DisplayName("list con query y sin coincidencia de codigo: busca por nombre")
     void list_withQuery() {
         Pageable pg = PageRequest.of(0, 10);
         Producto p = sampleProducto();
+        when(repo.findByActivoTrueAndCodigoIgnoreCase("Taladro", pg))
+                .thenReturn(new PageImpl<>(List.of(), pg, 0));
         when(repo.findByActivoTrueAndNombreContainingIgnoreCase("Taladro", pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
         var result = service.list("Taladro", null, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).nombre()).isEqualTo("Taladro");
+    }
+
+    @Test
+    @DisplayName("list con codigo exacto: busca por codigo y no cae al nombre")
+    void list_codigoExacto_returnsByCode() {
+        Pageable pg = PageRequest.of(0, 10);
+        Producto p = sampleProducto();
+        when(repo.findByActivoTrueAndCodigoIgnoreCase("P001", pg))
+                .thenReturn(new PageImpl<>(List.of(p), pg, 1));
+
+        var result = service.list("P001", null, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).codigo()).isEqualTo("P001");
+        verify(repo, never()).findByActivoTrueAndNombreContainingIgnoreCase(any(), any());
+    }
+
+    @Test
+    @DisplayName("list con codigo inexistente: cae a la busqueda por nombre")
+    void list_codigoInexistente_caeANombre() {
+        Pageable pg = PageRequest.of(0, 10);
+        Producto p = sampleProducto();
+        when(repo.findByActivoTrueAndCodigoIgnoreCase("ZZZ999", pg))
+                .thenReturn(new PageImpl<>(List.of(), pg, 0));
+        when(repo.findByActivoTrueAndNombreContainingIgnoreCase("ZZZ999", pg))
+                .thenReturn(new PageImpl<>(List.of(p), pg, 1));
+
+        var result = service.list(" ZZZ999 ", null, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).codigo()).isEqualTo("P001");
     }
 
     @Test

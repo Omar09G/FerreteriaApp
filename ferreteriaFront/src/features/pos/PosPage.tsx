@@ -37,6 +37,12 @@ function pareceCodigoBarras(texto: string): boolean {
   return PATRON_CODIGO_BARRAS.test(texto.trim())
 }
 
+/** Coincide si el código del producto es exactamente el texto buscado (búsqueda primaria por código). */
+function coincideCodigoExacto(p: Producto, texto: string): boolean {
+  const buscado = texto.trim().toLowerCase()
+  return buscado !== '' && (p.codigo?.trim().toLowerCase() ?? '') === buscado
+}
+
 const STORAGE_POS = 'ferreteria-pos'
 
 interface PosPreferencias {
@@ -197,24 +203,25 @@ export default function PosPage() {
     window.setTimeout(() => buscadorRef.current?.focus(), 0)
   }
 
-  /** Si un escaneo devuelve un único producto, lo añade al ticket y deja listo para el siguiente. */
+  /** Si la búsqueda resuelve a un único producto cuyo código coincide exacto, lo añade al ticket. */
   // Efecto intencional: reacciona a una respuesta de la API (sistema externo) y reinicia el input.
   // No se puede derivar: depende del resultado asíncrono de la búsqueda, no de otro estado del componente.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!resultados.data) return
     const limpio = busqueda.trim()
-    if (!pareceCodigoBarras(limpio)) return
+    if (!limpio) return
     if (ultimoAutoAddRef.current === limpio) return
     if (resultados.data.data.length !== 1) return
+    const unico = resultados.data.data[0]
+    if (!coincideCodigoExacto(unico, limpio)) return
     ultimoAutoAddRef.current = limpio
     setLineas((prev) => {
-      const unico = resultados.data!.data[0]
       const exist = prev.find((l) => l.productoId === unico.productoId)
       if (exist) return prev.map((l) => (l.productoId === unico.productoId ? { ...l, cantidad: l.cantidad + 1 } : l))
       return [...prev, lineaDeProducto(unico)]
     })
-    mostrarExito(`Escaneado: ${resultados.data.data[0].nombre}`)
+    mostrarExito(`Escaneado: ${unico.nombre}`)
     setBusqueda('')
     setQ('')
   }, [resultados.data, busqueda, mostrarExito])
