@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.fin.dto.FinDtos;
 import mx.ferreteria.api.fin.service.CajaService;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/api/v1/cajas")
@@ -24,6 +27,26 @@ public class CajaController {
     @GetMapping
     public List<FinDtos.CajaResponse> list() {
         return service.listCajas();
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public FinDtos.CajaResponse crearCaja(@Valid @RequestBody FinDtos.CajaRequest req) {
+        return service.crearCaja(req);
+    }
+
+    @PutMapping("/{cajaId}")
+    public FinDtos.CajaResponse actualizarCaja(
+            @PathVariable Integer cajaId,
+            @Valid @RequestBody FinDtos.CajaRequest req) {
+        return service.actualizarCaja(cajaId, req);
+    }
+
+    @PutMapping("/estado/{cajaId}")
+    public FinDtos.CajaResponse actualizarCajaEstado(
+            @PathVariable Integer cajaId,
+            @Valid @RequestBody FinDtos.CajaRequest req) {
+        return service.actualizarCajaEstado(cajaId, req);
     }
 
     @GetMapping("/{cajaId}/turnos")

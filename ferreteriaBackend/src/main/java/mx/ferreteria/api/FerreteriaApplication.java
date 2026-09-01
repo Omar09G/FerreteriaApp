@@ -8,8 +8,7 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerial
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
-// Serializar paginas como PagedModel (estable) en lugar de PageImpl "as-is"
-// (evita el warning de SpringDataJacksonConfiguration$PageModule).
+
 @EnableSpringDataWebSupport(pageSerializationMode = PageSerializationMode.VIA_DTO)
 public class FerreteriaApplication {
 

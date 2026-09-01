@@ -2379,7 +2379,6 @@ SELECT rn                          AS numero_mas_reciente,
 FROM facturas
 WHERE rn <= 15
 ORDER BY proveedor, rn;
-
 CREATE OR REPLACE VIEW com.vw_facturas_vencidas AS
 SELECT cp.cuenta_pagar_id,
        co.folio                     AS compra_folio,

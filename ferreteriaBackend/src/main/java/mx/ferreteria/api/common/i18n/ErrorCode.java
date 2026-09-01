@@ -38,7 +38,8 @@ public enum ErrorCode {
 
     // genéricas / internas
     ERROR_INTERNO("error.interno.inesperado", HttpStatus.INTERNAL_SERVER_ERROR),
-    SERVICIO_NO_DISPONIBLE("error.interno.servicio-no-disponible", HttpStatus.SERVICE_UNAVAILABLE);
+    SERVICIO_NO_DISPONIBLE("error.interno.servicio-no-disponible", HttpStatus.SERVICE_UNAVAILABLE),
+    VALOR_DUPLICADO("error.negocio.valor-duplicado", HttpStatus.CONFLICT);
 
     private final String key;
     private final HttpStatus http;

@@ -1,4 +1,4 @@
-@Token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInVpZCI6MSwiZW1wIjoxLCJyb2wiOlsiQURNSU5JU1RSQURPUiJdLCJ0eXAiOiJhY2MiLCJpYXQiOjE3ODc5Mzc1MjYsImV4cCI6MTc4Nzk2NjMyNn0.N1k6D09SRAGK4A_u78BGMz1iCoM2rT-PDJCwGAD98oI
+@Token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInVpZCI6MSwiZW1wIjoxLCJyb2wiOlsiQURNSU5JU1RSQURPUiJdLCJ0eXAiOiJhY2MiLCJpYXQiOjE3ODgyMDA4MjYsImV4cCI6MTc4ODIyOTYyNn0.gUKfc_ZP_AE00uS2Hp2I2LqYNlb6Ukz---5ULanCriE
 @username = admin
 @password = Admin123*
 @URL=http://localhost:8080
@@ -49,6 +49,8 @@ Authorization: Bearer {{Token}}
 @URLInventario=/api/v1/inventario
 @URLMovimientos=/api/v1/movimientos
 @URLVentas=/api/v1/ventas
+@URLReportes=/api/v1/reportes
+
 ###
 GET {{URL}}{{URLAlmacen}}
 Content-Type: {{contentType}}
@@ -97,5 +99,22 @@ Authorization: Bearer {{Token}}
 
 ####VENTAS
 GET {{URL}}{{URLVentas}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+####REPORTES
+GET {{URL}}{{URLReportes}}/productos-sin-movimiento
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+
+####REPORTES
+GET {{URL}}{{URLReportes}}/mejores-categorias
+Content-Type: {{contentType}}
+Authorization: Bearer {{Token}}
+
+
+####REPORTES
+GET {{URL}}{{URLReportes}}/top-productos
 Content-Type: {{contentType}}
 Authorization: Bearer {{Token}}

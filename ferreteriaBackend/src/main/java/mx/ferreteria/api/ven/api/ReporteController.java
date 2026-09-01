@@ -90,6 +90,19 @@ public class ReporteController {
         return service.cierreDiario(rango.inicio(), rango.fin());
     }
 
+    @GetMapping("/productos-sin-movimiento")
+    public List<ReportDtos.ProductosSinMovimientoResponse> productosSinMovimiento() {
+        return service.productosSinMovimiento();
+    }
+
+    @GetMapping("/mejores-categorias")
+    public List<ReportDtos.MejoresCategoriasResponse> mejoresCategorias(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
+        var rango = rango(fechaInicio, fechaFin);
+        return service.mejoresCategorias(rango.inicio(), rango.fin());
+    }
+
     private static RangoFechas rango(LocalDate fechaInicio, LocalDate fechaFin) {
         return RangoFechas.of(fechaInicio, fechaFin);
     }
