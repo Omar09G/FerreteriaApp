@@ -63,6 +63,10 @@ public final class SegAdminDtos {
 
     public record PermisosRequest(List<@NotBlank @Size(max = 40) String> permisos) { }
 
+    public record PermisoRequest(
+            @NotBlank @Size(max = 40) String clave,
+            @NotBlank @Size(max = 150) String descripcion) { }
+
     public record PermisoResponse(
             int permisoId,
             String clave,

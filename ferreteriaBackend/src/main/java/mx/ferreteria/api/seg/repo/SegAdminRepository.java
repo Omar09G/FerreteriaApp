@@ -207,6 +207,45 @@ public class SegAdminRepository implements SegAdminGateway {
     }
 
     @Override
+    public Optional<PermisoRow> findPermisoByClave(String clave) {
+        return jdbc.sql("SELECT permiso_id, clave, descripcion FROM seg.permisos "
+                        + "WHERE clave = :c")
+                .param("c", clave)
+                .query(this::mapPermiso)
+                .optional();
+    }
+
+    @Override
+    public int createPermiso(String clave, String descripcion) {
+        return jdbc.sql("""
+                        INSERT INTO seg.permisos (clave, descripcion)
+                        VALUES (:c, :d) RETURNING permiso_id
+                        """)
+                .param("c", clave).param("d", descripcion)
+                .query(Integer.class)
+                .single();
+    }
+
+    @Override
+    public void updatePermiso(int permisoId, String clave, String descripcion) {
+        jdbc.sql("""
+                        UPDATE seg.permisos
+                        SET clave = COALESCE(:c, clave),
+                            descripcion = COALESCE(:d, descripcion)
+                        WHERE permiso_id = :id
+                        """)
+                .param("id", permisoId).param("c", clave).param("d", descripcion)
+                .update();
+    }
+
+    @Override
+    public void deletePermiso(int permisoId) {
+        jdbc.sql("DELETE FROM seg.permisos WHERE permiso_id = :id")
+                .param("id", permisoId)
+                .update();
+    }
+
+    @Override
     public List<String> permisosDe(int rolId) {
         return jdbc.sql("""
                         SELECT p.clave FROM seg.permisos p

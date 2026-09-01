@@ -57,6 +57,14 @@ public interface SegAdminGateway {
 
     Optional<PermisoRow> findPermisoById(int permisoId);
 
+    Optional<PermisoRow> findPermisoByClave(String clave);
+
+    int createPermiso(String clave, String descripcion);
+
+    void updatePermiso(int permisoId, String clave, String descripcion);
+
+    void deletePermiso(int permisoId);
+
     List<String> permisosDe(int rolId);
 
     void reemplazarPermisos(int rolId, Set<String> claves);

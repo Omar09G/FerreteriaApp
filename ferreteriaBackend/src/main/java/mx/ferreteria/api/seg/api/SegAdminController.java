@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.OperacionOk;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisosRequest;
+import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisoRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisoResponse;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.RolRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.RolResponse;
@@ -139,5 +140,22 @@ public class SegAdminController {
     @GetMapping("/permisos/{id}")
     public PermisoResponse getPermiso(@PathVariable int id) {
         return service.getPermiso(id);
+    }
+
+    @PostMapping("/permisos")
+    public PermisoResponse createPermiso(@Valid @RequestBody PermisoRequest req) {
+        return service.createPermiso(req);
+    }
+
+    @PutMapping("/permisos/{id}")
+    public PermisoResponse updatePermiso(@PathVariable int id,
+            @Valid @RequestBody PermisoRequest req) {
+        return service.updatePermiso(id, req);
+    }
+
+    @DeleteMapping("/permisos/{id}")
+    public OperacionOk deletePermiso(@PathVariable int id) {
+        service.deletePermiso(id);
+        return new OperacionOk(true);
     }
 }

@@ -20,6 +20,7 @@ import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen;
 import mx.ferreteria.api.rh.service.EmpleadoGateway;
 import mx.ferreteria.api.rh.service.UsuarioAltaGateway;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisosRequest;
+import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisoRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisoResponse;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.RolRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.RolResponse;
@@ -29,6 +30,7 @@ import mx.ferreteria.api.seg.dto.SegAdminDtos.UsuarioPasswordRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.UsuarioResponse;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.UsuarioRolesRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.UsuarioUpdateRequest;
+import mx.ferreteria.api.seg.service.SegAdminGateway.PermisoRow;
 import mx.ferreteria.api.seg.service.SegAdminGateway.RolRow;
 import mx.ferreteria.api.seg.service.SegAdminGateway.UsuarioRow;
 
@@ -172,6 +174,33 @@ public class SegAdminService implements UsuarioAltaGateway {
                 .orElseThrow(() -> new ReglaNegocioException(ErrorCode.RECURSO_NO_ENCONTRADO));
     }
 
+    @Transactional
+    public PermisoResponse createPermiso(PermisoRequest req) {
+        if (gateway.findPermisoByClave(req.clave()).isPresent()) {
+            throw new ReglaNegocioException(ErrorCode.REGISTRO_DUPLICADO, req.clave());
+        }
+        int permisoId = gateway.createPermiso(req.clave(), req.descripcion());
+        return getPermiso(permisoId);
+    }
+
+    @Transactional
+    public PermisoResponse updatePermiso(int permisoId, PermisoRequest req) {
+        exigirPermiso(permisoId);
+        if (gateway.findPermisoByClave(req.clave())
+                .filter(p -> p.permisoId() != permisoId)
+                .isPresent()) {
+            throw new ReglaNegocioException(ErrorCode.REGISTRO_DUPLICADO, req.clave());
+        }
+        gateway.updatePermiso(permisoId, req.clave(), req.descripcion());
+        return getPermiso(permisoId);
+    }
+
+    @Transactional
+    public void deletePermiso(int permisoId) {
+        exigirPermiso(permisoId);
+        gateway.deletePermiso(permisoId);
+    }
+
     private UsuarioRow exigirUsuario(int usuarioId) {
         return gateway.findUsuarioById(usuarioId)
                 .orElseThrow(() -> new ReglaNegocioException(ErrorCode.RECURSO_NO_ENCONTRADO));
@@ -179,6 +208,11 @@ public class SegAdminService implements UsuarioAltaGateway {
 
     private RolRow exigirRol(int rolId) {
         return gateway.findRolById(rolId)
+                .orElseThrow(() -> new ReglaNegocioException(ErrorCode.RECURSO_NO_ENCONTRADO));
+    }
+
+    private PermisoRow exigirPermiso(int permisoId) {
+        return gateway.findPermisoById(permisoId)
                 .orElseThrow(() -> new ReglaNegocioException(ErrorCode.RECURSO_NO_ENCONTRADO));
     }
 
