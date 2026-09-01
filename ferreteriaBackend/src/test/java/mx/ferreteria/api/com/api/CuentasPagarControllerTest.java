@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.com.dto.ComDtos.CuentasPagarResponse;
 import mx.ferreteria.api.com.dto.ComDtos.FacturaPendienteResponse;
 import mx.ferreteria.api.com.dto.ComDtos.FacturaProveedorResponse;
@@ -29,7 +30,7 @@ import mx.ferreteria.api.com.service.CompraService;
 @WebMvcTest(controllers = CuentasPagarController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, CuentasPagarControllerTest.SliceConfig.class})
+@Import({DbErrorTranslator.class, WebMvcTestProps.class, CuentasPagarControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
            mx.ferreteria.api.common.security.JwtService.class})

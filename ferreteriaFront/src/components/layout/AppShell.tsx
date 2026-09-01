@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Boxes, BarChart3, Building2, CalendarCheck2, CircleDollarSign, FileText, HardHat, History, KeyRound, Languages, LayoutDashboard, LogOut, Menu, Monitor, Moon, Percent, ReceiptText, Settings, ShoppingCart, Sun, Truck, Undo2, UserCog, Users2, Warehouse, X } from 'lucide-react'
+import { Boxes, BarChart3, Building2, CalendarCheck2, CircleDollarSign, FileText, FolderCog, HardHat, History, KeyRound, Languages, LayoutDashboard, LogOut, Menu, Monitor, Moon, Percent, ReceiptText, Settings, ShoppingCart, Sun, Truck, Undo2, UserCog, Users2, Warehouse, X } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { useAuthStore, tieneRol } from '@/store/auth'
@@ -34,6 +34,7 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
       { clave: 'clientes', a: '/catalogo/clientes', icono: <Users2 className="h-4 w-4" /> },
       { clave: 'promociones', a: '/catalogo/promociones', icono: <Percent className="h-4 w-4" />, roles: ['ADMINISTRADOR', 'GERENTE'] },
       { clave: 'proveedores', a: '/compras/proveedores', icono: <Truck className="h-4 w-4" /> },
+      { clave: 'catalogos', a: '/catalogos', icono: <FolderCog className="h-4 w-4" />, roles: ['ADMINISTRADOR'] },
     ],
   },
   {

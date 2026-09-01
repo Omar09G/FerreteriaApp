@@ -27,13 +27,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.service.CotizacionService;
 
 @WebMvcTest(controllers = CotizacionController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, CotizacionControllerTest.SliceConfig.class})
+@Import({DbErrorTranslator.class, WebMvcTestProps.class, CotizacionControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
            mx.ferreteria.api.common.security.JwtService.class})

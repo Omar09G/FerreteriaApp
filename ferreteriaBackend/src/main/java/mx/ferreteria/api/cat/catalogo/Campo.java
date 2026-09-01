@@ -12,53 +12,62 @@ public record Campo(
         boolean requerido,
         boolean unico,
         boolean esActivo,
-        boolean clavesEditables,
         String etiqueta,
-        // FK: tabla origen de la lista de opciones y columna(s) a mostrar.
+        // FK: clave del catálogo de origen (en Catalogos) y columna(s) a mostrar.
         String opcionesTabla,
-        List<String> opcionesColumnas,
-        List<String> opcionesValores) {
+        List<String> opcionesColumnas) {
 
     public enum Tipo {
         TEXT, NUMERO, DECIMAL, BOOLEAN, FECHA
     }
 
+    /** Indica si el valor que guarda es una FK (drop-down) en vez de texto libre. */
+    public boolean esFk() {
+        return opcionesTabla != null;
+    }
+
     public static Campo texto(String nombre, String etiqueta, boolean requerido) {
-        return new Campo(nombre, Tipo.TEXT, requerido, false, false, true, etiqueta, null, null, null);
+        return new Campo(nombre, Tipo.TEXT, requerido, false, false, etiqueta, null, null);
     }
 
     public static Campo textoUnico(String nombre, String etiqueta, boolean requerido) {
-        return new Campo(nombre, Tipo.TEXT, requerido, true, false, true, etiqueta, null, null, null);
+        return new Campo(nombre, Tipo.TEXT, requerido, true, false, etiqueta, null, null);
     }
 
     public static Campo numero(String nombre, String etiqueta, boolean requerido) {
-        return new Campo(nombre, Tipo.NUMERO, requerido, false, false, true, etiqueta, null, null, null);
+        return new Campo(nombre, Tipo.NUMERO, requerido, false, false, etiqueta, null, null);
     }
 
     public static Campo decimal(String nombre, String etiqueta, boolean requerido) {
-        return new Campo(nombre, Tipo.DECIMAL, requerido, false, false, true, etiqueta, null, null, null);
+        return new Campo(nombre, Tipo.DECIMAL, requerido, false, false, etiqueta, null, null);
     }
 
     public static Campo booleano(String nombre, String etiqueta, boolean requerido) {
-        return new Campo(nombre, Tipo.BOOLEAN, requerido, false, false, true, etiqueta, null, null, null);
+        return new Campo(nombre, Tipo.BOOLEAN, requerido, false, false, etiqueta, null, null);
     }
 
     public static Campo fecha(String nombre, String etiqueta, boolean requerido) {
-        return new Campo(nombre, Tipo.FECHA, requerido, false, false, true, etiqueta, null, null, null);
+        return new Campo(nombre, Tipo.FECHA, requerido, false, false, etiqueta, null, null);
     }
 
     public static Campo activo() {
-        return new Campo("activo", Tipo.BOOLEAN, false, false, true, true, "Activo", null, null, null);
+        return new Campo("activo", Tipo.BOOLEAN, false, false, true, "Activo", null, null);
     }
 
-    /** Campo FK: la columna guarda el id de opcionesTabla; el front muestra opcionesColumnas. */
+    /** Campo FK numérico: guarda el id de la fila en el catálogo de origen. */
     public static Campo fk(String nombre, String etiqueta, boolean requerido, String opcionesTabla,
-                           List<String> opcionesColumnas, List<String> opcionesValores) {
-        return new Campo(nombre, Tipo.NUMERO, requerido, false, false, false,
-                etiqueta, opcionesTabla, opcionesColumnas, opcionesValores);
+                           List<String> opcionesColumnas) {
+        return new Campo(nombre, Tipo.NUMERO, requerido, false, false, etiqueta, opcionesTabla, opcionesColumnas);
     }
 
+    /** Campo FK con clave de texto como valor (p. ej. formas_pago.forma_pago_sat). */
+    public static Campo fkTexto(String nombre, String etiqueta, boolean requerido, String opcionesTabla,
+                                List<String> opcionesColumnas) {
+        return new Campo(nombre, Tipo.TEXT, requerido, false, false, etiqueta, opcionesTabla, opcionesColumnas);
+    }
+
+    /** Campo persistible en formularios: todo excepto el marcador de baja lógica. */
     public boolean esPropiedadEditable() {
-        return !esActivo && clavesEditables;
+        return !esActivo;
     }
 }

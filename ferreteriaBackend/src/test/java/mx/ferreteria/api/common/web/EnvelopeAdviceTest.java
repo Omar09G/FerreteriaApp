@@ -21,7 +21,14 @@ class EnvelopeAdviceTest {
         return (Map<String, Object>) advice.beforeBodyWrite(body, null,
                 org.springframework.http.MediaType.APPLICATION_JSON,
                 org.springframework.http.converter.json.MappingJackson2HttpMessageConverter.class,
-                null, null);
+                request(), null);
+    }
+
+    private org.springframework.http.server.ServerHttpRequest request() {
+        org.springframework.http.server.ServerHttpRequest rq = org.mockito.Mockito.mock(
+                org.springframework.http.server.ServerHttpRequest.class);
+        org.mockito.Mockito.when(rq.getURI()).thenReturn(java.net.URI.create("/api/v1/test"));
+        return rq;
     }
 
     @Test
@@ -44,7 +51,7 @@ class EnvelopeAdviceTest {
         Object result = advice.beforeBodyWrite(error, null,
                 org.springframework.http.MediaType.APPLICATION_JSON,
                 org.springframework.http.converter.json.MappingJackson2HttpMessageConverter.class,
-                null, null);
+                request(), null);
         assertThat(result).isSameAs(error);
     }
 

@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.inv.dto.InvDtos.AlmacenRequest;
 import mx.ferreteria.api.inv.dto.InvDtos.AlmacenResponse;
 import mx.ferreteria.api.inv.service.AlmacenService;
@@ -33,7 +34,7 @@ import mx.ferreteria.api.inv.service.AlmacenService;
 @WebMvcTest(controllers = AlmacenController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, AlmacenControllerTest.SliceConfig.class})
+@Import({DbErrorTranslator.class, WebMvcTestProps.class, AlmacenControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
            mx.ferreteria.api.common.security.JwtService.class})

@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.ven.dto.ReportDtos.CierreDiarioResponse;
 import mx.ferreteria.api.ven.dto.ReportDtos.ResumenDashboardResponse;
 import mx.ferreteria.api.ven.dto.ReportDtos.TopProductoResponse;
@@ -30,7 +31,7 @@ import mx.ferreteria.api.ven.service.ReporteService;
 @WebMvcTest(controllers = ReporteController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, ReporteControllerTest.SliceConfig.class})
+@Import({DbErrorTranslator.class, WebMvcTestProps.class, ReporteControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
            mx.ferreteria.api.common.security.JwtService.class})

@@ -4,7 +4,7 @@
  */
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
 
 import type { ReactNode } from "react";
 import { spinners } from "../components/router-utils";
@@ -68,6 +68,12 @@ const GastosPage = lazy(() => import("@/features/caja/GastosPage"));
 const ProveedoresPage = lazy(
   () => import("@/features/catalogo/ProveedoresPage"),
 );
+const CatalogosIndexPage = lazy(
+  () => import("@/features/catalogo/CatalogosIndexPage"),
+);
+const CatalogoCrudPage = lazy(
+  () => import("@/features/catalogo/CatalogoCrudPage"),
+);
 const CotizacionesPage = lazy(
   () => import("@/features/ventas/CotizacionesPage"),
 );
@@ -85,6 +91,11 @@ const FacturasPage = lazy(() => import("@/features/fiscal/FacturasPage"));
 const pos = (roles: string[], el: ReactNode) => (
   <RequiereRol roles={roles}>{el}</RequiereRol>
 );
+
+function CatalogoCrudPageWrapper() {
+  const { tipo } = useParams();
+  return <CatalogoCrudPage clave={tipo ?? ""} />;
+}
 
 export const router = createBrowserRouter([
   {
@@ -155,6 +166,24 @@ export const router = createBrowserRouter([
                 ),
               },
             ],
+          },
+          {
+            path: "catalogos",
+            element: pos(
+              ["ADMINISTRADOR"],
+              <Suspense fallback={spinners.full}>
+                <CatalogosIndexPage />
+              </Suspense>,
+            ),
+          },
+          {
+            path: "catalogos/:tipo",
+            element: pos(
+              ["ADMINISTRADOR"],
+              <Suspense fallback={spinners.full}>
+                <CatalogoCrudPageWrapper />
+              </Suspense>,
+            ),
           },
           {
             path: "inventario",

@@ -106,6 +106,7 @@ class ConteoFisicoServiceTest {
     void create_ok() {
         ConteoFisicoRequest req = new ConteoFisicoRequest(1, "Conteo trimestral",
                 List.of(new ConteoFisicoDetalleRequest(1L, new BigDecimal("48.000"))));
+        when(almacenRepo.existsById(1)).thenReturn(true);
         when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Central")));
 
         ConteoFisico savedConteo = sampleConteo(1L, 1);
@@ -123,7 +124,6 @@ class ConteoFisicoServiceTest {
                         .cantidadSistema(new BigDecimal("50.000"))
                         .cantidadFisica(new BigDecimal("48.000"))
                         .build());
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Central")));
 
         ConteoFisicoResponse resp = service.create(req);
 

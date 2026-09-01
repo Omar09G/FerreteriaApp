@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.inv.dto.InvDtos.MovimientoInventarioRequest;
 import mx.ferreteria.api.inv.dto.InvDtos.MovimientoInventarioResponse;
 import mx.ferreteria.api.inv.service.MovimientoService;
@@ -32,7 +33,7 @@ import mx.ferreteria.api.inv.service.MovimientoService;
 @WebMvcTest(controllers = MovimientoController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, MovimientoControllerTest.SliceConfig.class})
+@Import({DbErrorTranslator.class, WebMvcTestProps.class, MovimientoControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
            mx.ferreteria.api.common.security.JwtService.class})

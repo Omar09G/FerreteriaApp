@@ -30,13 +30,14 @@ import mx.ferreteria.api.cat.dto.CatDtos.MarcaRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.MarcaResponse;
 import mx.ferreteria.api.cat.service.MarcaService;
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 
 @WebMvcTest(controllers = MarcaController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, MarcaControllerTest.SliceConfig.class})
+@Import({DbErrorTranslator.class, WebMvcTestProps.class, MarcaControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
            mx.ferreteria.api.common.security.JwtService.class})

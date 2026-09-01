@@ -31,10 +31,11 @@ import mx.ferreteria.api.cat.dto.CatDtos.ClienteRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ClienteResponse;
 import mx.ferreteria.api.cat.service.ClienteService;
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 
 @WebMvcTest(controllers = ClienteController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({ DbErrorTranslator.class, ClienteControllerTest.SliceConfig.class })
+@Import({ DbErrorTranslator.class, WebMvcTestProps.class, ClienteControllerTest.SliceConfig.class })
 @MockBean({ mx.ferreteria.api.common.security.JwtAuthFilter.class,
                 mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
                 mx.ferreteria.api.common.security.JwtService.class })

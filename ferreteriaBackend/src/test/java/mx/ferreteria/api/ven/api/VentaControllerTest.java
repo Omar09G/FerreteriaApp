@@ -28,13 +28,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.service.VentaService;
 
 @WebMvcTest(controllers = VentaController.class,
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, VentaControllerTest.SliceConfig.class})
+@Import({DbErrorTranslator.class, WebMvcTestProps.class, VentaControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
            mx.ferreteria.api.common.security.JwtService.class})
@@ -93,7 +94,7 @@ class VentaControllerTest {
     @Test
     @DisplayName("GET /api/v1/ventas -> 200 con array de ventas")
     void list_returns200() throws Exception {
-        when(service.list(eq(null), eq(null), eq(null), any()))
+        when(service.listByFechaLocal(eq(null), eq(null), eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
 
         mvc.perform(get("/api/v1/ventas"))

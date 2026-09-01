@@ -42,6 +42,7 @@ import mx.ferreteria.api.rh.service.EmpleadoService;
         excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({mx.ferreteria.api.common.error.DbErrorTranslator.class,
+        mx.ferreteria.api.common.web.WebMvcTestProps.class,
         EmpleadoControllerTest.SliceConfig.class})
 @MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
            mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
