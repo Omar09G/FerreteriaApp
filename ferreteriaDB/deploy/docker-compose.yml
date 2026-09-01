@@ -1,28 +1,269 @@
 # ============================================================================
-# docker-compose.yml — Sistema Integral de Ferretería · PostgreSQL
+# docker-compose.yml — Sistema Integral de Ferretería
 # Compatible con: podman compose | podman-compose | docker compose
 #
-# ARRANQUE BÁSICO:
+# ARRANQUE:
 #   cp .env.example .env      # editar credenciales
 #   podman compose up -d
 #
-# CON RÉPLICA DE LECTURA (escalamiento horizontal de lecturas):
+# CON RÉPLICA DE LECTURA (perfil opcional):
 #   podman compose --profile replica up -d
 #
 # Arquitectura:
-#   App ──► PgBouncer:6432 (pool transaccional, 1000 clientes)
-#              └─► postgres-primary:5432 (escrituras, tuning OLTP)
-#                      └─► [profile replica] postgres-replica:5433 (lecturas/reportes)
-# La BD se crea sola ejecutando ../scripts/01..05 en orden al primer arranque.
+#   browser ──► frontend:80 (nginx, host 8080)
+#                  │ /api/* reverse-proxy
+#                  ▼
+#              backend:8080 ──► pgbouncer:6432 ──► postgres-primary:5432
+#                                                       │
+#                                                       └─► [profile replica]
+#                                                           postgres-replica:5433
 # ============================================================================
 
-name: ferreteria-db
+name: ferreteria
 
 services:
 
-  # ------------------------------------------------------------------
-  # PostgreSQL PRIMARIO (escrituras) — tuning en conf/postgresql.conf
-  # ------------------------------------------------------------------
+  # =================================================================
+  # FRONTEND — Vite/React servido por nginx + reverse proxy a /api/
+  # =================================================================
+  frontend:
+    build:
+      context: ../../ferreteriaFront
+      dockerfile: Dockerfile
+      args:
+        # Activar telemetría en la imagen de Docker (en .env local del repo
+        # está false para no contaminar dev). El collector se asume accesible
+        # en el host del browser vía localhost:4318 (puerto expuesto).
+        VITE_OTEL_ENABLED: ${VITE_OTEL_ENABLED:-true}
+        VITE_OTEL_EXPORTER_OTLP_ENDPOINT: ${VITE_OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-0.0.0}
+    image: ferreteria/frontend:latest
+    container_name: ferreteria-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_HOST_PORT:-8080}:80"
+    # El frontend NO se comunica con la BD ni con PgBouncer; solo necesita
+    # al backend en la red interna.
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # =================================================================
+  # BACKEND — Spring Boot 3 / Java 21
+  # =================================================================
+  backend:
+    build:
+      context: ../../ferreteriaBackend
+      dockerfile: Dockerfile
+      args:
+        # Si querés que el agent no haga nada: OTEL_SDK_DISABLED=true.
+        # Por defecto exporta trazas+metrics+logs al collector.
+        OTEL_AGENT_VERSION: 2.10.0
+    image: ferreteria/backend:latest
+    container_name: ferreteria-backend
+    restart: unless-stopped
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      postgres-primary:
+        condition: service_healthy
+    environment:
+      # BD vía PgBouncer
+      PG_HOST: ${PG_HOST:-pgbouncer}
+      PG_PORT: ${PG_PORT:-6432}
+      PG_DATABASE: ${PG_DATABASE:-ferreteria}
+      PG_USER: ${PG_USER:-ferreteria_app}
+      PG_PASSWORD: ${PG_PASSWORD:?Define PG_PASSWORD en .env}
+      # Zona horaria y puerto
+      ZONA: ${ZONA:-America/Mexico_City}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env (≥32 bytes base64)}
+      ACCESS_MINUTES: ${ACCESS_MINUTES:-480}
+      REFRESH_HOURS: ${REFRESH_HOURS:-72}
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
+      CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:-GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD}
+      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-*}
+      CORS_EXPOSED_HEADERS: ${CORS_EXPOSED_HEADERS:-X-Request-Id,X-RateLimit-Limit,X-RateLimit-Remaining,Retry-After}
+      CORS_MAX_AGE: ${CORS_MAX_AGE:-3600}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
+      # Cookies HttpOnly
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-Lax}
+      AUTH_COOKIE_PATH: ${AUTH_COOKIE_PATH:-/}
+      AUTH_COOKIE_REFRESH_NAME: ${AUTH_COOKIE_REFRESH_NAME:-rt}
+      AUTH_COOKIE_ACCESS_NAME: ${AUTH_COOKIE_ACCESS_NAME:-at}
+      # Rate limit
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_SCOPE_BY_USER: ${RATE_LIMIT_SCOPE_BY_USER:-true}
+      RATE_LIMIT_CACHE_MAX_SIZE: ${RATE_LIMIT_CACHE_MAX_SIZE:-200000}
+      RATE_LIMIT_CACHE_TTL_MINUTES: ${RATE_LIMIT_CACHE_TTL_MINUTES:-30}
+      RATE_LIMIT_DEFAULT_CAPACITY: ${RATE_LIMIT_DEFAULT_CAPACITY:-300}
+      RATE_LIMIT_DEFAULT_REFILL: ${RATE_LIMIT_DEFAULT_REFILL:-10}
+      RATE_LIMIT_AUTH_CAPACITY: ${RATE_LIMIT_AUTH_CAPACITY:-10}
+      RATE_LIMIT_AUTH_REFILL: ${RATE_LIMIT_AUTH_REFILL:-1}
+      RATE_LIMIT_CATALOGO_CAPACITY: ${RATE_LIMIT_CATALOGO_CAPACITY:-1200}
+      RATE_LIMIT_CATALOGO_REFILL: ${RATE_LIMIT_CATALOGO_REFILL:-40}
+      # Request ID
+      REQUEST_ID_MODE: ${REQUEST_ID_MODE:-GENERATE}
+      # ─── OpenTelemetry (Java agent) ─────────────────────────────────
+      OTEL_SERVICE_NAME: ferreteria-backend
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=docker,service.namespace=ferreteria"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRIC_EXPORT_INTERVAL: 30000
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      # Tunnig JVM para contenedor
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom -Duser.timezone=${ZONA:-America/Mexico_City}"
+    ports:
+      - "${BACKEND_HOST_PORT:-8081}:8080"   # swagger / health directo (opcional)
+    networks:
+      - app-net
+      - db-net
+      - obs-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 4s
+      retries: 5
+      start_period: 45s
+    mem_limit: ${BACKEND_MEM_LIMIT:-1g}
+    cpus: ${BACKEND_CPUS:-2.0}
+
+  # =================================================================
+  # OpenTelemetry Collector — recibe OTLP del backend + browser
+  # =================================================================
+  otel-collector:
+    image: ${OTEL_COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.111.0}
+    container_name: ferreteria-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./conf/otel/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "${OTEL_GRPC_PORT:-4317}:4317"     # OTLP gRPC — backend
+      - "${OTEL_HTTP_PORT:-4318}:4318"     # OTLP HTTP — browser (CORS)
+      - "${OTEL_PROM_PORT:-8889}:8889"     # Prometheus metrics
+    networks:
+      - obs-net
+      - app-net       # recibe del backend
+    depends_on: []
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8889/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 512m
+    cpus: 1.0
+
+  # =================================================================
+  # postgres-exporter — métricas nativas de PostgreSQL en Prometheus
+  # =================================================================
+  postgres-exporter:
+    image: ${POSTGRES_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:v0.15.0}
+    container_name: ferreteria-postgres-exporter
+    restart: unless-stopped
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_ADMIN_PASSWORD:?Define POSTGRES_ADMIN_PASSWORD en .env}@postgres-primary:5432/ferreteria?sslmode=disable"
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+      PG_EXPORTER_EXCLUDE_DATABASES: "template0,template1"
+    ports:
+      - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
+    networks:
+      - obs-net
+      - db-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:9187/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 128m
+    cpus: 0.5
+
+  # =================================================================
+  # Prometheus — scrapea OTel Collector + postgres-exporter + backend
+  # =================================================================
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.0}
+    container_name: ferreteria-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    volumes:
+      - ./conf/otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - obs-net
+    depends_on:
+      otel-collector:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 512m
+    cpus: 1.0
+
+  # =================================================================
+  # Grafana — dashboards provisionados (Ferretería / Overview)
+  # =================================================================
+  grafana:
+    image: ${GRAFANA_IMAGE:-grafana/grafana:11.3.0}
+    container_name: ferreteria-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Define GRAFANA_ADMIN_PASSWORD en .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./conf/otel/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./conf/otel/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    networks:
+      - obs-net
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 256m
+    cpus: 0.5
+
+  # =================================================================
+  # PostgreSQL PRIMARIO (escrituras)
+  # =================================================================
   postgres-primary:
     image: ${PG_IMAGE:-postgres:17-alpine}
     container_name: ferreteria-postgres-primary
@@ -41,9 +282,6 @@ services:
       - config_file=/etc/postgresql/postgresql.conf
     volumes:
       - pg_data_primary:/var/lib/postgresql/data
-      # Init plano (el entrypoint ignora subdirectorios): roles primero,
-      # luego scripts SQL en orden lexicográfico. vistas_core.sql es incluido
-      # por \ir desde 02_tablas.sql y también se ejecuta al final (idempotente).
       - ./conf/init/00_replica_user.sh:/docker-entrypoint-initdb.d/00_replica_user.sh:ro
       - ./conf/init/99_app_password.sh:/docker-entrypoint-initdb.d/99_app_password.sh:ro
       - ../scripts/01_base_esquemas.sql:/docker-entrypoint-initdb.d/10_01_base_esquemas.sql:ro
@@ -52,13 +290,12 @@ services:
       - ../scripts/03_parametria.sql:/docker-entrypoint-initdb.d/12_03_parametria.sql:ro
       - ../scripts/04_admin.sql:/docker-entrypoint-initdb.d/13_04_admin.sql:ro
       - ../scripts/05_dummy.sql:/docker-entrypoint-initdb.d/14_05_dummy.sql:ro
-      # Configuración tunada
       - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     ports:
-      - "5432:5432"
-    shm_size: ${PG_SHM_SIZE:-256mb}          # paralelismo y hash joins
-    mem_limit: ${PG_MEM_LIMIT:-2g}           # escalamiento vertical (ajustar en .env)
+      - "${PG_HOST_PORT:-5432}:5432"
+    shm_size: ${PG_SHM_SIZE:-256mb}
+    mem_limit: ${PG_MEM_LIMIT:-2g}
     cpus: ${PG_CPUS:-2.0}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ferreteria -q"]
@@ -67,12 +304,11 @@ services:
       retries: 12
       start_period: 60s
     networks:
-      - db-backend
+      - db-net
 
-  # ------------------------------------------------------------------
-  # RÉPLICA DE LECTURA (escalamiento horizontal de lecturas/reportes)
-  # Activar con: podman compose --profile replica up -d
-  # ------------------------------------------------------------------
+  # =================================================================
+  # RÉPLICA DE LECTURA (perfil opcional)
+  # =================================================================
   postgres-replica:
     image: ${PG_IMAGE:-postgres:17-alpine}
     container_name: ferreteria-postgres-replica
@@ -94,7 +330,7 @@ services:
       - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     ports:
-      - "5433:5432"
+      - "${PG_REPLICA_HOST_PORT:-5433}:5432"
     shm_size: 256mb
     mem_limit: ${PG_MEM_LIMIT:-2g}
     cpus: ${PG_CPUS:-2.0}
@@ -105,13 +341,11 @@ services:
       retries: 10
       start_period: 90s
     networks:
-      - db-backend
+      - db-net
 
-  # ------------------------------------------------------------------
-  # PgBOUNCER — pooling de conexiones (concurrencia masiva del POS)
-  # La aplicación SIEMPRE debe conectarse aquí, no directo al primary.
-  # Config renderizada al arranque desde .env (sin imágenes de terceros).
-  # ------------------------------------------------------------------
+  # =================================================================
+  # PgBOUNCER — pooling transaccional (la app SIEMPRE va aquí)
+  # =================================================================
   pgbouncer:
     image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:latest}
     container_name: ferreteria-pgbouncer
@@ -119,15 +353,14 @@ services:
     depends_on:
       postgres-primary:
         condition: service_healthy
-    entrypoint: []          # ignorar el validador del entrypoint oficial
+    entrypoint: []
     environment:
       DB_HOST: postgres-primary
       DB_USER: ferreteria_app
       DB_PASSWORD: ${POSTGRES_APP_PASSWORD:?}
       ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?}
     ports:
-      - "6432:6432"
-    # Renderiza pgbouncer.ini + userlist y arranca el proceso en modo daemon-less
+      - "${PGBOUNCER_HOST_PORT:-6432}:6432"
     command:
       - /bin/sh
       - -ecx
@@ -162,12 +395,24 @@ services:
       retries: 8
       start_period: 15s
     networks:
-      - db-backend
+      - db-net
 
 networks:
-  db-backend:
+  # Red para DB: postgres + pgbouncer + replica. Aislada.
+  db-net:
+    driver: bridge
+  # Red de aplicación: front + back. Permite que nginx del front resuelva
+  # ferreteria-backend por DNS.
+  app-net:
+    driver: bridge
+  # Red de observabilidad: otel-collector, postgres-exporter, prometheus,
+  # grafana. Aislada de app-net salvo por los servicios que necesitan
+  # emitir (backend) o consultar (frontend OTLP).
+  obs-net:
     driver: bridge
 
 volumes:
   pg_data_primary:
   pg_data_replica:
+  prometheus_data:
+  grafana_data:

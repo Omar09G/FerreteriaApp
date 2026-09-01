@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+// Inicializa OpenTelemetry ANTES de montar React para capturar la primera
+// navegación y los primeros fetch de la SPA.
+import './telemetry/otel'
 import App from './App'
 import './index.css'
 

@@ -1,0 +1,41 @@
+# ============================================================================
+# .dockerignore — Frontend
+# ============================================================================
+# El contexto de build DEBE incluir .env (Vite lo lee en build time y bakea
+# las variables VITE_* en el bundle). NO lo excluyas aquí.
+#
+# Si quieres sobreescribir valores en CI/CD, usa build args o monta un .env
+# distinto:  podman build --build-arg ENV_FILE=.env.production ...
+
+# Dependencias y artefactos
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentación que el runtime no necesita
+README.md
+README_*.md
+docs/
+
+# Cachés / logs
+.eslintcache
+*.log
+logs/
+
+# Docker de la propia app (no se anida)
+Dockerfile
+.dockerignore

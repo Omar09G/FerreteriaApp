@@ -1,8 +1,44 @@
-.gradle
-build
-.github
-.git
-Dockerfile
-.dockerignore
-docs
+# ============================================================================
+# .dockerignore — Backend
+# ============================================================================
+# Evita que `COPY . .` suba material pesado/innecesario al contexto de build.
+# Reduce tiempo de build y tamaño del contexto (que Docker envía al daemon).
+#
+# IMPORTANTE: el backend lee sus variables de entorno del contenedor en
+# RUNTIME (provistas por docker-compose.yml), NO de un .env dentro de la
+# imagen. Por eso EXCLUIMOS cualquier .env aquí: meterlo solo añadiría
+# secretos de dev a la imagen sin que se usen.
+
+# Build outputs
+build/
+.gradle/
+out/
+
+# Archivos .env de dev (el contenedor recibe env vars de docker-compose)
+.env
+.env.*
+!.env.example
+!.env_example
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Tests resources / logs
+*.log
+logs/
+tmp/
+HELP.md
+
+# Documentation that isn't needed at runtime
 README.md
+README_*.md
+docs/

@@ -18,6 +18,18 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Métricas Prometheus nativas vía Spring Boot Actuator + Micrometer.
+    // Complementa al OTel agent (que se enfoca en trazas/logs) — el /actuator/prometheus
+    // expone métricas JVM/HTTP/HikariCP sin pasar por el collector.
+    implementation("io.micrometer:micrometer-registry-prometheus")
+    // OpenTelemetry: API + SDK + exporters OTLP para que el backend pueda emitir
+    // trazas/métricas/logs programáticamente (sin javaagent). El javaagent en Docker
+    // ya hace auto-instrumentación, pero tener el SDK disponible permite agregar
+    // trazas manuales en puntos críticos (login, checkout, etc.).
+    implementation("io.opentelemetry:opentelemetry-api:1.43.0")
+    implementation("io.opentelemetry:opentelemetry-sdk:1.43.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.43.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-logging:1.43.0")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
     // M7 endurecimiento: rate limiting por controller (bucket4j) con buckets en memoria (Caffeine)

@@ -1,0 +1,113 @@
+# ============================================================================
+# OpenTelemetry Collector — Ferretería
+# ----------------------------------------------------------------------------
+# Recibe trazas + métricas + logs vía OTLP desde:
+#   - Backend Java (gRPC :4317) — OTel Java agent
+#   - Browser (HTTP :4318, con CORS) — frontend SDK
+# Procesa en pipelines separados y exporta:
+#   - Métricas → Prometheus (:8889/metrics) → scrapea Prometheus
+#   - Trazas  → logging (para dev); en prod se puede agregar otlp→Jaeger/Tempo
+#   - Logs    → logging
+# ============================================================================
+
+receivers:
+  # OTLP gRPC — backend Java agent usa este
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 16
+      # OTLP HTTP — frontend browser usa este (con CORS para localhost:8080)
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - http://localhost:8080
+            - http://localhost:5173
+            - http://localhost:4200
+          allowed_headers:
+            - "*"
+          max_age: 7200
+
+  # Receiver Prometheus para scraping de exporters externos
+  # (postgres-exporter, backend /actuator/prometheus si lo agregamos)
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: postgres-exporter
+          scrape_interval: 15s
+          static_configs:
+            - targets: [postgres-exporter:9187]
+        # Backend expone /actuator/prometheus si se agrega micrometer-prometheus
+        - job_name: backend-spring
+          scrape_interval: 15s
+          metrics_path: /actuator/prometheus
+          static_configs:
+            - targets: [backend:8080]
+
+processors:
+  # Limita uso de memoria: drop métricas si estamos cerca del límite
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+
+  # Batch: agrupa spans/métricas para reducir conexiones al backend
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Atributos comunes a todas las señales
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: docker
+        action: upsert
+      - key: service.namespace
+        value: ferreteria
+        action: upsert
+
+exporters:
+  # Prometheus — métricas agregadas expuestas en :8889/metrics
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+    # Añade labels de namespace/instance útiles en PromQL
+    namespace: ferreteria
+    const_labels:
+      cluster: docker-local
+      env: docker
+
+  # Debug exporter (deprecado el nombre `logging` desde v0.111.0)
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  pipelines:
+    # ─── Métricas ────────────────────────────────────────────────
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus]
+
+    # ─── Trazas ─────────────────────────────────────────────────
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [debug]
+
+    # ─── Logs ───────────────────────────────────────────────────
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [debug]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: basic

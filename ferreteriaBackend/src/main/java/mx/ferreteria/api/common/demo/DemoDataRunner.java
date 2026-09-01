@@ -14,15 +14,23 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Carga de datos demo SOLO con perfil "demo" (nunca productivo — PLAN §11 M0).
- * Ejecuta el script atómico vía una sola llamada execute(): pgjdbc envía todo al
- * servidor y PostgreSQL parsea el DO-block completo sin partir por ';'.
+ * Carga de datos demo SOLO con perfil "demo" y NUNCA con perfil "docker".
+ *
+ * <p>SpEL {@code @Profile("demo & !docker")} garantiza que este bean NO se
+ * instancie en una ejecución de Docker (donde el perfil {@code docker} está
+ * activo por línea de comandos del ENTRYPOINT, con precedencia sobre cualquier
+ * env var). Combinado con el guard de arranque
+ * {@link mx.ferreteria.api.common.demo.DemoGuard}, hace imposible correr el
+ * seeder de datos dummy en un entorno de tipo producción.</p>
+ *
+ * <p>Ejecuta el script atómico vía una sola llamada execute(): pgjdbc envía
+ * todo al servidor y PostgreSQL parsea el DO-block completo sin partir por ';'.</p>
  */
 @Slf4j
 @Component
 @Order(100)
 @RequiredArgsConstructor
-@org.springframework.context.annotation.Profile("demo")
+@org.springframework.context.annotation.Profile("demo & !docker")
 public class DemoDataRunner implements ApplicationRunner {
 
     private final DataSource dataSource;
