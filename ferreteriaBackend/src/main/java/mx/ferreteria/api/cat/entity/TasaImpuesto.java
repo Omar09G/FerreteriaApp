@@ -1,6 +1,7 @@
 package mx.ferreteria.api.cat.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,43 +19,43 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "formas_pago", schema = "cat")
+@Table(name = "tasas_impuesto", schema = "fis")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FormaPago {
+public class TasaImpuesto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer formaPagoId;
+    private Integer tasaId;
 
-    @Column(nullable = false, unique = true, length = 25)
-    private String clave;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "impuesto_id", nullable = false)
+    private Impuesto impuesto;
 
-    @Column(nullable = false, length = 60)
-    private String nombre;
+    @Column(nullable = false, precision = 6, scale = 4)
+    private BigDecimal tasa;
+
+    @Column(nullable = false, length = 8)
+    @Builder.Default
+    private String factor = "TASA";
+
+    @Column(nullable = false, length = 10)
+    @Builder.Default
+    private String ambito = "VENTA";
 
     @Column(nullable = false)
     @Builder.Default
-    private Boolean esEfectivo = false;
+    private Boolean zonaFrontera = false;
 
-    @Column(nullable = false)
+    @Column(name = "vigente_desde", nullable = false)
     @Builder.Default
-    private Boolean requiereReferencia = false;
+    private LocalDate vigenteDesde = LocalDate.now();
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean afectaCaja = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "forma_pago_sat", referencedColumnName = "clave")
-    private FormaPagoSat formaPagoSat;
-
-    @Column(nullable = false, precision = 5, scale = 2)
-    @Builder.Default
-    private BigDecimal comisionPct = BigDecimal.ZERO;
+    @Column(name = "vigente_hasta")
+    private LocalDate vigenteHasta;
 
     @Column(nullable = false)
     @Builder.Default

@@ -104,11 +104,6 @@ public class Catalogos {
             c("folios", "cfg.folios", "Folios", "tipo",
                     List.of(Campo.textoUnico("tipo", "Tipo", true), Campo.texto("prefijo", "Prefijo", true),
                             Campo.numero("consecutivo", "Consecutivo", true)),
-                    null, false),
-
-            // ── seg ─────────────────────────────────────────────────
-            c("permisos", "seg.permisos", "Permisos", "permiso_id",
-                    List.of(Campo.textoUnico("clave", "Clave", true), Campo.texto("descripcion", "Descripción", true)),
                     null, false));
 
     private static Catalogo c(String clave, String tabla, String nombre, String pk,
