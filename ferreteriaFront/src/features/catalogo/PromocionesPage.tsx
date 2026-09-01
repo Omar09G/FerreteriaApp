@@ -783,7 +783,7 @@ export default function PromocionesPage() {
           ) : null,
       },
     ],
-    [puedeAdministrar],
+    [puedeAdministrar, t],
   );
 
   const esDialogoEdicion = typeof dialogo === "number";

@@ -428,6 +428,13 @@ export interface Almacen {
   activo: boolean;
 }
 
+export interface AlmacenRequest {
+  nombre: string;
+  direccion?: string | null;
+  telefono?: string | null;
+  esPuntoVenta?: boolean | null;
+}
+
 /* ── Ventas / POS ────────────────────────────────────────────────── */
 
 /**
@@ -629,6 +636,12 @@ export interface Caja {
   nombre: string;
   almacenId: number;
   almacenNombre: string;
+  activa: boolean;
+}
+
+export interface CajaRequest {
+  nombre: string;
+  almacenId: number;
   activa: boolean;
 }
 

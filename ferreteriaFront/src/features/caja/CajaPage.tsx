@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownCircle, ArrowUpCircle, Banknote, Lock, Unlock } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Banknote, Lock, Settings2, Unlock } from 'lucide-react'
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useNavigate } from 'react-router-dom'
+import { useTieneRol } from '@/store/auth'
 import { esApiError } from '@/lib/api/client'
 import { apiAbrirTurno, apiCajas, apiCerrarTurno, apiCortes, apiEsperadoTurno, apiMovimientosTurno, apiRegistrarMovimiento, apiTurnos } from '@/lib/api/caja'
 import type { CorteCaja, CorteRequest, MovimientoCajaRequest, TurnoCaja } from '@/lib/api/types'
@@ -110,6 +112,8 @@ export default function CajaPage() {
   useDocumentTitle('Caja y cortes')
   const { error: mostrarError, success: mostrarExito } = useToast()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const puedeAdministrar = useTieneRol(['ADMINISTRADOR'])
 
   const hoyLocal = () => {
     const d = new Date()
@@ -212,6 +216,11 @@ export default function CajaPage() {
           <h1 className="text-xl font-bold text-ink">Caja</h1>
           <p className="text-sm text-muted">Abre y cierra turnos de caja, registra entradas/salidas y revisa cortes.</p>
         </div>
+        {puedeAdministrar && (
+          <Button variant="secondary" onClick={() => navigate('/caja/cajas/admin')}>
+            <Settings2 className="h-4 w-4" /> Administrar cajas
+          </Button>
+        )}
       </header>
 
       <Card>

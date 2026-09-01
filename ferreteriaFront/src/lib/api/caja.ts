@@ -1,8 +1,23 @@
 import http from './client'
-import type { Caja, CorteCaja, CorteRequest, Envelope, EsperadoCaja, Gasto, GastoRequest, IngresoOtro, IngresoOtroRequest, MovimientoCaja, MovimientoCajaRequest, PageEnvelope, TurnoCaja } from './types'
+import type { Caja, CajaRequest, CorteCaja, CorteRequest, Envelope, EsperadoCaja, Gasto, GastoRequest, IngresoOtro, IngresoOtroRequest, MovimientoCaja, MovimientoCajaRequest, PageEnvelope, TurnoCaja } from './types'
 
 export async function apiCajas(): Promise<Caja[]> {
   const { data } = await http.get<Envelope<Caja[]>>('/cajas')
+  return data.data
+}
+
+export async function apiCrearCaja(body: CajaRequest): Promise<Caja> {
+  const { data } = await http.post<Envelope<Caja>>('/cajas', body)
+  return data.data
+}
+
+export async function apiActualizarCaja(id: number, body: CajaRequest): Promise<Caja> {
+  const { data } = await http.put<Envelope<Caja>>(`/cajas/${id}`, body)
+  return data.data
+}
+
+export async function apiActualizarEstadoCaja(id: number, activa: boolean): Promise<Caja> {
+  const { data } = await http.put<Envelope<Caja>>(`/cajas/estado/${id}`, { activa })
   return data.data
 }
 

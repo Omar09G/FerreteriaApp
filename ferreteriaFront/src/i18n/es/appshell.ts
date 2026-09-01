@@ -25,6 +25,7 @@ export default {
     compras: 'Compras',
     cuentasPagar: 'Cuentas por pagar',
     caja: 'Caja',
+    almacenes: 'Almacenes',
     gastos: 'Gastos',
     ingresos: 'Ingresos',
     nomina: 'Nómina',

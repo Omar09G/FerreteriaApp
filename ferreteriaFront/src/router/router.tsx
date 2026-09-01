@@ -48,6 +48,9 @@ const ProductosSinMovimientoPage = lazy(
 const MovimientosPage = lazy(
   () => import("@/features/inventario/MovimientosPage"),
 );
+const AlmacenesAdminPage = lazy(
+  () => import("@/features/inventario/AlmacenesAdminPage"),
+);
 const StockPage = lazy(() => import("@/features/inventario/StockPage"));
 const ProductosPage = lazy(() => import("@/features/catalogo/ProductosPage"));
 const ClientesPage = lazy(() => import("@/features/catalogo/ClientesPage"));
@@ -56,6 +59,7 @@ const PromocionesPage = lazy(
 );
 const PosPage = lazy(() => import("@/features/pos/PosPage"));
 const CajaPage = lazy(() => import("@/features/caja/CajaPage"));
+const CajasAdminPage = lazy(() => import("@/features/caja/CajasAdminPage"));
 const ComprasPage = lazy(() => import("@/features/compras/ComprasPage"));
 const CuentasPagarPage = lazy(
   () => import("@/features/compras/CuentasPagarPage"),
@@ -220,6 +224,15 @@ export const router = createBrowserRouter([
                   </Suspense>
                 ),
               },
+              {
+                path: "almacenes",
+                element: pos(
+                  ["ADMINISTRADOR"],
+                  <Suspense fallback={spinners.full}>
+                    <AlmacenesAdminPage />
+                  </Suspense>,
+                ),
+              },
             ],
           },
           {
@@ -308,6 +321,14 @@ export const router = createBrowserRouter([
                 element: (
                   <Suspense fallback={spinners.full}>
                     <CajaPage />
+                  </Suspense>
+                ),
+              },
+              {
+                path: "cajas/admin",
+                element: (
+                  <Suspense fallback={spinners.full}>
+                    <CajasAdminPage />
                   </Suspense>
                 ),
               },

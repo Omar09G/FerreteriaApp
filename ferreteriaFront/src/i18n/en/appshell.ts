@@ -25,6 +25,7 @@ export default {
     compras: 'Purchases',
     cuentasPagar: 'Accounts payable',
     caja: 'Cash register',
+    almacenes: 'Warehouses',
     gastos: 'Expenses',
     ingresos: 'Other income',
     nomina: 'Payroll',

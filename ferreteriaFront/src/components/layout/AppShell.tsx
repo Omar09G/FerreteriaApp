@@ -62,6 +62,7 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
     clave: 'administracion',
     items: [
       { clave: 'caja', a: '/caja/cajas', icono: <Building2 className="h-4 w-4" /> },
+      { clave: 'almacenes', a: '/inventario/almacenes', icono: <Warehouse className="h-4 w-4" />, roles: ['ADMINISTRADOR'] },
       { clave: 'gastos', a: '/caja/gastos', icono: <FileText className="h-4 w-4" /> },
       { clave: 'ingresos', a: '/caja/ingresos', icono: <CircleDollarSign className="h-4 w-4" /> },
       { clave: 'nomina', a: '/rrhh/nomina', icono: <Users2 className="h-4 w-4" /> },

@@ -1,5 +1,5 @@
 import http from './client'
-import type { Almacen, Categoria, Cliente, ClienteRequest, Envelope, Marca, PageEnvelope, Producto, ProductoRequest, Proveedor, ProveedorRequest, UnidadMedida } from './types'
+import type { Almacen, AlmacenRequest, Categoria, Cliente, ClienteRequest, Envelope, Marca, PageEnvelope, Producto, ProductoRequest, Proveedor, ProveedorRequest, UnidadMedida } from './types'
 
 export async function apiProductos(p: {
   q?: string
@@ -71,6 +71,26 @@ export async function apiEliminarCliente(id: number): Promise<void> {
 
 export async function apiAlmacenes(): Promise<Almacen[]> {
   const { data } = await http.get<PageEnvelope<Almacen>>('/almacenes', { params: { page: 0, size: 50 } })
+  return data.data
+}
+
+export async function apiAlmacenesTodos(): Promise<Almacen[]> {
+  const { data } = await http.get<PageEnvelope<Almacen>>('/almacenes', { params: { todos: true, page: 0, size: 100 } })
+  return data.data
+}
+
+export async function apiCrearAlmacen(body: AlmacenRequest): Promise<Almacen> {
+  const { data } = await http.post<Envelope<Almacen>>('/almacenes', body)
+  return data.data
+}
+
+export async function apiActualizarAlmacen(id: number, body: AlmacenRequest): Promise<Almacen> {
+  const { data } = await http.put<Envelope<Almacen>>(`/almacenes/${id}`, body)
+  return data.data
+}
+
+export async function apiActualizarEstadoAlmacen(id: number, activo: boolean): Promise<Almacen> {
+  const { data } = await http.put<Envelope<Almacen>>(`/almacenes/${id}/estado`, { activo })
   return data.data
 }
 
