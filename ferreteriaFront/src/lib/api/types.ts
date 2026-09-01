@@ -52,7 +52,10 @@ export interface MeResponse {
 
 export interface TokenResponse {
   accessToken: string;
-  refreshToken: string;
+  // El refresh token ahora viaja SOLO en la cookie HttpOnly del backend.
+  // El backend puede aún emitirlo en body para compatibilidad con clientes
+  // no-browser; el front lo ignora (lo lee vía cookie).
+  refreshToken?: string | null;
   expiresInSeconds: number;
   usuario: MeResponse;
 }
@@ -63,7 +66,7 @@ export interface LoginRequest {
 }
 
 export interface RefreshRequest {
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface ChangePasswordRequest {

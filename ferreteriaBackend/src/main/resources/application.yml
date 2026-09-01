@@ -53,7 +53,17 @@ app:
     allowed-headers: ${CORS_ALLOWED_HEADERS:*}
     exposed-headers: ${CORS_EXPOSED_HEADERS:X-Request-Id,X-RateLimit-Limit,X-RateLimit-Remaining,Retry-After}
     max-age-seconds: ${CORS_MAX_AGE:3600}
-    allow-credentials: ${CORS_ALLOW_CREDENTIALS:false}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  # Cookies HttpOnly para autenticación (XSS-proof). Tanto el access como el
+  # refresh viajan en cookies; el front nunca los lee desde JS.
+  # En dev (http) Secure=false; en prod sobre HTTPS debe ir true.
+  auth:
+    cookie:
+      secure: ${AUTH_COOKIE_SECURE:false}
+      same-site: ${AUTH_COOKIE_SAMESITE:Lax}
+      path: ${AUTH_COOKIE_PATH:/}
+      refresh-name: ${AUTH_COOKIE_REFRESH_NAME:rt}
+      access-name: ${AUTH_COOKIE_ACCESS_NAME:at}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Languages, Lock, Monitor, Moon, Sun, User } from 'lucide-react'
 
-import { mensajeError } from '@/lib/api/client'
+import { ensureCsrfCookie, mensajeError } from '@/lib/api/client'
 import { apiLogin } from '@/lib/api/endpoints'
 import { useAuthStore } from '@/store/auth'
 import { useUiStore, type Tema } from '@/store/ui'
@@ -39,6 +39,9 @@ export default function Login() {
     setError(null)
     setCargando(true)
     try {
+      // Antes del primer mutating request: garantizar que XSRF-TOKEN esté
+      // en la cookie para que el interceptor lo copie al header.
+      await ensureCsrfCookie()
       const token = await apiLogin({ username, password })
       setSession(token)
       navigate(destino, { replace: true })

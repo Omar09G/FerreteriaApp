@@ -1,6 +1,7 @@
 export default {
   guardar: 'Save',
   cancelar: 'Cancel',
+  confirmar: 'Confirm',
   eliminar: 'Delete',
   crear: 'Create',
   nuevo: 'New',

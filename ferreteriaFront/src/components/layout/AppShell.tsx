@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
+import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 
 interface Item {
   clave: string
@@ -231,17 +232,19 @@ export function AppShell() {
   const [passwordAbierto, setPasswordAbierto] = useState(false)
   const t = useT()
   const usuario = useAuthStore((s) => s.usuario)
-  const refreshToken = useAuthStore((s) => s.refreshToken)
   const clearSession = useAuthStore((s) => s.clearSession)
   const navigate = useNavigate()
 
+  // Logout automático por inactividad.
+  useInactivityTimeout()
+
   const cerrarSesion = async () => {
-    if (refreshToken) {
-      try {
-        await apiLogout(refreshToken)
-      } catch {
-        // best-effort: si falla, igual limpiamos local
-      }
+    // El refresh vive en cookie HttpOnly; basta con llamar a /auth/logout
+    // (el browser adjunta la cookie) y limpiar el store local.
+    try {
+      await apiLogout()
+    } catch {
+      // best-effort: si falla, igual limpiamos local
     }
     clearSession()
     navigate('/login', { replace: true })

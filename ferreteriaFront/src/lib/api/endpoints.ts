@@ -7,7 +7,6 @@ import type {
   MeResponse,
   OperacionOk,
   PasswordOk,
-  RefreshRequest,
   TokenResponse,
 } from './types'
 
@@ -16,13 +15,22 @@ export async function apiLogin(payload: LoginRequest): Promise<TokenResponse> {
   return data.data
 }
 
-export async function apiRefresh(payload: RefreshRequest): Promise<TokenResponse> {
-  const { data } = await http.post<Envelope<TokenResponse>>('/auth/refresh', payload)
+/**
+ * Refresca el access token. El refresh vive en cookie HttpOnly, así que NO
+ * enviamos refreshToken en el body: el browser lo adjunta solo gracias a
+ * `withCredentials: true` en el cliente axios.
+ */
+export async function apiRefresh(): Promise<TokenResponse> {
+  const { data } = await http.post<Envelope<TokenResponse>>('/auth/refresh', {})
   return data.data
 }
 
-export async function apiLogout(refreshToken: string): Promise<LogoutOk> {
-  const { data } = await http.post<Envelope<LogoutOk>>('/auth/logout', { refreshToken })
+/**
+ * Cierra la sesión. Igual que refresh: el browser envía la cookie `rt`
+ * automáticamente; el body va vacío.
+ */
+export async function apiLogout(): Promise<LogoutOk> {
+  const { data } = await http.post<Envelope<LogoutOk>>('/auth/logout', {})
   return data.data
 }
 

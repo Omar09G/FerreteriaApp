@@ -4,6 +4,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,6 +31,7 @@ import mx.ferreteria.api.seg.dto.AuthDtos.RegisterRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse;
 import mx.ferreteria.api.seg.service.AuthService;
+import mx.ferreteria.api.seg.service.AuthService.LoginResult;
 import mx.ferreteria.api.seg.service.RequestMeta;
 
 /** Contrato HTTP del endpoint de login (sin cadena de seguridad: eso lo cubren los IT). */
@@ -49,6 +52,9 @@ class AuthControllerTest {
     @MockBean
     AuthService authService;
 
+    @MockBean
+    mx.ferreteria.api.common.security.AuthCookieProperties cookieProperties;
+
     @org.springframework.boot.test.context.TestConfiguration
     static class SliceConfig {
         @org.springframework.context.annotation.Bean
@@ -62,10 +68,20 @@ class AuthControllerTest {
             new MeResponse(7, "cajero1", 42, List.of("VENDEDOR"), null, null);
 
     @Test
-    @DisplayName("POST /auth/login valido -> 200 success:true con tokens en data")
+    @DisplayName("POST /auth/login valido -> 200 con accessToken en body y Set-Cookie rt HttpOnly")
     void login_valid_returnsTokens() throws Exception {
         Mockito.when(authService.login(any(LoginRequest.class), any(RequestMeta.class)))
-                .thenReturn(new TokenResponse("acc.jwt", "ref.jwt", 28800, ME));
+                .thenReturn(new LoginResult(
+                        new TokenResponse("acc.jwt", null, 28800, ME),
+                        "ref.jwt"));
+        Mockito.when(authService.buildRefreshCookie("ref.jwt"))
+                .thenReturn(org.springframework.http.ResponseCookie.from("rt", "ref.jwt")
+                        .httpOnly(true).secure(false).path("/api/v1/auth")
+                        .maxAge(java.time.Duration.ofHours(8)).sameSite("Lax").build());
+        Mockito.when(authService.buildAccessCookie("acc.jwt"))
+                .thenReturn(org.springframework.http.ResponseCookie.from("at", "acc.jwt")
+                        .httpOnly(true).secure(false).path("/")
+                        .maxAge(java.time.Duration.ofHours(8)).sameSite("Lax").build());
 
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -73,8 +89,13 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value("acc.jwt"))
-                .andExpect(jsonPath("$.data.refreshToken").value("ref.jwt"))
-                .andExpect(jsonPath("$.data.usuario.roles[0]").value("VENDEDOR"));
+                .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.data.usuario.roles[0]").value("VENDEDOR"))
+                .andExpect(header().exists("Set-Cookie"))
+                .andExpect(cookie().httpOnly("rt", true))
+                .andExpect(cookie().path("rt", "/api/v1/auth"))
+                .andExpect(cookie().httpOnly("at", true))
+                .andExpect(cookie().path("at", "/"));
     }
 
     @Test
@@ -105,10 +126,21 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /auth/refresh valido -> 200 success:true con nuevo par")
+    @DisplayName("POST /auth/refresh valido -> 200 con nuevo accessToken y Set-Cookie rotado")
     void refresh_valid_returnsNewPair() throws Exception {
-        Mockito.when(authService.refresh(eq("ref.jwt"), any(RequestMeta.class)))
-                .thenReturn(new TokenResponse("acc2", "ref2", 28800, ME));
+        Mockito.when(authService.refresh(eq("ref.jwt"), any(RequestMeta.class),
+                        any(jakarta.servlet.http.HttpServletRequest.class)))
+                .thenReturn(new LoginResult(
+                        new TokenResponse("acc2", null, 28800, ME),
+                        "ref2"));
+        Mockito.when(authService.buildRefreshCookie("ref2"))
+                .thenReturn(org.springframework.http.ResponseCookie.from("rt", "ref2")
+                        .httpOnly(true).secure(false).path("/api/v1/auth")
+                        .maxAge(java.time.Duration.ofHours(8)).sameSite("Lax").build());
+        Mockito.when(authService.buildAccessCookie("acc2"))
+                .thenReturn(org.springframework.http.ResponseCookie.from("at", "acc2")
+                        .httpOnly(true).secure(false).path("/")
+                        .maxAge(java.time.Duration.ofHours(8)).sameSite("Lax").build());
 
         mvc.perform(post("/api/v1/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -116,32 +148,46 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value("acc2"))
-                .andExpect(jsonPath("$.data.refreshToken").value("ref2"));
+                .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
+                .andExpect(header().exists("Set-Cookie"));
     }
 
     @Test
-    @DisplayName("POST /auth/logout -> 200 success:true con revocado en data")
+    @DisplayName("POST /auth/logout -> 200 con revocado:true y Set-Cookie de limpieza")
     void logout_ok() throws Exception {
-        Mockito.when(authService.logout("ref.jwt")).thenReturn(true);
+        Mockito.when(authService.logout(eq("ref.jwt"),
+                        any(jakarta.servlet.http.HttpServletRequest.class)))
+                .thenReturn(true);
+        Mockito.when(authService.clearRefreshCookie())
+                .thenReturn(org.springframework.http.ResponseCookie.from("rt", "")
+                        .httpOnly(true).secure(false).path("/api/v1/auth")
+                        .maxAge(java.time.Duration.ZERO).sameSite("Lax").build());
+        Mockito.when(authService.clearAccessCookie())
+                .thenReturn(org.springframework.http.ResponseCookie.from("at", "")
+                        .httpOnly(true).secure(false).path("/")
+                        .maxAge(java.time.Duration.ZERO).sameSite("Lax").build());
 
         mvc.perform(post("/api/v1/auth/logout")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"ref.jwt\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.revocado").value(true));
+                .andExpect(jsonPath("$.data.revocado").value(true))
+                .andExpect(header().exists("Set-Cookie"));
     }
 
     @Test
-    @DisplayName("POST /auth/refresh sin refreshToken -> 400 success:false CAMPO_REQUERIDO")
-    void refresh_missingField_badRequest() throws Exception {
+    @DisplayName("POST /auth/refresh sin body ni cookie -> 401 CREDENCIALES_INVALIDAS")
+    void refresh_missingRefresh_rejectedByService() throws Exception {
+        Mockito.when(authService.refresh(eq(null), any(RequestMeta.class),
+                        any(jakarta.servlet.http.HttpServletRequest.class)))
+                .thenThrow(new mx.ferreteria.api.common.error.ValidacionException(
+                        mx.ferreteria.api.common.i18n.ErrorCode.CREDENCIALES_INVALIDAS));
+
         mvc.perform(post("/api/v1/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.errorCode").value(400))
-                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

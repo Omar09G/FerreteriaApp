@@ -1,2 +1,5 @@
 .env
 graphify-out/
+.claude/
+.opencode/
+CLAUDE.md

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import org.springframework.security.web.csrf.CsrfToken;
+
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.common.web.RateLimited;
 import mx.ferreteria.api.seg.dto.AuthDtos.ChangePasswordRequest;
@@ -24,11 +26,16 @@ import mx.ferreteria.api.seg.dto.AuthDtos.RegisterRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse;
 import mx.ferreteria.api.seg.service.AuthService;
+import mx.ferreteria.api.seg.service.AuthService.LoginResult;
 import mx.ferreteria.api.seg.service.RequestMeta;
 
 /**
  * Autenticación M1: login, rotación de refresh, logout, registro público
  * (ENCARGADO_CAJA), cambio de password y perfil (PLAN §5/§6).
+ *
+ * <p>El refresh token se entrega vía cookie HttpOnly ({@code rt}) en login y
+ * refresh; en logout se elimina con Max-Age=0. El access token sigue en el body
+ * (TTL corto) para que JS lo envíe en {@code Authorization: Bearer}.</p>
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -39,8 +46,15 @@ public class AuthController {
 
     @PostMapping("/login")
     @RateLimited("auth")
-    public TokenResponse login(@Valid @RequestBody LoginRequest req, HttpServletRequest http) {
-        return authService.login(req, meta(http));
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest req,
+            HttpServletRequest http) {
+        LoginResult result = authService.login(req, meta(http));
+        return ResponseEntity.ok()
+                .header("Set-Cookie",
+                        authService.buildRefreshCookie(result.refreshRaw()).toString())
+                .header("Set-Cookie",
+                        authService.buildAccessCookie(result.body().accessToken()).toString())
+                .body(result.body());
     }
 
     /**
@@ -69,13 +83,28 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public TokenResponse refresh(@Valid @RequestBody RefreshRequest req, HttpServletRequest http) {
-        return authService.refresh(req.refreshToken(), meta(http));
+    public ResponseEntity<TokenResponse> refresh(
+            @Valid @RequestBody(required = false) RefreshRequest req,
+            HttpServletRequest http) {
+        LoginResult result = authService.refresh(
+                req == null ? null : req.refreshToken(), meta(http), http);
+        return ResponseEntity.ok()
+                .header("Set-Cookie",
+                        authService.buildRefreshCookie(result.refreshRaw()).toString())
+                .header("Set-Cookie",
+                        authService.buildAccessCookie(result.body().accessToken()).toString())
+                .body(result.body());
     }
 
     @PostMapping("/logout")
-    public LogoutOk logout(@Valid @RequestBody RefreshRequest req) {
-        return new LogoutOk(authService.logout(req.refreshToken()));
+    public ResponseEntity<LogoutOk> logout(
+            @Valid @RequestBody(required = false) RefreshRequest req,
+            HttpServletRequest http) {
+        boolean ok = authService.logout(req == null ? null : req.refreshToken(), http);
+        return ResponseEntity.ok()
+                .header("Set-Cookie", authService.clearRefreshCookie().toString())
+                .header("Set-Cookie", authService.clearAccessCookie().toString())
+                .body(new LogoutOk(ok));
     }
 
     private mx.ferreteria.api.seg.service.RequestMeta meta(HttpServletRequest h) {
@@ -100,5 +129,23 @@ public class AuthController {
             return ResponseEntity.ok(authService.me(up));
         }
         return ResponseEntity.status(401).build();
+    }
+
+    /**
+     * Emite la cookie {@code XSRF-TOKEN} (no HttpOnly, JS-readable) para que
+     * el frontend SPA pueda hacer doble-submit en POST/PUT/PATCH/DELETE.
+     * El frontend debe llamar este endpoint al montar la app, antes del
+     * primer login. Idempotente: cada GET renueva el token.
+     */
+    @GetMapping("/csrf-init")
+    public ResponseEntity<Void> csrfInit(HttpServletRequest req) {
+        var token = (CsrfToken) req.getAttribute(CsrfToken.class.getName());
+        if (token != null) {
+            // Forzar la materialización del token: con
+            // CsrfTokenRequestAttributeHandler la generación es perezosa y
+            // leer getToken() dispara la escritura de la cookie en el response.
+            token.getToken();
+        }
+        return ResponseEntity.noContent().build();
     }
 }

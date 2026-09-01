@@ -112,4 +112,8 @@ public class JwtService {
     public Duration refreshTtl() {
         return refreshTtl;
     }
+
+    public long accessTtlMinutes() {
+        return accessTtl.toMinutes();
+    }
 }

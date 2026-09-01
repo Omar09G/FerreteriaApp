@@ -25,11 +25,14 @@ class JwtAuthFilterTest {
     @Mock
     JwtService jwtService;
 
+    @Mock
+    mx.ferreteria.api.common.security.AuthCookieProperties cookieProperties;
+
     JwtAuthFilter filter;
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthFilter(jwtService);
+        filter = new JwtAuthFilter(jwtService, cookieProperties);
         SecurityContextHolder.clearContext();
     }
 

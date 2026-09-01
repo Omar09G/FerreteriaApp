@@ -13,6 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import lombok.RequiredArgsConstructor;
@@ -51,17 +53,44 @@ public class SecurityConfig {
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                // CSRF con cookie legible por JS: el browser envía la cookie
+                // XSRF-TOKEN automáticamente y el front la duplica en el header
+                // X-XSRF-TOKEN en cada mutación (POST/PUT/PATCH/DELETE).
+                var csrfRepo = CookieCsrfTokenRepository.withHttpOnlyFalse();
+                csrfRepo.setCookieName("XSRF-TOKEN");
+                csrfRepo.setHeaderName("X-XSRF-TOKEN");
+                // Spring 6: deferred handler para que la cookie se emita en el
+                // primer response (no antes, evitando tokens muertos).
+                var csrfHandler = new CsrfTokenRequestAttributeHandler();
+                csrfHandler.setCsrfRequestAttributeName(null);
+
                 return http
-                                .csrf(csrf -> csrf.disable())
+                                .csrf(csrf -> csrf
+                                                .csrfTokenRepository(csrfRepo)
+                                                .csrfTokenRequestHandler(csrfHandler)
+                                                // /login y /register son la puerta de
+                                                // entrada: sin CSRF cookie previa, no
+                                                // podemos exigir el header. La defense
+                                                // in-depth aquí viene de SameSite=Lax
+                                                // en la cookie de auth.
+                                                .ignoringRequestMatchers(
+                                                                "/api/v1/auth/login",
+                                                                "/api/v1/auth/register"))
                                 .cors(Customizer.withDefaults())
                                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
                                 .authorizeHttpRequests(auth -> auth
-.requestMatchers(HttpMethod.POST,
-                                                "/api/v1/auth/login", "/api/v1/auth/refresh",
-                                                "/api/v1/auth/logout", "/api/v1/auth/register")
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/api/v1/auth/csrf-init")
                                                 .permitAll()
-                                                .requestMatchers("/actuator/**", "/swagger-ui/**", "/swagger-ui.html",
+                                                .requestMatchers(HttpMethod.POST,
+                                                                "/api/v1/auth/login",
+                                                                "/api/v1/auth/refresh",
+                                                                "/api/v1/auth/logout",
+                                                                "/api/v1/auth/register")
+                                                .permitAll()
+                                                .requestMatchers("/actuator/**", "/swagger-ui/**",
+                                                                "/swagger-ui.html",
                                                                 "/v3/api-docs/**")
                                                 .permitAll()
                                                 .anyRequest().authenticated())

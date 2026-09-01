@@ -4,31 +4,64 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import type { MeResponse, TokenResponse } from '@/lib/api/types'
 
 interface AuthState {
-  accessToken: string | null
-  refreshToken: string | null
+  /**
+   * Marcador de "estoy autenticado". El access y refresh tokens viven en
+   * cookies HttpOnly (browser-only) y JS NO puede leerlos: aquí solo
+   * guardamos lo que necesitamos para el UX (perfil + estado de actividad).
+   */
+  autenticado: boolean
   usuario: MeResponse | null
+  /** Marca de la última interacción del usuario (epoch ms). */
+  lastActivityAt: number
   setSession: (token: TokenResponse) => void
-  setTokens: (accessToken: string, refreshToken: string) => void
+  setTokens: (accessToken: string | null, refreshToken: string | null) => void
   clearSession: () => void
+  pingActivity: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      accessToken: null,
-      refreshToken: null,
+      autenticado: false,
       usuario: null,
+      lastActivityAt: Date.now(),
       setSession: (token) =>
-        set({ accessToken: token.accessToken, refreshToken: token.refreshToken, usuario: token.usuario }),
-      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
-      clearSession: () => set({ accessToken: null, refreshToken: null, usuario: null }),
+        set({
+          autenticado: Boolean(token.accessToken),
+          usuario: token.usuario,
+          lastActivityAt: Date.now(),
+        }),
+      // Los tokens no se persisten: viajan en cookies HttpOnly. Este método
+      // solo actualiza el marcador de autenticación para compatibilidad con
+      // flujos que lo invocan tras refresh.
+      setTokens: (accessToken) =>
+        set({ autenticado: Boolean(accessToken), lastActivityAt: Date.now() }),
+      clearSession: () =>
+        set({ autenticado: false, usuario: null, lastActivityAt: Date.now() }),
+      pingActivity: () => set({ lastActivityAt: Date.now() }),
     }),
     {
       name: 'ferreteria-auth',
       storage: createJSONStorage(() => localStorage),
+      // Solo persistimos `usuario` (perfil cacheado) y `autenticado` como
+      // pista de UX. El access y refresh tokens NO se persisten: viven en
+      // cookies HttpOnly y se revalidan contra el backend en cada mount.
+      // Al recargar, si la cookie `at` sigue vigente, /auth/me responde 200
+      // y `setSession` reactiva el flag; si expiró, /auth/me responde 401
+      // y `clearSession` lo limpia.
+      partialize: (state) => ({
+        autenticado: state.autenticado,
+        usuario: state.usuario,
+      }),
     },
   ),
 )
+
+/** True si el store marca sesión activa. La fuente de verdad real es la
+ * cookie HttpOnly: usar también un endpoint /auth/me para verificar. */
+export function useAutenticado(): boolean {
+  return useAuthStore((s) => s.autenticado)
+}
 
 export function tieneRol(roles: string[] | null | undefined, requerido?: string[]): boolean {
   if (!roles || roles.length === 0) return false

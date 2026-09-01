@@ -38,10 +38,17 @@ public final class AuthDtos {
 
     public record PasswordOk(boolean cambiada) { }
 
-    public record RefreshRequest(@NotBlank String refreshToken) { }
+    public record RefreshRequest(
+            // Opcional: el refresh puede viajar en la cookie HttpOnly `rt` cuando
+            // el cliente es un browser con withCredentials. Mantener el campo
+            // permite compat con clientes no-browser (Postman, curl, tests).
+            String refreshToken) { }
 
     public record TokenResponse(
             String accessToken,
+            // refreshToken ya NO se envía en el body cuando viaja en cookie
+            // HttpOnly. Queda null en ese caso para no duplicar material
+            // sensible fuera del Set-Cookie.
             String refreshToken,
             long expiresInSeconds,
             MeResponse usuario) { }

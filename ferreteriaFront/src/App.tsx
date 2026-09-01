@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { RouterProvider } from 'react-router-dom'
 
 import { useUiStore } from '@/store/ui'
+import { ensureCsrfCookie } from '@/lib/api/client'
 import { router } from './router/router'
 
 /** Aplica tema (claro/oscuro/sistema) e idioma al root del documento. */
@@ -29,10 +30,22 @@ function SincronizarUI() {
   return null
 }
 
+/**
+ * Garantiza que la cookie XSRF-TOKEN exista antes de cualquier mutating
+ * request. Se llama una vez al montar la app; idempotente.
+ */
+function BootstrapCsrf() {
+  useEffect(() => {
+    void ensureCsrfCookie()
+  }, [])
+  return null
+}
+
 export default function App() {
   return (
     <>
       <SincronizarUI />
+      <BootstrapCsrf />
       <RouterProvider router={router} />
     </>
   )

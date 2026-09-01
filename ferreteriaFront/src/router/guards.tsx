@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
-import { tieneRol, useAuthStore } from '@/store/auth'
+import { useAutenticado, tieneRol, useAuthStore } from '@/store/auth'
 import { AccessDenied } from '@/components/errors/PageStates'
 
 /** Requiere sesión activa; si no, redirige a /login conservando el destino. */
 export function RequiereAuth() {
-  const accessToken = useAuthStore((s) => s.accessToken)
+  const autenticado = useAutenticado()
   const location = useLocation()
-  if (!accessToken) {
+  if (!autenticado) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
   return <Outlet />
@@ -25,7 +25,7 @@ export function RequiereRol({ roles, children }: { roles: string[]; children?: R
 
 /** /login redirige al dashboard si ya hay sesión. */
 export function RedirigirSiAutenticado({ children }: { children: ReactNode }) {
-  const accessToken = useAuthStore((s) => s.accessToken)
-  if (accessToken) return <Navigate to="/dashboard" replace />
+  const autenticado = useAutenticado()
+  if (autenticado) return <Navigate to="/dashboard" replace />
   return children
 }
