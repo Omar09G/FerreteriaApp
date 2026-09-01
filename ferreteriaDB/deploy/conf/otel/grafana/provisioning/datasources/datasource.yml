@@ -1,5 +1,5 @@
 # ============================================================================
-# Grafana datasource — Prometheus via OpenTelemetry Collector
+# Grafana datasources — Prometheus (via OTel Collector) + Tempo (trazas)
 # ============================================================================
 apiVersion: 1
 
@@ -16,3 +16,16 @@ datasources:
       manageAlerts: true
       prometheusType: Prometheus
       prometheusVersion: 2.55.0
+
+  # Backend de trazas. El datasource "tempo" (type tempo) habilita el explorador
+  # de GraphQL de trazas (TraceQL) y el drill-down en el navegador de trazas.
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    editable: false
+    jsonData:
+      tracesToMetrics: {}
+      nodeGraph:
+        enabled: true

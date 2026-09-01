@@ -80,6 +80,13 @@ exporters:
       cluster: docker-local
       env: docker
 
+  # OTLP → Tempo (backend de trazas). El collector reenvía a Tempo por la
+  # red obs-net; Tempo expone su receiver OTLP en tempo:4317 (interno).
+  otlp:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
   # Debug exporter (deprecado el nombre `logging` desde v0.111.0)
   debug:
     verbosity: basic
@@ -98,7 +105,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [debug]
+      exporters: [otlp, debug]
 
     # ─── Logs ───────────────────────────────────────────────────
     logs:

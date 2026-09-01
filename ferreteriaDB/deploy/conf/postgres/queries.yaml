@@ -1,0 +1,88 @@
+# ============================================================================
+# postgres_exporter — queries personalizadas para PostgreSQL 17
+# ----------------------------------------------------------------------------
+# Motivo: el built-in `stat_bgwriter` de postgres-exporter usa el esquema
+# pre-17 (columnas checkpoints_timed/req en pg_stat_bgwriter). En PG 17 esas
+# columnas se movieron a la vista nueva `pg_stat_checkpointer`, dejando
+# `pg_stat_bgwriter` solo con buffers_clean/maxwritten_clean/buffers_alloc.
+#
+# Solución: se desactiva el built-in `stat_bgwriter`
+# (--no-collector.stat_bgwriter en docker-compose.yml) y se aportan queries
+# propias compatibles con PG 17. Estas se cargan vía --extend.query-path,
+# cuyo formato usa el NOMBRE DE LA MÉTRICA como clave raíz (SIN wrapper
+# `queries:`), igual que el queries.yaml histórico del proyecto.
+#
+# Referencia de esquema PG 17:
+#   pg_stat_checkpointer(num_timed, num_requested, restartpoints_*,
+#                        write_time, sync_time, buffers_written, stats_reset)
+#   pg_stat_bgwriter(buffers_clean, maxwritten_clean, buffers_alloc, stats_reset)
+#
+# Formato (clave raíz = prefijo de la métrica emitida):
+#   <nombre>:
+#     master: true           # solo en primario (opcional)
+#     query: "<SQL>"
+#     metrics:
+#       - <columna>:
+#           usage: "GAUGE|COUNTER|LABEL"
+#           description: "..."
+# ============================================================================
+
+# ─── Checkpoints (nuevo concepto en PG 17) ────────────────────────────────
+pg_stat_checkpointer:
+  master: true
+  query: |
+    SELECT
+      num_timed,
+      num_requested,
+      restartpoints_timed,
+      restartpoints_req,
+      restartpoints_done,
+      write_time,
+      sync_time,
+      buffers_written
+    FROM pg_stat_checkpointer
+  metrics:
+    - num_timed:
+        usage: "GAUGE"
+        description: "Number of scheduled checkpoints completed (PG 17)"
+    - num_requested:
+        usage: "GAUGE"
+        description: "Number of requested checkpoints completed (PG 17)"
+    - restartpoints_timed:
+        usage: "GAUGE"
+        description: "Number of scheduled restartpoints performed"
+    - restartpoints_req:
+        usage: "GAUGE"
+        description: "Number of requested restartpoints performed"
+    - restartpoints_done:
+        usage: "GAUGE"
+        description: "Number of restartpoints performed"
+    - write_time:
+        usage: "COUNTER"
+        description: "Total time spent writing data to disk during checkpoints (ms)"
+    - sync_time:
+        usage: "COUNTER"
+        description: "Total time spent syncing data to disk during checkpoints (ms)"
+    - buffers_written:
+        usage: "COUNTER"
+        description: "Number of buffers written during checkpoints (PG 17)"
+
+# ─── Background writer (esquema PG 17) ───────────────────────────────────
+pg_stat_bgwriter_17:
+  master: true
+  query: |
+    SELECT
+      buffers_clean,
+      maxwritten_clean,
+      buffers_alloc
+    FROM pg_stat_bgwriter
+  metrics:
+    - buffers_clean:
+        usage: "COUNTER"
+        description: "Number of buffers written by the background writer"
+    - maxwritten_clean:
+        usage: "COUNTER"
+        description: "Number of times the bgwriter stopped a cleaning scan because it had written too many buffers"
+    - buffers_alloc:
+        usage: "COUNTER"
+        description: "Number of buffers allocated"

@@ -205,12 +205,12 @@
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum by (le) (rate(frontend_navigation_duration_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(ferreteria_frontend_navigation_duration_seconds_bucket[5m])))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(frontend_navigation_duration_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ferreteria_frontend_navigation_duration_seconds_bucket[5m])))",
           "legendFormat": "p95",
           "refId": "B"
         }
@@ -225,7 +225,7 @@
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
       "targets": [
         {
-          "expr": "sum(rate(frontend_js_errors_total[5m]))",
+          "expr": "sum(rate(ferreteria_frontend_js_errors_total[5m]))",
           "legendFormat": "errors/s",
           "refId": "A"
         }
@@ -240,9 +240,26 @@
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "targets": [
         {
-          "expr": "histogram_quantile(0.75, sum by (le) (rate(frontend_web_vitals_lcp_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.75, sum by (le) (rate(ferreteria_frontend_web_vitals_lcp_seconds_bucket[5m])))",
           "legendFormat": "p75 LCP",
           "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Traces (Tempo) — últimas 30 trazas",
+      "type": "traces",
+      "datasource": { "type": "tempo", "uid": "Tempo" },
+      "gridPos": { "x": 0, "y": 40, "w": 24, "h": 10 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "query": "{}",
+          "queryType": "traceql",
+          "refId": "A",
+          "datasource": { "type": "tempo", "uid": "Tempo" },
+          "tableType": "traces"
         }
       ]
     }

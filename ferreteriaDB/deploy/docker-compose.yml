@@ -160,12 +160,12 @@ services:
       - obs-net
       - app-net       # recibe del backend
     depends_on: []
-    healthcheck:
-      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8889/metrics"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
+    # NOTA: la imagen otel/opentelemetry-collector-contrib es distroless (solo
+    # /otelcol-contrib + /etc, SIN shell ni wget/curl), por lo que NO se puede
+    # definir un healthcheck HTTP interno. La disponibilidad del collector NO
+    # debe bloquear la app: es un sidecar de observabilidad. Para liveness en
+    # runtime se usa su telemetría interna (el receiver OTLP solo escucha si
+    # el proceso está vivo) y Prometheus/Grafana reintentan el scrape.
     mem_limit: 512m
     cpus: 1.0
 
@@ -173,16 +173,27 @@ services:
   # postgres-exporter — métricas nativas de PostgreSQL en Prometheus
   # =================================================================
   postgres-exporter:
-    image: ${POSTGRES_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:v0.15.0}
+    image: ${POSTGRES_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:v0.16.0}
     container_name: ferreteria-postgres-exporter
     restart: unless-stopped
     depends_on:
       postgres-primary:
         condition: service_healthy
+    # Desactivar el collector built-in `stat_bgwriter`: su query usa esquema
+    # pre-PG17 (checkpoints_timed en pg_stat_bgwriter) y falla en PostgreSQL 17.
+    # Se sustituye por queries propias en queries.yaml (PG 17: las columnas de
+    # checkpoint viven ahora en pg_stat_checkpointer). El --config.file no se
+    # usa ("" = sin config principal), solo el archivo de queries extendidas.
+    command:
+      - "--no-collector.stat_bgwriter"
+      - "--config.file="
+      - "--extend.query-path=/config/queries.yaml"
     environment:
       DATA_SOURCE_NAME: "postgresql://postgres:${POSTGRES_ADMIN_PASSWORD:?Define POSTGRES_ADMIN_PASSWORD en .env}@postgres-primary:5432/ferreteria?sslmode=disable"
       PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
       PG_EXPORTER_EXCLUDE_DATABASES: "template0,template1"
+    volumes:
+      - ./conf/postgres/queries.yaml:/config/queries.yaml:ro
     ports:
       - "${POSTGRES_EXPORTER_PORT:-9187}:9187"
     networks:
@@ -217,8 +228,10 @@ services:
     networks:
       - obs-net
     depends_on:
+      # Solo arrancar tras el collector (no esperar healthy: el collector no
+      # publica healthcheck al ser distroless). Prometheus reintenta el scrape.
       otel-collector:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -260,6 +273,35 @@ services:
       start_period: 30s
     mem_limit: 256m
     cpus: 0.5
+
+  # =================================================================
+  # Tempo — backend de trazas (OTLP gRPC/HTTP). Grafana lo consulta
+  # via jaeger/explore. Persistencia en volumen para no perder spans.
+  # =================================================================
+  tempo:
+    image: ${TEMPO_IMAGE:-grafana/tempo:2.6.1}
+    container_name: ferreteria-tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/config.yaml"]
+    volumes:
+      - ./conf/otel/tempo.yaml:/etc/tempo/config.yaml:ro
+      - tempo_data:/tmp/tempo
+    ports:
+      - "${TEMPO_HTTP_PORT:-3200}:3200"    # Tempo query (Grafana datasource)
+    networks:
+      - obs-net
+      - app-net
+    # Tempo v2.6 tiene binario y /etc; healthcheck interno simple con
+    # wget a /ready (imagen basada en clean y distroless-ish). Usamos --ready
+    # que responde 200 cuando está listo para ingesta.
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:3200/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 512m
+    cpus: 1.0
 
   # =================================================================
   # PostgreSQL PRIMARIO (escrituras)
@@ -353,7 +395,11 @@ services:
     depends_on:
       postgres-primary:
         condition: service_healthy
-    entrypoint: []
+    # NOTA: el proveedor compose externo IGNORA `entrypoint: []`. Para saltar
+    # el entrypoint del image (que exige DATABASES_HOST/DATABASES) y usar el
+    # script propio, definimos entrypoint=/bin/sh -ecx y pasamos el script en
+    # command. Así no corre /opt/pgbouncer/entrypoint.sh.
+    entrypoint: ["/bin/sh", "-ecx"]
     environment:
       DB_HOST: postgres-primary
       DB_USER: ferreteria_app
@@ -362,8 +408,6 @@ services:
     ports:
       - "${PGBOUNCER_HOST_PORT:-6432}:6432"
     command:
-      - /bin/sh
-      - -ecx
       - |
         mkdir -p /etc/pgbouncer
         {
@@ -389,9 +433,13 @@ services:
           "$${DB_USER}" "$${DB_PASSWORD}" "$${ADMIN_PASSWORD}" > /etc/pgbouncer/userlist.txt
         exec /opt/pgbouncer/pgbouncer /etc/pgbouncer/pgbouncer.ini
     healthcheck:
-      test: ["CMD-SHELL", "psql 'host=localhost port=6432 dbname=ferreteria user=ferreteria_app password=$${DB_PASSWORD}' -tc 'SELECT 1;' >/dev/null"]
+      # La imagen pgbouncer/pgbouncer es Alpine sin psql. Usamos `nc -z`
+      # (netcat de busybox) para verificar que el listener 6432 acepta
+      # conexiones de cliente. La conectividad real de BD la confirma el
+      # backend vía su propio healthcheck de Spring Data.
+      test: ["CMD", "nc", "-z", "127.0.0.1", "6432"]
       interval: 15s
-      timeout: 6s
+      timeout: 5s
       retries: 8
       start_period: 15s
     networks:
@@ -416,3 +464,4 @@ volumes:
   pg_data_replica:
   prometheus_data:
   grafana_data:
+  tempo_data:

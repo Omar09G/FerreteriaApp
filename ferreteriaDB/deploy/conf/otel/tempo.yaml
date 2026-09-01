@@ -1,0 +1,39 @@
+# ============================================================================
+# Tempo — backend distribuído de trazas para la Ferretería
+# ----------------------------------------------------------------------------
+# Recibe trazas del OpenTelemetry Collector via OTLP gRPC (internal, tempo:4317)
+# y las sirve a Grafana via su API query (:3200).
+#
+# Ruta de datos:  backend/browser → otel-collector → tempo (otlp grpc)
+#                 grafana → tempo:3200 (jaeger datasource, traceql)
+#
+# Persistencia: /tmp/tempo (volumen `tempo_data`). En dev no es crítica;
+# para prod se debe apuntar a un backend de storage real (S3/GCS/Azure).
+# ============================================================================
+
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 24h
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /tmp/tempo/wal
+    local:
+      path: /tmp/tempo/blocks
