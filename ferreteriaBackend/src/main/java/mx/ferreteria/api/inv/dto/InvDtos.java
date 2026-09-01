@@ -23,6 +23,9 @@ public final class InvDtos {
         Integer almacenId, String nombre, String direccion,
         String telefono, Boolean esPuntoVenta, Boolean activo
     ) {}
+    public record AlmacenEstadoRequest(
+        @NotNull Boolean activo
+    ) {}
 
     // --- Inventario (stock por almacen) ---
     public record InventarioResponse(

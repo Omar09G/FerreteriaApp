@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -62,7 +63,7 @@ class AlmacenControllerTest {
     void list_returns200WithEnvelope() throws Exception {
         AlmacenResponse r1 = new AlmacenResponse(1, "Almacén Central", null, null, true, true);
         AlmacenResponse r2 = new AlmacenResponse(2, "Almacén Norte", null, null, true, true);
-        when(service.list(eq(null), any()))
+        when(service.list(eq(null), eq(false), any()))
                 .thenReturn(new PageImpl<>(List.of(r1, r2), PageRequest.of(0, 20), 2));
 
         mvc.perform(get("/api/v1/almacenes"))
@@ -128,5 +129,21 @@ class AlmacenControllerTest {
 
         mvc.perform(delete("/api/v1/almacenes/1"))
                 .andExpect(status().isNoContent());
+    }
+
+    // ── PUT /api/v1/almacenes/{id}/estado ──────────────────────────
+
+    @Test
+    @DisplayName("PUT /api/v1/almacenes/1/estado -> 200 con activo actualizado")
+    void actualizarEstado_ok() throws Exception {
+        when(service.actualizarEstado(1, false))
+                .thenReturn(new AlmacenResponse(1, "Almacén Central", null, null, true, false));
+
+        mvc.perform(put("/api/v1/almacenes/1/estado")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"activo\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.activo").value(false));
     }
 }

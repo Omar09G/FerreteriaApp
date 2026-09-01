@@ -19,7 +19,10 @@ import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.inv.dto.InvDtos.AlmacenEstadoRequest;
 import mx.ferreteria.api.inv.dto.InvDtos.AlmacenRequest;
 import mx.ferreteria.api.inv.dto.InvDtos.AlmacenResponse;
 import mx.ferreteria.api.inv.service.AlmacenService;
@@ -35,10 +38,11 @@ public class AlmacenController {
     @GetMapping
     public Page<AlmacenResponse> list(
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) Boolean todos,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
-        return service.list(q, PageQuery.of(page, size, sort).toPageable());
+        return service.list(q, Boolean.TRUE.equals(todos), PageQuery.of(page, size, sort).toPageable());
     }
 
     @GetMapping("/{id}")
@@ -48,16 +52,25 @@ public class AlmacenController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public AlmacenResponse create(@Valid @RequestBody AlmacenRequest req) {
         return service.create(req);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public AlmacenResponse update(@PathVariable Integer id, @Valid @RequestBody AlmacenRequest req) {
         return service.update(id, req);
     }
 
+    @PutMapping("/{id}/estado")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public AlmacenResponse actualizarEstado(@PathVariable Integer id, @Valid @RequestBody AlmacenEstadoRequest req) {
+        return service.actualizarEstado(id, req.activo());
+    }
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> deactivate(@PathVariable Integer id) {
         service.deactivate(id);
         return ResponseEntity.noContent().build();

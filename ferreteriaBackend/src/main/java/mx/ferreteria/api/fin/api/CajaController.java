@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.fin.dto.FinDtos;
 import mx.ferreteria.api.fin.service.CajaService;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,11 +34,13 @@ public class CajaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public FinDtos.CajaResponse crearCaja(@Valid @RequestBody FinDtos.CajaRequest req) {
         return service.crearCaja(req);
     }
 
     @PutMapping("/{cajaId}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public FinDtos.CajaResponse actualizarCaja(
             @PathVariable Integer cajaId,
             @Valid @RequestBody FinDtos.CajaRequest req) {
@@ -43,6 +48,7 @@ public class CajaController {
     }
 
     @PutMapping("/estado/{cajaId}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public FinDtos.CajaResponse actualizarCajaEstado(
             @PathVariable Integer cajaId,
             @Valid @RequestBody FinDtos.CajaRequest req) {

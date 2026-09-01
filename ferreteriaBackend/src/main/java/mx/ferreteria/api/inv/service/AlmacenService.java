@@ -22,10 +22,12 @@ public class AlmacenService {
     private final AlmacenRepository repo;
 
     @Transactional(readOnly = true)
-    public Page<AlmacenResponse> list(String q, Pageable pageable) {
+    public Page<AlmacenResponse> list(String q, boolean todos, Pageable pageable) {
         Page<Almacen> page = StringUtils.hasText(q)
                 ? repo.findByNombreContainingIgnoreCase(q, pageable)
-                : repo.findByActivoTrue(pageable);
+                : todos
+                        ? repo.findAllByOrderByNombreAsc(pageable)
+                        : repo.findByActivoTrue(pageable);
         return page.map(this::toResponse);
     }
 
@@ -63,6 +65,13 @@ public class AlmacenService {
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
         entity.setActivo(false);
         repo.save(entity);
+    }
+
+    public AlmacenResponse actualizarEstado(Integer id, boolean activo) {
+        Almacen entity = repo.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        entity.setActivo(activo);
+        return toResponse(repo.save(entity));
     }
 
     private AlmacenResponse toResponse(Almacen a) {

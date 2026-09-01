@@ -9,4 +9,5 @@ import mx.ferreteria.api.inv.entity.Almacen;
 public interface AlmacenRepository extends JpaRepository<Almacen, Integer> {
     Page<Almacen> findByActivoTrue(Pageable pageable);
     Page<Almacen> findByNombreContainingIgnoreCase(String nombre, Pageable pageable);
+    Page<Almacen> findAllByOrderByNombreAsc(Pageable pageable);
 }

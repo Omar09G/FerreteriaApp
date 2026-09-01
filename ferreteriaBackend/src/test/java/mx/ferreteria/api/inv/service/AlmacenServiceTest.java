@@ -54,7 +54,7 @@ class AlmacenServiceTest {
         Almacen a = sampleAlmacen(1, "Almacen Central");
         when(repo.findByActivoTrue(pg)).thenReturn(new PageImpl<>(List.of(a), pg, 1));
 
-        var result = service.list(null, pg);
+        var result = service.list(null, false, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).nombre()).isEqualTo("Almacen Central");
@@ -68,10 +68,24 @@ class AlmacenServiceTest {
         when(repo.findByNombreContainingIgnoreCase("Norte", pg))
                 .thenReturn(new PageImpl<>(List.of(a), pg, 1));
 
-        var result = service.list("Norte", pg);
+        var result = service.list("Norte", false, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).nombre()).isEqualTo("Almacen Norte");
+    }
+
+    @Test
+    @DisplayName("list con todos=true: findAllByOrderByNombreAsc incluye inactivos")
+    void list_allTodos() {
+        Pageable pg = PageRequest.of(0, 10);
+        Almacen a = sampleAlmacen(1, "Almacen Inactivo");
+        a.setActivo(false);
+        when(repo.findAllByOrderByNombreAsc(pg)).thenReturn(new PageImpl<>(List.of(a), pg, 1));
+
+        var result = service.list(null, true, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).activo()).isFalse();
     }
 
     // ── getById ─────────────────────────────────────────────────────
@@ -151,5 +165,28 @@ class AlmacenServiceTest {
 
         assertThat(existing.getActivo()).isFalse();
         verify(repo).save(existing);
+    }
+
+    @Test
+    @DisplayName("actualizarEstado: cambia activo y guarda")
+    void actualizarEstado_ok() {
+        Almacen existing = sampleAlmacen(1, "Almacen A");
+        when(repo.findById(1)).thenReturn(Optional.of(existing));
+        when(repo.save(any(Almacen.class))).thenReturn(existing);
+
+        AlmacenResponse resp = service.actualizarEstado(1, false);
+
+        assertThat(existing.getActivo()).isFalse();
+        assertThat(resp.activo()).isFalse();
+        verify(repo).save(existing);
+    }
+
+    @Test
+    @DisplayName("actualizarEstado inexistente: RecursoNoEncontradoException")
+    void actualizarEstado_notFound() {
+        when(repo.findById(999)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.actualizarEstado(999, true))
+                .isInstanceOf(RecursoNoEncontradoException.class);
     }
 }
