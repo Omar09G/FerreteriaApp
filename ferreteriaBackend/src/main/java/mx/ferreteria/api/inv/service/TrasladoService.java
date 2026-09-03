@@ -74,12 +74,17 @@ public class TrasladoService {
         }
 
         Traslado traslado = Traslado.builder()
-                .folio("TR-" + System.currentTimeMillis())
                 .almacenOrigen(req.almacenOrigen())
                 .almacenDestino(req.almacenDestino())
                 .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         Traslado savedTraslado = repo.save(traslado);
+        repo.flush();
+        // folio lo asigna el trigger cfg.fn_siguiente_folio('TRASLADO') -> T-0000000X (WHEN folio IS NULL)
+        String folioGenerado = jdbc.queryForObject(
+                "SELECT folio FROM inv.traslados WHERE traslado_id = ?",
+                String.class, savedTraslado.getTrasladoId());
+        savedTraslado.setFolio(folioGenerado);
 
         for (TrasladoDetalleRequest d : req.detalles()) {
             TrasladoDetalle detalle = TrasladoDetalle.builder()
