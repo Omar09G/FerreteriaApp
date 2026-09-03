@@ -12,7 +12,7 @@ spring:
     # PgBouncer usa pool_mode=transaction y las sentencias S_n rompen el pooling.
     url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:6432}/${PG_DATABASE:ferreteria}?prepareThreshold=0
     username: ${PG_USER:ferreteria_app}
-    password: ${PG_PASSWORD:ferreteriaApp}
+    password: ${PG_PASSWORD:cambia_app_seguro}
     hikari:
       maximum-pool-size: 10      # <= default_pool_size de PgBouncer
       minimum-idle: 2
