@@ -53,4 +53,14 @@ public class NominaController {
     public RhDtos.NominaResponse cancelar(@PathVariable Long id) {
         return service.cancelar(id);
     }
+
+    @PostMapping("/generar-quincena")
+    public RhDtos.GenerarQuincenaResponse generarQuincena(@Valid @RequestBody RhDtos.GenerarQuincenaRequest req) {
+        return service.generarQuincena(req);
+    }
+
+    @PostMapping("/pagar-lote")
+    public RhDtos.PagarLoteResponse pagarLote(@Valid @RequestBody RhDtos.PagarLoteRequest req) {
+        return service.pagarLote(req);
+    }
 }

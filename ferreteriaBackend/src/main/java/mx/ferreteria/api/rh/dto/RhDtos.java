@@ -30,4 +30,28 @@ public final class RhDtos {
             BigDecimal netoPagar, String estado, Instant fechaPago,
             Integer usuarioRegistraId, String notas) {
     }
+
+    public record GenerarQuincenaRequest(
+            Integer anio,
+            Integer mes,
+            @NotNull String quincena) {
+    }
+
+    public record GenerarQuincenaResponse(
+            int creadas,
+            int omitidas,
+            LocalDate periodoIni,
+            LocalDate periodoFin,
+            java.util.List<NominaResponse> nominas) {
+    }
+
+    public record PagarLoteRequest(
+            @NotNull java.util.List<Long> ids) {
+    }
+
+    public record PagarLoteResponse(
+            int pagadas,
+            int omitidas,
+            java.util.List<NominaResponse> nominas) {
+    }
 }

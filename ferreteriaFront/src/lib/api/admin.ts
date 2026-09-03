@@ -166,3 +166,22 @@ export async function apiCancelarNomina(id: number): Promise<Nomina> {
 	const { data } = await http.post<Envelope<Nomina>>(`/nomina/${id}/cancelar`);
 	return data.data;
 }
+
+export async function apiGenerarQuincena(body: {
+	anio?: number;
+	mes?: number;
+	quincena: "PRIMERA" | "SEGUNDA";
+}): Promise<{ creadas: number; omitidas: number; periodoIni: string; periodoFin: string; nominas: Nomina[] }> {
+	const { data } = await http.post<Envelope<{ creadas: number; omitidas: number; periodoIni: string; periodoFin: string; nominas: Nomina[] }>>(
+		"/nomina/generar-quincena",
+		body,
+	);
+	return data.data;
+}
+
+export async function apiPagarNominaLote(ids: number[]): Promise<{ pagadas: number; omitidas: number; nominas: Nomina[] }> {
+	const { data } = await http.post<Envelope<{ pagadas: number; omitidas: number; nominas: Nomina[] }>>("/nomina/pagar-lote", {
+		ids,
+	});
+	return data.data;
+}

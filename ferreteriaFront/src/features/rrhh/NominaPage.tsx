@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, CalendarPlus, XCircle } from "lucide-react";
+import { Banknote, CalendarPlus, CalendarRange, Users, XCircle } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
@@ -8,8 +8,10 @@ import {
 	apiCancelarNomina,
 	apiCrearNomina,
 	apiEmpleados,
+	apiGenerarQuincena,
 	apiNomina,
 	apiPagarNomina,
+	apiPagarNominaLote,
 } from "@/lib/api/admin";
 import type { Empleado, Nomina, NominaRequest } from "@/lib/api/types";
 import {
@@ -196,9 +198,12 @@ export default function NominaPage() {
 	const [estado, setEstado] = useState("");
 	const [rango, setRango] = useState<RangoFechas | null>(null);
 	const [dialogoAbierto, setDialogoAbierto] = useState(false);
+	const [generarAbierto, setGenerarAbierto] = useState(false);
+	const [quincena, setQuincena] = useState<"PRIMERA" | "SEGUNDA">("PRIMERA");
 	const [pagarConfirmacion, setPagarConfirmacion] = useState<Nomina | null>(
 		null,
 	);
+	const [pagarLoteAbierto, setPagarLoteAbierto] = useState(false);
 	const [cancelarConfirmacion, setCancelarConfirmacion] =
 		useState<Nomina | null>(null);
 
@@ -262,6 +267,42 @@ export default function NominaPage() {
 		onError: (err) =>
 			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
 	});
+
+	const generar = useMutation({
+		mutationFn: (q: "PRIMERA" | "SEGUNDA") => apiGenerarQuincena({ quincena: q }),
+		onSuccess: (res) => {
+			if (res.creadas === 0) {
+				mostrarExito(`Nómina ya existente: ${res.omitidas} omitidas (${res.periodoIni} al ${res.periodoFin}).`);
+			} else {
+				mostrarExito(`Nómina generada: ${res.creadas} creadas, ${res.omitidas} omitidas (${res.periodoIni} al ${res.periodoFin}).`);
+			}
+			setGenerarAbierto(false);
+			invalidar();
+		},
+		onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+	});
+
+	const pagarLote = useMutation({
+		mutationFn: (ids: number[]) => apiPagarNominaLote(ids),
+		onSuccess: (res) => {
+			mostrarExito(`Nómina pagada: ${res.pagadas} pagadas, ${res.omitidas} omitidas.`);
+			setPagarLoteAbierto(false);
+			invalidar();
+		},
+		onError: (err) => mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+	});
+
+	const pendientes = useMemo(
+		() => data?.data.filter((n) => n.estado === "PENDIENTE") ?? [],
+		[data],
+	);
+	const totalPendiente = useMemo(() => pendientes.reduce((acc, n) => acc + n.netoPagar, 0), [pendientes]);
+	const quincenaPeriodo = useMemo(() => {
+		const hoy = new Date();
+		const ym = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+		const last = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+		return quincena === "PRIMERA" ? `${ym}-01 al ${ym}-15 (15 días)` : `${ym}-16 al ${ym}-${String(last).padStart(2, "0")} (${last - 15} días)`;
+	}, [quincena]);
 
 	const columnas: Columna<Nomina>[] = [
 		{
@@ -385,6 +426,17 @@ export default function NominaPage() {
 							</option>
 						))}
 					</Select>
+					<Button variant="secondary" onClick={() => setGenerarAbierto(true)}>
+						<Users className="h-4 w-4" /> Generar nómina
+					</Button>
+					<Button
+						variant="secondary"
+						disabled={pendientes.length === 0 || pagarLote.isPending}
+						onClick={() => setPagarLoteAbierto(true)}
+						title={pendientes.length === 0 ? "No hay nóminas pendientes" : `Pagar ${pendientes.length} nóminas`}
+					>
+						<Banknote className="h-4 w-4" /> Pagar nómina {pendientes.length > 0 && `(${pendientes.length})`}
+					</Button>
 					<Button onClick={() => setDialogoAbierto(true)}>
 						<CalendarPlus className="h-4 w-4" /> Nueva nómina
 					</Button>
@@ -476,6 +528,84 @@ export default function NominaPage() {
 					? La liquidación no se pagará.
 				</p>
 			</ConfirmDialog>
+
+			<Dialog
+				open={generarAbierto}
+				onClose={() => !generar.isPending && setGenerarAbierto(false)}
+				title="Generar nómina por quincena"
+				width="max-w-md"
+			>
+				<div className="space-y-3">
+					<p className="text-sm text-muted">
+						Se generará nómina automática para <span className="font-medium text-ink">{empleados.data?.data.filter((e) => e.activo).length ?? "todos"} empleados activos</span> con{" "}
+						<span className="font-medium text-ink">sueldo_diario × días</span> y deducciones 0.
+					</p>
+					<Select
+						label="Quincena"
+						value={quincena}
+						onChange={(e) => setQuincena(e.target.value as "PRIMERA" | "SEGUNDA")}
+					>
+						<option value="PRIMERA">1ra quincena (1-15)</option>
+						<option value="SEGUNDA">2da quincena (16-fin de mes)</option>
+					</Select>
+					<p className="rounded-md bg-canvas px-3 py-2 text-xs tabular-nums text-ink">
+						<CalendarRange className="mr-1 inline h-3.5 w-3.5" />
+						Periodo: {quincenaPeriodo}
+					</p>
+					<p className="text-xs text-muted">
+						Si ya existe nómina para un empleado en ese periodo se omite (única por empleado/periodo).
+					</p>
+					<div className="flex justify-end gap-2">
+						<Button variant="ghost" disabled={generar.isPending} onClick={() => setGenerarAbierto(false)}>
+							Cancelar
+						</Button>
+						<Button disabled={generar.isPending} onClick={() => generar.mutate(quincena)}>
+							{generar.isPending ? "Generando…" : "Generar"}
+						</Button>
+					</div>
+				</div>
+			</Dialog>
+
+			<Dialog
+				open={pagarLoteAbierto}
+				onClose={() => !pagarLote.isPending && setPagarLoteAbierto(false)}
+				title="Pagar nómina (lote)"
+				width="max-w-md"
+				footer={
+					<>
+						<Button variant="ghost" disabled={pagarLote.isPending} onClick={() => setPagarLoteAbierto(false)}>
+							Cancelar
+						</Button>
+						<Button
+							disabled={pagarLote.isPending || pendientes.length === 0}
+							onClick={() => pagarLote.mutate(pendientes.map((n) => n.nominaId))}
+						>
+							{pagarLote.isPending ? "Pagando…" : `Sí, pagar ${pendientes.length}`}
+						</Button>
+					</>
+				}
+			>
+				{pendientes.length === 0 ? (
+					<p className="text-sm text-muted">No hay nóminas pendientes para pagar.</p>
+				) : (
+					<div className="space-y-2 text-sm">
+						<p className="text-ink">
+							Se pagarán <span className="font-semibold">{pendientes.length}</span> nóminas pendientes por{" "}
+							<span className="font-semibold tabular-nums">{formatoMoneda(totalPendiente)}</span>.
+						</p>
+						<ul className="max-h-40 overflow-auto rounded-md border border-line divide-y divide-line text-xs">
+							{pendientes.slice(0, 20).map((n) => (
+								<li key={n.nominaId} className="flex justify-between px-2 py-1">
+									<span className="font-medium">{n.empleado}</span>
+									<span className="tabular-nums">{formatoMoneda(n.netoPagar)}</span>
+								</li>
+							))}
+						</ul>
+						{pendientes.length > 20 && <p className="text-xs text-muted">...y {pendientes.length - 20} más</p>}
+						<p className="text-xs text-muted">El pago individual sigue disponible en Acciones → Pagar.</p>
+					</div>
+				)}
+			</Dialog>
 		</div>
 	);
 }
