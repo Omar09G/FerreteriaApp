@@ -115,12 +115,15 @@ function CatalogoForm({
 				>
 					<option value="">— Seleccionar —</option>
 					{opts.map((o, i) => {
-						const valor = String(o.clave);
-						const texto =
+						const raw = o as unknown as Record<string, unknown> & { clave: unknown; texto?: unknown };
+						const valor = String(raw.clave);
+						const textoArray = Array.isArray(raw.texto) ? (raw.texto as unknown[]).map(String).filter(Boolean).join(" · ") : "";
+						const textoCols =
 							c.opcionesColumnas
-								?.map((col) => String(o[col] ?? ""))
+								?.map((col) => String(raw[col] ?? ""))
 								.filter(Boolean)
-								.join(" · ") || valor;
+								.join(" · ") || "";
+						const texto = textoArray || textoCols || valor;
 						return (
 							<option key={`${valor}-${i}`} value={valor}>
 								{texto}
@@ -240,7 +243,7 @@ export default function CatalogoCrudPage({ clave }: { clave: string }) {
 					async (c) =>
 						[
 							c.nombre,
-							await apiCatalogoOpciones(c.opcionesTabla!, c.nombre),
+							await apiCatalogoOpciones(clave, c.nombre),
 						] as const,
 				),
 			);
