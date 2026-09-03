@@ -5,12 +5,12 @@ import { KeyRound, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
 import {
-  apiCrearUsuario,
-  apiEliminarUsuario,
-  apiResetPassword,
-  apiRoles,
-  apiSetRolesUsuario,
-  apiUsuarios,
+	apiCrearUsuario,
+	apiEliminarUsuario,
+	apiResetPassword,
+	apiRoles,
+	apiSetRolesUsuario,
+	apiUsuarios,
 } from "@/lib/api/admin";
 import type { Usuario, UsuarioCreateRequest } from "@/lib/api/types";
 import { formatoFechaHora } from "@/lib/format";
@@ -26,431 +26,435 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 
 function UsuarioForm({
-  guardando,
-  onGuardar,
-  onClose,
+	guardando,
+	onGuardar,
+	onClose,
 }: {
-  guardando: boolean;
-  onGuardar: (payload: UsuarioCreateRequest) => void;
-  onClose: () => void;
+	guardando: boolean;
+	onGuardar: (payload: UsuarioCreateRequest) => void;
+	onClose: () => void;
 }) {
-  const roles = useQuery({ queryKey: ["roles"], queryFn: apiRoles });
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rolesSel, setRolesSel] = useState<string[]>([]);
-  const [intento, setIntento] = useState(false);
+	const roles = useQuery({ queryKey: ["roles"], queryFn: apiRoles });
+	const [username, setUsername] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [rolesSel, setRolesSel] = useState<string[]>([]);
+	const [intento, setIntento] = useState(false);
 
-  const invalido =
-    username.trim() === "" || email.trim() === "" || password.length < 8;
+	const invalido =
+		username.trim() === "" || email.trim() === "" || password.length < 8;
 
-  const toggleRol = (clave: string) =>
-    setRolesSel((prev) =>
-      prev.includes(clave) ? prev.filter((r) => r !== clave) : [...prev, clave],
-    );
+	const toggleRol = (clave: string) =>
+		setRolesSel((prev) =>
+			prev.includes(clave) ? prev.filter((r) => r !== clave) : [...prev, clave],
+		);
 
-  const enviar = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    setIntento(true);
-    if (invalido) return;
-    onGuardar({
-      username: username.trim(),
-      email: email.trim(),
-      password,
-      roles: rolesSel,
-    });
-  };
+	const enviar = (e: { preventDefault: () => void }) => {
+		e.preventDefault();
+		setIntento(true);
+		if (invalido) return;
+		onGuardar({
+			username: username.trim(),
+			email: email.trim(),
+			password,
+			roles: rolesSel,
+		});
+	};
 
-  return (
-    <form
-      onSubmit={enviar}
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-      noValidate
-    >
-      <Input
-        label="Usuario"
-        required
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <Input
-        label="Correo"
-        required
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <div className="sm:col-span-2">
-        <Input
-          label="Contraseña (mín. 8)"
-          required
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
-      <div className="sm:col-span-2">
-        <span className="text-xs font-medium text-muted">Roles</span>
-        <div className="mt-1 flex flex-wrap gap-2">
-          {roles.data?.map((r) => (
-            <label
-              key={r.clave}
-              className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs"
-            >
-              <input
-                type="checkbox"
-                checked={rolesSel.includes(r.clave)}
-                onChange={() => toggleRol(r.clave)}
-                className="accent-primary"
-              />
-              {r.nombre}
-            </label>
-          ))}
-        </div>
-      </div>
-      {intento && invalido && (
-        <p className="text-xs text-red-600 sm:col-span-2">
-          Usuario, correo y contraseña (mín. 8) son obligatorios.
-        </p>
-      )}
-      <div className="flex justify-end gap-2 sm:col-span-2">
-        <Button type="button" variant="ghost" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={guardando}>
-          {guardando ? "Guardando…" : "Guardar"}
-        </Button>
-      </div>
-    </form>
-  );
+	return (
+		<form
+			onSubmit={enviar}
+			className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+			noValidate
+		>
+			<Input
+				label="Usuario"
+				required
+				value={username}
+				onChange={(e) => setUsername(e.target.value)}
+			/>
+			<Input
+				label="Correo"
+				required
+				type="email"
+				value={email}
+				onChange={(e) => setEmail(e.target.value)}
+			/>
+			<div className="sm:col-span-2">
+				<Input
+					label="Contraseña (mín. 8)"
+					required
+					type="password"
+					value={password}
+					onChange={(e) => setPassword(e.target.value)}
+				/>
+			</div>
+			<div className="sm:col-span-2">
+				<span className="text-xs font-medium text-muted">Roles</span>
+				<div className="mt-1 flex flex-wrap gap-2">
+					{roles.data?.map((r) => (
+						<label
+							key={r.clave}
+							className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs"
+						>
+							<input
+								type="checkbox"
+								checked={rolesSel.includes(r.clave)}
+								onChange={() => toggleRol(r.clave)}
+								className="accent-primary"
+							/>
+							{r.nombre}
+						</label>
+					))}
+				</div>
+			</div>
+			{intento && invalido && (
+				<p className="text-xs text-red-600 sm:col-span-2">
+					Usuario, correo y contraseña (mín. 8) son obligatorios.
+				</p>
+			)}
+			<div className="flex justify-end gap-2 sm:col-span-2">
+				<Button type="button" variant="ghost" onClick={onClose}>
+					Cancelar
+				</Button>
+				<Button type="submit" disabled={guardando}>
+					{guardando ? "Guardando…" : "Guardar"}
+				</Button>
+			</div>
+		</form>
+	);
 }
 
 export default function UsuariosPage() {
-  useDocumentTitle("Usuarios y roles");
-  const { error: mostrarError, success: mostrarExito } = useToast();
-  const queryClient = useQueryClient();
+	useDocumentTitle("Usuarios y roles");
+	const { error: mostrarError, success: mostrarExito } = useToast();
+	const queryClient = useQueryClient();
 
-  const [page, setPage] = useState(0);
-  const [dialogoAbierto, setDialogoAbierto] = useState(false);
-  const [editandoRoles, setEditandoRoles] = useState<Usuario | null>(null);
-  const [rolesSel, setRolesSel] = useState<string[]>([]);
-  const [eliminarConfirmacion, setEliminarConfirmacion] =
-    useState<Usuario | null>(null);
-  const [resetUsuario, setResetUsuario] = useState<Usuario | null>(null);
-  const [nuevaPassword, setNuevaPassword] = useState("");
-  const [intentoReset, setIntentoReset] = useState(false);
+	const [page, setPage] = useState(0);
+	const [dialogoAbierto, setDialogoAbierto] = useState(false);
+	const [editandoRoles, setEditandoRoles] = useState<Usuario | null>(null);
+	const [rolesSel, setRolesSel] = useState<string[]>([]);
+	const [eliminarConfirmacion, setEliminarConfirmacion] =
+		useState<Usuario | null>(null);
+	const [resetUsuario, setResetUsuario] = useState<Usuario | null>(null);
+	const [nuevaPassword, setNuevaPassword] = useState("");
+	const [intentoReset, setIntentoReset] = useState(false);
 
-  const roles = useQuery({ queryKey: ["roles"], queryFn: apiRoles });
-  const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ["usuarios", page],
-    queryFn: () => apiUsuarios(page),
-  });
+	const roles = useQuery({ queryKey: ["roles"], queryFn: apiRoles });
+	const { data, isLoading, error, isFetching } = useQuery({
+		queryKey: ["usuarios", page],
+		queryFn: () => apiUsuarios(page),
+	});
 
-  useEffect(() => {
-    if (error)
-      mostrarError(
-        esApiError(error) ? error.mensajeParaUsuario() : String(error),
-      );
-  }, [error, mostrarError]);
+	useEffect(() => {
+		if (error)
+			mostrarError(
+				esApiError(error) ? error.mensajeParaUsuario() : String(error),
+			);
+	}, [error, mostrarError]);
 
-  const invalidar = () =>
-    queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+	const invalidar = () =>
+		queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 
-  const crear = useMutation({
-    mutationFn: (body: UsuarioCreateRequest) => apiCrearUsuario(body),
-    onSuccess: () => {
-      mostrarExito("Usuario creado.");
-      setDialogoAbierto(false);
-      invalidar();
-    },
-    onError: (err) =>
-      mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-  });
+	const crear = useMutation({
+		mutationFn: (body: UsuarioCreateRequest) => apiCrearUsuario(body),
+		onSuccess: () => {
+			mostrarExito("Usuario creado.");
+			setDialogoAbierto(false);
+			invalidar();
+		},
+		onError: (err) =>
+			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+	});
 
-  const setRoles = useMutation({
-    mutationFn: (v: { id: number; roles: string[] }) =>
-      apiSetRolesUsuario(v.id, v.roles),
-    onSuccess: () => {
-      mostrarExito("Roles actualizados.");
-      setEditandoRoles(null);
-      invalidar();
-    },
-    onError: (err) =>
-      mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-  });
+	const setRoles = useMutation({
+		mutationFn: (v: { id: number; roles: string[] }) =>
+			apiSetRolesUsuario(v.id, v.roles),
+		onSuccess: () => {
+			mostrarExito("Roles actualizados.");
+			setEditandoRoles(null);
+			invalidar();
+		},
+		onError: (err) =>
+			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+	});
 
-  const reset = useMutation({
-    mutationFn: (v: { id: number; password: string }) =>
-      apiResetPassword(v.id, v.password),
-    onSuccess: () => {
-      mostrarExito("Contraseña restablecida.");
-      setResetUsuario(null);
-      setNuevaPassword("");
-      setIntentoReset(false);
-      invalidar();
-    },
-    onError: (err) =>
-      mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-  });
+	const reset = useMutation({
+		mutationFn: (v: { id: number; password: string }) =>
+			apiResetPassword(v.id, v.password),
+		onSuccess: () => {
+			mostrarExito("Contraseña restablecida.");
+			setResetUsuario(null);
+			setNuevaPassword("");
+			setIntentoReset(false);
+			invalidar();
+		},
+		onError: (err) =>
+			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+	});
 
-  const eliminar = useMutation({
-    mutationFn: (id: number) => apiEliminarUsuario(id),
-    onSuccess: () => {
-      mostrarExito("Usuario eliminado.");
-      setEliminarConfirmacion(null);
-      invalidar();
-    },
-    onError: (err) =>
-      mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-  });
+	const eliminar = useMutation({
+		mutationFn: (id: number) => apiEliminarUsuario(id),
+		onSuccess: () => {
+			mostrarExito("Usuario eliminado.");
+			setEliminarConfirmacion(null);
+			invalidar();
+		},
+		onError: (err) =>
+			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
+	});
 
-  const columnas: Columna<Usuario>[] = [
-    {
-      key: "u",
-      header: "Usuario",
-      render: (v) => <span className="font-medium text-ink">{v.username}</span>,
-    },
-    { key: "e", header: "Correo", render: (v) => v.email },
-    {
-      key: "emp",
-      header: "Empleado",
-      render: (v) => v.empleado?.nombreCompleto ?? "—",
-    },
-    {
-      key: "ro",
-      header: "Roles",
-      render: (v) => (
-        <div className="flex flex-wrap gap-1">
-          {v.roles.map((r) => (
-            <Badge key={r}>{r}</Badge>
-          ))}
-        </div>
-      ),
-    },
-    {
-      key: "act",
-      header: "Estado",
-      render: (v) =>
-        v.activo ? (
-          <Badge tone="success">Activo</Badge>
-        ) : (
-          <Badge tone="danger">Inactivo</Badge>
-        ),
-    },
-    {
-      key: "login",
-      header: "Último login",
-      render: (v) =>
-        v.ultimoLogin ? (
-          <span className="tabular-nums">
-            {formatoFechaHora(v.ultimoLogin)}
-          </span>
-        ) : (
-          "—"
-        ),
-    },
-    {
-      key: "acc",
-      header: "Acciones",
-      align: "right",
-      render: (v) => (
-        <div className="flex justify-end gap-1">
-          <button
-            type="button"
-            aria-label={`Editar roles de ${v.username}`}
-            className="rounded p-1.5 text-muted hover:bg-primary-50 hover:text-primary"
-            onClick={() => {
-              setEditandoRoles(v);
-              setRolesSel(v.roles);
-            }}
-          >
-            <ShieldCheck className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label={`Restablecer contraseña de ${v.username}`}
-            className="rounded p-1.5 text-muted hover:bg-primary-50 hover:text-primary"
-            onClick={() => {
-              setResetUsuario(v);
-              setNuevaPassword("");
-              setIntentoReset(false);
-            }}
-          >
-            <KeyRound className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label={`Eliminar ${v.username}`}
-            className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-            onClick={() => setEliminarConfirmacion(v)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
-    },
-  ];
+	const columnas: Columna<Usuario>[] = [
+		{
+			key: "u",
+			header: "Usuario",
+			render: (v) => <span className="font-medium text-ink">{v.username}</span>,
+		},
+		{ key: "e", header: "Correo", render: (v) => v.email },
+		{
+			key: "emp",
+			header: "Empleado",
+			render: (v) => v.empleado?.nombreCompleto ?? "—",
+		},
+		{
+			key: "ro",
+			header: "Roles",
+			render: (v) => (
+				<div className="flex flex-wrap gap-1">
+					{v.roles.map((r) => (
+						<Badge key={r}>{r}</Badge>
+					))}
+				</div>
+			),
+		},
+		{
+			key: "act",
+			header: "Estado",
+			render: (v) =>
+				v.activo ? (
+					<Badge tone="success">Activo</Badge>
+				) : (
+					<Badge tone="danger">Inactivo</Badge>
+				),
+		},
+		{
+			key: "login",
+			header: "Último login",
+			render: (v) =>
+				v.ultimoLogin ? (
+					<span className="tabular-nums">
+						{formatoFechaHora(v.ultimoLogin)}
+					</span>
+				) : (
+					"—"
+				),
+		},
+		{
+			key: "acc",
+			header: "Acciones",
+			align: "right",
+			render: (v) => (
+				<div className="flex justify-end gap-1">
+					<button
+						type="button"
+						aria-label={`Editar roles de ${v.username}`}
+						className="rounded p-1.5 text-muted hover:bg-primary-50 hover:text-primary"
+						onClick={() => {
+							setEditandoRoles(v);
+							setRolesSel(v.roles);
+						}}
+					>
+						<ShieldCheck className="h-4 w-4" />
+					</button>
+					<button
+						type="button"
+						aria-label={`Restablecer contraseña de ${v.username}`}
+						className="rounded p-1.5 text-muted hover:bg-primary-50 hover:text-primary"
+						onClick={() => {
+							setResetUsuario(v);
+							setNuevaPassword("");
+							setIntentoReset(false);
+						}}
+					>
+						<KeyRound className="h-4 w-4" />
+					</button>
+					<button
+						type="button"
+						aria-label={`Eliminar ${v.username}`}
+						className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
+						onClick={() => setEliminarConfirmacion(v)}
+					>
+						<Trash2 className="h-4 w-4" />
+					</button>
+				</div>
+			),
+		},
+	];
 
-  return (
-    <div className="space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-ink">Usuarios y roles</h1>
-          <p className="text-sm text-muted">
-            Altas, roles y contraseñas del sistema. Solo administrador.
-          </p>
-        </div>
-        <Button onClick={() => setDialogoAbierto(true)}>
-          <UserPlus className="h-4 w-4" /> Nuevo usuario
-        </Button>
-      </header>
+	return (
+		<div className="space-y-4">
+			<header className="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<h1 className="text-xl font-bold text-ink">Usuarios y roles</h1>
+					<p className="text-sm text-muted">
+						Altas, roles y contraseñas del sistema. Solo administrador.
+					</p>
+				</div>
+				<Button onClick={() => setDialogoAbierto(true)}>
+					<UserPlus className="h-4 w-4" /> Nuevo usuario
+				</Button>
+			</header>
 
-      {(isLoading || (isFetching && !data)) && <Spinner />}
-      {data && (
-        <Card titulo={`Usuarios (${data.meta.totalElements})`}>
-          <DataTable
-            columnas={columnas}
-            items={data.data}
-            rowKey={(v) => v.usuarioId}
-            loading={isFetching}
-          />
-          <Pagination meta={data.meta} onPage={setPage} />
-        </Card>
-      )}
+			{(isLoading || (isFetching && !data)) && <Spinner />}
+			{data && (
+				<Card titulo={`Usuarios (${data.meta.totalElements})`}>
+					<DataTable
+						columnas={columnas}
+						items={data.data}
+						rowKey={(v) => v.usuarioId}
+						loading={isFetching}
+					/>
+					<Pagination meta={data.meta} onPage={setPage} />
+				</Card>
+			)}
 
-      <Dialog
-        open={dialogoAbierto}
-        onClose={() => !crear.isPending && setDialogoAbierto(false)}
-        title="Nuevo usuario"
-        width="max-w-lg"
-      >
-        <UsuarioForm
-          guardando={crear.isPending}
-          onGuardar={(body) => crear.mutate(body)}
-          onClose={() => setDialogoAbierto(false)}
-        />
-      </Dialog>
+			<Dialog
+				open={dialogoAbierto}
+				onClose={() => !crear.isPending && setDialogoAbierto(false)}
+				title="Nuevo usuario"
+				width="max-w-lg"
+			>
+				<UsuarioForm
+					guardando={crear.isPending}
+					onGuardar={(body) => crear.mutate(body)}
+					onClose={() => setDialogoAbierto(false)}
+				/>
+			</Dialog>
 
-      <Dialog
-        open={editandoRoles !== null}
-        onClose={() => setEditandoRoles(null)}
-        title={`Roles de ${editandoRoles?.username ?? ""}`}
-        width="max-w-lg"
-      >
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {roles.data?.map((r) => (
-              <label
-                key={r.clave}
-                className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs"
-              >
-                <input
-                  type="checkbox"
-                  checked={rolesSel.includes(r.clave)}
-                  onChange={() =>
-                    setRolesSel((prev) =>
-                      prev.includes(r.clave)
-                        ? prev.filter((x) => x !== r.clave)
-                        : [...prev, r.clave],
-                    )
-                  }
-                  className="accent-primary"
-                />
-                {r.nombre}
-              </label>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setEditandoRoles(null)}>
-              Cancelar
-            </Button>
-            <Button
-              disabled={setRoles.isPending || editandoRoles === null}
-              onClick={() =>
-                editandoRoles &&
-                setRoles.mutate({
-                  id: editandoRoles.usuarioId,
-                  roles: rolesSel,
-                })
-              }
-            >
-              <ShieldCheck className="h-4 w-4" /> Guardar roles
-            </Button>
-          </div>
-        </div>
-      </Dialog>
+			<Dialog
+				open={editandoRoles !== null}
+				onClose={() => setEditandoRoles(null)}
+				title={`Roles de ${editandoRoles?.username ?? ""}`}
+				width="max-w-lg"
+			>
+				<div className="space-y-3">
+					<div className="flex flex-wrap gap-2">
+						{roles.data?.map((r) => (
+							<label
+								key={r.clave}
+								className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs"
+							>
+								<input
+									type="checkbox"
+									checked={rolesSel.includes(r.clave)}
+									onChange={() =>
+										setRolesSel((prev) =>
+											prev.includes(r.clave)
+												? prev.filter((x) => x !== r.clave)
+												: [...prev, r.clave],
+										)
+									}
+									className="accent-primary"
+								/>
+								{r.nombre}
+							</label>
+						))}
+					</div>
+					<div className="flex justify-end gap-2">
+						<Button variant="ghost" onClick={() => setEditandoRoles(null)}>
+							Cancelar
+						</Button>
+						<Button
+							disabled={setRoles.isPending || editandoRoles === null}
+							onClick={() =>
+								editandoRoles &&
+								setRoles.mutate({
+									id: editandoRoles.usuarioId,
+									roles: rolesSel,
+								})
+							}
+						>
+							<ShieldCheck className="h-4 w-4" /> Guardar roles
+						</Button>
+					</div>
+				</div>
+			</Dialog>
 
-      <ConfirmDialog
-        open={eliminarConfirmacion !== null}
-        title="Confirmar eliminación"
-        confirmLabel="Sí, eliminar"
-        busy={eliminar.isPending}
-        onCancel={() => setEliminarConfirmacion(null)}
-        onConfirm={() =>
-          eliminarConfirmacion &&
-          eliminar.mutate(eliminarConfirmacion.usuarioId)
-        }
-      >
-        <p className="text-sm text-ink">
-          ¿Eliminar el usuario{" "}
-          <span className="font-semibold">
-            &quot;{eliminarConfirmacion?.username}&quot;
-          </span>
-          ? Esta acción no se puede deshacer.
-        </p>
-      </ConfirmDialog>
+			<ConfirmDialog
+				open={eliminarConfirmacion !== null}
+				title="Confirmar eliminación"
+				confirmLabel="Sí, eliminar"
+				busy={eliminar.isPending}
+				onCancel={() => setEliminarConfirmacion(null)}
+				onConfirm={() =>
+					eliminarConfirmacion &&
+					eliminar.mutate(eliminarConfirmacion.usuarioId)
+				}
+			>
+				<p className="text-sm text-ink">
+					¿Eliminar el usuario{" "}
+					<span className="font-semibold">
+						&quot;{eliminarConfirmacion?.username}&quot;
+					</span>
+					? Esta acción no se puede deshacer.
+				</p>
+			</ConfirmDialog>
 
-      <Dialog
-        open={resetUsuario !== null}
-        onClose={() => !reset.isPending && setResetUsuario(null)}
-        title={`Restablecer contraseña de ${resetUsuario?.username ?? ""}`}
-        width="max-w-md"
-      >
-        <div className="space-y-3">
-          <Input
-            label="Nueva contraseña (mín. 8)"
-            required
-            type="password"
-            autoFocus
-            value={nuevaPassword}
-            onChange={(e) => setNuevaPassword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && nuevaPassword.length >= 8 && resetUsuario)
-                reset.mutate({
-                  id: resetUsuario.usuarioId,
-                  password: nuevaPassword,
-                });
-            }}
-          />
-          {intentoReset && nuevaPassword.length < 8 && (
-            <p className="text-xs text-red-600">
-              La contraseña debe tener al menos 8 caracteres.
-            </p>
-          )}
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              disabled={reset.isPending}
-              onClick={() => setResetUsuario(null)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              disabled={reset.isPending || resetUsuario === null}
-              onClick={() => {
-                setIntentoReset(true);
-                if (nuevaPassword.length >= 8 && resetUsuario)
-                  reset.mutate({
-                    id: resetUsuario.usuarioId,
-                    password: nuevaPassword,
-                  });
-              }}
-            >
-              {reset.isPending ? "Restableciendo…" : "Restablecer"}
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-    </div>
-  );
+			<Dialog
+				open={resetUsuario !== null}
+				onClose={() => !reset.isPending && setResetUsuario(null)}
+				title={`Restablecer contraseña de ${resetUsuario?.username ?? ""}`}
+				width="max-w-md"
+			>
+				<div className="space-y-3">
+					<Input
+						label="Nueva contraseña (mín. 8)"
+						required
+						type="password"
+						autoFocus
+						value={nuevaPassword}
+						onChange={(e) => setNuevaPassword(e.target.value)}
+						onKeyDown={(e) => {
+							if (
+								e.key === "Enter" &&
+								nuevaPassword.length >= 8 &&
+								resetUsuario
+							)
+								reset.mutate({
+									id: resetUsuario.usuarioId,
+									password: nuevaPassword,
+								});
+						}}
+					/>
+					{intentoReset && nuevaPassword.length < 8 && (
+						<p className="text-xs text-red-600">
+							La contraseña debe tener al menos 8 caracteres.
+						</p>
+					)}
+					<div className="flex justify-end gap-2">
+						<Button
+							variant="ghost"
+							disabled={reset.isPending}
+							onClick={() => setResetUsuario(null)}
+						>
+							Cancelar
+						</Button>
+						<Button
+							disabled={reset.isPending || resetUsuario === null}
+							onClick={() => {
+								setIntentoReset(true);
+								if (nuevaPassword.length >= 8 && resetUsuario)
+									reset.mutate({
+										id: resetUsuario.usuarioId,
+										password: nuevaPassword,
+									});
+							}}
+						>
+							{reset.isPending ? "Restableciendo…" : "Restablecer"}
+						</Button>
+					</div>
+				</div>
+			</Dialog>
+		</div>
+	);
 }

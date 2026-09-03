@@ -16,81 +16,81 @@ import type { MejorVendedor } from "@/lib/api/types";
 import CardListReportes from "./CardListReportes";
 
 export default function MejoresVendedoresPage() {
-  useDocumentTitle("Mejores vendedores");
-  const { error: mostrarError } = useToast();
-  const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
+	useDocumentTitle("Mejores vendedores");
+	const { error: mostrarError } = useToast();
+	const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["mejores-vendedores", rango.inicio, rango.fin],
-    queryFn: () => apiMejoresVendedores(rango.inicio, rango.fin),
-  });
+	const { data, isLoading, error } = useQuery({
+		queryKey: ["mejores-vendedores", rango.inicio, rango.fin],
+		queryFn: () => apiMejoresVendedores(rango.inicio, rango.fin),
+	});
 
-  useEffect(() => {
-    if (error)
-      mostrarError(
-        esApiError(error) ? error.mensajeParaUsuario() : String(error),
-      );
-  }, [error, mostrarError]);
+	useEffect(() => {
+		if (error)
+			mostrarError(
+				esApiError(error) ? error.mensajeParaUsuario() : String(error),
+			);
+	}, [error, mostrarError]);
 
-  const columnas: Columna<MejorVendedor>[] = [
-    {
-      key: "r",
-      header: "Ranking",
-      render: (v) => <span className="font-medium">{v.rankingMes}°</span>,
-    },
-    { key: "n", header: "Vendedor", render: (v) => v.vendedor },
-    {
-      key: "c",
-      header: "Ventas",
-      align: "right",
-      render: (v) => formatoNumero(v.numVentas),
-    },
-    {
-      key: "t",
-      header: "Total vendido",
-      align: "right",
-      render: (v) => formatoMoneda(v.totalVendido),
-    },
-    {
-      key: "p",
-      header: "Ticket promedio",
-      align: "right",
-      render: (v) => formatoMoneda(v.ticketPromedio),
-    },
-    {
-      key: "u",
-      header: "Utilidad",
-      align: "right",
-      render: (v) => formatoMoneda(v.utilidadGenerada),
-    },
-  ];
+	const columnas: Columna<MejorVendedor>[] = [
+		{
+			key: "r",
+			header: "Ranking",
+			render: (v) => <span className="font-medium">{v.rankingMes}°</span>,
+		},
+		{ key: "n", header: "Vendedor", render: (v) => v.vendedor },
+		{
+			key: "c",
+			header: "Ventas",
+			align: "right",
+			render: (v) => formatoNumero(v.numVentas),
+		},
+		{
+			key: "t",
+			header: "Total vendido",
+			align: "right",
+			render: (v) => formatoMoneda(v.totalVendido),
+		},
+		{
+			key: "p",
+			header: "Ticket promedio",
+			align: "right",
+			render: (v) => formatoMoneda(v.ticketPromedio),
+		},
+		{
+			key: "u",
+			header: "Utilidad",
+			align: "right",
+			render: (v) => formatoMoneda(v.utilidadGenerada),
+		},
+	];
 
-  return (
-    <div className="space-y-4">
-      <ReporteHeader
-        titulo="Mejores vendedores"
-        subtitulo={`Periodo: ${formatoFecha(rango.inicio)} – ${formatoFecha(rango.fin)}.`}
-        rango={rango}
-        onChange={setRango}
-      />
-      {isLoading && <Spinner />}
-      {data && data.length > 0 && (
-        <Card titulo="Ranking del periodo">
-          <DataTable
-            columnas={columnas}
-            items={data}
-            rowKey={(v) => v.usuarioId}
-            caption="Mejores vendedores"
-          />
-        </Card>
-      )}
-      {data && data.length === 0 && !isLoading && (
-        <EmptyState
-          title="Sin ventas en el periodo"
-          descripcion="Cambia el rango de fechas."
-        />
-      )}
-      <CardListReportes />
-    </div>
-  );
+	return (
+		<div className="space-y-4">
+			<ReporteHeader
+				titulo="Mejores vendedores"
+				subtitulo={`Periodo: ${formatoFecha(rango.inicio)} – ${formatoFecha(rango.fin)}.`}
+				rango={rango}
+				onChange={setRango}
+			/>
+			{isLoading && <Spinner />}
+			{data && data.length > 0 && (
+				<Card titulo="Ranking del periodo">
+					<DataTable
+						columnas={columnas}
+						items={data}
+						rowKey={(v) => v.usuarioId}
+						caption="Mejores vendedores"
+					/>
+				</Card>
+			)}
+			{data && data.length === 0 && !isLoading && (
+				<EmptyState
+					title="Sin ventas en el periodo"
+					descripcion="Cambia el rango de fechas."
+				/>
+			)}
+			<CardListReportes />
+		</div>
+	);
 }
