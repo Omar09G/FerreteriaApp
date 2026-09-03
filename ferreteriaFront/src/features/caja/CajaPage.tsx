@@ -4,10 +4,21 @@ import {
 	ArrowDownCircle,
 	ArrowUpCircle,
 	Banknote,
+	BarChart3,
 	Lock,
 	Settings2,
 	Unlock,
 } from "lucide-react";
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Legend,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useNavigate } from "react-router-dom";
@@ -139,6 +150,231 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
 	);
 }
 
+function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
+	const [tab, setTab] = useState<"ventas" | "efectivo" | "formas">("ventas");
+
+	if (cortes.length === 0) {
+		return (
+			<p className="py-8 text-center text-sm text-muted">
+				Sin cortes para el rango seleccionado.
+			</p>
+		);
+	}
+	const base = cortes.slice().sort((a, b) => a.corteId - b.corteId);
+
+	const parseJson = (raw: string): Record<string, number> => {
+		if (!raw) return {};
+		try {
+			const obj = JSON.parse(raw) as Record<string, number>;
+			const merged: Record<string, number> = {};
+			for (const [k, v] of Object.entries(obj)) {
+				const norm = k.trim().toLowerCase();
+				// normaliza "efectivo"/"EFECTIVO" -> "Efectivo"
+				const label = norm === "efectivo" ? "Efectivo" : k;
+				merged[label] = (merged[label] ?? 0) + Number(v);
+			}
+			return merged;
+		} catch {
+			return {};
+		}
+	};
+
+	// --- datos ventas ---
+	const dataVentas = base.map((c) => ({
+		label: `#${c.corteId} ${c.cajaNombre}`,
+		corteId: c.corteId,
+		totalVendido: c.totalVendido,
+		utilidadBruta: c.utilidadBruta,
+		numVentas: c.numVentas,
+		fecha: c.fecha,
+		margenPct: c.margenPct,
+		costoVentas: c.costoVentas,
+	}));
+
+	// --- datos efectivo ---
+	const dataEfectivo = base.map((c) => ({
+		label: `#${c.corteId}`,
+		corteId: c.corteId,
+		fondoApertura: c.fondoApertura,
+		entradasEfectivo: c.entradasEfectivo,
+		salidasEfectivo: c.salidasEfectivo,
+		dineroEsperado: c.dineroEsperado,
+		dineroContado: c.dineroContado,
+		diferencia: c.diferencia,
+		egresosNoEfectivo: c.egresosNoEfectivo,
+	}));
+
+	// --- datos formas de pago (stacked)
+	const formasKeys = Array.from(
+		new Set(base.flatMap((c) => Object.keys(parseJson(c.desgloseFormasPago)))),
+	).sort();
+	const coloresFormas: Record<string, string> = {
+		Efectivo: "#16a34a",
+		"Transferencia SPEI": "#2563eb",
+		"Tarjeta de crédito": "#ea580c",
+		"Tarjeta de débito": "#9333ea",
+		EFECTIVO: "#16a34a",
+	};
+	const fallbackColors = ["#0ea5e9", "#f59e0b", "#84cc16", "#e11d48", "#14b8a6", "#a855f7"];
+	const dataFormas = base.map((c) => {
+		const parsed = parseJson(c.desgloseFormasPago);
+		const row: Record<string, string | number> = { label: `#${c.corteId}`, corteId: c.corteId };
+		for (const k of formasKeys) row[k] = parsed[k] ?? 0;
+		return row as { label: string; corteId: number } & Record<string, number>;
+	});
+
+	const tabClass = (active: boolean) =>
+		`rounded-md px-3 py-1.5 text-xs font-medium ${active ? "bg-primary text-white" : "bg-canvas text-muted hover:text-ink"}`;
+
+	return (
+		<div className="space-y-4">
+			<div className="flex flex-wrap gap-1.5 rounded-lg bg-canvas p-1">
+				<button type="button" className={tabClass(tab === "ventas")} onClick={() => setTab("ventas")}>
+					Ventas
+				</button>
+				<button type="button" className={tabClass(tab === "efectivo")} onClick={() => setTab("efectivo")}>
+					Flujo efectivo
+				</button>
+				<button type="button" className={tabClass(tab === "formas")} onClick={() => setTab("formas")}>
+					Formas de pago
+				</button>
+			</div>
+			<p className="text-xs text-muted">
+				{tab === "ventas" && "Total vendido vs utilidad por corte. Margen 100% indica costo_ventas=0 (sin costo registrado)."}
+				{tab === "efectivo" && "Fondo + entradas - salidas = esperado. Diferencia 0 = cuadrado. Incluye egresos no efectivo (transferencias/pagos proveedor)."}
+				{tab === "formas" && "Distribución por forma de pago (desgloseFormasPago JSON). Efectivo vs digital."}
+			</p>
+
+			{tab === "ventas" && (
+				<>
+					<ResponsiveContainer width="100%" height={320}>
+						<BarChart data={dataVentas} margin={{ left: 8, right: 8, top: 8 }}>
+							<CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+							<XAxis dataKey="label" stroke="#57534e" fontSize={12} interval={0} angle={-15} textAnchor="end" height={60} />
+							<YAxis stroke="#57534e" fontSize={12} width={90} tickFormatter={(v: number) => formatoMoneda(v)} />
+							<Tooltip formatter={(value, name) => [formatoMoneda(Number(value)), String(name)]} />
+							<Legend />
+							<Bar dataKey="totalVendido" name="Total vendido" fill="#ea580c" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="utilidadBruta" name="Utilidad" fill="#16a34a" radius={[4, 4, 0, 0]} />
+						</BarChart>
+					</ResponsiveContainer>
+					<div className="overflow-x-auto rounded-md border border-line">
+						<table className="w-full text-sm">
+							<thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
+								<tr>
+									<th scope="col" className="px-2 py-1 text-left">Corte</th>
+									<th scope="col" className="px-2 py-1 text-left">Fecha</th>
+									<th scope="col" className="px-2 py-1 text-right">Ventas</th>
+									<th scope="col" className="px-2 py-1 text-right">Total</th>
+									<th scope="col" className="px-2 py-1 text-right">Utilidad</th>
+									<th scope="col" className="px-2 py-1 text-right">Margen</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-line">
+								{dataVentas.map((d) => (
+									<tr key={d.corteId}>
+										<td className="px-2 py-1.5 font-medium">{d.label}</td>
+										<td className="px-2 py-1.5 tabular-nums">{d.fecha}</td>
+										<td className="px-2 py-1.5 text-right tabular-nums">{d.numVentas}</td>
+										<td className="px-2 py-1.5 text-right font-medium tabular-nums">{formatoMoneda(d.totalVendido)}</td>
+										<td className="px-2 py-1.5 text-right tabular-nums text-emerald-700">{formatoMoneda(d.utilidadBruta)}</td>
+										<td className="px-2 py-1.5 text-right tabular-nums">{formatoNumero(d.margenPct)}%</td>
+									</tr>
+								))}
+							</tbody>
+							<tfoot className="bg-canvas font-semibold">
+								<tr>
+									<td colSpan={2} className="px-2 py-1.5 text-right">Total periodo</td>
+									<td className="px-2 py-1.5 text-right tabular-nums">{formatoNumero(dataVentas.reduce((a, c) => a + c.numVentas, 0))}</td>
+									<td className="px-2 py-1.5 text-right tabular-nums">{formatoMoneda(dataVentas.reduce((a, c) => a + c.totalVendido, 0))}</td>
+									<td className="px-2 py-1.5 text-right tabular-nums">{formatoMoneda(dataVentas.reduce((a, c) => a + c.utilidadBruta, 0))}</td>
+									<td className="px-2 py-1.5 text-right tabular-nums">—</td>
+								</tr>
+							</tfoot>
+						</table>
+					</div>
+					{base.some((c) => c.costoVentas === 0) && (
+						<p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+							Nota: {base.filter((c) => c.costoVentas === 0).length} de {base.length} cortes tienen costo_ventas=0 ⇒ margen 100%. Para utilidad real, asegurar costo_actual en productos.
+						</p>
+					)}
+				</>
+			)}
+
+			{tab === "efectivo" && (
+				<>
+					<ResponsiveContainer width="100%" height={320}>
+						<BarChart data={dataEfectivo} margin={{ left: 8, right: 8, top: 8 }}>
+							<CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+							<XAxis dataKey="label" stroke="#57534e" fontSize={12} />
+							<YAxis stroke="#57534e" fontSize={12} width={90} tickFormatter={(v: number) => formatoMoneda(v)} />
+							<Tooltip formatter={(value) => formatoMoneda(Number(value))} />
+							<Legend />
+							<Bar dataKey="fondoApertura" name="Fondo" fill="#a3a3a3" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="entradasEfectivo" name="Entradas ef." fill="#16a34a" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="salidasEfectivo" name="Salidas ef." fill="#dc2626" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="dineroEsperado" name="Esperado" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="egresosNoEfectivo" name="Egresos no ef." fill="#f59e0b" radius={[4, 4, 0, 0]} />
+						</BarChart>
+					</ResponsiveContainer>
+					<div className="overflow-x-auto rounded-md border border-line">
+						<table className="w-full text-sm">
+							<thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
+								<tr>
+									<th scope="col" className="px-2 py-1 text-left">Corte</th>
+									<th scope="col" className="px-2 py-1 text-right">Fondo</th>
+									<th scope="col" className="px-2 py-1 text-right">Entradas</th>
+									<th scope="col" className="px-2 py-1 text-right">Salidas</th>
+									<th scope="col" className="px-2 py-1 text-right">Esperado</th>
+									<th scope="col" className="px-2 py-1 text-right">Contado</th>
+									<th scope="col" className="px-2 py-1 text-right">Dif.</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-line">
+								{dataEfectivo.map((d) => (
+									<tr key={d.corteId}>
+										<td className="px-2 py-1.5 font-medium">{d.label}</td>
+										<td className="px-2 py-1.5 text-right tabular-nums">{formatoMoneda(d.fondoApertura)}</td>
+										<td className="px-2 py-1.5 text-right tabular-nums text-emerald-700">{formatoMoneda(d.entradasEfectivo)}</td>
+										<td className="px-2 py-1.5 text-right tabular-nums text-red-700">{formatoMoneda(d.salidasEfectivo)}</td>
+										<td className="px-2 py-1.5 text-right font-medium tabular-nums">{formatoMoneda(d.dineroEsperado)}</td>
+										<td className="px-2 py-1.5 text-right tabular-nums">{formatoMoneda(d.dineroContado)}</td>
+										<td className={`px-2 py-1.5 text-right tabular-nums ${d.diferencia === 0 ? "text-emerald-700" : "text-red-700"}`}>{formatoMoneda(d.diferencia)}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</>
+			)}
+
+			{tab === "formas" && (
+				<>
+					{formasKeys.length === 0 ? (
+						<p className="py-4 text-center text-sm text-muted">Sin desglose de formas de pago.</p>
+					) : (
+						<>
+							<ResponsiveContainer width="100%" height={320}>
+								<BarChart data={dataFormas} margin={{ left: 8, right: 8, top: 8 }}>
+									<CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+									<XAxis dataKey="label" stroke="#57534e" fontSize={12} />
+									<YAxis stroke="#57534e" fontSize={12} width={90} tickFormatter={(v: number) => formatoMoneda(v)} />
+									<Tooltip formatter={(value) => formatoMoneda(Number(value))} />
+									<Legend />
+									{formasKeys.map((k, i) => (
+										<Bar key={k} dataKey={k} stackId="pago" fill={coloresFormas[k] ?? fallbackColors[i % fallbackColors.length]} radius={[4, 4, 0, 0]} />
+									))}
+								</BarChart>
+							</ResponsiveContainer>
+							<p className="text-xs text-muted">Claves normalizadas (Efectivo/EFECTIVO unificadas). Útil para ver proporción efectivo vs digital (Transferencia/Tarjeta).</p>
+						</>
+					)}
+				</>
+			)}
+		</div>
+	);
+}
+
 export default function CajaPage() {
 	useDocumentTitle("Caja y cortes");
 	const { error: mostrarError, success: mostrarExito } = useToast();
@@ -166,6 +402,7 @@ export default function CajaPage() {
 	const [cerrarAbierto, setCerrarAbierto] = useState(false);
 	const [montoContado, setMontoContado] = useState("");
 	const [observaciones, setObservaciones] = useState("");
+	const [graficaAbierta, setGraficaAbierta] = useState(false);
 	const [mov, setMov] = useState({
 		tipo: "SALIDA",
 		concepto: "GASTO_OPERATIVO",
@@ -550,7 +787,7 @@ export default function CajaPage() {
 									setPageCortes(0);
 								}}
 							/>
-							<div className="flex items-end">
+							<div className="flex items-end gap-2">
 								<Button
 									variant="secondary"
 									size="sm"
@@ -561,6 +798,16 @@ export default function CajaPage() {
 									}}
 								>
 									Hoy
+								</Button>
+								<Button
+									variant="secondary"
+									size="sm"
+									disabled={!cortes.data || cortes.data.data.length === 0}
+									onClick={() => setGraficaAbierta(true)}
+									aria-label="Ver gráfica de ventas por corte"
+									title="Ver gráfica de ventas por corte"
+								>
+									<BarChart3 className="h-4 w-4" /> Gráfica
 								</Button>
 							</div>
 						</div>
@@ -695,6 +942,15 @@ export default function CajaPage() {
 						</Button>
 					</div>
 				</div>
+			</Dialog>
+
+			<Dialog
+				open={graficaAbierta}
+				onClose={() => setGraficaAbierta(false)}
+				title="Ventas por cierre de caja"
+				width="max-w-3xl"
+			>
+				{cortes.data && <GraficaCortes cortes={cortes.data.data} />}
 			</Dialog>
 		</div>
 	);

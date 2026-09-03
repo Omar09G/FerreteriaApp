@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Eye, Plus, Search, Trash2 } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
@@ -352,6 +352,125 @@ function CompraForm({
 	);
 }
 
+function DetalleCompra({ compra }: { compra: Compra }) {
+	return (
+		<div className="space-y-3 text-sm">
+			<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+				<div>
+					<p className="text-xs text-muted">Folio</p>
+					<p className="font-medium text-ink">{compra.folio}</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Factura proveedor</p>
+					<p className="font-medium text-ink">{compra.facturaProveedor ?? "—"}</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Estado</p>
+					<Badge tone={compra.estado === "RECIBIDA" ? "success" : "info"}>
+						{compra.estado}
+					</Badge>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Proveedor</p>
+					<p className="font-medium text-ink">{compra.proveedor}</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Almacén</p>
+					<p className="font-medium text-ink">{compra.almacen}</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Forma de pago</p>
+					<p className="font-medium text-ink">{compra.formaPago}</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Fecha</p>
+					<p className="font-medium tabular-nums text-ink">
+						{formatoFechaHora(compra.fecha)}
+					</p>
+				</div>
+				{compra.turnoCajaId && (
+					<div>
+						<p className="text-xs text-muted">Turno caja</p>
+						<p className="font-medium tabular-nums text-ink">#{compra.turnoCajaId}</p>
+					</div>
+				)}
+			</div>
+
+			<div>
+				<p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
+					Partidas
+				</p>
+				<div className="overflow-x-auto rounded-md border border-line">
+					<table className="w-full text-sm">
+						<thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
+							<tr>
+								<th scope="col" className="px-2 py-1 text-left">
+									Producto
+								</th>
+								<th scope="col" className="px-2 py-1 text-right">
+									Cant.
+								</th>
+								<th scope="col" className="px-2 py-1 text-right">
+									Costo
+								</th>
+								<th scope="col" className="px-2 py-1 text-right">
+									Importe
+								</th>
+							</tr>
+						</thead>
+						<tbody className="divide-y divide-line">
+							{compra.detalles.map((d) => (
+								<tr key={d.compraDetalleId}>
+									<td className="px-2 py-1.5">{d.producto}</td>
+									<td className="px-2 py-1.5 text-right tabular-nums">
+										{d.cantidad}
+									</td>
+									<td className="px-2 py-1.5 text-right tabular-nums">
+										{formatoMoneda(d.costoUnitario)}
+									</td>
+									<td className="px-2 py-1.5 text-right font-medium tabular-nums">
+										{formatoMoneda(d.importeLinea)}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 text-sm sm:grid-cols-4">
+				<div>
+					<p className="text-xs text-muted">Subtotal</p>
+					<p className="font-medium tabular-nums">{formatoMoneda(compra.subtotal)}</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">IVA</p>
+					<p className="font-medium tabular-nums">{formatoMoneda(compra.iva)}</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Descuento</p>
+					<p className="font-medium tabular-nums text-muted">
+						−{formatoMoneda(compra.descuentoTotal)}
+					</p>
+				</div>
+				<div>
+					<p className="text-xs text-muted">Total</p>
+					<p className="text-base font-bold tabular-nums text-primary">
+						{formatoMoneda(compra.total)}
+					</p>
+				</div>
+			</div>
+
+			{compra.notas && (
+				<div>
+					<p className="text-xs font-medium uppercase tracking-wide text-muted">Notas</p>
+					<p className="rounded-md border border-line px-3 py-2 text-sm">{compra.notas}</p>
+				</div>
+			)}
+		</div>
+	);
+}
+
 export default function ComprasPage() {
 	useDocumentTitle("Compras");
 	const { error: mostrarError, success: mostrarExito } = useToast();
@@ -361,6 +480,7 @@ export default function ComprasPage() {
 	const [rango, setRango] = useState<RangoFechas | null>(null);
 	const [page, setPage] = useState(0);
 	const [dialogoAbierto, setDialogoAbierto] = useState(false);
+	const [detalle, setDetalle] = useState<Compra | null>(null);
 
 	const proveedores = useQuery({
 		queryKey: ["proveedores-list"],
@@ -432,6 +552,22 @@ export default function ComprasPage() {
 				<span className="tabular-nums font-medium">
 					{formatoMoneda(v.total)}
 				</span>
+			),
+		},
+		{
+			key: "acc",
+			header: "Acciones",
+			align: "right",
+			render: (v) => (
+				<button
+					type="button"
+					aria-label={`Ver detalle de ${v.folio}`}
+					title="Ver detalle"
+					className="rounded p-1.5 text-muted hover:bg-primary-50 hover:text-primary"
+					onClick={() => setDetalle(v)}
+				>
+					<Eye className="h-4 w-4" />
+				</button>
 			),
 		},
 	];
@@ -515,6 +651,15 @@ export default function ComprasPage() {
 					onGuardar={(body) => crear.mutate(body)}
 					onClose={() => setDialogoAbierto(false)}
 				/>
+			</Dialog>
+
+			<Dialog
+				open={detalle !== null}
+				onClose={() => setDetalle(null)}
+				title={detalle ? `Detalle de compra ${detalle.folio}` : ""}
+				width="max-w-2xl"
+			>
+				{detalle && <DetalleCompra compra={detalle} />}
 			</Dialog>
 		</div>
 	);

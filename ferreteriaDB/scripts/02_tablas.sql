@@ -1524,8 +1524,20 @@ BEGIN
             VALUES (v_cid, v_tot, CURRENT_DATE + v_dias)
             RETURNING cuenta_pagar_id INTO v_cp;
         ELSIF v_prev <> v_tot THEN
-            UPDATE com.cuentas_pagar SET monto_total = v_tot
-            WHERE cuenta_pagar_id = v_cp AND estado <> 'LIQUIDADA';
+            -- Al llegar aqui el trigger pudo ejecutarse varias veces (detalles
+            -- insertados uno por uno desde la app). Una cuenta de CONTADO puede
+            -- ya estar LIQUIDADA por el pago auto generado en la primera linea;
+            -- aun asi hay que sincronizar monto_total con v_tot y dejar que el
+            -- bloque CONCILIA_PAGOS ajuste los pagos CONTADO. Se clamptea
+            -- monto_pagado para no violar chk_cp_pago_monto cuando v_tot decrece.
+            UPDATE com.cuentas_pagar
+               SET monto_total = v_tot,
+                   monto_pagado = LEAST(monto_pagado, v_tot),
+                   estado = CASE
+                       WHEN LEAST(monto_pagado, v_tot) >= v_tot THEN 'LIQUIDADA'
+                       WHEN LEAST(monto_pagado, v_tot) > 0 THEN 'PARCIAL'
+                       ELSE 'VIGENTE' END
+             WHERE cuenta_pagar_id = v_cp AND estado <> 'CANCELADA';
         END IF;
 
         IF v_fp <> 'CREDITO' THEN
@@ -1555,6 +1567,17 @@ BEGIN
                         v_exceso := 0;
                     END IF;
                 END LOOP;
+                -- Sincronizar monto_pagado/estado tras recortar pagos CONTADO
+                -- (DELETE/UPDATE de pagos no dispara trg_pago_proveedor_post).
+                SELECT COALESCE(SUM(monto), 0) INTO v_pagado
+                FROM com.pagos_proveedor WHERE cuenta_pagar_id = v_cp;
+                UPDATE com.cuentas_pagar
+                   SET monto_pagado = v_pagado,
+                       estado = CASE
+                           WHEN v_pagado >= v_tot THEN 'LIQUIDADA'
+                           WHEN v_pagado > 0 THEN 'PARCIAL'
+                           ELSE 'VIGENTE' END
+                 WHERE cuenta_pagar_id = v_cp;
             END IF;
         END IF;
     END IF;
