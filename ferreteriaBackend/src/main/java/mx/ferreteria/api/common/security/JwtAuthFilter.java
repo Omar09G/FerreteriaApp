@@ -21,21 +21,24 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import mx.ferreteria.api.common.security.AuthCookieProperties;
-
 /**
  * Valida el access token (typ=acc) y puebla el SecurityContext con
  * authorities ROLE_&lt;clave&gt;. Sin token o inválido: contexto vacío — la
  * decisión 401/403 la tocan entry point / authorization rules.
  *
- * <p><b>Origen del token (en orden de precedencia):</b></p>
+ * <p>
+ * <b>Origen del token (en orden de precedencia):</b>
+ * </p>
  * <ol>
- *   <li>Cookie HttpOnly {@code at} (browser con withCredentials).</li>
- *   <li>Header {@code Authorization: Bearer ...} (clientes no-browser, tests).</li>
+ * <li>Cookie HttpOnly {@code at} (browser con withCredentials).</li>
+ * <li>Header {@code Authorization: Bearer ...} (clientes no-browser,
+ * tests).</li>
  * </ol>
- * <p>Con cookies HttpOnly el browser NUNCA expone el token a JS: aunque un
+ * <p>
+ * Con cookies HttpOnly el browser NUNCA expone el token a JS: aunque un
  * XSS inyecte código, no puede leer el access ni el refresh (también en
- * cookie), así que no puede escalar a otras llamadas suplantando al usuario.</p>
+ * cookie), así que no puede escalar a otras llamadas suplantando al usuario.
+ * </p>
  */
 @Slf4j
 @Component
@@ -98,7 +101,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String header = req.getHeader("Authorization");
         if (header != null && header.startsWith(BEARER)) {
             String raw = header.substring(BEARER.length());
-            if (!raw.isBlank()) return raw;
+            if (!raw.isBlank())
+                return raw;
         }
         return null;
     }
