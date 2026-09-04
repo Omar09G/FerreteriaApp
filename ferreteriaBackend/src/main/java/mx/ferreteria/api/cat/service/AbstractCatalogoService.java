@@ -1,7 +1,5 @@
 package mx.ferreteria.api.cat.service;
 
-import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,9 +18,13 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 public abstract class AbstractCatalogoService<T, ID, REQ, RES> {
 
     protected abstract JpaRepository<T, ID> repo();
+
     protected abstract T toEntity(REQ request);
+
     protected abstract void updateEntity(T entity, REQ request);
+
     protected abstract RES toResponse(T entity);
+
     protected abstract ID extractId(T entity);
 
     @Transactional(readOnly = true)
@@ -62,7 +64,9 @@ public abstract class AbstractCatalogoService<T, ID, REQ, RES> {
         throw new ReglaNegocioException(ErrorCode.REGISTRO_NO_MODIFICABLE);
     }
 
-    protected void validateCreate(T entity) { }
+    protected void validateCreate(T entity) {
+    }
 
-    protected void validateUpdate(T entity) { }
+    protected void validateUpdate(T entity) {
+    }
 }

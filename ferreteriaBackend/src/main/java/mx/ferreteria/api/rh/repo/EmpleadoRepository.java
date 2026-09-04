@@ -34,8 +34,9 @@ public class EmpleadoRepository implements EmpleadoGateway {
     @Override
     public List<EmpleadoRow> findEmpleados(int limit, int offset) {
         return jdbc.sql("SELECT " + CAMPOS + " FROM rh.empleados e "
-                        + "JOIN cat.puestos p ON p.puesto_id = e.puesto_id "
-                        + "ORDER BY e.empleado_id LIMIT :lim OFFSET :off")
+                + "JOIN cat.puestos p ON p.puesto_id = e.puesto_id "
+                + "WHERE e.activo "
+                + "ORDER BY e.empleado_id LIMIT :lim OFFSET :off")
                 .param("lim", limit).param("off", offset)
                 .query(this::mapRow)
                 .list();
@@ -43,15 +44,15 @@ public class EmpleadoRepository implements EmpleadoGateway {
 
     @Override
     public long countEmpleados() {
-        Long n = jdbc.sql("SELECT count(*) FROM rh.empleados").query(Long.class).single();
+        Long n = jdbc.sql("SELECT count(*) FROM rh.empleados WHERE activo").query(Long.class).single();
         return n == null ? 0 : n;
     }
 
     @Override
     public Optional<EmpleadoRow> findById(int empleadoId) {
         return jdbc.sql("SELECT " + CAMPOS + " FROM rh.empleados e "
-                        + "JOIN cat.puestos p ON p.puesto_id = e.puesto_id "
-                        + "WHERE e.empleado_id = :id")
+                + "JOIN cat.puestos p ON p.puesto_id = e.puesto_id "
+                + "WHERE e.empleado_id = :id AND e.activo")
                 .param("id", empleadoId)
                 .query(this::mapRow)
                 .optional();
@@ -60,14 +61,14 @@ public class EmpleadoRepository implements EmpleadoGateway {
     @Override
     public Optional<EmpleadoResumen> resumenById(int empleadoId) {
         return jdbc.sql("""
-                        SELECT e.empleado_id,
-                               trim(concat(e.nombre, ' ', e.apellido_p, ' ', e.apellido_m))
-                                 AS nombre_completo,
-                               p.nombre AS puesto_nombre, e.email, e.telefono, e.activo
-                        FROM rh.empleados e
-                        JOIN cat.puestos p ON p.puesto_id = e.puesto_id
-                        WHERE e.empleado_id = :id
-                        """)
+                SELECT e.empleado_id,
+                       trim(concat(e.nombre, ' ', e.apellido_p, ' ', e.apellido_m))
+                         AS nombre_completo,
+                       p.nombre AS puesto_nombre, e.email, e.telefono, e.activo
+                FROM rh.empleados e
+                JOIN cat.puestos p ON p.puesto_id = e.puesto_id
+                WHERE e.empleado_id = :id AND e.activo
+                """)
                 .param("id", empleadoId)
                 .query((rs, n) -> new EmpleadoResumen(rs.getInt("empleado_id"),
                         rs.getString("nombre_completo"), rs.getString("puesto_nombre"),
@@ -78,7 +79,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
     @Override
     public boolean existsAndActivo(int empleadoId) {
         Boolean ok = jdbc.sql("SELECT EXISTS (SELECT 1 FROM rh.empleados "
-                        + "WHERE empleado_id = :id AND activo AND fecha_baja IS NULL)")
+                + "WHERE empleado_id = :id AND activo AND fecha_baja IS NULL)")
                 .param("id", empleadoId)
                 .query(Boolean.class)
                 .single();
@@ -87,17 +88,17 @@ public class EmpleadoRepository implements EmpleadoGateway {
 
     @Override
     public int create(int puestoId, String nombre, String apellidoPaterno, String apellidoMaterno,
-                      String curp, String nss, String telefono, String email, String calle,
-                      String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-                      BigDecimal sueldoDiario) {
+            String curp, String nss, String telefono, String email, String calle,
+            String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
+            BigDecimal sueldoDiario) {
         return jdbc.sql("""
-                        INSERT INTO rh.empleados (puesto_id, nombre, apellido_p, apellido_m,
-                            curp, nss, telefono, email, calle, colonia, ciudad_id, cp,
-                            fecha_ingreso, sueldo_diario)
-                        VALUES (:pto, :n, :ap, :am, :curp, :nss, :tel, :em, :calle, :col,
-                            :cd, :cp, :ingreso, :sueldo)
-                        RETURNING empleado_id
-                        """)
+                INSERT INTO rh.empleados (puesto_id, nombre, apellido_p, apellido_m,
+                    curp, nss, telefono, email, calle, colonia, ciudad_id, cp,
+                    fecha_ingreso, sueldo_diario)
+                VALUES (:pto, :n, :ap, :am, :curp, :nss, :tel, :em, :calle, :col,
+                    :cd, :cp, :ingreso, :sueldo)
+                RETURNING empleado_id
+                """)
                 .param("pto", puestoId).param("n", nombre).param("ap", apellidoPaterno)
                 .param("am", apellidoMaterno).param("curp", curp).param("nss", nss)
                 .param("tel", telefono).param("em", email).param("calle", calle)
@@ -110,28 +111,28 @@ public class EmpleadoRepository implements EmpleadoGateway {
 
     @Override
     public void update(int empleadoId, Integer puestoId, String nombre, String apellidoPaterno,
-                       String apellidoMaterno, String curp, String nss, String telefono, String email,
-                       String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-                       BigDecimal sueldoDiario, Boolean activo) {
+            String apellidoMaterno, String curp, String nss, String telefono, String email,
+            String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
+            BigDecimal sueldoDiario, Boolean activo) {
         jdbc.sql("""
-                        UPDATE rh.empleados
-                        SET puesto_id = COALESCE(:p, puesto_id),
-                            nombre = COALESCE(:n, nombre),
-                            apellido_p = COALESCE(:ap, apellido_p),
-                            apellido_m = COALESCE(:am, apellido_m),
-                            curp = COALESCE(:curp, curp),
-                            nss = COALESCE(:nss, nss),
-                            telefono = COALESCE(:tel, telefono),
-                            email = COALESCE(:em, email),
-                            calle = COALESCE(:calle, calle),
-                            colonia = COALESCE(:col, colonia),
-                            ciudad_id = COALESCE(:cd, ciudad_id),
-                            cp = COALESCE(:cp, cp),
-                            fecha_ingreso = COALESCE(:ingreso, fecha_ingreso),
-                            sueldo_diario = COALESCE(:su, sueldo_diario),
-                            activo = COALESCE(:a, activo)
-                        WHERE empleado_id = :id
-                        """)
+                UPDATE rh.empleados
+                SET puesto_id = COALESCE(:p, puesto_id),
+                    nombre = COALESCE(:n, nombre),
+                    apellido_p = COALESCE(:ap, apellido_p),
+                    apellido_m = COALESCE(:am, apellido_m),
+                    curp = COALESCE(:curp, curp),
+                    nss = COALESCE(:nss, nss),
+                    telefono = COALESCE(:tel, telefono),
+                    email = COALESCE(:em, email),
+                    calle = COALESCE(:calle, calle),
+                    colonia = COALESCE(:col, colonia),
+                    ciudad_id = COALESCE(:cd, ciudad_id),
+                    cp = COALESCE(:cp, cp),
+                    fecha_ingreso = COALESCE(:ingreso, fecha_ingreso),
+                    sueldo_diario = COALESCE(:su, sueldo_diario),
+                    activo = COALESCE(:a, activo)
+                WHERE empleado_id = :id
+                """)
                 .param("id", empleadoId).param("p", puestoId).param("n", nombre)
                 .param("ap", apellidoPaterno).param("am", apellidoMaterno)
                 .param("curp", curp).param("nss", nss).param("tel", telefono)
@@ -145,7 +146,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
     @Override
     public void baja(int empleadoId) {
         jdbc.sql("UPDATE rh.empleados SET fecha_baja = CURRENT_DATE, activo = false "
-                        + "WHERE empleado_id = :id AND activo")
+                + "WHERE empleado_id = :id AND activo = true")
                 .param("id", empleadoId)
                 .update();
     }

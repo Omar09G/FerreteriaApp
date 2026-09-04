@@ -8,17 +8,18 @@ import mx.ferreteria.api.cat.dto.CatalogoDtos.RegimenFiscalRequest;
 import mx.ferreteria.api.cat.dto.CatalogoDtos.RegimenFiscalResponse;
 import mx.ferreteria.api.cat.entity.RegimenFiscal;
 import mx.ferreteria.api.cat.repo.RegimenFiscalRepository;
-import mx.ferreteria.api.common.error.ReglaNegocioException;
-import mx.ferreteria.api.common.i18n.ErrorCode;
 
 @Service
 @RequiredArgsConstructor
-public class RegimenFiscalService extends AbstractCatalogoService<RegimenFiscal, String, RegimenFiscalRequest, RegimenFiscalResponse> {
+public class RegimenFiscalService
+        extends AbstractCatalogoService<RegimenFiscal, String, RegimenFiscalRequest, RegimenFiscalResponse> {
 
     private final RegimenFiscalRepository repo;
 
     @Override
-    protected JpaRepository<RegimenFiscal, String> repo() { return repo; }
+    protected JpaRepository<RegimenFiscal, String> repo() {
+        return repo;
+    }
 
     @Override
     protected RegimenFiscal toEntity(RegimenFiscalRequest req) {
@@ -46,7 +47,9 @@ public class RegimenFiscalService extends AbstractCatalogoService<RegimenFiscal,
     }
 
     @Override
-    protected String extractId(RegimenFiscal entity) { return entity.getClaveSat(); }
+    protected String extractId(RegimenFiscal entity) {
+        return entity.getClaveSat();
+    }
 
     @Override
     protected void deactivateEntity(RegimenFiscal entity) {
