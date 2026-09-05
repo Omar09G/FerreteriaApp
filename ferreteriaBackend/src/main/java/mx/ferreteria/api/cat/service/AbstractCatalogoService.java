@@ -1,5 +1,7 @@
 package mx.ferreteria.api.cat.service;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +15,10 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
  * Servicio base genérico para CRUD de catálogos. Cada servicio concreto
  * extiende esta clase y proporciona las operaciones de conversión y
  * validación específicas de su entidad.
+ *
+ * Cache: catalogos son datos de baja volatilidad. findById usa @Cacheable
+ * para evitar round-trips a BD; create/update/deactivate invalidan con
+ * @CacheEvict para mantener coherencia.
  */
 @Transactional
 public abstract class AbstractCatalogoService<T, ID, REQ, RES> {
@@ -33,18 +39,21 @@ public abstract class AbstractCatalogoService<T, ID, REQ, RES> {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "catalogos", key = "#id", unless = "#result == null")
     public RES findById(ID id) {
         T entity = repo().findById(id).orElseThrow(
                 () -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO, id));
         return toResponse(entity);
     }
 
+    @CacheEvict(value = "catalogos", key = "#result != null ? #request : 'unknown'")
     public RES create(REQ request) {
         T entity = toEntity(request);
         validateCreate(entity);
         return toResponse(repo().save(entity));
     }
 
+    @CacheEvict(value = "catalogos", allEntries = true)
     public RES update(ID id, REQ request) {
         T entity = repo().findById(id).orElseThrow(
                 () -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO, id));

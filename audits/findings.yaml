@@ -1,6 +1,6 @@
-# findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 11: BACK-REND-004/005/006 done (Credito/Devolucion/Renta batch).
-# Total findings: 316 — done=27 open=289
+# findings.yaml - Single source of truth for MEJORAS_ECC.md
+# PASO 12: BACK-ESC-004 done (cache catalogos Caffeine 5min).
+# Total findings: 316 - done=28 open=288
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -1627,9 +1627,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 12: CacheConfig Caffeine 5min TTL para catalogos (@Cacheable findById, @CacheEvict on write)'
 - id: BACK-ESC-005
   project: backend
   dimension: escalabilidad
