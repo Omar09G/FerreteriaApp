@@ -65,7 +65,7 @@ class AuthControllerTest {
     }
 
     private static final MeResponse ME =
-            new MeResponse(7, "cajero1", 42, List.of("VENDEDOR"), null, null);
+            new MeResponse(7, "cajero1", 42, List.of("VENDEDOR"), null, null, false);
 
     @Test
     @DisplayName("POST /auth/login valido -> 200 con accessToken en body y Set-Cookie rt HttpOnly")

@@ -62,7 +62,10 @@ public final class AuthDtos {
             Integer empleadoId,
             List<String> roles,
             String ultimoLogin,
-            EmpleadoResumen empleado) { }
+            EmpleadoResumen empleado,
+            // BACK-SEC-004: el admin bootstrap tiene debe_cambiar_password=true;
+            // el frontend fuerza redirect a /change-password cuando este flag es true.
+            boolean debeCambiarPassword) { }
 
     public record LogoutOk(boolean revocado) { }
 }
