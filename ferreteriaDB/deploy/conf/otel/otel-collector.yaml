@@ -80,6 +80,38 @@ processors:
         value: ferreteria
         action: upsert
 
+  # Tail sampling: el sampling final se decide despues de ver el trace completo.
+  # Esto captura errores al 100% (sin perder ninguno) y mantiene 5% del trafico
+  # normal. Evita muestrear traces lentos/sanos y trazar solo errores.
+  tail_sampling:
+    decision_wait: 10s        # tiempo max para esperar el trace completo
+    num_traces: 50000         # ventana de traces en memoria
+    expected_new_traces_per_sec: 100
+    policies:
+      # 100% de errores y excepciones
+      - name: errors-always
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: exceptions-always
+        type: and
+        and:
+          and_sub_policy:
+            - name: has-exception
+              type: span
+              span:
+                - 'attributes["exception.type"] exists'
+      # Latencia >2s: capturar siempre (slow traces)
+      - name: slow-traces
+        type: latency
+        latency:
+          threshold_ms: 2000
+      # Sampling base 5% para trafico normal
+      - name: probabilistic-low
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 5
+
 exporters:
   # Prometheus — métricas agregadas expuestas en :8889/metrics
   prometheus:
@@ -116,7 +148,7 @@ service:
     # ─── Trazas ─────────────────────────────────────────────────
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, resource, batch]
+      processors: [memory_limiter, resource, attributes/strip_high_cardinality, tail_sampling, batch]
       exporters: [otlp, debug]
 
     # ─── Logs ───────────────────────────────────────────────────

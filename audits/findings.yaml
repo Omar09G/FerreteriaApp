@@ -1,5 +1,5 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 18: FRONT-ESC-001 done (router registry per feature).
+# PASO 19: tail_sampling en collector (errors 100%, slow 100%, base 5%).
 # Total findings: 316 - done=35 open=281
 ---
 - id: BACK-REND-001
@@ -261,8 +261,7 @@
   status: done
   owner: null
   depends_on: []
-  notes: 'PASO 5: OTel sampling al 100 % — OTEL_TRACES_SAMPLER 5% + strip_high_cardinality + resource_to_telemetry false —
-    verificado 2026-09-05'
+  notes: 'PASO 5: parentbased_traceidratio 0.05. PASO 19: tail_sampling collector (errors 100%, slow >2s 100%, base 5%)'
 - id: BACK-REND-016
   project: backend
   dimension: rendimiento
