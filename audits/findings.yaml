@@ -1,6 +1,6 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 6 parcial: Config/Folio/Venta @PreAuthorize (3 controllers) — BACK-SEC-001 sigue open (37 restantes).
-# Total findings: 316 — done=15 open=301
+# PASO 6 completo: BACK-SEC-001 done (todos los controllers asegurados).
+# Total findings: 316 — done=16 open=300
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -468,11 +468,11 @@
   blast_radius: financial_fraud
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
-  notes: 'PASO 6 parcial: ConfiguracionController+FolioController asegurados (ADMIN), VentaController checkout/cancel asegurados.
-    Quedan ~37 controllers por asegurar.'
+  notes: 'PASO 6 completo: AbstractCatalogoController writes (GERENTE/ADMIN, delete ADMIN) + 13 controllers com/inv/fin/fis/ven
+    con guards por rol + Config/Folio/Venta previos. 25/48 controllers con PreAuthorize, resto cubierto via base class.'
 - id: BACK-SEC-002
   project: backend
   dimension: seguridad

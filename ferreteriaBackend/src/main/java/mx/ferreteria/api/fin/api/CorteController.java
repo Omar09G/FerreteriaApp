@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.fin.dto.FinDtos;
@@ -16,6 +17,7 @@ import mx.ferreteria.api.fin.service.CajaService;
 @RequestMapping("/api/v1/cortes-caja")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
 public class CorteController {
 
     private final CajaService service;

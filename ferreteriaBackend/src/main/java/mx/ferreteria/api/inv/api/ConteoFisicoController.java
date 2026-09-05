@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 
 import mx.ferreteria.api.common.web.PageQuery;
@@ -42,6 +43,7 @@ public class ConteoFisicoController {
         return service.getById(id);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','ALMACENISTA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ConteoFisicoResponse create(@Valid @RequestBody ConteoFisicoRequest req) {

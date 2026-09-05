@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.ven.dto.VenDtos;
@@ -38,12 +39,14 @@ public class CotizacionController {
         return service.getById(id);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.CotizacionResponse create(@Valid @RequestBody VenDtos.CotizacionRequest req) {
         return service.create(req);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @PostMapping("/{id}/convertir")
     public VenDtos.CotizacionResponse convertir(
             @PathVariable Long id,

@@ -6,6 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.ven.dto.VenDtos;
@@ -33,6 +34,7 @@ public class DevolucionController {
         return service.getById(id);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.DevolucionResponse create(@Valid @RequestBody VenDtos.DevolucionRequest req) {

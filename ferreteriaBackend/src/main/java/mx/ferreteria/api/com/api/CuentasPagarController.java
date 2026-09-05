@@ -8,6 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.com.dto.ComDtos;
 import mx.ferreteria.api.com.service.CompraService;
@@ -16,6 +17,7 @@ import mx.ferreteria.api.com.service.CompraService;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
 public class CuentasPagarController {
 
     private final CompraService service;

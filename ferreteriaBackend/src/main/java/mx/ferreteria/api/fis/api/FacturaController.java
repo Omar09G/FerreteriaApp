@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.fis.dto.FisDtos;
@@ -18,6 +19,7 @@ import mx.ferreteria.api.fis.service.FacturaFisService;
 @RequestMapping("/api/v1/facturas")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
 public class FacturaController {
 
     private final FacturaFisService service;

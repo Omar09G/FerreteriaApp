@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import jakarta.validation.Valid;
 
 import mx.ferreteria.api.cat.service.AbstractCatalogoService;
@@ -44,16 +46,19 @@ public abstract class AbstractCatalogoController<T, ID, REQ, RES> {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RES create(@Valid @RequestBody REQ req) {
         return service().create(req);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RES update(@PathVariable ID id, @Valid @RequestBody REQ req) {
         return service().update(id, req);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> deactivate(@PathVariable ID id) {
         service().deactivate(id);
         return ResponseEntity.noContent().build();

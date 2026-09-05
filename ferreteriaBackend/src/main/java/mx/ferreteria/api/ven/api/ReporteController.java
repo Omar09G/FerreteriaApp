@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.RangoFechas;
 import mx.ferreteria.api.ven.dto.ReportDtos;
@@ -22,6 +23,7 @@ import mx.ferreteria.api.ven.service.ReporteService;
 @RequestMapping("/api/v1/reportes")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
 public class ReporteController {
 
     private final ReporteService service;

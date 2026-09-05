@@ -5,6 +5,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.service.PagoService;
@@ -17,6 +18,7 @@ public class PagoClienteController {
 
     private final PagoService service;
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.PagoResponse create(@Valid @RequestBody VenDtos.PagoClienteRequest req) {

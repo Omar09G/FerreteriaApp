@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.com.dto.ComDtos;
 import mx.ferreteria.api.com.service.CompraService;
@@ -40,6 +41,7 @@ public class CompraController {
         return service.getById(id);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','ALMACENISTA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ComDtos.CompraResponse create(@Valid @RequestBody ComDtos.CompraRequest req) {

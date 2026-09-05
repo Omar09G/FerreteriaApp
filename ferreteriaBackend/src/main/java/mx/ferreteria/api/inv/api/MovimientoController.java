@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 
 import mx.ferreteria.api.common.web.PageQuery;
@@ -52,6 +53,7 @@ public class MovimientoController {
         return service.list(rango.inicio(), rango.fin(), pageable);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','ALMACENISTA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public MovimientoInventarioResponse create(@Valid @RequestBody MovimientoInventarioRequest req) {

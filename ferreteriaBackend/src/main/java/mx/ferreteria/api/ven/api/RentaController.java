@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.ven.dto.VenDtos;
@@ -38,12 +39,14 @@ public class RentaController {
         return service.getById(id);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.RentaResponse create(@Valid @RequestBody VenDtos.RentaRequest req) {
         return service.create(req);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @PostMapping("/{id}/devolucion")
     public VenDtos.RentaResponse devolver(
             @PathVariable Long id,
@@ -51,6 +54,7 @@ public class RentaController {
         return service.devolver(id, req);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @PostMapping("/{id}/cancelar")
     public VenDtos.RentaResponse cancelar(@PathVariable Long id) {
         return service.cancelar(id);
