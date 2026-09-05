@@ -3,6 +3,7 @@ package mx.ferreteria.api.seg.dto;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen;
@@ -34,7 +35,9 @@ public final class AuthDtos {
 
     public record ChangePasswordRequest(
             @NotBlank @Size(max = 100) String passwordActual,
-            @NotBlank @Size(min = 8, max = 100) String nuevaPassword) { }
+            // BACK-SEC-040: politica minima 8 chars + al menos un digito.
+            // Validacion adicional en AuthService.changePassword (no igual a actual).
+            @NotBlank @Size(min = 8, max = 100) @Pattern(regexp = ".*\\d.*") String nuevaPassword) { }
 
     public record PasswordOk(boolean cambiada) { }
 

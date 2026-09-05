@@ -36,7 +36,10 @@ public class SecurityConfig {
 
         @Bean
         public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
+                // BACK-SEC-040: cost 12 (defecto BCrypt es 10). 2^12 = 4096 iteraciones,
+                // ~250ms por hash en hardware moderno. Aceptable para login/register
+                // (pocos req/s) y bloquea ataques offline contra el hash.
+                return new BCryptPasswordEncoder(12);
         }
 
         @Bean

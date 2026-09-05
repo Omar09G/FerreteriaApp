@@ -83,6 +83,18 @@ public class AuthService {
         if (principal == null) {
             throw new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS);
         }
+        // Validacion de politica: minimo 8 chars, al menos un digito.
+        // Politicas adicionales (mayusculas, simbolos) se aplican en RegisterRequest
+        // via Bean Validation; aqui evitamos doble implementacion.
+        if (req.nuevaPassword() == null || req.nuevaPassword().length() < 8
+                || !req.nuevaPassword().matches(".*\\d.*")) {
+            throw new ValidacionException(ErrorCode.VALOR_INVALIDO,
+                    "password debe tener al menos 8 caracteres y un digito");
+        }
+        if (req.nuevaPassword().equals(req.passwordActual())) {
+            throw new ValidacionException(ErrorCode.VALOR_INVALIDO,
+                    "nueva password no puede ser igual a la actual");
+        }
         var user = gateway.findByUsername(principal.username()).orElseThrow(
                 () -> new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS));
         if (!user.activo() || !passwordEncoder.matches(req.passwordActual(), user.passwordHash())) {
@@ -90,7 +102,10 @@ public class AuthService {
         }
         admin.actualizarPassword(user.usuarioId(),
                 passwordEncoder.encode(req.nuevaPassword()));
-        log.info("password cambiada usuario_id={}", user.usuarioId());
+        // BACK-SEC-013: tras cambiar password, invalida todos los refresh tokens
+        // emitidos para este usuario (atacante con token robado queda sin acceso).
+        gateway.revokeAllRefreshTokens(user.usuarioId());
+        log.info("password cambiada usuario_id={} refresh_tokens revocados", user.usuarioId());
         return new PasswordOk(true);
     }
 
