@@ -2,8 +2,13 @@ package mx.ferreteria.api.ven.service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +44,49 @@ public class DevolucionService {
     @Transactional(readOnly = true)
     public Page<VenDtos.DevolucionResponse> listByVenta(Long ventaId, Pageable pageable) {
         Page<DevolucionVenta> page = repo.findByVentaIdOrderByFechaDesc(ventaId, pageable);
-        return page.map(this::toResponse);
+        if (page.isEmpty() || page.getContent().size() == 1) {
+            return page.map(this::toResponse);
+        }
+        List<Long> devIds = page.getContent().stream().map(DevolucionVenta::getDevolucionId).toList();
+        List<DevolucionDetalle> allDetalles = detalleRepo.findByDevolucionIdIn(devIds);
+        Map<Long, List<DevolucionDetalle>> detallesByDev = allDetalles.stream()
+                .collect(Collectors.groupingBy(DevolucionDetalle::getDevolucionId));
+        Set<Long> ventaIds = page.getContent().stream().map(DevolucionVenta::getVentaId).collect(Collectors.toSet());
+        Set<Integer> formaIds = page.getContent().stream().map(DevolucionVenta::getFormaDevolucionId)
+                .collect(Collectors.toSet());
+        Set<Long> productoIds = allDetalles.stream().map(DevolucionDetalle::getProductoId).collect(Collectors.toSet());
+        Map<Long, String> ventaFolios = ventaIds.isEmpty() ? Map.of()
+                : ventaRepo.findAllById(ventaIds).stream()
+                        .collect(Collectors.toMap(Venta::getVentaId, Venta::getFolio));
+        Map<Integer, FormaPago> formas = formaPagoRepo.findAllById(formaIds).stream()
+                .collect(Collectors.toMap(FormaPago::getFormaPagoId, Function.identity()));
+        Map<Long, Producto> productos = productoIds.isEmpty() ? Map.of()
+                : productoRepo.findAllById(productoIds).stream()
+                        .collect(Collectors.toMap(Producto::getProductoId, Function.identity()));
+        List<VenDtos.DevolucionResponse> content = page.getContent().stream().map(d -> {
+            String ventaFolio = ventaFolios.get(d.getVentaId());
+            FormaPago fp = formas.get(d.getFormaDevolucionId());
+            String formaNombre = fp != null ? fp.getNombre() : null;
+            List<VenDtos.DevolucionDetalleResponse> detalles = detallesByDev
+                    .getOrDefault(d.getDevolucionId(), List.of()).stream()
+                    .map(det -> {
+                        Producto p = productos.get(det.getProductoId());
+                        String nombre = p != null ? p.getNombre() : null;
+                        return new VenDtos.DevolucionDetalleResponse(
+                                det.getProductoId(), nombre,
+                                det.getVentaDetalleId(),
+                                det.getCantidad(), det.getPrecioUnitario(),
+                                det.getImporteLinea());
+                    }).toList();
+            return new VenDtos.DevolucionResponse(
+                    d.getDevolucionId(), d.getFolio(),
+                    d.getVentaId(), ventaFolio,
+                    d.getFecha(), d.getMotivo(),
+                    d.getTotal(),
+                    d.getFormaDevolucionId(), formaNombre,
+                    d.getUsuarioId(), detalles);
+        }).toList();
+        return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
     }
 
     @Transactional(readOnly = true)

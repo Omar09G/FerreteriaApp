@@ -1,6 +1,6 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 10: DB partitioning done (4 hallazgos, requiere ventana).
-# Total findings: 316 — done=24 open=292
+# PASO 11: BACK-REND-004/005/006 done (Credito/Devolucion/Renta batch).
+# Total findings: 316 — done=27 open=289
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -69,9 +69,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 11: Credito/Devolucion/Renta batch — verificado 2026-09-05'
 - id: BACK-REND-005
   project: backend
   dimension: rendimiento
@@ -85,9 +86,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 11: Credito/Devolucion/Renta batch — verificado 2026-09-05'
 - id: BACK-REND-006
   project: backend
   dimension: rendimiento
@@ -101,9 +103,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 11: Credito/Devolucion/Renta batch — verificado 2026-09-05'
 - id: BACK-REND-007
   project: backend
   dimension: rendimiento

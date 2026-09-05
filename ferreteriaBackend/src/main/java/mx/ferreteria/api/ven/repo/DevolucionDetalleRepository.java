@@ -7,4 +7,6 @@ import mx.ferreteria.api.ven.entity.DevolucionDetalleId;
 
 public interface DevolucionDetalleRepository extends JpaRepository<DevolucionDetalle, DevolucionDetalleId> {
     List<DevolucionDetalle> findByDevolucionId(Long devolucionId);
+
+    List<DevolucionDetalle> findByDevolucionIdIn(List<Long> devolucionIds);
 }

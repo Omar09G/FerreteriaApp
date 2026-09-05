@@ -4,8 +4,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +50,50 @@ public class RentaService {
     @Transactional(readOnly = true)
     public Page<VenDtos.RentaResponse> list(String estado,
             LocalDate desde, LocalDate hasta, Pageable pageable) {
-        return repo.filtrar(estado, desde, hasta, pageable).map(this::toResponse);
+        Page<Renta> page = repo.filtrar(estado, desde, hasta, pageable);
+        if (page.isEmpty() || page.getContent().size() == 1) {
+            return page.map(this::toResponse);
+        }
+        List<Long> rentaIds = page.getContent().stream().map(Renta::getRentaId).toList();
+        List<RentaDetalle> allDetalles = detalleRepo.findByRentaIdIn(rentaIds);
+        Map<Long, List<RentaDetalle>> detallesByRenta = allDetalles.stream()
+                .collect(Collectors.groupingBy(RentaDetalle::getRentaId));
+        Set<Long> clienteIds = page.getContent().stream().map(Renta::getClienteId).collect(Collectors.toSet());
+        Set<Integer> almacenIds = page.getContent().stream().map(Renta::getAlmacenId).collect(Collectors.toSet());
+        Set<Long> productoIds = allDetalles.stream().map(RentaDetalle::getProductoId).collect(Collectors.toSet());
+        Map<Long, Cliente> clientes = clienteRepo.findAllById(clienteIds).stream()
+                .collect(Collectors.toMap(Cliente::getClienteId, Function.identity()));
+        Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
+                .collect(Collectors.toMap(Almacen::getAlmacenId, Function.identity()));
+        Map<Long, Producto> productos = productoIds.isEmpty() ? Map.of()
+                : productoRepo.findAllById(productoIds).stream()
+                        .collect(Collectors.toMap(Producto::getProductoId, Function.identity()));
+        List<VenDtos.RentaResponse> content = page.getContent().stream().map(r -> {
+            String clienteNombre = clientes.containsKey(r.getClienteId())
+                    ? clientes.get(r.getClienteId()).getRazonSocial() : null;
+            String almacenNombre = almacenes.containsKey(r.getAlmacenId())
+                    ? almacenes.get(r.getAlmacenId()).getNombre() : null;
+            List<VenDtos.RentaDetalleResponse> detalles = detallesByRenta
+                    .getOrDefault(r.getRentaId(), List.of()).stream()
+                    .map(d -> {
+                        Producto p = productos.get(d.getProductoId());
+                        String nombre = p != null ? p.getNombre() : null;
+                        return new VenDtos.RentaDetalleResponse(
+                                d.getProductoId(), nombre,
+                                d.getCantidad(), d.getCostoDia(),
+                                d.getDiasCobrados(), d.getSubtotal());
+                    }).toList();
+            return new VenDtos.RentaResponse(
+                    r.getRentaId(), r.getFolio(),
+                    r.getClienteId(), clienteNombre,
+                    r.getAlmacenId(), almacenNombre,
+                    r.getFechaRenta(), r.getFechaDevEsperada(),
+                    r.getFechaDevReal(),
+                    r.getDeposito(), r.getCostoTotal(),
+                    r.getFormaPagoId(), r.getTurnoCajaId(),
+                    r.getEstado(), r.getUsuarioId(), detalles);
+        }).toList();
+        return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
     }
 
     @Transactional(readOnly = true)
