@@ -695,8 +695,13 @@ CREATE TABLE IF NOT EXISTS ven.cotizacion_detalles (
 );
 
 CREATE TABLE IF NOT EXISTS ven.ventas (
-    venta_id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    folio           TEXT NOT NULL UNIQUE,
+    -- BACK-ESC-001 / DB-ESC-001: ven.ventas particionada por fecha (RANGE mensual).
+    -- En installs nuevos: PARTITION BY RANGE (fecha_local).
+    -- En DBs existentes: ejecutar delta_partitioning_escalabilidad.sql en ventana.
+    PARTITION BY RANGE (fecha_local),
+    venta_id         BIGINT GENERATED ALWAYS AS IDENTITY,
+    folio            TEXT NOT NULL, -- UNIQUE se aplica por particion (folio, fecha_local)
+    folio_unico      TEXT GENERATED ALWAYS AS (folio) STORED, -- helper para UNIQUE constraint
     cliente_id      BIGINT REFERENCES ven.clientes(cliente_id),
     almacen_id      INTEGER NOT NULL REFERENCES inv.almacenes(almacen_id),
     cotizacion_id   BIGINT REFERENCES ven.cotizaciones(cotizacion_id),
@@ -714,8 +719,15 @@ CREATE TABLE IF NOT EXISTS ven.ventas (
                     CHECK (estado IN ('COMPLETADA','CANCELADA')),
     usuario_id      INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     turno_caja_id   BIGINT,
+    PRIMARY KEY (venta_id, fecha_local), -- PK compuesta requerida por PARTITION BY RANGE
     notas           TEXT
-);
+) PARTITION BY RANGE (fecha_local);
+-- Particiones default: ven.ventas_antigua (todo lo previo) + mes actual.
+-- Para prod, crear particiones mensuales via pg_partman:
+--   SELECT partman.create_parent('ven.ventas','fecha_local','native','monthly');
+-- o manual:
+--   CREATE TABLE ven.ventas_2026_09 PARTITION OF ven.ventas
+--     FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
 CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ven.ventas(fecha DESC);
 CREATE INDEX IF NOT EXISTS idx_ventas_turno ON ven.ventas(turno_caja_id);
 CREATE INDEX IF NOT EXISTS idx_ventas_cliente_fecha ON ven.ventas(cliente_id, fecha DESC)
@@ -866,8 +878,13 @@ CREATE TABLE IF NOT EXISTS com.compras (
                        CHECK (estado IN ('PENDIENTE','RECIBIDA','CANCELADA')),
     usuario_id         INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     turno_caja_id      BIGINT,
-    notas              TEXT
-);
+notas           TEXT
+) PARTITION BY RANGE (fecha_local);
+-- Particiones default: ven.ventas_antigua (todo lo previo) + mes actual.
+-- Para prod, crear particiones mensuales:
+--   CREATE TABLE ven.ventas_2026_09 PARTITION OF ven.ventas
+--     FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+-- O usar pg_partman (recomendado) con retention_keep_tables=24.
 CREATE INDEX IF NOT EXISTS idx_compras_fecha_local ON com.compras(fecha_local DESC);
 
 CREATE TABLE IF NOT EXISTS com.compra_detalles (

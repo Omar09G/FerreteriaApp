@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 13: BACK-ESC-001 done (RateLimit configurable a Redis, documentado).
-# Total findings: 316 - done=29 open=287
+# PASO 14: DB-ESC-001 done (ven.ventas particionada en scripts/V1).
+# Total findings: 316 - done=30 open=286
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -4483,9 +4483,11 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 14: scripts/02_tablas.sql ven.ventas PARTITION BY RANGE (fecha_local) + PK compuesta, V1 regenerado. Para DBs
+    existentes: delta_partitioning_escalabilidad.sql en ventana.'
 - id: DB-ESC-002
   project: database
   dimension: escalabilidad
