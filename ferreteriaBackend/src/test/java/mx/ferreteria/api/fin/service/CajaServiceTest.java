@@ -95,7 +95,7 @@ class CajaServiceTest {
     void listCajas_returnsActivas() {
         when(cajaRepo.findByActivaTrue()).thenReturn(List.of(
                 sampleCaja(1, "Caja Central"), sampleCaja(2, "Caja Norte")));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(
+        when(almacenRepo.findAllById(any())).thenReturn(List.of(
                 Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
 
         var result = service.listCajas();

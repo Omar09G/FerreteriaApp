@@ -3,9 +3,13 @@ package mx.ferreteria.api.fin.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -56,8 +60,19 @@ public class CajaService {
 
         @Transactional(readOnly = true)
         public List<FinDtos.CajaResponse> listCajas() {
-                return cajaRepo.findByActivaTrue().stream()
-                                .map(this::toCajaResponse).toList();
+                List<Caja> cajas = cajaRepo.findByActivaTrue();
+                if (cajas.isEmpty()) return List.of();
+                if (cajas.size() == 1) return cajas.stream().map(this::toCajaResponse).toList();
+                Set<Integer> almacenIds = cajas.stream().map(Caja::getAlmacenId).collect(Collectors.toSet());
+                Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
+                                .collect(Collectors.toMap(Almacen::getAlmacenId, Function.identity()));
+                return cajas.stream().map(c -> {
+                        String nombre = almacenes.containsKey(c.getAlmacenId())
+                                        ? almacenes.get(c.getAlmacenId()).getNombre() : null;
+                        return new FinDtos.CajaResponse(
+                                        c.getCajaId(), c.getNombre(), c.getAlmacenId(),
+                                        nombre, c.getActiva());
+                }).toList();
         }
 
         // ─── Cajas Crear Caja ───────────────────────────────────────
@@ -128,12 +143,21 @@ public class CajaService {
 
         @Transactional(readOnly = true)
         public Page<FinDtos.TurnoCajaResponse> listTurnos(Integer cajaId, Pageable pageable) {
-                return turnoRepo.findByCajaIdOrderByAperturaEnDesc(cajaId, pageable)
-                                .map(t -> {
-                                        String nombre = cajaRepo.findById(t.getCajaId()).map(Caja::getNombre)
-                                                        .orElse(null);
-                                        return toTurnoResponse(t, nombre);
-                                });
+                Page<TurnoCaja> page = turnoRepo.findByCajaIdOrderByAperturaEnDesc(cajaId, pageable);
+                if (page.isEmpty() || page.getContent().size() == 1) {
+                        return page.map(t -> {
+                                String nombre = cajaRepo.findById(t.getCajaId()).map(Caja::getNombre).orElse(null);
+                                return toTurnoResponse(t, nombre);
+                        });
+                }
+                Set<Integer> cajaIds = page.getContent().stream().map(TurnoCaja::getCajaId).collect(Collectors.toSet());
+                Map<Integer, Caja> cajas = cajaRepo.findAllById(cajaIds).stream()
+                                .collect(Collectors.toMap(Caja::getCajaId, Function.identity()));
+                List<FinDtos.TurnoCajaResponse> content = page.getContent().stream().map(t -> {
+                        String nombre = cajas.containsKey(t.getCajaId()) ? cajas.get(t.getCajaId()).getNombre() : null;
+                        return toTurnoResponse(t, nombre);
+                }).toList();
+                return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
         }
 
         /**
@@ -197,8 +221,31 @@ public class CajaService {
 
         @Transactional(readOnly = true)
         public List<FinDtos.MovimientoCajaResponse> listMovimientos(Long turnoId) {
-                return movRepo.findByTurnoCajaIdOrderByCreadoEnAsc(turnoId).stream()
-                                .map(this::toMovimientoResponse).toList();
+                List<MovimientoCaja> movs = movRepo.findByTurnoCajaIdOrderByCreadoEnAsc(turnoId);
+                if (movs.isEmpty() || movs.size() == 1) return movs.stream().map(this::toMovimientoResponse).toList();
+                Set<Integer> formaIds = movs.stream().map(MovimientoCaja::getFormaPagoId)
+                                .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+                Map<Integer, FormaPago> formas = formaIds.isEmpty() ? Map.of()
+                                : formaPagoRepo.findAllById(formaIds).stream()
+                                                .collect(Collectors.toMap(FormaPago::getFormaPagoId, Function.identity()));
+                return movs.stream().map(mc -> {
+                        String fpNombre = mc.getFormaPagoId() == null ? null
+                                        : formas.containsKey(mc.getFormaPagoId()) ? formas.get(mc.getFormaPagoId()).getNombre() : null;
+                        String refDesc = null;
+                        if ("com.pagos_proveedor".equals(mc.getRefTabla()) && mc.getRefId() != null) {
+                                refDesc = jdbc.query("""
+                                                SELECT c.folio FROM com.pagos_proveedor p
+                                                JOIN com.cuentas_pagar cp ON cp.cuenta_pagar_id = p.cuenta_pagar_id
+                                                JOIN com.compras c ON c.compra_id = cp.compra_id
+                                                WHERE p.pago_proveedor_id = ?""",
+                                                rs -> rs.next() ? rs.getString(1) : null, mc.getRefId());
+                        }
+                        return new FinDtos.MovimientoCajaResponse(
+                                        mc.getMovimientoId(), mc.getTurnoCajaId(), mc.getTipo(),
+                                        mc.getConcepto(), mc.getMonto(),
+                                        mc.getFormaPagoId(), fpNombre,
+                                        mc.getRefTabla(), mc.getRefId(), mc.getCreadoEn(), refDesc);
+                }).toList();
         }
 
         @Transactional(readOnly = true)
@@ -246,8 +293,44 @@ public class CajaService {
 
         @Transactional(readOnly = true)
         public Page<FinDtos.CorteCajaResponse> listCortes(LocalDate desde, LocalDate hasta, Pageable pageable) {
-                return corteRepo.findAllByRangoFecha(desde, hasta, pageable)
-                                .map(this::toCorteResponse);
+                Page<CorteCaja> page = corteRepo.findAllByRangoFecha(desde, hasta, pageable);
+                if (page.isEmpty() || page.getContent().size() == 1) {
+                        return page.map(this::toCorteResponse);
+                }
+                Set<Integer> cajaIds = page.getContent().stream().map(CorteCaja::getCajaId).collect(Collectors.toSet());
+                Map<Integer, Caja> cajas = cajaRepo.findAllById(cajaIds).stream()
+                                .collect(Collectors.toMap(Caja::getCajaId, Function.identity()));
+                Set<Integer> almacenIds = page.getContent().stream().map(CorteCaja::getAlmacenId).collect(Collectors.toSet());
+                Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
+                                .collect(Collectors.toMap(Almacen::getAlmacenId, Function.identity()));
+                List<FinDtos.CorteCajaResponse> content = page.getContent().stream().map(c -> {
+                        String cajaNombre = cajas.containsKey(c.getCajaId()) ? cajas.get(c.getCajaId()).getNombre() : null;
+                        String almacenNombre = almacenes.containsKey(c.getAlmacenId())
+                                        ? almacenes.get(c.getAlmacenId()).getNombre() : null;
+                        String resultado;
+                        if (c.getDiferencia().compareTo(BigDecimal.ZERO) == 0) resultado = "CUADRADO";
+                        else if (c.getDiferencia().compareTo(BigDecimal.ZERO) > 0) resultado = "SOBRANTE";
+                        else resultado = "FALTANTE";
+                        return new FinDtos.CorteCajaResponse(
+                                        c.getCorteId(), c.getTurnoCajaId(),
+                                        c.getCajaId(), cajaNombre,
+                                        c.getAlmacenId(), almacenNombre,
+                                        c.getUsuarioId(), c.getUsuarioCierreId(),
+                                        c.getFecha(), c.getAperturaEn(), c.getCierreEn(),
+                                        (long) c.getNumVentas(),
+                                        c.getSubtotal(), c.getIva(), c.getDescuentos(),
+                                        c.getTotalVendido(), c.getCostoVentas(),
+                                        c.getUtilidadBruta(), c.getMargenPct(),
+                                        c.getFondoApertura(),
+                                        c.getEntradasEfectivo(), c.getSalidasEfectivo(),
+                                        c.getDineroEsperado(), c.getDineroContado(),
+                                        c.getDiferencia(), resultado,
+                                        c.getIngresosNoEfectivo(), c.getEgresosNoEfectivo(),
+                                        c.getPerdidasInventario(),
+                                        c.getDesgloseEntradas(), c.getDesgloseSalidas(),
+                                        c.getDesgloseFormasPago(), c.getObservaciones());
+                }).toList();
+                return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
         }
 
         // ─── Mappers ────────────────────────────────────────────────────
