@@ -1,0 +1,141 @@
+# coverage.yaml — Per-file, per-feature coverage matrix for the audit.
+# Use this to know what was deep-reviewed vs shallow vs not reviewed.
+# Schema:
+#   project: backend | frontend | database
+#   files:
+#     - path: <path within project>
+#       reviewed: deep | shallow | not-reviewed
+#       findings: [<finding id, ...>]
+#       confidence: HIGH | MEDIUM | LOW
+---
+- project: backend
+  summary:
+    files_total: ~180
+    files_deep: ~25
+    files_shallow: ~50
+    files_not_reviewed: ~105
+    confidence: MEDIUM
+  deep_reviewed:
+    - src/main/java/mx/ferreteria/api/ven/service/VentaService.java
+    - src/main/java/mx/ferreteria/api/ven/service/CajaService.java
+    - src/main/java/mx/ferreteria/api/ven/service/CreditoService.java
+    - src/main/java/mx/ferreteria/api/ven/service/CotizacionService.java
+    - src/main/java/mx/ferreteria/api/ven/service/DevolucionService.java
+    - src/main/java/mx/ferreteria/api/ven/service/PromocionService.java
+    - src/main/java/mx/ferreteria/api/ven/service/ReporteService.java
+    - src/main/java/mx/ferreteria/api/ven/service/RentaService.java
+    - src/main/java/mx/ferreteria/api/com/service/CompraService.java
+    - src/main/java/mx/ferreteria/api/fin/service/CajaService.java
+    - src/main/java/mx/ferreteria/api/inv/service/MovimientoService.java
+    - src/main/java/mx/ferreteria/api/inv/service/TrasladoService.java
+    - src/main/java/mx/ferreteria/api/inv/service/ConteoFisicoService.java
+    - src/main/java/mx/ferreteria/api/seg/service/SegAdminService.java
+    - src/main/java/mx/ferreteria/api/seg/service/AuthService.java
+    - src/main/java/mx/ferreteria/api/seg/service/AuditoriaService.java
+    - src/main/java/mx/ferreteria/api/seg/security/JwtService.java
+    - src/main/java/mx/ferreteria/api/rh/service/NominaService.java
+    - src/main/java/mx/ferreteria/api/cat/service/AbstractCatalogoService.java
+    - src/main/java/mx/ferreteria/api/cat/service/ProductoService.java
+    - src/main/java/mx/ferreteria/api/cat/service/CategoriaService.java
+    - src/main/java/mx/ferreteria/api/common/config/SecurityConfig.java
+    - src/main/java/mx/ferreteria/api/common/error/GlobalExceptionHandler.java
+    - src/main/java/mx/ferreteria/api/common/web/RateLimitInterceptor.java
+    - src/main/java/mx/ferreteria/api/common/web/PageQuery.java
+    - src/test/java/mx/ferreteria/api/architecture/MensajesSoloDesdeErrorCodeTest.java
+    - src/main/resources/application.yml
+    - build.gradle.kts
+    - Dockerfile
+  not_reviewed_examples:
+    - src/main/java/mx/ferreteria/api/fis/**
+    - src/main/java/mx/ferreteria/api/cfg/**
+    - src/main/java/mx/ferreteria/api/seg/api/AuthController.java (partially)
+
+- project: frontend
+  summary:
+    files_total: ~120
+    files_deep: ~15
+    files_shallow: ~10
+    files_not_reviewed: ~95
+    confidence: LOW
+  deep_reviewed:
+    - src/main.tsx
+    - src/App.tsx
+    - src/router/router.tsx
+    - src/router/guards.tsx
+    - src/store/auth.ts
+    - src/lib/api/client.ts
+    - src/telemetry/otel.ts
+    - src/features/pos/PosPage.tsx
+    - src/features/reportes/HorasPicoPage.tsx
+    - src/features/reportes/VentasTotalesPage.tsx
+    - src/features/reportes/MejoresDiasPage.tsx
+    - src/features/reportes/MejoresClientesPage.tsx
+    - src/features/reportes/MejoresVendedoresPage.tsx
+    - src/features/reportes/TopProductosPage.tsx
+    - src/features/reportes/CierreDiarioPage.tsx
+    - src/components/ui/Dialog.tsx
+    - src/components/ui/ConfirmDialog.tsx
+    - src/components/ui/Toast.tsx
+    - src/components/ui/EmptyState.tsx
+    - src/components/ui/DateRangePicker.tsx
+    - src/components/ui/DataTable.tsx
+    - src/components/ui/Card.tsx
+    - src/components/layout/AppShell.tsx
+    - src/components/errors/ErrorBoundary.tsx
+    - src/hooks/useInactivityTimeout.ts
+    - src/hooks/useReporte.ts
+    - vite.config.ts
+    - package.json
+    - tsconfig.app.json
+    - eslint.config.js
+    - index.html
+    - nginx.conf
+  not_reviewed_examples:
+    - src/features/caja/CajaPage.tsx (957 LOC)
+    - src/features/caja/GastosPage.tsx (776 LOC)
+    - src/features/catalogo/PromocionesPage.tsx (937 LOC)
+    - src/features/catalogo/ClientesPage.tsx (422 LOC)
+    - src/features/inventario/**
+    - src/features/seguridad/**
+    - src/features/rrhh/**
+    - src/features/ventas/**
+    - src/features/fiscal/**
+    - src/features/compras/**
+    - src/lib/api/admin.ts
+    - src/lib/api/auditoria.ts
+    - src/lib/api/caja.ts
+    - src/lib/api/compras.ts
+    - src/lib/api/fis.ts
+    - src/lib/api/inventario.ts
+    - src/lib/api/promociones.ts
+    - src/lib/api/venta.ts
+
+- project: database
+  summary:
+    files_total: 12
+    files_deep: 9
+    files_shallow: 3
+    files_not_reviewed: 0
+    confidence: HIGH
+  deep_reviewed:
+    - scripts/01_base_esquemas.sql
+    - scripts/02_tablas.sql (1921 LOC)
+    - scripts/03_parametria.sql
+    - scripts/04_admin.sql
+    - scripts/05_dummy.sql
+    - scripts/vistas_core.sql
+    - migrations/V1__base.sql
+    - migrations/V2__parametria.sql
+    - deploy/docker-compose.yml
+    - deploy/conf/postgresql.conf
+    - deploy/conf/pg_hba.conf
+    - deploy/conf/otel/otel-collector.yaml
+    - deploy/k8s/00-base.yaml
+    - deploy/k8s/10-postgres.yaml
+    - deploy/k8s/20-pgbouncer.yaml
+    - deploy/k8s/30-networkpolicy.yaml
+    - deploy/k8s/40-migration-job.yaml
+  shallow_reviewed:
+    - deploy/terraform/main.tf
+    - deploy/conf/replica/bootstrap-replica.sh
+    - deploy/conf/pgbouncer/userlist.txt

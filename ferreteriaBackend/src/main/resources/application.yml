@@ -17,12 +17,16 @@ spring:
       maximum-pool-size: 10      # <= default_pool_size de PgBouncer
       minimum-idle: 2
       connection-timeout: 3000
+      max-lifetime: 1700000       # 28 min < PgBouncer server_lifetime
+      validation-timeout: 2000
   jpa:
     open-in-view: false
     properties:
       '[hibernate.jdbc.time_zone]': ${ZONA:America/Mexico_City}  # alineado con el cluster PG
       '[hibernate.jdbc.batch_size]': 50
       '[hibernate.order_inserts]': true
+      '[hibernate.order_updates]': true
+      '[hibernate.default_batch_fetch_size]': 32
   flyway:
     locations: classpath:db/migration   # generadas por :generateMigrations
     #Solo para DESA enabled: false
@@ -40,9 +44,9 @@ app:
   request-id:
     mode: ${REQUEST_ID_MODE:GENERATE}   # GENERATE | STRICT  (PLAN 4.5)
   jwt:
-    secret: ${JWT_SECRET:sMuJeQ1prwGDL5SCu7tpS4FtCcIvbJ8Rw6cciudScgc=}
-    access-minutes: ${ACCESS_MINUTES:480} #Son 8 horas, para que coincida con el refresh-hours
-    refresh-hours: ${REFRESH_HOURS:72} #Son 3 días, para que coincida con el access-minutes
+    secret: ${JWT_SECRET:}         # sin default: debe venir del entorno; JwtService hace fail-fast si <32 bytes
+    access-minutes: ${ACCESS_MINUTES:15}  # 15 min (antes 480 = 8h, ventana de exposición excesiva)
+    refresh-hours: ${REFRESH_HOURS:8}     # 8h (antes 72h); refresh rotativo ya gestiona sesión larga
   zona: ${ZONA:America/Mexico_City}
   # CORS restrictivo por origen configurado (PLAN M7)
   cors:
@@ -85,8 +89,8 @@ management:
   endpoints:
     web:
       exposure:
-        # prometheus: scrapeado por Prometheus vía /actuator/prometheus
-        # (independiente de OTel; útil para alertas nativas de PromQL)
+        # health queda expuesto; info/metrics/prometheus solo vía red interna
+        # (ver SecurityConfig: ya no son permitAll)
         include: health,info,metrics,prometheus
   endpoint:
     health:

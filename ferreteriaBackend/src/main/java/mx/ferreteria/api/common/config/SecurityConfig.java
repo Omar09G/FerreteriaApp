@@ -65,6 +65,17 @@ public class SecurityConfig {
                 csrfHandler.setCsrfRequestAttributeName(null);
 
                 return http
+                                // Cabeceras de seguridad (defensa en profundidad).
+                                .headers(h -> h
+                                                .contentTypeOptions(c -> {})
+                                                .frameOptions(f -> f.deny())
+                                                .httpStrictTransportSecurity(hsts -> hsts
+                                                                .includeSubDomains(true)
+                                                                .maxAgeInSeconds(31536000))
+                                                .referrerPolicy(r -> r
+                                                                .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                                                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                                                "default-src 'self'; frame-ancestors 'none'; base-uri 'self'")))
                                 .csrf(csrf -> csrf
                                                 .csrfTokenRepository(csrfRepo)
                                                 .csrfTokenRequestHandler(csrfHandler)
@@ -85,14 +96,13 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST,
                                                                 "/api/v1/auth/login",
+                                                                "/api/v1/auth/register",
                                                                 "/api/v1/auth/refresh",
-                                                                "/api/v1/auth/logout",
-                                                                "/api/v1/auth/register")
+                                                                "/api/v1/auth/logout")
                                                 .permitAll()
-                                                .requestMatchers("/actuator/**", "/swagger-ui/**",
-                                                                "/swagger-ui.html",
-                                                                "/v3/api-docs/**")
+                                                .requestMatchers("/actuator/health", "/actuator/health/**")
                                                 .permitAll()
+                                                // info/metrics/prometheus y docs requieren auth
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                                 .formLogin(f -> f.disable())
