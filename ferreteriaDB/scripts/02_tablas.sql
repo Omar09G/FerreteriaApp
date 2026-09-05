@@ -657,6 +657,9 @@ CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ven.ventas(fecha DESC);
 CREATE INDEX IF NOT EXISTS idx_ventas_turno ON ven.ventas(turno_caja_id);
 CREATE INDEX IF NOT EXISTS idx_ventas_cliente_fecha ON ven.ventas(cliente_id, fecha DESC)
     WHERE estado = 'COMPLETADA';
+-- PASO 3: índices para filtros por fecha_local (rango por día sin desfase TZ)
+CREATE INDEX IF NOT EXISTS idx_ventas_fecha_local ON ven.ventas(fecha_local DESC);
+CREATE INDEX IF NOT EXISTS idx_ventas_almacen_fecha_local ON ven.ventas(almacen_id, fecha_local DESC);
 
 CREATE TABLE IF NOT EXISTS ven.venta_detalles (
     venta_detalle_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

@@ -1,6 +1,6 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 2: BACK-REND-001 done (VentaService batch).
-# Total findings: 316 — done=7 open=309
+# PASO 3: BACK-REND-013 done (idx_ventas_fecha_local).
+# Total findings: 316 — done=8 open=308
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -215,9 +215,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 3: idx_ventas_fecha_local + idx_ventas_almacen_fecha_local creados (scripts/02_tablas.sql + V5__ventas_fecha_local_idx.sql),
+    V1 regenerado — verificado 2026-09-05'
 - id: BACK-REND-014
   project: backend
   dimension: rendimiento
