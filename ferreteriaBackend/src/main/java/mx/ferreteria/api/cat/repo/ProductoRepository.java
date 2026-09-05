@@ -5,7 +5,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     Page<Producto> findByActivoTrue(Pageable pageable);
 
@@ -20,4 +19,5 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     Page<Producto> findByCodigoContainingIgnoreCase(String codigo, Pageable pageable);
 
     Page<Producto> findByActivoTrueAndCodigoIgnoreCase(String codigo, Pageable pageable);
+
 }

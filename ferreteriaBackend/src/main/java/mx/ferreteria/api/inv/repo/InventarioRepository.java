@@ -14,6 +14,8 @@ import mx.ferreteria.api.inv.entity.InventarioId;
 public interface InventarioRepository extends JpaRepository<Inventario, InventarioId> {
     Page<Inventario> findByAlmacenId(Integer almacenId, Pageable pageable);
 
+    Inventario findByAlmacenIdAndProductoId(Integer almacenId, Long productoId);
+
     // Page<Inventario> findByAlmacenIdAndStockLessThanStockMinimo(Integer
     // almacenId, Pageable pageable);
     @Query("SELECT i FROM Inventario i WHERE i.almacenId = :almacenId AND i.stock < i.stockMinimo")

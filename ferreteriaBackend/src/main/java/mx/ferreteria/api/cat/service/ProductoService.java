@@ -21,6 +21,7 @@ import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.cat.repo.UnidadMedidaRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.inv.repo.InventarioRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -31,10 +32,11 @@ public class ProductoService {
     private final CategoriaRepository categoriaRepo;
     private final MarcaRepository marcaRepo;
     private final UnidadMedidaRepository unidadMedidaRepo;
+    private final InventarioRepository inventarioRepo;
 
     @Transactional(readOnly = true)
     public Page<ProductoResponse> list(String q, Integer categoriaId,
-            Integer marcaId, String tipo, Pageable pageable) {
+            Integer marcaId, String tipo, Integer almacenId, Pageable pageable) {
         Page<Producto> page;
 
         if (StringUtils.hasText(q)) {
@@ -55,7 +57,19 @@ public class ProductoService {
             page = repo.findByActivoTrue(pageable);
         }
 
-        return page.map(this::toResponse);
+        return page.map(this::toResponse)
+                .map(product -> {
+                    if (almacenId != null) {
+                        var inventario = inventarioRepo.findByAlmacenIdAndProductoId(almacenId, product.productoId());
+                        if (inventario != null) {
+                            product = product
+                                    .withStock(inventario.getStock() != null ? inventario.getStock() : BigDecimal.ZERO);
+                        } else {
+                            product = product.withStock(BigDecimal.ZERO);
+                        }
+                    }
+                    return product;
+                });
     }
 
     @Transactional(readOnly = true)
@@ -152,6 +166,7 @@ public class ProductoService {
                 p.getCostoActual(),
                 p.getPrecioMenudeo(),
                 p.getPrecioMayoreo(),
-                p.getAplicaIva());
+                p.getAplicaIva(),
+                BigDecimal.ZERO);
     }
 }

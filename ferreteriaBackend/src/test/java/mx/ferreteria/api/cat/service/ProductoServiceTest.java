@@ -36,12 +36,17 @@ import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 @ExtendWith(MockitoExtension.class)
 class ProductoServiceTest {
 
-    @Mock ProductoRepository repo;
-    @Mock CategoriaRepository categoriaRepo;
-    @Mock MarcaRepository marcaRepo;
-    @Mock UnidadMedidaRepository unidadMedidaRepo;
+    @Mock
+    ProductoRepository repo;
+    @Mock
+    CategoriaRepository categoriaRepo;
+    @Mock
+    MarcaRepository marcaRepo;
+    @Mock
+    UnidadMedidaRepository unidadMedidaRepo;
 
-    @InjectMocks ProductoService service;
+    @InjectMocks
+    ProductoService service;
 
     private Categoria sampleCategoria() {
         return Categoria.builder().categoriaId(1).nombre("Herramientas").nivel((short) 0).activo(true).build();
@@ -73,7 +78,7 @@ class ProductoServiceTest {
         Producto p = sampleProducto();
         when(repo.findByActivoTrue(pg)).thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
-        var result = service.list(null, null, null, null, pg);
+        var result = service.list(null, null, null, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).nombre()).isEqualTo("Taladro");
@@ -89,7 +94,7 @@ class ProductoServiceTest {
         when(repo.findByActivoTrueAndNombreContainingIgnoreCase("Taladro", pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
-        var result = service.list("Taladro", null, null, null, pg);
+        var result = service.list("Taladro", null, null, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).nombre()).isEqualTo("Taladro");
@@ -103,7 +108,7 @@ class ProductoServiceTest {
         when(repo.findByActivoTrueAndCodigoIgnoreCase("P001", pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
-        var result = service.list("P001", null, null, null, pg);
+        var result = service.list("P001", null, null, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).codigo()).isEqualTo("P001");
@@ -120,7 +125,7 @@ class ProductoServiceTest {
         when(repo.findByActivoTrueAndNombreContainingIgnoreCase("ZZZ999", pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
-        var result = service.list(" ZZZ999 ", null, null, null, pg);
+        var result = service.list(" ZZZ999 ", null, null, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).codigo()).isEqualTo("P001");
@@ -134,7 +139,7 @@ class ProductoServiceTest {
         when(repo.findByCategoriaCategoriaIdAndActivoTrue(1, pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
-        var result = service.list(null, 1, null, null, pg);
+        var result = service.list(null, 1, null, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
     }
@@ -147,7 +152,7 @@ class ProductoServiceTest {
         when(repo.findByMarcaMarcaIdAndActivoTrue(1, pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
-        var result = service.list(null, null, 1, null, pg);
+        var result = service.list(null, null, 1, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
     }
@@ -160,7 +165,7 @@ class ProductoServiceTest {
         when(repo.findByTipoAndActivoTrue("SERVICIO", pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
-        var result = service.list(null, null, null, "SERVICIO", pg);
+        var result = service.list(null, null, null, "SERVICIO", null, pg);
 
         assertThat(result.getContent()).hasSize(1);
     }

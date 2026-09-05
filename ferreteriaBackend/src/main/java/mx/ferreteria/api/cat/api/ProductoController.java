@@ -42,8 +42,9 @@ public class ProductoController {
             @RequestParam(required = false) String tipo,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
-        return service.list(q, categoriaId, marcaId, tipo, PageQuery.of(page, size, sort).toPageable());
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) Integer almacenId) {
+        return service.list(q, categoriaId, marcaId, tipo, almacenId, PageQuery.of(page, size, sort).toPageable());
     }
 
     @GetMapping("/{id}")

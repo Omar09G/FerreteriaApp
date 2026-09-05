@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -42,8 +42,21 @@ interface Linea {
   codigo: string | null;
   nombre: string;
   cantidad: number;
+  stockActual?: number;
   precioUnitario: number;
   aplicaIva: boolean;
+}
+
+function lineaDeProducto(p: Producto): Linea {
+  return {
+    productoId: p.productoId,
+    codigo: p.codigo,
+    nombre: p.nombre,
+    cantidad: 1,
+    stockActual: p.stockActual,
+    precioUnitario: p.precioMenudeo,
+    aplicaIva: p.aplicaIva,
+  };
 }
 
 const IVA_TASA = 0.16;
@@ -151,7 +164,12 @@ export default function PosPage() {
   const resultados = useQuery({
     queryKey: ["productos-pos", qEfectivo],
     queryFn: () =>
-      apiProductos({ q: qEfectivo || undefined, page: 0, size: 20 }),
+      apiProductos({
+        q: qEfectivo || undefined,
+        page: 0,
+        size: 20,
+        almacenId: typeof almacenId === "number" ? almacenId : undefined,
+      }),
     enabled: qEfectivo.length > 0,
   });
 
@@ -188,34 +206,43 @@ export default function PosPage() {
     }
   }, [almacenId, cajaId]);
 
-  /** Construye la línea para el ticket a partir de un producto. */
-  const lineaDeProducto = (p: Producto): Linea => ({
-    productoId: p.productoId,
-    codigo: p.codigo,
-    nombre: p.nombre,
-    cantidad: 1,
-    precioUnitario: p.precioMenudeo,
-    aplicaIva: p.aplicaIva,
-  });
+  const agregar = useCallback(
+    (p: Producto, mensaje?: string) => {
+      const stock = p.stockActual;
+      if (typeof stock === "number") {
+        if (stock <= 0) {
+          mostrarError(`Sin existencia: ${p.nombre}.`);
+          return;
+        }
 
-  const agregar = (p: Producto, mensaje?: string) => {
-    setLineas((prev) => {
-      const exist = prev.find((l) => l.productoId === p.productoId);
-      if (exist)
-        return prev.map((l) =>
-          l.productoId === p.productoId
-            ? { ...l, cantidad: l.cantidad + 1 }
-            : l,
-        );
-      return [...prev, lineaDeProducto(p)];
-    });
-    mostrarExito(mensaje ?? `Agregado: ${p.nombre}`);
-    // Cierra la lista y limpia el input para que el siguiente escaneo/búsqueda empiece limpio.
-    setBusqueda("");
-    setQ("");
-    // Devuelve el foco al buscador para que el siguiente escaneo o escritura sea inmediato.
-    window.setTimeout(() => buscadorRef.current?.focus(), 0);
-  };
+        const existente = lineas.find((l) => l.productoId === p.productoId);
+        if (existente && existente.cantidad >= stock) {
+          mostrarError(
+            `Existencia insuficiente de ${p.nombre}. Disponible: ${stock}.`,
+          );
+          return;
+        }
+      }
+
+      setLineas((prev) => {
+        const exist = prev.find((l) => l.productoId === p.productoId);
+        if (exist)
+          return prev.map((l) =>
+            l.productoId === p.productoId
+              ? { ...l, cantidad: l.cantidad + 1 }
+              : l,
+          );
+        return [...prev, lineaDeProducto(p)];
+      });
+      mostrarExito(mensaje ?? `Agregado: ${p.nombre}`);
+      // Cierra la lista y limpia el input para que el siguiente escaneo/búsqueda empiece limpio.
+      setBusqueda("");
+      setQ("");
+      // Devuelve el foco al buscador para que el siguiente escaneo o escritura sea inmediato.
+      window.setTimeout(() => buscadorRef.current?.focus(), 0);
+    },
+    [lineas, mostrarError, mostrarExito],
+  );
 
   /** Limpia el ticket en construcción (líneas, buscador, pago, notas). Conserva almacén/caja/cliente. */
   const limpiarTicket = () => {
@@ -251,20 +278,8 @@ export default function PosPage() {
     const unico = resultados.data.data[0];
     if (!coincideCodigoExacto(unico, limpio)) return;
     ultimoAutoAddRef.current = limpio;
-    setLineas((prev) => {
-      const exist = prev.find((l) => l.productoId === unico.productoId);
-      if (exist)
-        return prev.map((l) =>
-          l.productoId === unico.productoId
-            ? { ...l, cantidad: l.cantidad + 1 }
-            : l,
-        );
-      return [...prev, lineaDeProducto(unico)];
-    });
-    mostrarExito(`Escaneado: ${unico.nombre}`);
-    setBusqueda("");
-    setQ("");
-  }, [resultados.data, busqueda, mostrarExito]);
+    agregar(unico, `Escaneado: ${unico.nombre}`);
+  }, [resultados.data, busqueda, mostrarExito, agregar]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const checkout = useMutation({
@@ -357,12 +372,23 @@ export default function PosPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [puedeVender, checkout, ventaResultado, confirmAbierto]);
 
-  const cambiarCantidad = (id: number, n: number) =>
+  const cambiarCantidad = (id: number, n: number) => {
+    const linea = lineas.find((l) => l.productoId === id);
+    const cantidad = Math.max(0, n);
+    if (
+      linea &&
+      typeof linea.stockActual === "number" &&
+      cantidad > linea.stockActual
+    ) {
+      mostrarError(
+        `Existencia insuficiente de ${linea.nombre}. Disponible: ${linea.stockActual}.`,
+      );
+      return;
+    }
     setLineas((prev) =>
-      prev.map((l) =>
-        l.productoId === id ? { ...l, cantidad: Math.max(0, n) } : l,
-      ),
+      prev.map((l) => (l.productoId === id ? { ...l, cantidad } : l)),
     );
+  };
   const cambiarPrecio = (id: number, p: number) =>
     setLineas((prev) =>
       prev.map((l) =>
