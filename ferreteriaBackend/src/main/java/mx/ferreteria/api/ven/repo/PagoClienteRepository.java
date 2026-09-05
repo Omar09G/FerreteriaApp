@@ -6,4 +6,6 @@ import mx.ferreteria.api.ven.entity.PagoCliente;
 
 public interface PagoClienteRepository extends JpaRepository<PagoCliente, Long> {
     List<PagoCliente> findByCuentaCobrarIdOrderByFechaDesc(Long cuentaCobrarId);
+
+    List<PagoCliente> findByCuentaCobrarIdIn(List<Long> cuentaCobrarIds);
 }

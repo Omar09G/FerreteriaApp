@@ -5,8 +5,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +34,8 @@ import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.ven.dto.VenDtos;
+import mx.ferreteria.api.ven.entity.CuentaCobrar;
+import mx.ferreteria.api.ven.entity.PagoCliente;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
 import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
@@ -63,7 +71,7 @@ public class VentaService {
         } else {
             page = ventaRepo.findAll(pageable);
         }
-        return page.map(this::toResponse);
+        return toResponsePage(page);
     }
 
     /**
@@ -82,7 +90,15 @@ public class VentaService {
         } else {
             page = ventaRepo.findAll(pageable);
         }
-        return page.map(this::toResponse);
+        return toResponsePage(page);
+    }
+
+    private Page<VenDtos.VentaResponse> toResponsePage(Page<Venta> page) {
+        if (page.isEmpty() || page.getContent().size() == 1) {
+            return page.map(this::toResponse);
+        }
+        List<VenDtos.VentaResponse> content = toResponses(page.getContent());
+        return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
     }
 
     @Transactional(readOnly = true)
@@ -153,15 +169,105 @@ public class VentaService {
     }
 
     /**
-     * Si la petición incluye cajaId, devuelve el id del turno actualmente abierto
-     * para esa caja.
-     * Sin cajaId, la venta queda sin turno (compatibilidad hacia atrás: ventas que
-     * no pasan por caja).
-     * Lanza {@link ErrorCode#TURNO_NO_ABIERTO} si la caja no tiene turno ABIERTO.
-     * Lanza {@link ErrorCode#CAJA_ALMACEN_INCOMPATIBLE} si la caja del turno no
-     * pertenece
-     * al mismo almacén que la venta (protege contra errores de captura del POS).
+     * Batch assembler para páginas: 6 queries fijas en lugar de ~7*N.
+     * Usado por list() y listByFechaLocal() cuando la página tiene >1 elemento.
+     * Para getById/cancel/checkout (N=1) se mantiene toResponse() simple.
      */
+    private List<VenDtos.VentaResponse> toResponses(List<Venta> ventas) {
+        List<Long> ventaIds = ventas.stream().map(Venta::getVentaId).toList();
+
+        // Catálogos por id (batch)
+        Set<Long> clienteIds = ventas.stream().map(Venta::getClienteId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, Cliente> clientes = clienteIds.isEmpty() ? Map.of()
+                : clienteRepo.findAllById(clienteIds).stream()
+                        .collect(Collectors.toMap(Cliente::getClienteId, Function.identity()));
+
+        Set<Integer> almacenIds = ventas.stream().map(Venta::getAlmacenId).collect(Collectors.toSet());
+        Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
+                .collect(Collectors.toMap(Almacen::getAlmacenId, Function.identity()));
+
+        Set<Integer> formaPagoIds = ventas.stream().map(Venta::getFormaPagoId).collect(Collectors.toSet());
+        Map<Integer, FormaPago> formasPago = formaPagoRepo.findAllById(formaPagoIds).stream()
+                .collect(Collectors.toMap(FormaPago::getFormaPagoId, Function.identity()));
+
+        // Detalles por ventaId (1 query)
+        List<VentaDetalle> allDetalles = detalleRepo.findByVentaIdIn(ventaIds);
+        Map<Long, List<VentaDetalle>> detallesByVenta = allDetalles.stream()
+                .collect(Collectors.groupingBy(VentaDetalle::getVentaId));
+
+        // Productos de todos los detalles (1 query)
+        Set<Long> productoIds = allDetalles.stream().map(VentaDetalle::getProductoId)
+                .collect(Collectors.toSet());
+        Map<Long, Producto> productos = productoIds.isEmpty() ? Map.of()
+                : productoRepo.findAllById(productoIds).stream()
+                        .collect(Collectors.toMap(Producto::getProductoId, Function.identity()));
+
+        // Cuentas por ventaId (1 query)
+        List<CuentaCobrar> cuentas = cuentaRepo.findByVentaIdIn(ventaIds);
+        Map<Long, CuentaCobrar> cuentaByVenta = cuentas.stream()
+                .collect(Collectors.toMap(CuentaCobrar::getVentaId, Function.identity()));
+
+        // Pagos por cuentaId (1 query) — ordenar por fecha desc por cuenta
+        List<Long> cuentaIds = cuentas.stream().map(CuentaCobrar::getCuentaCobrarId).toList();
+        Map<Long, List<PagoCliente>> pagosByCuenta;
+        if (cuentaIds.isEmpty()) {
+            pagosByCuenta = Map.of();
+        } else {
+            pagosByCuenta = pagoRepo.findByCuentaCobrarIdIn(cuentaIds).stream()
+                    .collect(Collectors.groupingBy(PagoCliente::getCuentaCobrarId));
+            pagosByCuenta.replaceAll((k, v) -> v.stream()
+                    .sorted(java.util.Comparator.comparing(PagoCliente::getFecha,
+                            java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())).reversed())
+                    .toList());
+        }
+
+        // Ensamblar
+        List<VenDtos.VentaResponse> result = new ArrayList<>(ventas.size());
+        for (Venta v : ventas) {
+            String clienteNombre = v.getClienteId() == null ? null
+                    : clientes.containsKey(v.getClienteId()) ? clientes.get(v.getClienteId()).getRazonSocial() : null;
+            String almacenNombre = almacenes.containsKey(v.getAlmacenId())
+                    ? almacenes.get(v.getAlmacenId()).getNombre() : null;
+            String formaPagoNombre = formasPago.containsKey(v.getFormaPagoId())
+                    ? formasPago.get(v.getFormaPagoId()).getNombre() : null;
+
+            List<VenDtos.VentaDetalleResponse> detalles = detallesByVenta
+                    .getOrDefault(v.getVentaId(), List.of()).stream()
+                    .map(d -> new VenDtos.VentaDetalleResponse(
+                            d.getVentaDetalleId(), d.getProductoId(),
+                            productos.containsKey(d.getProductoId())
+                                    ? productos.get(d.getProductoId()).getNombre() : null,
+                            d.getCantidad(), d.getPrecioUnitario(),
+                            d.getCostoUnitario(), d.getDescuentoLinea(),
+                            d.getTotalLinea()))
+                    .toList();
+
+            List<VenDtos.PagoResponse> pagos = List.of();
+            CuentaCobrar cc = cuentaByVenta.get(v.getVentaId());
+            if (cc != null) {
+                pagos = pagosByCuenta.getOrDefault(cc.getCuentaCobrarId(), List.of()).stream()
+                        .map(p -> new VenDtos.PagoResponse(
+                                p.getPagoClienteId(), p.getFormaPagoId(),
+                                p.getReferencia(), p.getMonto(), p.getFecha()))
+                        .toList();
+            }
+
+            result.add(new VenDtos.VentaResponse(
+                    v.getVentaId(), v.getFolio(),
+                    v.getClienteId(), clienteNombre,
+                    v.getAlmacenId(), almacenNombre,
+                    v.getFecha(), v.getFechaLocal(),
+                    v.getFormaPagoId(), formaPagoNombre,
+                    v.getIvaTasa(), v.getIvaIncluido(),
+                    v.getSubtotal(), v.getIva(),
+                    v.getDescuentoTotal(), v.getTotal(),
+                    v.getEstado(), v.getUsuarioId(), v.getTurnoCajaId(),
+                    v.getNotas(), detalles, pagos));
+        }
+        return result;
+    }
+
     private VenDtos.VentaResponse toResponse(Venta v) {
         String clienteNombre = null;
         if (v.getClienteId() != null) {

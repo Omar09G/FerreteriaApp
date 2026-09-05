@@ -151,6 +151,42 @@ class VentaServiceTest {
         assertThat(result.getContent()).hasSize(1);
     }
 
+    @Test
+    @DisplayName("list batch: 2 ventas usa 6 queries fijas (no N+1)")
+    void list_batch() {
+        Venta v1 = sampleVenta(1L, "V-001", "COMPLETADA");
+        Venta v2 = sampleVenta(2L, "V-002", "COMPLETADA");
+        v2.setClienteId(2L);
+        VentaDetalle d1 = sampleDetalle(10L, 1L, 1L);
+        VentaDetalle d2 = sampleDetalle(11L, 2L, 1L);
+
+        when(ventaRepo.findAll(pg())).thenReturn(new PageImpl<>(List.of(v1, v2), pg(), 2));
+        when(clienteRepo.findAllById(any())).thenReturn(List.of(
+                Cliente.builder().clienteId(2L).razonSocial("Cliente 2").build()));
+        when(almacenRepo.findAllById(any())).thenReturn(List.of(
+                Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
+        when(formaPagoRepo.findAllById(any())).thenReturn(List.of(
+                FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
+        when(detalleRepo.findByVentaIdIn(List.of(1L, 2L))).thenReturn(List.of(d1, d2));
+        when(productoRepo.findAllById(any())).thenReturn(List.of(
+                Producto.builder().productoId(1L).nombre("Martillo").build()));
+        when(cuentaRepo.findByVentaIdIn(List.of(1L, 2L))).thenReturn(List.of());
+        when(pagoRepo.findByCuentaCobrarIdIn(any())).thenReturn(List.of());
+
+        var result = service.list(null, null, null, pg());
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).ventaId()).isEqualTo(1L);
+        assertThat(result.getContent().get(1).ventaId()).isEqualTo(2L);
+        // Batch: 1 call each, no per-item loop
+        verify(clienteRepo).findAllById(any());
+        verify(almacenRepo).findAllById(any());
+        verify(formaPagoRepo).findAllById(any());
+        verify(detalleRepo).findByVentaIdIn(List.of(1L, 2L));
+        verify(productoRepo).findAllById(any());
+        verify(cuentaRepo).findByVentaIdIn(List.of(1L, 2L));
+    }
+
     // ── getById ─────────────────────────────────────────────────────
 
     @Test

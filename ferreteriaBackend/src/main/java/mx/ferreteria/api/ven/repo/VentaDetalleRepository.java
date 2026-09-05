@@ -6,4 +6,6 @@ import mx.ferreteria.api.ven.entity.VentaDetalle;
 
 public interface VentaDetalleRepository extends JpaRepository<VentaDetalle, Long> {
     List<VentaDetalle> findByVentaId(Long ventaId);
+
+    List<VentaDetalle> findByVentaIdIn(List<Long> ventaIds);
 }

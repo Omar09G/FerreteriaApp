@@ -1,6 +1,7 @@
 package mx.ferreteria.api.ven.repo;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,8 @@ import mx.ferreteria.api.ven.entity.CuentaCobrar;
 
 public interface CuentaCobrarRepository extends JpaRepository<CuentaCobrar, Long> {
     Optional<CuentaCobrar> findByVentaId(Long ventaId);
+
+    List<CuentaCobrar> findByVentaIdIn(List<Long> ventaIds);
 
     /**
      * Cobranza con filtros opcionales combinados (velocidad + rango de fechas).
