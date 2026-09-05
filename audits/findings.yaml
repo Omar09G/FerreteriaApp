@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 17: BACK-SEC-033 done (JWT rotation overlap).
-# Total findings: 316 - done=34 open=282
+# PASO 18: FRONT-ESC-001 done (router registry per feature).
+# Total findings: 316 - done=35 open=281
 ---
 - id: BACK-REND-001
   project: backend
@@ -2489,9 +2489,11 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 18: registry.ts + routes/ + withFallback helper + Suspense en layout route. Build OK 73 chunks, lint+test 3/3
+    OK'
 - id: FRONT-ESC-002
   project: frontend
   dimension: escalabilidad
