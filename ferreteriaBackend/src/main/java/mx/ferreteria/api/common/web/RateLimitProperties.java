@@ -20,6 +20,16 @@ public record RateLimitProperties(
         @DefaultValue("true") boolean scopeByUser,
         @DefaultValue("200000") long cacheMaxSize,
         @DefaultValue("30") long cacheTtlMinutes,
+        /**
+         * BACK-ESC-001: true = usar Redis para buckets compartidos entre replicas
+         * (requiere bucket4j-redis + spring-boot-starter-data-redis + RATE_LIMIT_REDIS_URI).
+         * false = Caffeine local (cada replica cuenta por separado, multiplica N veces).
+         */
+        @DefaultValue("false") boolean distributed,
+        /**
+         * URI Redis (solo si distributed=true). Formato: redis://host:port
+         */
+        String redisUri,
         Map<String, Grupo> grupos) {
 
     private static final int FALLBACK_CAPACITY = 120;

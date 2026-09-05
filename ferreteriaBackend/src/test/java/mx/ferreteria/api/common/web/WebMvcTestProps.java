@@ -14,6 +14,6 @@ public class WebMvcTestProps {
 
     @Bean
     RateLimitProperties rateLimitProperties() {
-        return new RateLimitProperties(true, true, 200_000, 30, java.util.Map.of());
+        return new RateLimitProperties(true, true, 200_000, 30, false, null, java.util.Map.of());
     }
 }

@@ -13,7 +13,7 @@ class RateLimitPropertiesTest {
     @Test
     @DisplayName("Sin grupos configurados: cae al fallback interno")
     void sinGruposCaeAFallbackInterno() {
-        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, null);
+        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, false /*distributed*/, null /*redisUri*/, null);
         RateLimitProperties.Grupo g = props.grupo("cualquiera");
 
         assertThat(g.capacity()).isEqualTo(120);
@@ -23,7 +23,7 @@ class RateLimitPropertiesTest {
     @Test
     @DisplayName("Mapa vacio: cae al fallback interno")
     void mapaVacioCaeAFallbackInterno() {
-        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, Map.of());
+        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, false /*distributed*/, null /*redisUri*/, Map.of());
         assertThat(props.grupo("auth").capacity()).isEqualTo(120);
         assertThat(props.grupo("auth").refillPerSecond()).isEqualTo(5);
     }
@@ -33,7 +33,7 @@ class RateLimitPropertiesTest {
     void perfilExactoResuelto() {
         Map<String, RateLimitProperties.Grupo> grupos = new HashMap<>();
         grupos.put("auth", new RateLimitProperties.Grupo(10, 1));
-        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, grupos);
+        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, false /*distributed*/, null /*redisUri*/, grupos);
 
         RateLimitProperties.Grupo g = props.grupo("auth");
         assertThat(g.capacity()).isEqualTo(10);
@@ -45,7 +45,7 @@ class RateLimitPropertiesTest {
     void perfilDesconocidoCaeADefault() {
         Map<String, RateLimitProperties.Grupo> grupos = new HashMap<>();
         grupos.put("default", new RateLimitProperties.Grupo(300, 10));
-        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, grupos);
+        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, false /*distributed*/, null /*redisUri*/, grupos);
 
         RateLimitProperties.Grupo g = props.grupo("catalogo");
         assertThat(g.capacity()).isEqualTo(300);
@@ -57,7 +57,7 @@ class RateLimitPropertiesTest {
     void sinDefaultUsaFallbackInterno() {
         Map<String, RateLimitProperties.Grupo> grupos = new HashMap<>();
         grupos.put("catalogo", new RateLimitProperties.Grupo(1200, 40));
-        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, grupos);
+        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, false /*distributed*/, null /*redisUri*/, grupos);
 
         RateLimitProperties.Grupo g = props.grupo("otro");
         assertThat(g.capacity()).isEqualTo(120);
@@ -70,7 +70,7 @@ class RateLimitPropertiesTest {
         Map<String, RateLimitProperties.Grupo> grupos = new HashMap<>();
         grupos.put("auth", new RateLimitProperties.Grupo(10, 1));
         grupos.put("default", new RateLimitProperties.Grupo(300, 10));
-        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, grupos);
+        RateLimitProperties props = new RateLimitProperties(true, true, 100L, 5L, false /*distributed*/, null /*redisUri*/, grupos);
 
         assertThat(props.grupo("auth").capacity()).isEqualTo(10);
         assertThat(props.grupo("otro").capacity()).isEqualTo(300);

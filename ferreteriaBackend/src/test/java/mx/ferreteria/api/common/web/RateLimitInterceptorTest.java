@@ -67,8 +67,7 @@ class RateLimitInterceptorTest {
                 true,
                 true,
                 10_000L,
-                5L,
-                Map.of(
+                5L, false /*distributed*/, null /*redisUri*/, Map.of(
                         "default", new RateLimitProperties.Grupo(2, 1),
                         "catalogo", new RateLimitProperties.Grupo(2, 1),
                         "auth", new RateLimitProperties.Grupo(1, 1)));
@@ -77,7 +76,7 @@ class RateLimitInterceptorTest {
     @Test
     @DisplayName("Disabled=true: no consume, deja pasar y no agrega cabeceras")
     void disabled_passesThroughWithoutConsuming() throws Exception {
-        RateLimitProperties off = new RateLimitProperties(false, true, 1000L, 5L, propsDefault().grupos());
+        RateLimitProperties off = new RateLimitProperties(false, true, 1000L, 5L, false /*distributed*/, null /*redisUri*/, propsDefault().grupos());
         var req = get("/api/v1/productos");
         var res = new MockHttpServletResponse();
         boolean allow = interceptor(off).preHandle(req, res, handlerConPerfil(MarcadorController.class, "catalogo"));
@@ -191,7 +190,7 @@ class RateLimitInterceptorTest {
     @Test
     @DisplayName("scopeByUser=false: siempre cae a IP")
     void scopeByUserFalseUsaIp() throws Exception {
-        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, false, 1000L, 5L, propsDefault().grupos()));
+        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, false, 1000L, 5L, false /*distributed*/, null /*redisUri*/, propsDefault().grupos()));
         HandlerMethod hm = handlerConPerfil(MarcadorController.class, "catalogo");
 
         SecurityContextHolder.getContext().setAuthentication(
@@ -228,8 +227,7 @@ class RateLimitInterceptorTest {
     @Test
     @DisplayName("Perfil inexistente cae al grupo default del yaml")
     void perfilInexistenteCaeADefault() throws Exception {
-        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, true, 1000L, 5L,
-                Map.of("default", new RateLimitProperties.Grupo(2, 1))));
+        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, true, 1000L, 5L, false /*distributed*/, null /*redisUri*/, Map.of("default", new RateLimitProperties.Grupo(2, 1))));
         HandlerMethod hm = handlerConPerfil(MarcadorController.class, "catalogo");
 
         var res = new MockHttpServletResponse();

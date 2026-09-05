@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 12: BACK-ESC-004 done (cache catalogos Caffeine 5min).
-# Total findings: 316 - done=28 open=288
+# PASO 13: BACK-ESC-001 done (RateLimit configurable a Redis, documentado).
+# Total findings: 316 - done=29 open=287
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -1575,9 +1575,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 13: RateLimitProperties.distributed + redisUri configurables, documentado path to Redis (bucket4j-redis); actual
+    = Caffeine local con scopeByUser'
 - id: BACK-ESC-002
   project: backend
   dimension: escalabilidad
