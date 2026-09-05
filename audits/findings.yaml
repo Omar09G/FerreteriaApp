@@ -1,6 +1,6 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 4: FRONT vitest+vite bundling+throttle done (4 hallazgos).
-# Total findings: 316 — done=12 open=304
+# PASO 5: OTel sampling+cardinality done (3 hallazgos).
+# Total findings: 316 — done=15 open=301
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -251,9 +251,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 5: OTel sampling al 100 % — OTEL_TRACES_SAMPLER 5% + strip_high_cardinality + resource_to_telemetry false —
+    verificado 2026-09-05'
 - id: BACK-REND-016
   project: backend
   dimension: rendimiento
@@ -269,9 +271,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 5: OTel cardinality bomb — OTEL_TRACES_SAMPLER 5% + strip_high_cardinality + resource_to_telemetry false —
+    verificado 2026-09-05'
 - id: BACK-REND-017
   project: backend
   dimension: rendimiento
@@ -988,9 +992,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 5: OTel browser SDK habilitado por default en Docker — OTEL_TRACES_SAMPLER 5% + strip_high_cardinality + resource_to_telemetry
+    false — verificado 2026-09-05'
 - id: BACK-SEC-033
   project: backend
   dimension: seguridad

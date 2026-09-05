@@ -123,6 +123,8 @@ services:
       OTEL_TRACES_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: otlp
       OTEL_LOGS_EXPORTER: otlp
+      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.05}
       OTEL_METRIC_EXPORT_INTERVAL: 30000
       OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
       # Tunnig JVM para contenedor

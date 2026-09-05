@@ -58,6 +58,18 @@ processors:
     send_batch_size: 1024
     send_batch_max_size: 2048
 
+  # Strip high-cardinality labels antes de Prometheus (evita explosión de series)
+  attributes/strip_high_cardinality:
+    actions:
+      - key: browser.user_agent
+        action: delete
+      - key: process.executable.path
+        action: delete
+      - key: process.command_args
+        action: delete
+      - key: process.runtime.description
+        action: delete
+
   # Atributos comunes a todas las señales
   resource:
     attributes:
@@ -73,7 +85,7 @@ exporters:
   prometheus:
     endpoint: 0.0.0.0:8889
     resource_to_telemetry_conversion:
-      enabled: true
+      enabled: false
     # Añade labels de namespace/instance útiles en PromQL
     namespace: ferreteria
     const_labels:
@@ -98,7 +110,7 @@ service:
     # ─── Métricas ────────────────────────────────────────────────
     metrics:
       receivers: [otlp, prometheus]
-      processors: [memory_limiter, resource, batch]
+      processors: [memory_limiter, resource, attributes/strip_high_cardinality, batch]
       exporters: [prometheus]
 
     # ─── Trazas ─────────────────────────────────────────────────
