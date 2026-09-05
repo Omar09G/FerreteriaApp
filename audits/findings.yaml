@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 19: tail_sampling en collector (errors 100%, slow 100%, base 5%).
-# Total findings: 316 - done=35 open=281
+# PASO 20: BACK-SEC-009 done (sort whitelist).
+# Total findings: 316 - done=36 open=280
 ---
 - id: BACK-REND-001
   project: backend
@@ -616,9 +616,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 20: PageQuery.toPageable con DEFAULT_SORT_FIELDS whitelist (70 cols); sort no permitido devuelve Sort.unsorted
+    (UX, no error). PageQueryTest 12/12 verde'
 - id: BACK-SEC-010
   project: backend
   dimension: seguridad
