@@ -1,5 +1,6 @@
 package mx.ferreteria.api.cat.api;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,6 +14,7 @@ import mx.ferreteria.api.cat.service.ConfiguracionService;
 @RestController
 @RequestMapping("/api/v1/configuraciones")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMINISTRADOR')")
 public class ConfiguracionController extends AbstractCatalogoController<Configuracion, String, ConfiguracionRequest, ConfiguracionResponse> {
 
     private final ConfiguracionService service;

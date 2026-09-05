@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
@@ -45,11 +47,13 @@ public class VentaController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     public VenDtos.VentaResponse checkout(@Valid @RequestBody VenDtos.VentaRequest req) {
         return service.checkout(req);
     }
 
     @PatchMapping("/{id}/cancelar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public VenDtos.VentaResponse cancel(
             @PathVariable Long id,
             @Valid @RequestBody VenDtos.VentaCancelRequest req) {

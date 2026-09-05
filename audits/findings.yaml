@@ -1,5 +1,5 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 5: OTel sampling+cardinality done (3 hallazgos).
+# PASO 6 parcial: Config/Folio/Venta @PreAuthorize (3 controllers) — BACK-SEC-001 sigue open (37 restantes).
 # Total findings: 316 — done=15 open=301
 # Schema: see scripts/parse_audit.py docstring.
 ---
@@ -471,6 +471,8 @@
   status: open
   owner: null
   depends_on: []
+  notes: 'PASO 6 parcial: ConfiguracionController+FolioController asegurados (ADMIN), VentaController checkout/cancel asegurados.
+    Quedan ~37 controllers por asegurar.'
 - id: BACK-SEC-002
   project: backend
   dimension: seguridad
