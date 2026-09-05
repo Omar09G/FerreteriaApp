@@ -1,6 +1,6 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 7: BACK-REND-007 done (CajaService batch).
-# Total findings: 316 — done=17 open=299
+# PASO 8: BACK-REND-012 done (ProductoService batch).
+# Total findings: 316 — done=18 open=298
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -200,9 +200,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 8: ProductoService batch stock (findByAlmacenIdAndProductoIdIn) — verificado 2026-09-05'
 - id: BACK-REND-013
   project: backend
   dimension: rendimiento

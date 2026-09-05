@@ -2,7 +2,13 @@ package mx.ferreteria.api.cat.service;
 
 import java.math.BigDecimal;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +27,7 @@ import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.cat.repo.UnidadMedidaRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.inv.entity.Inventario;
 import mx.ferreteria.api.inv.repo.InventarioRepository;
 
 @Service
@@ -57,19 +64,31 @@ public class ProductoService {
             page = repo.findByActivoTrue(pageable);
         }
 
-        return page.map(this::toResponse)
-                .map(product -> {
-                    if (almacenId != null) {
-                        var inventario = inventarioRepo.findByAlmacenIdAndProductoId(almacenId, product.productoId());
-                        if (inventario != null) {
-                            product = product
-                                    .withStock(inventario.getStock() != null ? inventario.getStock() : BigDecimal.ZERO);
-                        } else {
-                            product = product.withStock(BigDecimal.ZERO);
-                        }
-                    }
-                    return product;
-                });
+        Page<ProductoResponse> mapped = page.map(this::toResponse);
+        if (almacenId != null && mapped.getContent().size() > 1) {
+            List<Long> pids = mapped.getContent().stream().map(ProductoResponse::productoId).toList();
+            Map<Long, Inventario> invByProd = inventarioRepo
+                    .findByAlmacenIdAndProductoIdIn(almacenId, pids).stream()
+                    .collect(Collectors.toMap(Inventario::getProductoId, Function.identity()));
+            List<ProductoResponse> enriched = mapped.getContent().stream().map(product -> {
+                Inventario inv = invByProd.get(product.productoId());
+                BigDecimal stock = (inv != null && inv.getStock() != null) ? inv.getStock() : BigDecimal.ZERO;
+                return product.withStock(stock);
+            }).toList();
+            return new PageImpl<>(enriched, page.getPageable(), page.getTotalElements());
+        }
+        return mapped.map(product -> {
+            if (almacenId != null) {
+                var inventario = inventarioRepo.findByAlmacenIdAndProductoId(almacenId, product.productoId());
+                if (inventario != null) {
+                    product = product
+                            .withStock(inventario.getStock() != null ? inventario.getStock() : BigDecimal.ZERO);
+                } else {
+                    product = product.withStock(BigDecimal.ZERO);
+                }
+            }
+            return product;
+        });
     }
 
     @Transactional(readOnly = true)
