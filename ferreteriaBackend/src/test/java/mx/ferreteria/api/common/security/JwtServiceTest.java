@@ -17,7 +17,7 @@ class JwtServiceTest {
     private final UserPrincipal user = new UserPrincipal(7, "cajero1", 42, List.of("VENDEDOR", "CAJERO"));
 
     private JwtService svc(int accessMinutes) {
-        return new JwtService(new JwtProperties(SECRET_32, accessMinutes, 8));
+        return new JwtService(new JwtProperties(SECRET_32, null /*previousSecret*/, accessMinutes, 8));
     }
 
     @Test
@@ -58,7 +58,7 @@ class JwtServiceTest {
     @Test
     @DisplayName("secret corto (<32 bytes) rechaza el arranque con mensaje claro")
     void shortSecret_failsFast() {
-        assertThatThrownBy(() -> new JwtService(new JwtProperties("corto", 15, 8)))
+        assertThatThrownBy(() -> new JwtService(new JwtProperties("corto", null /*previousSecret*/, 15, 8)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("32");
     }

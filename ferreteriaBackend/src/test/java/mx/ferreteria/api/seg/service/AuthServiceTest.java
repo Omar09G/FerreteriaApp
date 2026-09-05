@@ -64,7 +64,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         service = new AuthService(gateway, admin, empleados, encoder,
-                new JwtService(new JwtProperties("0123456789abcdef0123456789abcdef", 15, 8)),
+                new JwtService(new JwtProperties("0123456789abcdef0123456789abcdef", null /*previousSecret*/, 15, 8)),
                 new AuthCookieProperties(false, "Lax", "/api/v1/auth", "rt", "at"));
     }
 

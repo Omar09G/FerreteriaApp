@@ -9,6 +9,13 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties(prefix = "app.jwt")
 public record JwtProperties(
                 String secret,
+                /**
+                 * BACK-SEC-033: previousSecret opcional. Si esta presente y es >= 32 bytes,
+                 * JwtService valida tokens firmados con esta clave ademas del actual.
+                 * Usar durante una ventana corta tras rotar JWT_SECRET para no forzar
+                 * re-login masivo. Dejar vacio cuando no se este rotando.
+                 */
+                String previousSecret,
                 @DefaultValue("15") int accessMinutes,
                 @DefaultValue("8") int refreshHours) {
 }

@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 15+16: password hardening done.
-# Total findings: 316 - done=33 open=283
+# PASO 17: BACK-SEC-033 done (JWT rotation overlap).
+# Total findings: 316 - done=34 open=282
 ---
 - id: BACK-REND-001
   project: backend
@@ -1022,9 +1022,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 17: JwtProperties.previousSecret + JwtService valida con previousKey si falla key. JwtRotationTest 3/3 OK'
 - id: BACK-SEC-034
   project: backend
   dimension: seguridad

@@ -34,6 +34,7 @@ public class JwtService {
     public static final String TYP_ACCESS = "acc";
 
     private final SecretKey key;
+    private final SecretKey previousKey; // null si no hay rotacion previa
     private final Duration accessTtl;
     private final Duration refreshTtl;
 
@@ -44,6 +45,21 @@ public class JwtService {
                     "JWT secret debe tener al menos 32 bytes; configure JWT_SECRET");
         }
         this.key = Keys.hmacShaKeyFor(secret);
+        // BACK-SEC-033: previousSecret permite ventana de rotacion sin forzar
+        // re-login. Si esta presente y >= 32 bytes, se intenta validar tokens
+        // firmados con el viejo ademas del nuevo. Mantener durante una ventana
+        // corta tras rotar JWT_SECRET.
+        String previousSecret = props.previousSecret();
+        if (previousSecret != null && !previousSecret.isBlank()) {
+            byte[] prevBytes = previousSecret.getBytes(StandardCharsets.UTF_8);
+            if (prevBytes.length >= 32) {
+                this.previousKey = Keys.hmacShaKeyFor(prevBytes);
+            } else {
+                this.previousKey = null;
+            }
+        } else {
+            this.previousKey = null;
+        }
         this.accessTtl = Duration.ofMinutes(props.accessMinutes());
         this.refreshTtl = Duration.ofHours(props.refreshHours());
     }
@@ -96,7 +112,21 @@ public class JwtService {
     }
 
     private io.jsonwebtoken.Jws<Claims> parser(String token) {
-        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+        try {
+            return Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
+        } catch (io.jsonwebtoken.SignatureException ex) {
+            // BACK-SEC-033: ventana de rotacion. Si hay previousSecret, intenta
+            // validar con esa clave antes de fallar. Si tampoco, propaga la
+            // excepcion original para mantener el comportamiento fail-closed.
+            if (previousKey != null) {
+                try {
+                    return Jwts.parser().verifyWith(previousKey).build().parseSignedClaims(token);
+                } catch (io.jsonwebtoken.SignatureException ex2) {
+                    throw ex;
+                }
+            }
+            throw ex;
+        }
     }
 
     public static String sha256Base64(String raw) {

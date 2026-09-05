@@ -36,7 +36,7 @@ class JwtAuthFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    private final JwtService realJwt = new JwtService(new JwtProperties("0123456789abcdef0123456789abcdef", 15, 8));
+    private final JwtService realJwt = new JwtService(new JwtProperties("0123456789abcdef0123456789abcdef", null /*previousSecret*/, 15, 8));
 
     /** Claims reales emitidos por el JwtService (impl de jjwt es runtimeOnly). */
     private Claims claims(int uid, String username, List<String> roles) {
