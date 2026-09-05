@@ -3,3 +3,7 @@ graphify-out/
 .claude/
 .opencode/
 CLAUDE.md
+ECC/
+audits/
+docs/
+scripts/
