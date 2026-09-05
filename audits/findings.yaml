@@ -1,7 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 14: DB-ESC-001 done (ven.ventas particionada en scripts/V1).
-# Total findings: 316 - done=30 open=286
-# Schema: see scripts/parse_audit.py docstring.
+# PASO 15+16: password hardening done.
+# Total findings: 316 - done=33 open=283
 ---
 - id: BACK-REND-001
   project: backend
@@ -530,9 +529,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 15+16: AuthService.changePassword revokeAll + politica 8chars+digit + BCrypt 12'
 - id: BACK-SEC-005
   project: backend
   dimension: seguridad
@@ -685,9 +685,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 15+16: AuthService.changePassword revokeAll + politica 8chars+digit + BCrypt 12'
 - id: BACK-SEC-014
   project: backend
   dimension: seguridad
@@ -1135,9 +1136,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 15+16: AuthService.changePassword revokeAll + politica 8chars+digit + BCrypt 12'
 - id: BACK-SEC-041
   project: backend
   dimension: seguridad
