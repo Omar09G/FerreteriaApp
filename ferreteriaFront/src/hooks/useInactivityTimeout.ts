@@ -27,12 +27,20 @@ export function useInactivityTimeout() {
 	// Refs para acceder a valores actuales dentro de listeners efímeros.
 	const autenticadoRef = useRef(autenticado);
 	const lastRef = useRef(lastActivityAt);
+	const toastRef = useRef(toast);
+	const tRef = useRef(t);
 	useEffect(() => {
 		autenticadoRef.current = autenticado;
 	}, [autenticado]);
 	useEffect(() => {
 		lastRef.current = lastActivityAt;
 	}, [lastActivityAt]);
+	useEffect(() => {
+		toastRef.current = toast;
+	}, [toast]);
+	useEffect(() => {
+		tRef.current = t;
+	}, [t]);
 
 	useEffect(() => {
 		const timeout = env.sessionTimeoutMs;
@@ -46,7 +54,12 @@ export function useInactivityTimeout() {
 			"touchstart",
 			"click",
 		];
+		// Throttle mousemove a 1s para no saturar Zustand con 100+ updates/seg
+		let lastPing = 0;
 		const onActivity = () => {
+			const now = Date.now();
+			if (now - lastPing < 1000) return;
+			lastPing = now;
 			pingActivity();
 			yaAvisadoRef.current = false;
 		};
@@ -59,14 +72,14 @@ export function useInactivityTimeout() {
 			const elapsed = Date.now() - lastRef.current;
 			if (elapsed >= timeout) {
 				clearSession();
-				toast.warning(t("auth.sesionExpiradaInactividad"));
+				toastRef.current.warning(tRef.current("auth.sesionExpiradaInactividad"));
 				return;
 			}
 			// Aviso 60s antes del logout si la sesión sigue activa.
 			const aviso = timeout - 60_000;
 			if (!yaAvisadoRef.current && elapsed >= aviso && aviso > 0) {
 				yaAvisadoRef.current = true;
-				toast.info(t("auth.sesionPorExpirar"));
+				toastRef.current.info(tRef.current("auth.sesionPorExpirar"));
 			}
 		};
 

@@ -1,6 +1,6 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 3: BACK-REND-013 done (idx_ventas_fecha_local).
-# Total findings: 316 — done=8 open=308
+# PASO 4: FRONT vitest+vite bundling+throttle done (4 hallazgos).
+# Total findings: 316 — done=12 open=304
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -2017,9 +2017,11 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 4: 6 listeners (mousemove, mousedown, keydown, scroll, touchsta — verificado 2026-09-05, build+lint+vitest
+    pass'
 - id: FRONT-REND-002
   project: frontend
   dimension: rendimiento
@@ -2115,9 +2117,11 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 4: sin manualChunks para recharts, @opentelemetry/*, sweetalert — verificado 2026-09-05, build+lint+vitest
+    pass'
 - id: FRONT-REND-008
   project: frontend
   dimension: rendimiento
@@ -2131,9 +2135,10 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 4: sin chunkSizeWarningLimit, sin target: ''es2020'' — verificado 2026-09-05, build+lint+vitest pass'
 - id: FRONT-REND-009
   project: frontend
   dimension: rendimiento
@@ -2836,9 +2841,11 @@
   blast_radius: regression
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 4: [CR #7] — **sin test script, sin vitest/jest, sin @testing-l — verificado 2026-09-05, build+lint+vitest
+    pass'
 - id: FRONT-MAN-002
   project: frontend
   dimension: mantenibilidad

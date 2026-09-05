@@ -24,6 +24,25 @@ export default defineConfig(({ mode }) => {
 				"@": fileURLToPath(new URL("./src", import.meta.url)),
 			},
 		},
+		build: {
+			target: "es2022",
+			chunkSizeWarningLimit: 600,
+			rollupOptions: {
+				output: {
+					manualChunks(id) {
+						if (id.includes("recharts")) return "recharts";
+						if (id.includes("@opentelemetry")) return "otel";
+						if (id.includes("sweetalert2")) return "swal";
+						return undefined;
+					},
+				},
+			},
+		},
+		test: {
+			environment: "jsdom",
+			setupFiles: ["./src/test/setup.ts"],
+			globals: true,
+		},
 		server: {
 			proxy: sinProxyDev
 				? undefined
