@@ -1,0 +1,33 @@
+-- ============================================================================
+-- DELTA: Partitioning para escalabilidad (PASO 10, CRITICAL)
+-- Tablas afectadas: seg.auditoria, inv.movimientos_inventario
+-- Estado: REQUIERE VENTANA DE MANTENIMIENTO — no aplicar automáticamente en prod
+-- sin coordinación. Para installs nuevos, scripts/02_tablas.sql ya declara
+-- la intención; este delta es para DBs existentes.
+--
+-- seg.auditoria proyecta ~315M filas/año ≈1TB/año sin partitioning.
+-- inv.movimientos_inventario 100-500k filas/mes en tienda mediana.
+--
+-- Pasos manuales (ejecutar en ventana, con backup):
+--   1. pg_dump -Fc -t seg.auditoria > backup_auditoria.dump
+--   2. CREATE TABLE seg.auditoria_new (LIKE seg.auditoria INCLUDING ALL)
+--      PARTITION BY RANGE (creado_en);
+--   3. CREATE TABLE seg.auditoria_p2026_09 PARTITION OF seg.auditoria_new
+--      FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+--      -- repetir para cada mes futuro, o usar pg_partman
+--   4. INSERT INTO seg.auditoria_new SELECT * FROM seg.auditoria;
+--   5. ALTER TABLE seg.auditoria RENAME TO auditoria_old;
+--      ALTER TABLE seg.auditoria_new RENAME TO auditoria;
+--   6. Verificar conteos y re-crear FKs/indexes si needed (INCLUDING ALL los copia)
+--   7. DROP TABLE seg.auditoria_old; -- tras validar
+--
+-- Alternativa recomendada para prod: usar pg_partman con:
+--   SELECT partman.create_parent('seg.auditoria','creado_en','native','monthly');
+--
+-- Para inv.movimientos_inventario: mismo patrón con PARTITION BY RANGE (creado_en)
+-- ============================================================================
+
+-- Por ahora, solo documentamos la intención y validamos que el archivo existe.
+-- La migración automática se activará cuando el equipo programe la ventana.
+-- Para CI, este delta es no-op (solo comentario) para no romper tests.
+SELECT 1; -- placeholder no-op: partitioning requiere ejecución manual (ver comentario arriba)

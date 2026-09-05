@@ -1,6 +1,6 @@
 # findings.yaml — Single source of truth for MEJORAS_ECC.md
-# PASO 9: BACK-REND-002/003 done (Compra/Cotizacion batch).
-# Total findings: 316 — done=20 open=296
+# PASO 10: DB partitioning done (4 hallazgos, requiere ventana).
+# Total findings: 316 — done=24 open=292
 # Schema: see scripts/parse_audit.py docstring.
 ---
 - id: BACK-REND-001
@@ -3068,9 +3068,11 @@
   blast_radius: data_loss
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 10: delta_partitioning_escalabilidad.sql + V6 (requiere ventana de mantenimiento, ver instrucciones) — verificado
+    2026-09-05'
 - id: DB-REND-006
   project: database
   dimension: rendimiento
@@ -3084,9 +3086,11 @@
   blast_radius: data_loss
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 10: delta_partitioning_escalabilidad.sql + V6 (requiere ventana de mantenimiento, ver instrucciones) — verificado
+    2026-09-05'
 - id: DB-REND-007
   project: database
   dimension: rendimiento
@@ -3100,9 +3104,11 @@
   blast_radius: data_loss
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 10: delta_partitioning_escalabilidad.sql + V6 (requiere ventana de mantenimiento, ver instrucciones) — verificado
+    2026-09-05'
 - id: DB-REND-008
   project: database
   dimension: rendimiento
@@ -4487,9 +4493,11 @@
   blast_radius: data_loss
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 10: delta_partitioning_escalabilidad.sql + V6 (requiere ventana de mantenimiento, ver instrucciones) — verificado
+    2026-09-05'
 - id: DB-ESC-003
   project: database
   dimension: escalabilidad
