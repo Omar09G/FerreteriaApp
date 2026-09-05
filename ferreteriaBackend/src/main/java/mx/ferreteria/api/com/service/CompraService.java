@@ -3,9 +3,15 @@ package mx.ferreteria.api.com.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -74,7 +80,76 @@ public class CompraService {
         } else {
             page = compraRepo.findAll(pageable);
         }
-        return page.map(this::toResponse);
+        return toResponsePage(page);
+    }
+
+    private Page<ComDtos.CompraResponse> toResponsePage(Page<Compra> page) {
+        if (page.isEmpty() || page.getContent().size() == 1) {
+            return page.map(this::toResponse);
+        }
+        List<ComDtos.CompraResponse> content = toResponses(page.getContent());
+        return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
+    }
+
+    /**
+     * Batch assembler para páginas: 6 queries fijas en lugar de ~4*N + N*detalles.
+     * Usado por list() cuando la página tiene >1 elemento.
+     * Para getById/create (N=1) se mantiene toResponse() simple.
+     */
+    private List<ComDtos.CompraResponse> toResponses(List<Compra> compras) {
+        List<Long> compraIds = compras.stream().map(Compra::getCompraId).toList();
+
+        Set<Integer> proveedorIds = compras.stream().map(Compra::getProveedorId).collect(Collectors.toSet());
+        Map<Integer, Proveedor> proveedores = proveedorRepo.findAllById(proveedorIds).stream()
+                .collect(Collectors.toMap(Proveedor::getProveedorId, Function.identity()));
+
+        Set<Integer> almacenIds = compras.stream().map(Compra::getAlmacenId).collect(Collectors.toSet());
+        Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
+                .collect(Collectors.toMap(Almacen::getAlmacenId, Function.identity()));
+
+        Set<Integer> formaPagoIds = compras.stream().map(Compra::getFormaPagoId).collect(Collectors.toSet());
+        Map<Integer, FormaPago> formasPago = formaPagoRepo.findAllById(formaPagoIds).stream()
+                .collect(Collectors.toMap(FormaPago::getFormaPagoId, Function.identity()));
+
+        List<CompraDetalle> allDetalles = detalleRepo.findByCompraIdIn(compraIds);
+        Map<Long, List<CompraDetalle>> detallesByCompra = allDetalles.stream()
+                .collect(Collectors.groupingBy(CompraDetalle::getCompraId));
+
+        Set<Long> productoIds = allDetalles.stream().map(CompraDetalle::getProductoId)
+                .collect(Collectors.toSet());
+        Map<Long, Producto> productos = productoIds.isEmpty() ? Map.of()
+                : productoRepo.findAllById(productoIds).stream()
+                        .collect(Collectors.toMap(Producto::getProductoId, Function.identity()));
+
+        List<ComDtos.CompraResponse> result = new ArrayList<>(compras.size());
+        for (Compra c : compras) {
+            String proveedorNombre = proveedores.containsKey(c.getProveedorId())
+                    ? proveedores.get(c.getProveedorId()).getRazonSocial() : null;
+            String almacenNombre = almacenes.containsKey(c.getAlmacenId())
+                    ? almacenes.get(c.getAlmacenId()).getNombre() : null;
+            String formaPagoNombre = formasPago.containsKey(c.getFormaPagoId())
+                    ? formasPago.get(c.getFormaPagoId()).getNombre() : null;
+
+            List<ComDtos.CompraDetalleResponse> detalles = detallesByCompra
+                    .getOrDefault(c.getCompraId(), List.of()).stream()
+                    .map(d -> new ComDtos.CompraDetalleResponse(
+                            d.getCompraDetalleId(), d.getProductoId(),
+                            productos.containsKey(d.getProductoId())
+                                    ? productos.get(d.getProductoId()).getNombre() : null,
+                            d.getCantidad(), d.getCostoUnitario(), d.getImporteLinea()))
+                    .toList();
+
+            result.add(new ComDtos.CompraResponse(
+                    c.getCompraId(), c.getFolio(), c.getFacturaProveedor(),
+                    c.getProveedorId(), proveedorNombre,
+                    c.getAlmacenId(), almacenNombre,
+                    c.getFecha(), c.getFormaPagoId(), formaPagoNombre,
+                    c.getSubtotal(), c.getIva(),
+                    c.getDescuentoTotal(), c.getTotal(),
+                    c.getEstado(), c.getUsuarioId(), c.getTurnoCajaId(),
+                    c.getNotas(), detalles));
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)

@@ -5,8 +5,12 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,7 +73,70 @@ public class CotizacionService {
     @Transactional(readOnly = true)
     public Page<VenDtos.CotizacionResponse> list(String estado,
             LocalDate desde, LocalDate hasta, Pageable pageable) {
-        return repo.filtrar(estado, desde, hasta, pageable).map(this::toResponse);
+        Page<Cotizacion> page = repo.filtrar(estado, desde, hasta, pageable);
+        if (page.getContent().size() <= 1) {
+            return page.map(this::toResponse);
+        }
+        List<VenDtos.CotizacionResponse> responses = toResponses(page.getContent());
+        return new PageImpl<>(responses, page.getPageable(), page.getTotalElements());
+    }
+
+    List<VenDtos.CotizacionResponse> toResponses(List<Cotizacion> cotizaciones) {
+        if (cotizaciones.isEmpty()) {
+            return List.of();
+        }
+        List<Long> clienteIds = cotizaciones.stream()
+                .map(Cotizacion::getClienteId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> clienteNombres = clienteRepo.findAllById(clienteIds).stream()
+                .collect(Collectors.toMap(Cliente::getClienteId, Cliente::getRazonSocial));
+
+        List<Long> cotIds = cotizaciones.stream()
+                .map(Cotizacion::getCotizacionId)
+                .toList();
+        List<CotizacionDetalle> allDetalles = detalleRepo.findByCotizacionIdIn(cotIds);
+        Map<Long, List<CotizacionDetalle>> detallesByCotId = allDetalles.stream()
+                .collect(Collectors.groupingBy(CotizacionDetalle::getCotizacionId));
+
+        List<Long> productoIds = allDetalles.stream()
+                .map(CotizacionDetalle::getProductoId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> productoNombres = productoRepo.findAllById(productoIds).stream()
+                .collect(Collectors.toMap(Producto::getProductoId, Producto::getNombre));
+
+        return cotizaciones.stream().map(c -> {
+            String clienteNombre = c.getClienteId() != null ? clienteNombres.get(c.getClienteId()) : null;
+            List<CotizacionDetalle> entidades = detallesByCotId.getOrDefault(c.getCotizacionId(), List.of());
+            List<VenDtos.CotizacionDetalleResponse> detalles = entidades.stream().map(d -> {
+                String nombre = productoNombres.get(d.getProductoId());
+                return new VenDtos.CotizacionDetalleResponse(
+                        d.getProductoId(), nombre,
+                        d.getCantidad(), d.getPrecioUnitario(),
+                        d.getImporteLinea());
+            }).toList();
+
+            Totales totales;
+            if ((c.getSubtotal() == null || c.getSubtotal().signum() == 0)
+                    && (c.getIva() == null || c.getIva().signum() == 0)
+                    && (c.getTotal() == null || c.getTotal().signum() == 0)
+                    && !entidades.isEmpty()) {
+                totales = calcularTotales(entidades);
+            } else {
+                totales = new Totales(c.getSubtotal(), c.getIva(), c.getTotal());
+            }
+
+            return new VenDtos.CotizacionResponse(
+                    c.getCotizacionId(), c.getFolio(),
+                    c.getClienteId(), clienteNombre,
+                    c.getFecha(), c.getVigenciaHasta(),
+                    totales.subtotal(), totales.iva(), totales.total(),
+                    c.getEstado(), c.getVentaGeneradaId(),
+                    c.getUsuarioId(), detalles);
+        }).toList();
     }
 
     @Transactional(readOnly = true)

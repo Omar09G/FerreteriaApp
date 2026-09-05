@@ -3,14 +3,16 @@ package mx.ferreteria.api.ven.service;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,7 +83,20 @@ public class PromocionService {
         }
 
         Page<Promocion> page = repo.findAll(spec, pageable);
-        List<PromocionResponse> content = page.getContent().stream().map(this::toResponse).toList();
+        if (page.isEmpty() || page.getContent().size() == 1) {
+            List<PromocionResponse> content = page.getContent().stream().map(this::toResponse).toList();
+            return new PageImpl<>(content, pageable, page.getTotalElements());
+        }
+        // Batch: 2 queries vs 2*N
+        List<Long> pids = page.getContent().stream().map(Promocion::getPromocionId).toList();
+        Map<Long, List<Long>> productosByPromo = productosRepo.findByPromocionIdIn(pids).stream()
+                .collect(Collectors.groupingBy(PromocionProducto::getPromocionId,
+                        Collectors.mapping(PromocionProducto::getProductoId, Collectors.toList())));
+        Map<Long, List<Integer>> categoriasByPromo = categoriasRepo.findByPromocionIdIn(pids).stream()
+                .collect(Collectors.groupingBy(PromocionCategoria::getPromocionId,
+                        Collectors.mapping(PromocionCategoria::getCategoriaId, Collectors.toList())));
+        List<PromocionResponse> content = page.getContent().stream()
+                .map(p -> toResponse(p, productosByPromo, categoriasByPromo)).toList();
         return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
@@ -250,6 +265,13 @@ public class PromocionService {
                 .map(PromocionProducto::getProductoId).toList();
         List<Integer> categorias = categoriasRepo.findByPromocionId(p.getPromocionId()).stream()
                 .map(PromocionCategoria::getCategoriaId).toList();
+        return toResponse(p, Map.of(p.getPromocionId(), productos), Map.of(p.getPromocionId(), categorias));
+    }
+
+    private PromocionResponse toResponse(Promocion p,
+            Map<Long, List<Long>> productosByPromo, Map<Long, List<Integer>> categoriasByPromo) {
+        List<Long> productos = productosByPromo.getOrDefault(p.getPromocionId(), List.of());
+        List<Integer> categorias = categoriasByPromo.getOrDefault(p.getPromocionId(), List.of());
         return new PromocionResponse(
                 p.getPromocionId(), p.getNombre(), p.getDescripcion(), p.getTipo(),
                 p.getValorPct(), p.getValorMonto(), p.getPrecioEspecial(),

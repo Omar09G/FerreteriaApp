@@ -7,4 +7,6 @@ import mx.ferreteria.api.ven.entity.CotizacionDetalleId;
 
 public interface CotizacionDetalleRepository extends JpaRepository<CotizacionDetalle, CotizacionDetalleId> {
     List<CotizacionDetalle> findByCotizacionId(Long cotizacionId);
+
+    List<CotizacionDetalle> findByCotizacionIdIn(List<Long> ids);
 }

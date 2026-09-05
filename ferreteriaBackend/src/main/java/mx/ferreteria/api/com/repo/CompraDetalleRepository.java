@@ -8,4 +8,6 @@ import mx.ferreteria.api.com.entity.CompraDetalle;
 
 public interface CompraDetalleRepository extends JpaRepository<CompraDetalle, Long> {
     List<CompraDetalle> findByCompraIdOrderByCompraDetalleId(Long compraId);
+
+    List<CompraDetalle> findByCompraIdIn(List<Long> compraIds);
 }

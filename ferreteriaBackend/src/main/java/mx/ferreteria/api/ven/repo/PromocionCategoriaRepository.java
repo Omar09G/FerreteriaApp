@@ -13,6 +13,9 @@ public interface PromocionCategoriaRepository extends JpaRepository<PromocionCat
     @Query("SELECT pc FROM PromocionCategoria pc WHERE pc.promocionId = :promocionId")
     List<PromocionCategoria> findByPromocionId(Long promocionId);
 
+    @Query("SELECT pc FROM PromocionCategoria pc WHERE pc.promocionId IN :promocionIds")
+    List<PromocionCategoria> findByPromocionIdIn(List<Long> promocionIds);
+
     @Modifying
     @Query("DELETE FROM PromocionCategoria pc WHERE pc.promocionId = :promocionId")
     void deleteByPromocionId(Long promocionId);
