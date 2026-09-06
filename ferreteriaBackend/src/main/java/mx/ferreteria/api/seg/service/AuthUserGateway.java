@@ -8,7 +8,13 @@ import java.util.Optional;
 public interface AuthUserGateway {
 
     record AuthUser(int usuarioId, String username, String passwordHash,
-                    boolean activo, boolean debeCambiarPassword, Integer empleadoId) { }
+                    boolean activo, boolean debeCambiarPassword, Integer empleadoId,
+                    int failedLoginAttempts, Instant lockedUntil) {
+        public AuthUser(int usuarioId, String username, String passwordHash,
+                        boolean activo, boolean debeCambiarPassword, Integer empleadoId) {
+            this(usuarioId, username, passwordHash, activo, debeCambiarPassword, empleadoId, 0, null);
+        }
+    }
 
     /** Owner de un refresh token activo (join con usuarios para datos frescos). */
     record RefreshOwner(int usuarioId, String username, Integer empleadoId) { }
@@ -32,6 +38,10 @@ public interface AuthUserGateway {
     void revokeAllRefreshTokens(int usuarioId);
 
     void updateUltimoLogin(int usuarioId);
+
+    void incrementFailedAttempts(int usuarioId);
+
+    void resetFailedAttempts(int usuarioId);
 
     int abrirSesion(int usuarioId, String ip, String userAgent);
 

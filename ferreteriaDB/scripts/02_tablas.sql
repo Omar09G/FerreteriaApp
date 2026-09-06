@@ -182,6 +182,9 @@ CREATE TABLE IF NOT EXISTS seg.usuarios (
     -- hasta que el admin cambie su password inicial.
     debe_cambiar_password BOOLEAN NOT NULL DEFAULT false,
     password_changed_at   TIMESTAMPTZ,
+    -- PASO 28: hardening de seguridad para brute-force protection
+    failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until          TIMESTAMPTZ,
     ultimo_login  TIMESTAMPTZ,
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
     eliminado_en  TIMESTAMPTZ

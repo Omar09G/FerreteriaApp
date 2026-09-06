@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 27: secrets management done (BACK-SEC-004/DB-SEC-013/014).
-# Total findings: 316 - done=42 open=274
+# PASO 28: DB-SEC-010 done (usuarios lockout).
+# Total findings: 316 - done=43 open=273
 ---
 - id: BACK-REND-001
   project: backend
@@ -3576,9 +3576,11 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 28: seg.usuarios failed_login_attempts + locked_until + AuthService lockout 5 intentos/15min + CUENTA_BLOQUEADA
+    (429) + i18n'
 - id: DB-SEC-011
   project: database
   dimension: seguridad

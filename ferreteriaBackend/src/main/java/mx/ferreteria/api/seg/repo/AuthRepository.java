@@ -28,14 +28,18 @@ public class AuthRepository implements AuthUserGateway {
         @Override
         public Optional<AuthUser> findByUsername(String username) {
                 return jdbc.sql("""
-                                SELECT usuario_id, username, password_hash, activo, empleado_id, debe_cambiar_password
+                                SELECT usuario_id, username, password_hash, activo, empleado_id,
+                                       debe_cambiar_password, failed_login_attempts, locked_until
                                 FROM seg.usuarios WHERE username = :u AND eliminado_en IS NULL
                                 """)
                                 .param("u", username)
                                 .query((rs, n) -> new AuthUser(rs.getInt("usuario_id"), rs.getString("username"),
                                                 rs.getString("password_hash"), rs.getBoolean("activo"),
                                                 rs.getBoolean("debe_cambiar_password"),
-                                                (Integer) rs.getObject("empleado_id")))
+                                                (Integer) rs.getObject("empleado_id"),
+                                                rs.getInt("failed_login_attempts"),
+                                                rs.getTimestamp("locked_until") != null
+                                                        ? rs.getTimestamp("locked_until").toInstant() : null))
                                 .optional();
         }
 
@@ -115,6 +119,22 @@ public class AuthRepository implements AuthUserGateway {
                 jdbc.sql("UPDATE seg.usuarios SET ultimo_login = now() WHERE usuario_id = :id")
                                 .param("id", usuarioId)
                                 .update();
+        }
+
+        @Override
+        public void incrementFailedAttempts(int usuarioId) {
+                jdbc.sql("""
+                                UPDATE seg.usuarios SET failed_login_attempts = failed_login_attempts + 1,
+                                    locked_until = CASE WHEN failed_login_attempts + 1 >= 5
+                                        THEN now() + interval '15 minutes' ELSE locked_until END
+                                WHERE usuario_id = :id""")
+                                .param("id", usuarioId).update();
+        }
+
+        @Override
+        public void resetFailedAttempts(int usuarioId) {
+                jdbc.sql("UPDATE seg.usuarios SET failed_login_attempts = 0, locked_until = NULL WHERE usuario_id = :id")
+                                .param("id", usuarioId).update();
         }
 
         @Override

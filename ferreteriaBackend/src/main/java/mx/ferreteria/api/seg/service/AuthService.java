@@ -115,10 +115,18 @@ public class AuthService {
     @Transactional
     public LoginResult login(LoginRequest req, RequestMeta meta) {
         var user = gateway.findByUsername(req.username()).orElse(null);
+        if (user != null && user.lockedUntil() != null && user.lockedUntil().isAfter(Instant.now())) {
+            throw new ValidacionException(ErrorCode.CUENTA_BLOQUEADA);
+        }
         if (user == null || !user.activo()
                 || !passwordEncoder.matches(req.password(), user.passwordHash())) {
+            if (user != null) {
+                gateway.incrementFailedAttempts(user.usuarioId());
+            }
             throw new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS);
         }
+        // Login exitoso: resetear contador de intentos fallidos
+        gateway.resetFailedAttempts(user.usuarioId());
 
         List<String> roles = gateway.rolesOf(user.usuarioId());
         var principal = new UserPrincipal(user.usuarioId(), user.username(),

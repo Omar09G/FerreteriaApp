@@ -7,6 +7,7 @@ public enum ErrorCode {
 
     // auth
     CREDENCIALES_INVALIDAS("error.auth.credenciales-invalidas", HttpStatus.UNAUTHORIZED),
+    CUENTA_BLOQUEADA("error.auth.cuenta-bloqueada", HttpStatus.TOO_MANY_REQUESTS),
     TOKEN_EXPIRADO("error.auth.token-expirado", HttpStatus.UNAUTHORIZED),
     ACCESO_DENEGADO("error.auth.acceso-denegado", HttpStatus.FORBIDDEN),
 
