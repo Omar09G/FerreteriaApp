@@ -1,5 +1,5 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 25: BACK-REND-014 done (HPA PgBouncer+backend).
+# PASO 26: FRONT-ESC-002 wiring completo (7 reportes).
 # Total findings: 316 - done=40 open=276
 ---
 - id: BACK-REND-001
@@ -2515,7 +2515,7 @@
   owner: null
   depends_on: []
   notes: 'PASO 24: Skeleton.tsx + ChartSkeleton/TableSkeleton + VentasTotalesPage migrado a useReporte hook (skeleton vs spinner
-    global)'
+    global) + 6 reportes restantes migrados a useReporte/Skeleton (PASO 26)'
 - id: FRONT-ESC-003
   project: frontend
   dimension: escalabilidad

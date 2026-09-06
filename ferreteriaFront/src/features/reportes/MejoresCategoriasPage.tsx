@@ -7,7 +7,7 @@ import { apiMejoresCategorias } from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { Card } from "@/components/ui/Card";
-import { Spinner } from "@/components/ui/Spinner";
+import { ChartSkeleton } from "@/components/ui/Skeleton";
 import type { MejoresCategorias } from "@/lib/api/types";
 import { formatoMoneda, formatoNumero, formatoFecha } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
@@ -77,7 +77,7 @@ export default function MejoresCategoriasPage() {
 				rango={rango}
 				onChange={setRango}
 			/>
-			{isLoading && <Spinner />}
+			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
 				<Card titulo="Ranking de mejor categoría vendida por mes">
 					<DataTable

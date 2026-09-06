@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
 	Bar,
 	BarChart,
@@ -11,6 +10,7 @@ import {
 } from "recharts";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useReporte } from "@/hooks/useReporte";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
 import { formatoMoneda, formatoNumero } from "@/lib/format";
 import { apiHorasPico } from "@/lib/api/reportes";
@@ -18,7 +18,7 @@ import { esApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Spinner } from "@/components/ui/Spinner";
+import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ReporteHeader } from "./ReporteHeader";
 import CardListReportes from "./CardListReportes";
@@ -28,10 +28,7 @@ export default function HorasPicoPage() {
 	const { error: mostrarError } = useToast();
 	const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
 
-	const { data, isLoading, error } = useQuery({
-		queryKey: ["horas-pico", rango.inicio, rango.fin],
-		queryFn: () => apiHorasPico(rango.inicio, rango.fin),
-	});
+	const { data, isLoading, error } = useReporte("horas-pico", apiHorasPico, rango);
 
 	useEffect(() => {
 		if (error)
@@ -74,7 +71,7 @@ export default function HorasPicoPage() {
 				rango={rango}
 				onChange={setRango}
 			/>
-			{isLoading && <Spinner />}
+			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
 				<>
 					<Card titulo="Número de ventas por hora">

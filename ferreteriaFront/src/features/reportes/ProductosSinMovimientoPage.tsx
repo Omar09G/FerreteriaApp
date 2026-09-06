@@ -4,7 +4,7 @@ import CardListReportes from "./CardListReportes";
 import { esApiError } from "@/lib/api/client";
 import { useToast } from "@/components/ui/Toast";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { Spinner } from "@/components/ui/Spinner";
+import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -81,7 +81,7 @@ export default function ProductosSinMovimientoPage() {
 				titulo="Productos sin Movimiento"
 				subtitulo="Cuadratura de cortes por día en el periodo."
 			/>
-			{isLoading && <Spinner />}
+			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
 				<Card titulo="Productos sin movimiento">
 					<DataTable

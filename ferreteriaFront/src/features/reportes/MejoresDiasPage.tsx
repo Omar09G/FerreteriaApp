@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
 	Bar,
 	BarChart,
@@ -11,13 +10,14 @@ import {
 } from "recharts";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useReporte } from "@/hooks/useReporte";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
 import { formatoMoneda } from "@/lib/format";
 import { apiMejoresDias } from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Spinner } from "@/components/ui/Spinner";
+import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ReporteHeader } from "./ReporteHeader";
 import CardListReportes from "./CardListReportes";
@@ -27,10 +27,7 @@ export default function MejoresDiasPage() {
 	const { error: mostrarError } = useToast();
 	const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
 
-	const { data, isLoading, error } = useQuery({
-		queryKey: ["mejores-dias", rango.inicio, rango.fin],
-		queryFn: () => apiMejoresDias(rango.inicio, rango.fin),
-	});
+	const { data, isLoading, error } = useReporte("mejores-dias", apiMejoresDias, rango);
 
 	useEffect(() => {
 		if (error)
@@ -47,7 +44,7 @@ export default function MejoresDiasPage() {
 				rango={rango}
 				onChange={setRango}
 			/>
-			{isLoading && <Spinner />}
+			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
 				<Card titulo="Total acumulado por día de la semana">
 					<ResponsiveContainer width="100%" height={280}>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useReporte } from "@/hooks/useReporte";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
 import { formatoFecha, formatoMoneda, formatoNumero } from "@/lib/format";
 import { apiMejoresClientes } from "@/lib/api/reportes";
@@ -9,7 +9,7 @@ import { esApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Spinner } from "@/components/ui/Spinner";
+import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ReporteHeader } from "./ReporteHeader";
 import type { MejorCliente } from "@/lib/api/types";
@@ -20,10 +20,7 @@ export default function MejoresClientesPage() {
 	const { error: mostrarError } = useToast();
 	const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
 
-	const { data, isLoading, error } = useQuery({
-		queryKey: ["mejores-clientes", rango.inicio, rango.fin],
-		queryFn: () => apiMejoresClientes(rango.inicio, rango.fin),
-	});
+	const { data, isLoading, error } = useReporte("mejores-clientes", apiMejoresClientes, rango);
 
 	useEffect(() => {
 		if (error)
@@ -73,7 +70,7 @@ export default function MejoresClientesPage() {
 				rango={rango}
 				onChange={setRango}
 			/>
-			{isLoading && <Spinner />}
+			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
 				<Card titulo="Ranking del periodo">
 					<DataTable
