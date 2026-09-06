@@ -1,5 +1,6 @@
 package mx.ferreteria.api.inv.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -107,9 +108,16 @@ public class TrasladoService {
         almacenRepo.findById(req.almacenDestino())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
 
-        for (TrasladoDetalleRequest d : req.detalles()) {
-            productoRepo.findById(d.productoId())
-                    .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        // BACK-EST-004: validar todos los productos en una sola query (vs N findById).
+        Set<Long> productoIds = req.detalles().stream()
+                .map(TrasladoDetalleRequest::productoId).collect(Collectors.toSet());
+        Set<Long> existentes = productoRepo.findAllById(productoIds).stream()
+                .map(Producto::getProductoId).collect(Collectors.toSet());
+        Set<Long> faltantes = productoIds.stream()
+                .filter(id -> !existentes.contains(id)).collect(Collectors.toSet());
+        if (!faltantes.isEmpty()) {
+            throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO,
+                    "productos inexistentes: " + faltantes);
         }
 
         Traslado traslado = Traslado.builder()
@@ -125,49 +133,57 @@ public class TrasladoService {
                 String.class, savedTraslado.getTrasladoId());
         savedTraslado.setFolio(folioGenerado);
 
-        for (TrasladoDetalleRequest d : req.detalles()) {
-            TrasladoDetalle detalle = TrasladoDetalle.builder()
-                    .trasladoId(savedTraslado.getTrasladoId())
-                    .productoId(d.productoId())
-                    .cantidad(d.cantidad())
-                    .build();
-            detalleRepo.save(detalle);
-        }
+        // BACK-EST-004: saveAll batch en lugar de save uno a uno. Hibernate
+        // sigue flushing al final del metodo (@Transactional) sin N round-trips
+        // intermedios. Sin flush periodico explicito: el tamanio max realista es
+        // ~50-100 SKUs por traslado (caso de uso ferretero); si crece, agregar
+        // flush cada 50 (em.flush()) para acotar memoria del PersistenceContext.
+        List<TrasladoDetalle> detallesGuardar = req.detalles().stream()
+                .map(d -> TrasladoDetalle.builder()
+                        .trasladoId(savedTraslado.getTrasladoId())
+                        .productoId(d.productoId())
+                        .cantidad(d.cantidad())
+                        .build())
+                .toList();
+        detalleRepo.saveAll(detallesGuardar);
 
         Integer motivoSalidaId = findMotivoId("TRASLADO_SALIDA");
         Integer motivoEntradaId = findMotivoId("TRASLADO_ENTRADA");
 
+        List<MovimientoInventario> movimientos = new ArrayList<>(req.detalles().size() * 2);
+        Integer uid = UserPrincipal.actual().usuarioId();
+        Long trasladoId = savedTraslado.getTrasladoId();
         for (TrasladoDetalleRequest d : req.detalles()) {
-            movimientoRepo.save(MovimientoInventario.builder()
+            movimientos.add(MovimientoInventario.builder()
                     .productoId(d.productoId())
                     .almacenId(req.almacenOrigen())
                     .tipo("SALIDA")
                     .cantidad(d.cantidad())
                     .motivoId(motivoSalidaId)
                     .refTabla("TRASLADO")
-                    .refId(savedTraslado.getTrasladoId())
-                    .trasladoId(savedTraslado.getTrasladoId())
-                    .usuarioId(UserPrincipal.actual().usuarioId())
+                    .refId(trasladoId)
+                    .trasladoId(trasladoId)
+                    .usuarioId(uid)
                     .build());
-
-            movimientoRepo.save(MovimientoInventario.builder()
+            movimientos.add(MovimientoInventario.builder()
                     .productoId(d.productoId())
                     .almacenId(req.almacenDestino())
                     .tipo("ENTRADA")
                     .cantidad(d.cantidad())
                     .motivoId(motivoEntradaId)
                     .refTabla("TRASLADO")
-                    .refId(savedTraslado.getTrasladoId())
-                    .trasladoId(savedTraslado.getTrasladoId())
-                    .usuarioId(UserPrincipal.actual().usuarioId())
+                    .refId(trasladoId)
+                    .trasladoId(trasladoId)
+                    .usuarioId(uid)
                     .build());
         }
+        movimientoRepo.saveAll(movimientos);
 
         List<TrasladoDetalle> detalles = detalleRepo.findByTrasladoId(savedTraslado.getTrasladoId());
         return toResponse(savedTraslado, detalles);
     }
 
-    private Integer findMotivoId(String clave) {
+    Integer findMotivoId(String clave) {
         Integer id = jdbc.queryForObject(
                 "SELECT motivo_id FROM cat.motivos_movimiento WHERE clave = ?",
                 Integer.class, clave);

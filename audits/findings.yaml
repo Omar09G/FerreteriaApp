@@ -1,5 +1,5 @@
 # findings.yaml - Single source of truth
-# Total: 316 - done=60 open=256
+# Total: 316 - done=62 open=254
 ---
 - id: BACK-REND-001
   project: backend
@@ -1371,9 +1371,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: VentaService.checkout usa em.refresh(savedVenta)+em.clear()+findById - 1 query batch; resuelve riesgo
+    sesion JPA rota'
 - id: BACK-EST-003
   project: backend
   dimension: estabilidad
@@ -1406,9 +1408,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: TrasladoService.create usa findAllById (batch) para validar productos + saveAll para detalles y movimientos'
 - id: BACK-EST-005
   project: backend
   dimension: estabilidad

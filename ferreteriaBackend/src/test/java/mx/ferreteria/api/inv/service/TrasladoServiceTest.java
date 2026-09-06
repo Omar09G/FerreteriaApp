@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -61,6 +63,7 @@ class TrasladoServiceTest {
     @Mock
     JdbcTemplate jdbc;
 
+    @Spy
     @InjectMocks
     TrasladoService service;
 
@@ -148,19 +151,16 @@ class TrasladoServiceTest {
 
         when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
         when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
-        when(productoRepo.findById(1L)).thenReturn(Optional.of(sampleProducto(1L, "Tornillo")));
+        when(productoRepo.findAllById(Set.of(1L)))
+                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
 
         Traslado savedTraslado = sampleTraslado(1L, 1, 2);
         when(repo.save(any(Traslado.class))).thenReturn(savedTraslado);
-        when(detalleRepo.save(any(TrasladoDetalle.class)))
-                .thenReturn(sampleDetalle(1L, 1L, new BigDecimal("10.000")));
-        when(jdbc.queryForObject(anyString(), eq(Integer.class), anyString())).thenReturn(1);
-        when(movimientoRepo.save(any(MovimientoInventario.class)))
-                .thenReturn(MovimientoInventario.builder().movimientoId(1L).build());
+        when(jdbc.queryForObject(anyString(), eq(String.class), any(Long.class)))
+                .thenReturn("TR-0001");
         when(detalleRepo.findByTrasladoId(1L))
                 .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("10.000"))));
-        when(productoRepo.findAllById(List.of(1L)))
-                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
+        org.mockito.Mockito.doReturn(1, 2).when(service).findMotivoId(org.mockito.ArgumentMatchers.anyString());
 
         TrasladoResponse resp = service.create(req);
 
@@ -168,7 +168,12 @@ class TrasladoServiceTest {
         assertThat(resp.almacenOrigen()).isEqualTo(1);
         assertThat(resp.almacenDestino()).isEqualTo(2);
         verify(repo).save(any(Traslado.class));
-        verify(movimientoRepo, times(2)).save(any(MovimientoInventario.class));
+        verify(detalleRepo).saveAll(any());
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<List<MovimientoInventario>> movCaptor =
+                org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(movimientoRepo).saveAll(movCaptor.capture());
+        assertThat(movCaptor.getValue()).hasSize(2);
     }
 
     @Test
@@ -189,7 +194,7 @@ class TrasladoServiceTest {
 
         when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
         when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
-        when(productoRepo.findById(999L)).thenReturn(Optional.empty());
+        when(productoRepo.findAllById(Set.of(999L))).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
