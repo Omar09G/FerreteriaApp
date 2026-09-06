@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -71,12 +72,12 @@ class SegAdminServiceTest {
     }
 
     @Test
-    @DisplayName("listUsuarios: pagina de UsuarioResponse con roles resueltos")
+    @DisplayName("listUsuarios: pagina de UsuarioResponse con roles resueltos (batch)")
     void listUsuarios_paginatesWithRoles() {
         setUp();
         when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1));
         when(gateway.countUsuarios()).thenReturn(1L);
-        when(auth.rolesOf(11)).thenReturn(List.of("VENDEDOR"));
+        when(auth.rolesOfBatch(Set.of(11))).thenReturn(Map.of(11, List.of("VENDEDOR")));
 
         var page = service.listUsuarios(PageRequest.of(0, 20));
 
@@ -84,6 +85,27 @@ class SegAdminServiceTest {
         assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent().get(0).roles()).containsExactly("VENDEDOR");
         verify(gateway).findUsuarios(20, 0);
+        verify(auth, never()).rolesOf(anyInt());
+    }
+
+    @Test
+    @DisplayName("listUsuarios: con múltiples usuarios ejecuta UNA sola query batch de roles")
+    void listUsuarios_batchRoles_singleQuery() {
+        setUp();
+        var U2 = new SegAdminGateway.UsuarioRow(12, "cajero2", "c2@x.mx", null, true,
+                Instant.parse("2026-01-01T12:00:00Z"), Instant.parse("2026-01-01T12:00:00Z"));
+        when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1, U2));
+        when(gateway.countUsuarios()).thenReturn(2L);
+        when(auth.rolesOfBatch(Set.of(11, 12)))
+                .thenReturn(Map.of(11, List.of("VENDEDOR"), 12, List.of("ALMACENISTA")));
+
+        var page = service.listUsuarios(PageRequest.of(0, 20));
+
+        assertThat(page.getContent()).hasSize(2);
+        assertThat(page.getContent().get(0).roles()).containsExactly("VENDEDOR");
+        assertThat(page.getContent().get(1).roles()).containsExactly("ALMACENISTA");
+        verify(auth, org.mockito.Mockito.times(1)).rolesOfBatch(any());
+        verify(auth, never()).rolesOf(anyInt());
     }
 
     @Test
@@ -320,13 +342,13 @@ class SegAdminServiceTest {
     }
 
     @Test
-    @DisplayName("toUsuario: el resumen del empleado se enriquece en cada respuesta")
+    @DisplayName("toUsuario: el resumen del empleado se enriquece en cada respuesta (batch)")
     void usuarioResponse_incluyeEmpleado() {
         setUp();
         when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1));
         when(gateway.countUsuarios()).thenReturn(1L);
-        when(auth.rolesOf(11)).thenReturn(List.of("VENDEDOR"));
-        when(empleados.resumenById(42)).thenReturn(Optional.of(EMPLEADO_ACTIVO));
+        when(auth.rolesOfBatch(Set.of(11))).thenReturn(Map.of(11, List.of("VENDEDOR")));
+        when(empleados.resumenByIds(Set.of(42))).thenReturn(Map.of(42, EMPLEADO_ACTIVO));
 
         var page = service.listUsuarios(PageRequest.of(0, 20));
 

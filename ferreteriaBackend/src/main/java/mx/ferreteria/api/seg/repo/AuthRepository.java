@@ -2,7 +2,11 @@ package mx.ferreteria.api.seg.repo;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
@@ -54,6 +58,27 @@ public class AuthRepository implements AuthUserGateway {
                                 .param("id", usuarioId)
                                 .query(String.class)
                                 .list();
+        }
+
+        @Override
+        public Map<Integer, List<String>> rolesOfBatch(Collection<Integer> usuarioIds) {
+                if (usuarioIds == null || usuarioIds.isEmpty()) {
+                        return Collections.emptyMap();
+                }
+                Map<Integer, List<String>> grouped = new HashMap<>();
+                jdbc.sql("""
+                                SELECT ur.usuario_id, r.clave
+                                FROM seg.usuario_roles ur
+                                JOIN seg.roles r ON r.rol_id = ur.rol_id
+                                WHERE ur.usuario_id IN (:ids) AND r.activo
+                                ORDER BY ur.usuario_id, r.rol_id
+                                """)
+                                .param("ids", usuarioIds)
+                                .query((rs, n) -> new Object[]{rs.getInt("usuario_id"), rs.getString("clave")})
+                                .list().forEach(row -> grouped
+                                        .computeIfAbsent((Integer) row[0], k -> new java.util.ArrayList<>())
+                                        .add((String) row[1]));
+                return grouped;
         }
 
         @Override

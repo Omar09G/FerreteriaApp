@@ -2,8 +2,13 @@ package mx.ferreteria.api.seg.repo;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -255,6 +260,26 @@ public class SegAdminRepository implements SegAdminGateway {
                 .param("id", rolId)
                 .query(String.class)
                 .list();
+    }
+
+    @Override
+    public Map<Integer, List<String>> permisosDeBatch(Collection<Integer> rolIds) {
+        if (rolIds == null || rolIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Integer, List<String>> grouped = new HashMap<>();
+        jdbc.sql("""
+                        SELECT rp.rol_id, p.clave FROM seg.permisos p
+                        JOIN seg.rol_permisos rp ON rp.permiso_id = p.permiso_id
+                        WHERE rp.rol_id IN (:ids)
+                        ORDER BY rp.rol_id, p.permiso_id
+                        """)
+                .param("ids", rolIds)
+                .query((rs, n) -> new Object[]{rs.getInt("rol_id"), rs.getString("clave")})
+                .list().forEach(row -> grouped
+                        .computeIfAbsent((Integer) row[0], k -> new ArrayList<>())
+                        .add((String) row[1]));
+        return grouped;
     }
 
     @Override

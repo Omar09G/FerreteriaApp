@@ -1,7 +1,9 @@
 package mx.ferreteria.api.seg.service;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -66,6 +68,9 @@ public interface SegAdminGateway {
     void deletePermiso(int permisoId);
 
     List<String> permisosDe(int rolId);
+
+    /** Permisos agrupados por rolId (orden estable por permiso_id). Para evitar N+1 al listar roles. */
+    Map<Integer, List<String>> permisosDeBatch(Collection<Integer> rolIds);
 
     void reemplazarPermisos(int rolId, Set<String> claves);
 }

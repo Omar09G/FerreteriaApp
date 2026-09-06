@@ -3,7 +3,12 @@ package mx.ferreteria.api.rh.repo;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
@@ -74,6 +79,29 @@ public class EmpleadoRepository implements EmpleadoGateway {
                         rs.getString("nombre_completo"), rs.getString("puesto_nombre"),
                         rs.getString("email"), rs.getString("telefono"), rs.getBoolean("activo")))
                 .optional();
+    }
+
+    @Override
+    public Map<Integer, EmpleadoResumen> resumenByIds(Collection<Integer> empleadoIds) {
+        if (empleadoIds == null || empleadoIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Integer, EmpleadoResumen> map = new HashMap<>();
+        jdbc.sql("""
+                SELECT e.empleado_id,
+                       trim(concat(e.nombre, ' ', e.apellido_p, ' ', e.apellido_m))
+                         AS nombre_completo,
+                       p.nombre AS puesto_nombre, e.email, e.telefono, e.activo
+                FROM rh.empleados e
+                JOIN cat.puestos p ON p.puesto_id = e.puesto_id
+                WHERE e.empleado_id IN (:ids) AND e.activo
+                """)
+                .param("ids", empleadoIds)
+                .query((rs, n) -> new EmpleadoResumen(rs.getInt("empleado_id"),
+                        rs.getString("nombre_completo"), rs.getString("puesto_nombre"),
+                        rs.getString("email"), rs.getString("telefono"), rs.getBoolean("activo")))
+                .list().forEach(r -> map.put(r.empleadoId(), r));
+        return map;
     }
 
     @Override

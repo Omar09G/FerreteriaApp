@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# 2 CRITICAL restantes (BACK-REND-008/009 requieren batch en SegAdmin/Auditoria - documentados).
-# Total findings: 316 - done=50 open=266
+# 0 CRITICAL restantes. 50+2 done.
+# Total findings: 316 - done=52 open=264
 ---
 - id: BACK-REND-001
   project: backend
@@ -138,9 +138,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'CRITICAL fix: rolesOfBatch/permisosDeBatch/resumenByIds; listUsuarios/listRoles UNA sola query batch vs N+1; tests
+    ok'
 - id: BACK-REND-009
   project: backend
   dimension: rendimiento
@@ -154,9 +156,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'CRITICAL fix: V8__auditoria_ilike_trgm_idx.sql - GIN trigram en usuarios.username y auditoria.datos_anteriores/datos_nuevos;
+    ANALYZE'
 - id: BACK-REND-010
   project: backend
   dimension: rendimiento

@@ -2,7 +2,9 @@ package mx.ferreteria.api.rh.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen;
@@ -27,6 +29,9 @@ public interface EmpleadoGateway {
     Optional<EmpleadoRow> findById(int empleadoId);
 
     Optional<EmpleadoResumen> resumenById(int empleadoId);
+
+    /** Resumen agrupado por empleadoId. Vacío si la colección es vacía. Para evitar N+1 al listar. */
+    Map<Integer, EmpleadoResumen> resumenByIds(Collection<Integer> empleadoIds);
 
     boolean existsAndActivo(int empleadoId);
 

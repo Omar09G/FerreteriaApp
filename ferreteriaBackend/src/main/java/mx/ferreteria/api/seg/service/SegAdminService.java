@@ -1,7 +1,10 @@
 package mx.ferreteria.api.seg.service;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import lombok.RequiredArgsConstructor;
@@ -67,9 +70,20 @@ public class SegAdminService implements UsuarioAltaGateway {
     }
 
     public Page<UsuarioResponse> listUsuarios(Pageable pageable) {
-        List<UsuarioResponse> content = gateway.findUsuarios(
-                        pageable.getPageSize(), Math.toIntExact(pageable.getOffset()))
-                .stream().map(this::toUsuario)
+        List<SegAdminGateway.UsuarioRow> rows = gateway.findUsuarios(
+                pageable.getPageSize(), Math.toIntExact(pageable.getOffset()));
+        Set<Integer> usuarioIds = new HashSet<>();
+        Set<Integer> empleadoIds = new HashSet<>();
+        for (var r : rows) {
+            usuarioIds.add(r.usuarioId());
+            if (r.empleadoId() != null) empleadoIds.add(r.empleadoId());
+        }
+        Map<Integer, List<String>> rolesByUser = auth.rolesOfBatch(usuarioIds);
+        Map<Integer, mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen> empById =
+                empleadoIds.isEmpty() ? Map.of() : empleados.resumenByIds(empleadoIds);
+        List<UsuarioResponse> content = rows.stream()
+                .map(r -> toUsuario(r, rolesByUser.getOrDefault(r.usuarioId(), List.of()),
+                        r.empleadoId() == null ? null : empById.get(r.empleadoId())))
                 .toList();
         return new PageImpl<>(content, pageable, gateway.countUsuarios());
     }
@@ -117,9 +131,13 @@ public class SegAdminService implements UsuarioAltaGateway {
     }
 
     public Page<RolResponse> listRoles(Pageable pageable) {
-        List<RolResponse> content = gateway.findRoles(
-                        pageable.getPageSize(), Math.toIntExact(pageable.getOffset()))
-                .stream().map(this::toRol)
+        List<SegAdminGateway.RolRow> rows = gateway.findRoles(
+                pageable.getPageSize(), Math.toIntExact(pageable.getOffset()));
+        Set<Integer> rolIds = new HashSet<>();
+        for (var r : rows) rolIds.add(r.rolId());
+        Map<Integer, List<String>> permisosByRol = gateway.permisosDeBatch(rolIds);
+        List<RolResponse> content = rows.stream()
+                .map(r -> toRol(r, permisosByRol.getOrDefault(r.rolId(), List.of())))
                 .toList();
         return new PageImpl<>(content, pageable, gateway.countRoles());
     }
@@ -259,9 +277,21 @@ private EmpleadoResumen resumenEmpleado(Integer empleadoId) {
     return empleadoId == null ? null : empleados.resumenById(empleadoId).orElse(null);
 }
 
+    /** Variante batch para listados: reutiliza roles/empleados pre-cargados. */
+    private UsuarioResponse toUsuario(UsuarioRow r, List<String> roles, EmpleadoResumen emp) {
+        return new UsuarioResponse(r.usuarioId(), r.username(), r.email(), r.empleadoId(),
+                r.activo(), roles, emp, r.ultimoLogin(), r.creadoEn());
+    }
+
     private RolResponse toRol(RolRow r) {
         return new RolResponse(r.rolId(), r.clave(), r.nombre(), r.descripcion(), r.activo(),
                 gateway.permisosDe(r.rolId()));
+    }
+
+    /** Variante batch para listados: reutiliza permisos pre-cargados. */
+    private RolResponse toRol(RolRow r, List<String> permisos) {
+        return new RolResponse(r.rolId(), r.clave(), r.nombre(), r.descripcion(), r.activo(),
+                permisos);
     }
 
     private PermisoResponse toPermiso(SegAdminGateway.PermisoRow p) {

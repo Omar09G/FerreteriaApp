@@ -1,7 +1,9 @@
 package mx.ferreteria.api.seg.service;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** Puerto de identidad desacoplado del almacenamiento (testeable sin BD). */
@@ -25,6 +27,9 @@ public interface AuthUserGateway {
     Optional<AuthUser> findByUsername(String username);
 
     List<String> rolesOf(int usuarioId);
+
+    /** Roles agrupados por usuarioId (orden estable por rol_id). Para evitar N+1 al listar. */
+    Map<Integer, List<String>> rolesOfBatch(Collection<Integer> usuarioIds);
 
     void saveRefreshToken(int usuarioId, String tokenHash, Instant expiresAt);
 
