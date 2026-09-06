@@ -1,5 +1,5 @@
-# findings.yaml - Single source of truth for MEJORAS_ECC.md
-# Total findings: 316 - done=56 open=260
+# findings.yaml - Single source of truth
+# Total: 316 - done=60 open=256
 ---
 - id: BACK-REND-001
   project: backend
@@ -302,9 +302,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: VentaService.checkout usa em.refresh(savedVenta)+em.clear()+ventaRepo.findById - 1 query batch en lugar
+    de 1+N'
 - id: BACK-REND-018
   project: backend
   dimension: rendimiento
@@ -401,9 +403,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: V9__inventario_bajo_stock_idx.sql - partial index WHERE stock <= stock_minimo; ANALYZE'
 - id: BACK-REND-024
   project: backend
   dimension: rendimiento
@@ -591,9 +594,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: @RateLimited("auth") en /api/v1/auth/refresh y /api/v1/auth/logout'
 - id: BACK-SEC-008
   project: backend
   dimension: seguridad
@@ -663,9 +667,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: CorsConfigurationFactory ya gestiona CORS_ALLOW_CREDENTIALS+* via setAllowedOriginPatterns([*]) - Sprint
+    30 + 34'
 - id: BACK-SEC-012
   project: backend
   dimension: seguridad

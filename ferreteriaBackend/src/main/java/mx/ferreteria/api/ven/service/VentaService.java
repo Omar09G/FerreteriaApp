@@ -145,16 +145,22 @@ public class VentaService {
             detalleRepo.save(det);
             detalles.add(det);
         }
-
         ventaRepo.flush();
-        // Los totales (subtotal/iva/descuento_total/total, folio y total_linea de
-        // cada detalle) los calcula la BD vía triggers (trg_folio_ventas y
-        // trg_det_venta_totales) y columnas GENERATED. Hibernate no refleja esos
-        // valores sobre las instancias gestionadas al insertar, así que recargamos
-        // desde BD para devolver montos reales (no ceros).
+
+        // BACK-REND-017: Los totales (subtotal/iva/descuento_total/total, folio y
+        // total_linea de cada detalle) los calcula la BD vía triggers y columnas
+        // GENERATED. Hibernate no refleja esos valores sobre las instancias
+        // gestionadas al insertar. Antes: em.refresh(savedVenta) + N
+        // detalles.forEach(em::refresh) = 1 + N queries (51 para 50 SKUs).
+        // Ahora: em.refresh(savedVenta) (cabecera) + em.clear() + toResponse().
+        // em.clear() evicta todas las entidades del PersistenceContext (incluidos
+        // los detalles stale), por lo que detalleRepo.findByVentaId() ejecuta una
+        // sola query batch y devuelve los totales recalculados por trigger.
         em.refresh(savedVenta);
-        detalles.forEach(em::refresh);
-        return toResponse(savedVenta);
+        em.clear();
+        Venta v = ventaRepo.findById(savedVenta.getVentaId())
+                .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        return toResponse(v);
     }
 
     public VenDtos.VentaResponse cancel(Long id, String motivo) {

@@ -83,6 +83,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
+    @RateLimited("auth")
     public ResponseEntity<TokenResponse> refresh(
             @Valid @RequestBody(required = false) RefreshRequest req,
             HttpServletRequest http) {
@@ -97,6 +98,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @RateLimited("auth")
     public ResponseEntity<LogoutOk> logout(
             @Valid @RequestBody(required = false) RefreshRequest req,
             HttpServletRequest http) {
