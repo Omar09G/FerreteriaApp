@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 26: FRONT-ESC-002 wiring completo (7 reportes).
-# Total findings: 316 - done=40 open=276
+# PASO 27: secrets management done (BACK-SEC-004/DB-SEC-013/014).
+# Total findings: 316 - done=42 open=274
 ---
 - id: BACK-REND-001
   project: backend
@@ -533,8 +533,7 @@
   status: done
   owner: null
   depends_on: []
-  notes: 'PASO 21: seg.usuarios.debe_cambiar_password + scripts/04_admin.sql true + V1 regenerado + AuthRepository findByUsername
-    devuelve flag + AuthService.toMe propaga flag a MeResponse para redirect frontend'
+  notes: 'PASO 27: .env.example placeholders + docs/secrets.md (ExternalSecrets/Vault, rotación JWT)'
 - id: BACK-SEC-005
   project: backend
   dimension: seguridad
@@ -3625,9 +3624,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 27: .env.example placeholders + docs/secrets.md (ExternalSecrets/Vault, rotación JWT)'
 - id: DB-SEC-014
   project: database
   dimension: seguridad
@@ -3641,9 +3641,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 27: .env.example placeholders + docs/secrets.md (ExternalSecrets/Vault, rotación JWT)'
 - id: DB-SEC-015
   project: database
   dimension: seguridad
