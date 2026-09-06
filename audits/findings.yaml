@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 21: BACK-SEC-004 done (admin bootstrap password change required).
-# Total findings: 316 - done=36 open=280
+# PASO 22: pool math documentado.
+# Total findings: 316 - done=37 open=279
 ---
 - id: BACK-REND-001
   project: backend
@@ -4639,9 +4639,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 22: application.yml documenta pool math Hikari 10 <= PgBouncer 50 <= PG 300/3 replicas (antes 720 > 300 outage)'
 - id: DB-ESC-011
   project: database
   dimension: escalabilidad

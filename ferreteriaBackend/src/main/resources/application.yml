@@ -13,6 +13,9 @@ spring:
     url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:6432}/${PG_DATABASE:ferreteria}?prepareThreshold=0
     username: ${PG_USER:ferreteria_app}
     password: ${PG_PASSWORD:cambia_app_seguro}
+    # Pool sizing: Hikari 10 <= PgBouncer default_pool_size 50 <= PG max_connections 300 / HPA maxReplicas 3
+    # Math: 3 replicas * 10 Hikari = 30 conexiones backend vs 50 PgBouncer pool = OK (headroom 20)
+    # Antes: HPA 6 * 120 = 720 > 300 PG max => outage. Ahora: HPA 3 * 50 = 150 < 300 OK.
     hikari:
       maximum-pool-size: 10      # <= default_pool_size de PgBouncer
       minimum-idle: 2
