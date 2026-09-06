@@ -1,5 +1,5 @@
-# findings.yaml - Single source of truth
-# Total: 316 - done=62 open=254
+# findings.yaml
+# Total: 316 - done=63 open=253
 ---
 - id: BACK-REND-001
   project: backend
@@ -686,9 +686,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: GlobalExceptionHandler.handleDataAccess ya NO loguea ex.getMostSpecificCause().getMessage(); solo path+code
+    en WARN. Stack completo solo en ERROR (sin contrato).'
 - id: BACK-SEC-013
   project: backend
   dimension: seguridad

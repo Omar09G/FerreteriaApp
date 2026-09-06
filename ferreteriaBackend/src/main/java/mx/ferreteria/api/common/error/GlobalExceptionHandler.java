@@ -49,12 +49,17 @@ public class GlobalExceptionHandler {
                                                                HttpServletRequest req) {
         return dbTranslator.translate(ex)
                 .map(code -> {
-                    log.warn("ERRCODE de negocio traducido: {} -> {}", code, ex.getMostSpecificCause().getMessage());
+                    log.warn("DB error traducido a codigo de negocio: {} path={}", code, req.getRequestURI());
                     return ResponseEntity.status(code.http())
                             .<Map<String, Object>>body(errorBody(code, new Object[0], currentLocale(req), req));
                 })
                 .orElseGet(() -> {
-                    log.error("DataAccessException sin contrato", ex);
+                    // BACK-SEC-012: el mensaje crudo de PostgreSQL puede incluir esquema,
+                    // columna y valor (ej. "duplicate key value violates unique constraint
+                    // '...' DETAIL: Key (email)=(...) already exists"). No logueamos
+                    // getMostSpecificCause().getMessage() para no filtrar PHI/PII; el
+                    // stack trace queda en logs a nivel ERROR (solo accesible a operadores).
+                    log.error("DataAccessException sin contrato path={}", req.getRequestURI(), ex);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(req), req));
                 });
