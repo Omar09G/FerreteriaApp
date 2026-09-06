@@ -78,8 +78,8 @@ export default function ProductosSinMovimientoPage() {
 	return (
 		<div className="space-y-4">
 			<ReporteHeader
-				titulo="Productos sin Movimiento"
-				subtitulo="Cuadratura de cortes por día en el periodo."
+				titulo="Productos sin movimiento"
+				subtitulo="Productos sin venta en el periodo (dinero detenido en estante)."
 			/>
 			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (

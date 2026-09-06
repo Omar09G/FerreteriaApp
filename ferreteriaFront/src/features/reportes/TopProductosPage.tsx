@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Medal } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useReporte } from "@/hooks/useReporte";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
 import { formatoFecha, formatoMoneda, formatoNumero } from "@/lib/format";
 import { apiTopProductos } from "@/lib/api/reportes";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Spinner } from "@/components/ui/Spinner";
+import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ReporteHeader } from "./ReporteHeader";
 import type { TopProducto } from "@/lib/api/types";
@@ -22,10 +22,7 @@ export default function TopProductosPage() {
 	const { error: mostrarError } = useToast();
 	const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
 
-	const { data, isLoading, error } = useQuery({
-		queryKey: ["top-productos", rango.inicio, rango.fin],
-		queryFn: () => apiTopProductos(rango.inicio, rango.fin),
-	});
+	const { data, isLoading, error } = useReporte("top-productos", apiTopProductos, rango);
 
 	useEffect(() => {
 		if (error)
@@ -86,7 +83,7 @@ export default function TopProductosPage() {
 				rango={rango}
 				onChange={setRango}
 			/>
-			{isLoading && <Spinner />}
+			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
 				<Card titulo="Ranking del periodo">
 					<DataTable

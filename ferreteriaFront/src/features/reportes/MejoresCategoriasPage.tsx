@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import CardListReportes from "./CardListReportes";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useToast } from "@/components/ui/Toast";
@@ -12,12 +12,10 @@ import type { MejoresCategorias } from "@/lib/api/types";
 import { formatoMoneda, formatoNumero, formatoFecha } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { ReporteHeader } from "./ReporteHeader";
-import { rangoFechas, type RangoFechas } from "@/lib/rango";
 
 export default function MejoresCategoriasPage() {
 	useDocumentTitle("Mejores categorías");
 	const { error: mostrarError } = useToast();
-	const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
 
 	const { data, isLoading, error } = useQuery({
 		queryKey: ["mejores-categorias"],
@@ -72,10 +70,8 @@ export default function MejoresCategoriasPage() {
 	return (
 		<div className="space-y-4">
 			<ReporteHeader
-				titulo="Productos sin Movimiento"
-				subtitulo="Cuadratura de cortes por día en el periodo."
-				rango={rango}
-				onChange={setRango}
+				titulo="Mejores categorías"
+				subtitulo="Categorías con mayor venta y utilidad por mes."
 			/>
 			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (

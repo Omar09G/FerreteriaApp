@@ -6,9 +6,15 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public final class VenDtos {
@@ -16,14 +22,14 @@ public final class VenDtos {
 
     // ─── Cotización ─────────────────────────────────────────────────
     public record CotizacionRequest(
-        Long clienteId,
+        @Positive Long clienteId,
         LocalDate vigenciaHasta,
-        @NotNull List<CotizacionDetalleRequest> detalles
+        @NotNull @NotEmpty @Valid List<CotizacionDetalleRequest> detalles
     ) {}
     public record CotizacionDetalleRequest(
-        @NotNull Long productoId,
-        @NotNull @Min(1) BigDecimal cantidad,
-        @NotNull BigDecimal precioUnitario
+        @NotNull @Positive Long productoId,
+        @NotNull @DecimalMin(value = "0.001", inclusive = true) BigDecimal cantidad,
+        @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal precioUnitario
     ) {}
     public record CotizacionResponse(
         Long cotizacionId, String folio,
@@ -42,24 +48,24 @@ public final class VenDtos {
 
     // ─── Venta (checkout) ───────────────────────────────────────────
     public record VentaRequest(
-        @NotNull Integer almacenId,
-        Integer cajaId,
-        Long clienteId,
-        Long cotizacionId,
-        @NotNull Integer formaPagoId,
-        @NotNull List<VentaDetalleRequest> detalles,
-        @NotNull List<PagoRequest> pagos,
-        String notas
+        @NotNull @Positive Integer almacenId,
+        @Positive Integer cajaId,
+        @Positive Long clienteId,
+        @Positive Long cotizacionId,
+        @NotNull @Positive Integer formaPagoId,
+        @NotNull @NotEmpty @Valid List<VentaDetalleRequest> detalles,
+        @NotNull @NotEmpty @Valid List<PagoRequest> pagos,
+        @Size(max = 500) String notas
     ) {}
     public record VentaDetalleRequest(
-        @NotNull Long productoId,
-        @NotNull @Min(1) BigDecimal cantidad,
-        @NotNull BigDecimal precioUnitario
+        @NotNull @Positive Long productoId,
+        @NotNull @DecimalMin(value = "0.001", inclusive = true) BigDecimal cantidad,
+        @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal precioUnitario
     ) {}
     public record PagoRequest(
-        @NotNull Integer formaPagoId,
-        @NotNull @Min(0) BigDecimal monto,
-        String referencia
+        @NotNull @Positive Integer formaPagoId,
+        @NotNull @DecimalMin(value = "0.01", inclusive = true) BigDecimal monto,
+        @Size(max = 80) String referencia
     ) {}
     public record VentaResponse(
         Long ventaId, String folio,
@@ -86,21 +92,21 @@ public final class VenDtos {
         String referencia, BigDecimal monto, Instant fecha
     ) {}
     public record VentaCancelRequest(
-        @NotBlank String motivo
+        @NotBlank @Size(max = 500) String motivo
     ) {}
 
     // ─── Devolución ─────────────────────────────────────────────────
     public record DevolucionRequest(
-        @NotNull Long ventaId,
-        @NotBlank String motivo,
-        @NotNull Integer formaDevolucionId,
-        @NotNull List<DevolucionDetalleRequest> detalles
+        @NotNull @Positive Long ventaId,
+        @NotBlank @Size(max = 500) String motivo,
+        @NotNull @Positive Integer formaDevolucionId,
+        @NotNull @NotEmpty @Valid List<DevolucionDetalleRequest> detalles
     ) {}
     public record DevolucionDetalleRequest(
-        @NotNull Long productoId,
-        Long ventaDetalleId,
-        @NotNull @Min(1) BigDecimal cantidad,
-        @NotNull BigDecimal precioUnitario
+        @NotNull @Positive Long productoId,
+        @Positive Long ventaDetalleId,
+        @NotNull @DecimalMin(value = "0.001", inclusive = true) BigDecimal cantidad,
+        @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal precioUnitario
     ) {}
     public record DevolucionResponse(
         Long devolucionId, String folio,
@@ -120,18 +126,18 @@ public final class VenDtos {
 
     // ─── Renta ──────────────────────────────────────────────────────
     public record RentaRequest(
-        @NotNull Long clienteId,
-        @NotNull Integer almacenId,
-        Integer cajaId,
-        @NotNull Integer formaPagoId,
+        @NotNull @Positive Long clienteId,
+        @NotNull @Positive Integer almacenId,
+        @Positive Integer cajaId,
+        @NotNull @Positive Integer formaPagoId,
         @NotNull LocalDate fechaDevEsperada,
-        @NotNull @Min(0) BigDecimal deposito,
-        @NotNull List<RentaDetalleRequest> detalles
+        @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal deposito,
+        @NotNull @NotEmpty @Valid List<RentaDetalleRequest> detalles
     ) {}
     public record RentaDetalleRequest(
-        @NotNull Long productoId,
-        @NotNull @Min(1) BigDecimal cantidad,
-        @NotNull BigDecimal costoDia
+        @NotNull @Positive Long productoId,
+        @NotNull @DecimalMin(value = "0.001", inclusive = true) BigDecimal cantidad,
+        @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal costoDia
     ) {}
     public record RentaResponse(
         Long rentaId, String folio,
@@ -150,11 +156,11 @@ public final class VenDtos {
         BigDecimal diasCobrados, BigDecimal subtotal
     ) {}
     public record RentaDevolucionRequest(
-        @NotNull List<RentaDevolucionDetalleRequest> detalles
+        @NotNull @NotEmpty @Valid List<RentaDevolucionDetalleRequest> detalles
     ) {}
     public record RentaDevolucionDetalleRequest(
-        @NotNull Long productoId,
-        @NotNull BigDecimal diasCobrados
+        @NotNull @Positive Long productoId,
+        @NotNull @DecimalMin(value = "0.1", inclusive = true) BigDecimal diasCobrados
     ) {}
 
     // ─── Crédito / Cobranza ─────────────────────────────────────────
@@ -176,11 +182,11 @@ public final class VenDtos {
 
     // ─── Pago ───────────────────────────────────────────────────────
     public record PagoClienteRequest(
-        @NotNull Long cuentaCobrarId,
-        @NotNull Integer formaPagoId,
-        @NotNull @Min(1) BigDecimal monto,
-        String referencia,
-        Long turnoCajaId
+        @NotNull @Positive Long cuentaCobrarId,
+        @NotNull @Positive Integer formaPagoId,
+        @NotNull @DecimalMin(value = "0.01", inclusive = true) BigDecimal monto,
+        @Size(max = 80) String referencia,
+        @Positive Long turnoCajaId
     ) {}
 
     // ─── Caja / Turno ───────────────────────────────────────────────
@@ -198,12 +204,12 @@ public final class VenDtos {
         String estado, String observaciones
     ) {}
     public record TurnoAperturaRequest(
-        @NotNull Integer cajaId,
-        @NotNull @Min(0) BigDecimal montoApertura
+        @NotNull @Positive Integer cajaId,
+        @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal montoApertura
     ) {}
     public record TurnoCierreRequest(
-        @NotNull BigDecimal montoContado,
-        String observaciones
+        @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal montoContado,
+        @Size(max = 500) String observaciones
     ) {}
 
     // ─── Promociones ─────────────────────────────────────────────────
@@ -215,23 +221,23 @@ public final class VenDtos {
     public record PromocionRequest(
         @NotBlank @Size(max = 150) String nombre,
         @Size(max = 1000) String descripcion,
-        @NotBlank String tipo,
-        BigDecimal valorPct,
-        BigDecimal valorMonto,
-        BigDecimal precioEspecial,
-        BigDecimal compraMinTotal,
-        BigDecimal compraMinCantidad,
-        BigDecimal lleva,
-        BigDecimal paga,
-        Integer maxUsosTotal,
-        Integer maxUsosCliente,
+        @NotBlank @Pattern(regexp = "DESCUENTO_PRODUCTO|DESCUENTO_TOTAL_VENTA|POR_CANTIDAD|NXM|PRECIO_ESPECIAL") String tipo,
+        @DecimalMin(value = "0", inclusive = true) @DecimalMax(value = "100", inclusive = true) BigDecimal valorPct,
+        @DecimalMin(value = "0", inclusive = true) BigDecimal valorMonto,
+        @DecimalMin(value = "0", inclusive = true) BigDecimal precioEspecial,
+        @DecimalMin(value = "0", inclusive = true) BigDecimal compraMinTotal,
+        @DecimalMin(value = "0", inclusive = true) BigDecimal compraMinCantidad,
+        @DecimalMin(value = "0.001", inclusive = true) BigDecimal lleva,
+        @DecimalMin(value = "0.001", inclusive = true) BigDecimal paga,
+        @Min(0) Integer maxUsosTotal,
+        @Min(0) Integer maxUsosCliente,
         Instant vigenciaDesde,
         Instant vigenciaHasta,
         List<Short> diasSemana,
         LocalTime horaDesde,
         LocalTime horaHasta,
         Boolean soloMayoristas,
-        String estado,
+        @Pattern(regexp = "ACTIVA|PROGRAMADA|FINALIZADA|CANCELADA") @Size(max = 12) String estado,
         List<Long> productos,
         List<Integer> categorias
     ) {}

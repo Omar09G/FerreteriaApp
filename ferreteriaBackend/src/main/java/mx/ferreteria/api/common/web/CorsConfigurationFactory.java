@@ -8,7 +8,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Fabrica de {@link CorsConfiguration} y {@link CorsConfigurationSource} desde
- * {@link CorsProperties} (PLAN M7) — PASO 30 BACK-SEC-009 + CORS hardening fino.
+ * {@link CorsProperties} (PLAN M7) — PASO 30 BACK-SEC-009 + PASO 34 CORS hardening fino.
  * <p>BACK-SEC-009 (sort whitelist) vive en {@link PageQuery}; esta clase cubre el
  * hardening CORS restante (BACK-SEC-011 / BACK-SEC-021 / BACK-MAN-008).
  * <p>Reglas de origen:
@@ -20,17 +20,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  *   <li>Origenes incluyen {@code "*"} sin credenciales: usa {@code setAllowedOrigins(["*"])}.</li>
  *   <li>Origenes especificos: se copian tal cual a {@code setAllowedOrigins}.</li>
  * </ul>
- * <p>Notas de auditoria (PASO 30 — solo documentacion, sin cambio de comportamiento):
+ * <p>Notas de auditoria (PASO 30 docs + PASO 34 fail-closed):
  * <ul>
  *   <li>BACK-SEC-011: {@code "*"} + {@code allowCredentials=true} equivale a wildcard con
  *       credenciales. Spring 6 lo permite solo via {@code allowedOriginPatterns}; en prod
  *       debe sobreescribirse {@code CORS_ALLOWED_ORIGINS} con origenes explicitos. El default
  *       permisivo solo vale para dev (Vite 5173 / Angular CLI 4200).</li>
- *   <li>BACK-SEC-021: {@code allowedHeaders=["*"]} con {@code allowCredentials=true} se evaluo
- *       con {@code IllegalStateException} y se revertio. El spec Fetch permite
- *       {@code Access-Control-Allow-Headers: *} aun con credenciales; Spring refleja el valor
- *       tal cual. Bloquearlo romperia preflights con headers custom en dev. Futuro fail-closed:
- *       validar al arranque y exigir lista explicita si se endurece politica.</li>
+ *   <li>BACK-SEC-021 (PASO 34): {@code allowedHeaders=["*"]} con
+ *       {@code allowCredentials=true} + {@code allowedOrigins=["*"]} lanza
+ *       {@link IllegalStateException} via {@link #validate(CorsProperties)} (fail-closed).
+ *       El spec Fetch permite {@code Access-Control-Allow-Headers: *} con credenciales, pero
+ *       la politica del proyecto exige lista explicita cuando el origen es wildcard.</li>
  *   <li>BACK-MAN-008: {@code "*"} / {@code "**"} como magic values — {@code "*"} es literal
  *       del spec CORS; {@link #GLOBAL_PATTERN} centraliza {@code "/**"}.</li>
  * </ul>
@@ -44,7 +44,27 @@ public final class CorsConfigurationFactory {
     private CorsConfigurationFactory() {
     }
 
+    /**
+     * Valida combinacion insegura BACK-SEC-021 (PASO 34 — CORS hardening fino / fail-closed).
+     * <p>Lanza {@link IllegalStateException} si {@code allowCredentials=true} y
+     * {@code allowedHeaders} contiene {@code "*"} mientras {@code allowedOrigins}
+     * contiene {@code "*"} — en ese modo debe usarse lista explicita de headers.
+     */
+    public static void validate(CorsProperties props) {
+        List<String> origins = props.allowedOrigins();
+        List<String> headers = props.allowedHeaders();
+        boolean wildcardOrigin = origins != null && origins.contains("*");
+        boolean wildcardHeader = headers != null && headers.contains("*");
+        if (props.allowCredentials() && wildcardOrigin && wildcardHeader) {
+            throw new IllegalStateException(
+                    "CORS misconfiguration (BACK-SEC-021): allowCredentials=true "
+                            + "cannot be combined with allowedHeaders=\"*\" when allowedOrigins "
+                            + "contains \"*\" — use explicit header list");
+        }
+    }
+
     public static CorsConfiguration configuration(CorsProperties props) {
+        validate(props);
         CorsConfiguration cfg = new CorsConfiguration();
         List<String> origins = props.allowedOrigins();
 
@@ -61,8 +81,8 @@ public final class CorsConfigurationFactory {
         }
 
         cfg.setAllowedMethods(props.allowedMethods());
-        // BACK-SEC-021 (PASO 30): allowedHeaders=["*"] con allowCredentials=true no lanza
-        // excepcion por decision consciente (revertido). Ver javadoc de clase.
+        // BACK-SEC-021 (PASO 34 — fail-closed): validate() arriba ya rechazo
+        // allowedHeaders=["*"] + allowCredentials=true + allowedOrigins=["*"].
         cfg.setAllowedHeaders(props.allowedHeaders());
         cfg.setExposedHeaders(props.exposedHeaders());
         cfg.setAllowCredentials(props.allowCredentials());

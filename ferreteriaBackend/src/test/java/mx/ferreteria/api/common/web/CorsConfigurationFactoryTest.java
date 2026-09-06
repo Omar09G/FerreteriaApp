@@ -61,12 +61,28 @@ class CorsConfigurationFactoryTest {
     }
 
     @Test
-    @DisplayName("Wildcard '*' CON credenciales: setAllowedOriginPatterns(['*']) (Spring 6)")
-    void wildcardConCredenciales() {
+    @DisplayName("Wildcard '*' CON credenciales y headers '*': debe fallar (BACK-SEC-021)")
+    void wildcardConCredencialesHeadersWildcardFalla() {
         CorsProperties props = new CorsProperties(
                 List.of("*"),
                 List.of("GET"),
                 List.of("*"),
+                List.of(),
+                0L,
+                true);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> CorsConfigurationFactory.configuration(props))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("BACK-SEC-021");
+    }
+
+    @Test
+    @DisplayName("Wildcard '*' CON credenciales y headers explícitos: setAllowedOriginPatterns(['*']) (Spring 6)")
+    void wildcardConCredencialesHeadersExplicitos() {
+        CorsProperties props = new CorsProperties(
+                List.of("*"),
+                List.of("GET"),
+                List.of("Authorization", "Content-Type"),
                 List.of(),
                 0L,
                 true);
