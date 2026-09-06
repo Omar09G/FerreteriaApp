@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 28: DB-SEC-010 done (usuarios lockout).
-# Total findings: 316 - done=43 open=273
+# PASO 29: BACK-REND-011 done (TrasladoService batch).
+# Total findings: 316 - done=44 open=272
 ---
 - id: BACK-REND-001
   project: backend
@@ -188,9 +188,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 29: TrasladoService list batch (findByTrasladoIdIn + findAllById almacenes/productos) 3 fijas vs N+1'
 - id: BACK-REND-012
   project: backend
   dimension: rendimiento

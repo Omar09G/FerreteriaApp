@@ -11,6 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import java.util.Set;
+import java.util.function.Function;
+
+import org.springframework.data.domain.PageImpl;
+
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
@@ -45,10 +50,44 @@ public class TrasladoService {
     @Transactional(readOnly = true)
     public Page<TrasladoResponse> list(Pageable pageable) {
         Page<Traslado> page = repo.findAllByOrderByCreadoEnDesc(pageable);
-        return page.map(t -> {
-            List<TrasladoDetalle> detalles = detalleRepo.findByTrasladoId(t.getTrasladoId());
-            return toResponse(t, detalles);
-        });
+        if (page.isEmpty() || page.getContent().size() == 1) {
+            return page.map(t -> {
+                List<TrasladoDetalle> detalles = detalleRepo.findByTrasladoId(t.getTrasladoId());
+                return toResponse(t, detalles);
+            });
+        }
+        List<Long> trasladoIds = page.getContent().stream().map(Traslado::getTrasladoId).toList();
+        List<TrasladoDetalle> allDetalles = detalleRepo.findByTrasladoIdIn(trasladoIds);
+        Map<Long, List<TrasladoDetalle>> detallesByTraslado = allDetalles.stream()
+                .collect(Collectors.groupingBy(TrasladoDetalle::getTrasladoId));
+        Set<Integer> almacenIds = page.getContent().stream()
+                .flatMap(t -> java.util.stream.Stream.of(t.getAlmacenOrigen(), t.getAlmacenDestino()))
+                .collect(Collectors.toSet());
+        Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
+                .collect(Collectors.toMap(Almacen::getAlmacenId, Function.identity()));
+        Set<Long> productoIds = allDetalles.stream().map(TrasladoDetalle::getProductoId).collect(Collectors.toSet());
+        Map<Long, mx.ferreteria.api.cat.entity.Producto> productos = productoIds.isEmpty() ? Map.of()
+                : productoRepo.findAllById(productoIds).stream()
+                        .collect(Collectors.toMap(mx.ferreteria.api.cat.entity.Producto::getProductoId, Function.identity()));
+        List<TrasladoResponse> content = page.getContent().stream().map(t -> {
+            List<TrasladoDetalle> detalles = detallesByTraslado.getOrDefault(t.getTrasladoId(), List.of());
+            Almacen origen = almacenes.get(t.getAlmacenOrigen());
+            Almacen destino = almacenes.get(t.getAlmacenDestino());
+            List<Long> pids = detalles.stream().map(TrasladoDetalle::getProductoId).distinct().toList();
+            // Reuse productos map already loaded
+            List<TrasladoDetalleResponse> detalleResponses = detalles.stream()
+                    .map(d -> new TrasladoDetalleResponse(
+                            d.getProductoId(),
+                            productos.containsKey(d.getProductoId()) ? productos.get(d.getProductoId()).getNombre() : null,
+                            d.getCantidad()))
+                    .toList();
+            return new TrasladoResponse(
+                    t.getTrasladoId(), t.getFolio(),
+                    t.getAlmacenOrigen(), origen != null ? origen.getNombre() : null,
+                    t.getAlmacenDestino(), destino != null ? destino.getNombre() : null,
+                    t.getEstado(), t.getUsuarioId(), null, detalleResponses);
+        }).toList();
+        return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
     }
 
     @Transactional(readOnly = true)
