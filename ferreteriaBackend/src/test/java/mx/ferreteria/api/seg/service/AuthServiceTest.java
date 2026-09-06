@@ -59,7 +59,7 @@ class AuthServiceTest {
     AuthService service;
 
     final AuthUser activo = new AuthUser(7, "cajero1",
-            new BCryptPasswordEncoder().encode("Secreta123"), true, 42);
+            new BCryptPasswordEncoder().encode("Secreta123"), true, false, 42);
 
     @BeforeEach
     void setUp() {
@@ -117,7 +117,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> service.login(new LoginRequest("fantasma", "x"), RequestMeta.UNKNOWN))
                 .isInstanceOf(ValidacionException.class);
-        var inactivo = new AuthUser(9, "baja", encoder.encode("x"), false, null);
+        var inactivo = new AuthUser(9, "baja", encoder.encode("x"), false, false, null);
         when(gateway.findByUsername("baja")).thenReturn(Optional.of(inactivo));
         assertThatThrownBy(() -> service.login(new LoginRequest("baja", "x"),
                 RequestMeta.UNKNOWN))

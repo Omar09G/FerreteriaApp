@@ -45,14 +45,15 @@ BEGIN
     -- ------------------------------------------------------------------
     -- 3. Usuario admin con hash bcrypt generado en BD
     -- ------------------------------------------------------------------
-    INSERT INTO seg.usuarios (empleado_id, username, email, password_hash, activo)
+    INSERT INTO seg.usuarios (empleado_id, username, email, password_hash, activo, debe_cambiar_password)
     VALUES
         (v_empleado_id, 'admin', 'admin@ferreteria.local',
-         crypt('Admin123*', gen_salt('bf', 12)), true)
+         crypt('Admin123*', gen_salt('bf', 12)), true, true)
     ON CONFLICT (username) DO UPDATE
         SET password_hash = EXCLUDED.password_hash,
             empleado_id   = EXCLUDED.empleado_id,
-            activo        = true;
+            activo        = true,
+            debe_cambiar_password = true;
 
     SELECT usuario_id INTO v_usuario_id FROM seg.usuarios WHERE username = 'admin';
 

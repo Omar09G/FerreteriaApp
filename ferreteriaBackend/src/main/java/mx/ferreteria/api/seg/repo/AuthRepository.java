@@ -28,12 +28,13 @@ public class AuthRepository implements AuthUserGateway {
         @Override
         public Optional<AuthUser> findByUsername(String username) {
                 return jdbc.sql("""
-                                SELECT usuario_id, username, password_hash, activo, empleado_id
+                                SELECT usuario_id, username, password_hash, activo, empleado_id, debe_cambiar_password
                                 FROM seg.usuarios WHERE username = :u AND eliminado_en IS NULL
                                 """)
                                 .param("u", username)
                                 .query((rs, n) -> new AuthUser(rs.getInt("usuario_id"), rs.getString("username"),
                                                 rs.getString("password_hash"), rs.getBoolean("activo"),
+                                                rs.getBoolean("debe_cambiar_password"),
                                                 (Integer) rs.getObject("empleado_id")))
                                 .optional();
         }

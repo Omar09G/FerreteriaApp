@@ -315,6 +315,12 @@ public class AuthService {
     private MeResponse toMe(UserPrincipal p) {
         EmpleadoResumen emp = p.empleadoId() == null ? null
                 : empleados.resumenById(p.empleadoId()).orElse(null);
-        return new MeResponse(p.usuarioId(), p.username(), p.empleadoId(), p.roles(), null, emp);
+        // BACK-SEC-004: propagar el flag desde BD al frontend para forzar
+        // redirect a /change-password cuando el admin bootstrap no ha cambiado
+        // su password inicial. La lectura es por-request (no cacheada).
+        boolean debeCambiar = gateway.findByUsername(p.username())
+                .map(u -> u.debeCambiarPassword()).orElse(false);
+        return new MeResponse(p.usuarioId(), p.username(), p.empleadoId(),
+                p.roles(), null, emp, debeCambiar);
     }
 }

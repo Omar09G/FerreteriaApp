@@ -240,6 +240,11 @@ CREATE TABLE IF NOT EXISTS seg.usuarios (
     email         VARCHAR(120) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     activo        BOOLEAN NOT NULL DEFAULT true,
+    -- BACK-SEC-004: forzar cambio de password en primer login del admin bootstrap.
+    -- Backend valida debe_cambiar_password en /auth/me y bloquea acceso no-admin
+    -- hasta que el admin cambie su password inicial.
+    debe_cambiar_password BOOLEAN NOT NULL DEFAULT false,
+    password_changed_at   TIMESTAMPTZ,
     ultimo_login  TIMESTAMPTZ,
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
     eliminado_en  TIMESTAMPTZ

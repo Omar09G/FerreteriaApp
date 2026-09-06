@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface AuthUserGateway {
 
     record AuthUser(int usuarioId, String username, String passwordHash,
-                    boolean activo, Integer empleadoId) { }
+                    boolean activo, boolean debeCambiarPassword, Integer empleadoId) { }
 
     /** Owner de un refresh token activo (join con usuarios para datos frescos). */
     record RefreshOwner(int usuarioId, String username, Integer empleadoId) { }

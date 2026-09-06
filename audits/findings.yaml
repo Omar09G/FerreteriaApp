@@ -1,5 +1,5 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 20: BACK-SEC-009 done (sort whitelist).
+# PASO 21: BACK-SEC-004 done (admin bootstrap password change required).
 # Total findings: 316 - done=36 open=280
 ---
 - id: BACK-REND-001
@@ -531,7 +531,8 @@
   status: done
   owner: null
   depends_on: []
-  notes: 'PASO 15+16: AuthService.changePassword revokeAll + politica 8chars+digit + BCrypt 12'
+  notes: 'PASO 21: seg.usuarios.debe_cambiar_password + scripts/04_admin.sql true + V1 regenerado + AuthRepository findByUsername
+    devuelve flag + AuthService.toMe propaga flag a MeResponse para redirect frontend'
 - id: BACK-SEC-005
   project: backend
   dimension: seguridad
