@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 23: DB-ESC-004 done (read replica datasource configurado).
-# Total findings: 316 - done=38 open=278
+# PASO 24: FRONT-ESC-002 done (reports skeletons + useReporte).
+# Total findings: 316 - done=39 open=277
 ---
 - id: BACK-REND-001
   project: backend
@@ -2509,9 +2509,11 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 24: Skeleton.tsx + ChartSkeleton/TableSkeleton + VentasTotalesPage migrado a useReporte hook (skeleton vs spinner
+    global)'
 - id: FRONT-ESC-003
   project: frontend
   dimension: escalabilidad

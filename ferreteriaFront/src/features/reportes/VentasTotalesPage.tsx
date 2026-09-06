@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
 	Area,
 	AreaChart,
@@ -11,6 +10,7 @@ import {
 } from "recharts";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useReporte } from "@/hooks/useReporte";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
 import { formatoFecha, formatoMoneda, formatoNumero } from "@/lib/format";
 import { apiVentasTotales } from "@/lib/api/reportes";
@@ -18,7 +18,7 @@ import { esApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Spinner } from "@/components/ui/Spinner";
+import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ReporteHeader } from "./ReporteHeader";
 import type { VentaTotal } from "@/lib/api/types";
@@ -29,10 +29,7 @@ export default function VentasTotalesPage() {
 	const { error: mostrarError } = useToast();
 	const [rango, setRango] = useState<RangoFechas>(() => rangoFechas());
 
-	const { data, isLoading, error } = useQuery({
-		queryKey: ["ventas-totales", rango.inicio, rango.fin],
-		queryFn: () => apiVentasTotales(rango.inicio, rango.fin),
-	});
+	const { data, isLoading, error } = useReporte("ventas-totales", apiVentasTotales, rango);
 
 	useEffect(() => {
 		if (error)
@@ -95,8 +92,8 @@ export default function VentasTotalesPage() {
 				rango={rango}
 				onChange={setRango}
 			/>
-			{isLoading && <Spinner />}
-			{data && data.length > 0 && (
+			{isLoading && <ChartSkeleton />}
+			{!isLoading && data && data.length > 0 && (
 				<>
 					<Card titulo="Total vendido y utilidad bruta por día">
 						<ResponsiveContainer width="100%" height={280}>
