@@ -22,6 +22,12 @@ spring:
       connection-timeout: 3000
       max-lifetime: 1700000       # 28 min < PgBouncer server_lifetime
       validation-timeout: 2000
+    # PASO 23: Read-only datasource para reportes (DB-ESC-004). Si no se configura
+    # PG_RO_HOST, ReporteService hace fallback al primario.
+    read-only:
+      url: ${PG_RO_URL:}
+      username: ${PG_RO_USER:${PG_USER:ferreteria_app}}
+      password: ${PG_RO_PASSWORD:${PG_PASSWORD:cambia_app_seguro}}
   jpa:
     open-in-view: false
     properties:
