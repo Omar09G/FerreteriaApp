@@ -42,6 +42,16 @@ public class SecurityConfig {
                 return new BCryptPasswordEncoder(12);
         }
 
+        /**
+         * PASO 30 BACK-SEC-009 + CORS hardening fino — verificacion sin cambio de comportamiento:
+         * <ul>
+         *   <li>BACK-SEC-009 sort whitelist ya en {@link mx.ferreteria.api.common.web.PageQuery}
+         *       (PASO 20, DEFAULT_SORT_FIELDS). Sin pendiente aqui.</li>
+         *   <li>Headers HSTS/CSP/frameOptions/referrerPolicy presentes via {@code http.headers(...)}.</li>
+         *   <li>CORS via {@link CorsConfigurationFactory#source(CorsProperties)} registrado como
+         *       {@code CorsConfigurationSource} @Bean y consumido por {@code http.cors(Customizer.withDefaults())}.</li>
+         * </ul>
+         */
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 return CorsConfigurationFactory.source(corsProperties);

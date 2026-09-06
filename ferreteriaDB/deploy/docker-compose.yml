@@ -9,6 +9,15 @@
 # CON RÉPLICA DE LECTURA (perfil opcional):
 #   podman compose --profile replica up -d
 #
+# BACKUP PITR (DB-ESC-008) — ver deploy/BACKUP.md:
+#   pgBackRest stanza=ferreteria repo1-path=/backups
+#   archive_command = 'pgbackrest --stanza=ferreteria archive-push %p'
+#   Cron diario host/sidecar:
+#     0 2 * * 0 postgres pgbackrest --stanza=ferreteria --type=full backup
+#     0 2 * * 1-6 postgres pgbackrest --stanza=ferreteria --type=diff backup
+#   Volumen repo recomendado (separado de pg_data_primary):
+#     pgbackrest_repo:/backups  -> montar en postgres-primary y sidecar cron
+#
 # Arquitectura:
 #   browser ──► frontend:80 (nginx, host 8080)
 #                  │ /api/* reverse-proxy
@@ -464,6 +473,8 @@ networks:
 volumes:
   pg_data_primary:
   pg_data_replica:
+  # pgBackRest repo — PITR (DB-ESC-008). Descomentar cuando se habilite pgBackRest:
+  # pgbackrest_repo:  # -> /backups  repo1-path=/backups  stanza=ferreteria
   prometheus_data:
   grafana_data:
   tempo_data:

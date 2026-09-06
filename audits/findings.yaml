@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 29: BACK-REND-011 done (TrasladoService batch).
-# Total findings: 316 - done=44 open=272
+# PASO 30-32: CORS docs + BACKUP.md + client.ts split done.
+# Total findings: 316 - done=46 open=270
 ---
 - id: BACK-REND-001
   project: backend
@@ -2529,9 +2529,10 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 32: client.ts split 267->183 + csrf.ts/refresh.ts/errors.ts (ciclo roto, build OK)'
 - id: FRONT-ESC-004
   project: frontend
   dimension: escalabilidad
@@ -4616,9 +4617,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 31: deploy/BACKUP.md con pgBackRest (stanza ferreteria, archive_command, retention 7/4/12, restore, cron)'
 - id: DB-ESC-009
   project: database
   dimension: escalabilidad

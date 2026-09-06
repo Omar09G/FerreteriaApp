@@ -6,52 +6,39 @@ import axios, {
 
 import { tFuera } from "@/i18n";
 import { useAuthStore } from "@/store/auth";
-import { apiRefresh } from "@/lib/api/endpoints";
 import { env } from "@/config/env";
 import type { ApiErrorBody } from "@/lib/api/types";
+import {
+	ApiError,
+	transformar,
+} from "@/lib/api/errors";
+import {
+	CSRF_COOKIE,
+	CSRF_HEADER,
+	MUTATING_METHODS,
+	readCookie,
+	ensureCsrfCookie as ensureCsrfCookieInternal,
+} from "@/lib/api/csrf";
+import {
+	doRefresh,
+	puedeRefrescar,
+	type RetryMeta,
+} from "@/lib/api/refresh";
 
-export class ApiError extends Error {
-	readonly codigo: string;
-	readonly status: number;
-	readonly details?: ApiErrorBody["details"];
-	readonly requestId?: string;
-	readonly instance?: string;
-
-	constructor(body: ApiErrorBody) {
-		const ui =
-			body.errorMessage || body.codigo || tFuera("errores.desconocido");
-		super(ui);
-		this.name = "ApiError";
-		this.codigo = body.codigo || "ERROR_INTERNO";
-		this.status = body.errorCode ?? 0;
-		this.details = body.details;
-		this.requestId = body.requestId;
-		this.instance = body.instance;
-	}
-
-	/** Mensaje amigable mostrado en toasts, incluye referencia de soporte si existe. */
-	mensajeParaUsuario(): string {
-		const base = this.message;
-		if (this.requestId || this.instance) {
-			const ref = this.requestId
-				? ` (folio: ${this.requestId})`
-				: this.instance;
-			return `${base}${ref}`;
-		}
-		return base;
-	}
-}
-
-export function esApiError(e: unknown): e is ApiError {
-	return e instanceof ApiError;
-}
-
-/** Mensaje para toasts: usa el error del backend (ApiError) o un genérico del front. */
-export function mensajeError(e: unknown): string {
-	if (esApiError(e)) return e.mensajeParaUsuario();
-	if (e instanceof Error && e.message) return e.message;
-	return tFuera("errores.generico");
-}
+// ── Re-exports de fachada (compatibilidad con imports existentes) ──────────
+export { ApiError, esApiError, mensajeError, transformar } from "@/lib/api/errors";
+export {
+	CSRF_COOKIE,
+	CSRF_HEADER,
+	MUTATING_METHODS,
+	readCookie,
+} from "@/lib/api/csrf";
+export {
+	doRefresh,
+	refreshAccess,
+	puedeRefrescar,
+	type RetryMeta,
+} from "@/lib/api/refresh";
 
 function nuevoRequestId(): string {
 	if (
@@ -78,24 +65,6 @@ const http: AxiosInstance = axios.create({
 	timeout: env.apiTimeoutMs,
 });
 
-/** Lee el valor de una cookie por nombre. Devuelve null si no existe. */
-function readCookie(name: string): string | null {
-	if (typeof document === "undefined") return null;
-	const prefix = `${encodeURIComponent(name)}=`;
-	const parts = document.cookie ? document.cookie.split(";") : [];
-	for (const raw of parts) {
-		const c = raw.trim();
-		if (c.startsWith(prefix)) {
-			return decodeURIComponent(c.substring(prefix.length));
-		}
-	}
-	return null;
-}
-
-const CSRF_COOKIE = "XSRF-TOKEN";
-const CSRF_HEADER = "X-XSRF-TOKEN";
-const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
-
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 	config.headers.set("X-Request-Id", nuevoRequestId());
 	// CSRF double-submit: para métodos que mutan estado, copiamos el valor de
@@ -110,31 +79,6 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 	}
 	return config;
 });
-
-let refreshing: Promise<string> | null = null;
-
-async function refreshAccess(): Promise<string> {
-	if (!refreshing) {
-		refreshing = (async () => {
-			try {
-				const t = await apiRefresh();
-				return t.accessToken;
-			} finally {
-				refreshing = null;
-			}
-		})();
-	}
-	return refreshing;
-}
-
-interface RetryMeta {
-	/** cuántos reintentos van consumidos en esta request */
-	retries: number;
-	/** ya se intentó refresh+retry una vez para esta request */
-	refreshed: boolean;
-	/** ya se intentó re-leer el CSRF token una vez para esta request */
-	csrfRefreshed: boolean;
-}
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((res) => window.setTimeout(res, ms));
@@ -198,22 +142,11 @@ http.interceptors.response.use(
 		}
 
 		// ── 2) 401 / token expirado: refresh + un reintento ──
-		const es401 =
-			error.response?.status === 401 ||
-			error.response?.data?.codigo === "TOKEN_EXPIRADO" ||
-			error.response?.data?.codigo === "CREDENCIALES_INVALIDAS";
-
-		const puedeRefreshear =
-			es401 &&
-			!meta.refreshed &&
-			!original.url?.includes("/auth/refresh") &&
-			!original.url?.includes("/auth/login");
-
-		if (puedeRefreshear) {
+		if (puedeRefrescar(error, original, meta)) {
 			meta.refreshed = true;
 			original._retry = meta;
 			try {
-				await refreshAccess();
+				await doRefresh(http);
 				// El browser ya rotó la cookie `at` automáticamente. Re-leemos
 				// CSRF por si también rotó (defensivo).
 				const csrf = readCookie(CSRF_COOKIE);
@@ -236,18 +169,6 @@ http.interceptors.response.use(
 	},
 );
 
-function transformar(error: AxiosError<ApiErrorBody>): Error {
-	if (error.response?.data && typeof error.response.data.codigo === "string") {
-		return new ApiError(error.response.data);
-	}
-	if (!error.response) {
-		return new Error(tFuera("errores.servidor"));
-	}
-	return new Error(
-		tFuera("errores.inesperado", { status: error.response.status }),
-	);
-}
-
 export default http;
 
 /**
@@ -255,13 +176,8 @@ export default http;
  * del primer mutating request (incluido /auth/login). Si el token aún no
  * está, hace un GET a /csrf-init que el backend aprovecha para emitir la
  * cookie.
+ * Fachada que delega a csrf.ts con el http local inyectado.
  */
 export async function ensureCsrfCookie(): Promise<void> {
-	if (readCookie(CSRF_COOKIE)) return;
-	try {
-		await http.get("/auth/csrf-init");
-	} catch {
-		// best-effort: si falla, el siguiente mutating request obtendrá 403 y
-		// el caller verá el error. Pero no bloqueamos el arranque por esto.
-	}
+	return ensureCsrfCookieInternal(http);
 }
