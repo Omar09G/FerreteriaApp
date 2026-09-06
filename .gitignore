@@ -11,6 +11,7 @@ audits/*
 docs/*
 !docs/MEJORAS_ECC.md
 !docs/MEJORAS_ECC.v1.md
+!docs/secrets.md
 scripts/*
 !scripts/parse_audit.py
 !scripts/validate.py
