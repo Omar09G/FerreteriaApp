@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 33-35: Bean Validation + CORS + TopProductos done.
-# Total findings: 316 - done=48 open=268
+# 2 CRITICAL restantes (BACK-REND-008/009 requieren batch en SegAdmin/Auditoria - documentados).
+# Total findings: 316 - done=50 open=266
 ---
 - id: BACK-REND-001
   project: backend
@@ -171,9 +171,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'CRITICAL fixes: NominaService batch (6 fijas) + DB-SEC-001 CREATE ROLE sin password hardcodeado (Vault)'
 - id: BACK-REND-011
   project: backend
   dimension: rendimiento
@@ -3435,9 +3436,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'CRITICAL fixes: NominaService batch (6 fijas) + DB-SEC-001 CREATE ROLE sin password hardcodeado (Vault)'
 - id: DB-SEC-002
   project: database
   dimension: seguridad

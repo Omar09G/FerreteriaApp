@@ -26,8 +26,9 @@ ALTER DATABASE ferreteria SET timezone TO 'America/Mexico_City';
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ferreteria_app') THEN
-        CREATE ROLE ferreteria_app LOGIN PASSWORD 'CAMBIAR_EN_PRODUCCION';
-        RAISE NOTICE 'Rol ferreteria_app creado (cambiar password en produccion)';
+        CREATE ROLE ferreteria_app LOGIN;
+        ALTER ROLE ferreteria_app WITH PASSWORD NULL;
+        RAISE NOTICE 'Rol ferreteria_app creado (asignar password via 99_app_password.sh o Vault)';
     ELSE
         RAISE NOTICE 'Rol ferreteria_app ya existe';
     END IF;
