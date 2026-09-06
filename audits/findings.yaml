@@ -1,6 +1,6 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# PASO 24: FRONT-ESC-002 done (reports skeletons + useReporte).
-# Total findings: 316 - done=39 open=277
+# PASO 25: BACK-REND-014 done (HPA PgBouncer+backend).
+# Total findings: 316 - done=40 open=276
 ---
 - id: BACK-REND-001
   project: backend
@@ -241,9 +241,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'PASO 25: PgBouncer HPA maxReplicas 6->4 (4*50=200 < 300) + Pods metric pgbouncer_pools_client_active_connections
+    40 + backend HPA 50-backend-hpa.yaml con CPU 70% + p95 500ms'
 - id: BACK-REND-015
   project: backend
   dimension: rendimiento

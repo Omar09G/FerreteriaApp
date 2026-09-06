@@ -1,0 +1,62 @@
+# 50-backend-hpa.yaml — HPA para el backend Spring Boot
+# Escala por CPU + p95 latency (http_server_requests_seconds quantile 0.95)
+# Requiere Prometheus Adapter con:
+#   rules:
+#   - seriesQuery: http_server_requests_seconds_bucket
+#     resources: { overrides: { namespace: {resource: namespace}, pod: {resource: pod} } }
+#     name: { matches: "^(.*)_bucket", as: "${1}_p95" }
+#     metricsQuery: histogram_quantile(0.95, sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (le))
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ferreteria-backend-hpa
+  namespace: ferreteria
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ferreteria-backend
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    # CPU como señal primaria (lagging pero estable)
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # p95 latency como señal de carga real (custom via Prometheus Adapter)
+    # Si p95 > 500ms, escala antes que CPU llegue a 70%
+    - type: Pods
+      pods:
+        metric:
+          name: http_server_requests_seconds_p95
+        target:
+          type: AverageValue
+          averageValue: 500m  # 0.5s
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+        - type: Percent
+          value: 50
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+---
+# PDB para backend: garantiza 1 replica disponible durante disrupciones voluntarias
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ferreteria-backend-pdb
+  namespace: ferreteria
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ferreteria-backend

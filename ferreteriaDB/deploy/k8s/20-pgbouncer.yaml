@@ -96,7 +96,7 @@ spec:
     kind: Deployment
     name: pgbouncer
   minReplicas: 2
-  maxReplicas: 6
+  maxReplicas: 4  # 4 * 50 (default_pool_size) = 200 < PG max_connections 300 (headroom 100)
   metrics:
     - type: Resource
       resource:
@@ -104,7 +104,22 @@ spec:
         target:
           type: Utilization
           averageUtilization: 70
+    # Conexiones activas como señal de carga real (via postgres_exporter)
+    # pgbouncer poola 50 conexiones por replica; si 80% están activas, escala.
+    - type: Pods
+      pods:
+        metric:
+          name: pgbouncer_pools_client_active_connections
+        target:
+          type: AverageValue
+          averageValue: "40"
   behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 30
     scaleDown:
       stabilizationWindowSeconds: 300   # no encoger durante pausas cortas
 ---
