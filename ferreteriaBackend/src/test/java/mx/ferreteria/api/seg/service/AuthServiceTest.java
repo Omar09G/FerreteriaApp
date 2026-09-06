@@ -134,6 +134,7 @@ class AuthServiceTest {
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
                         Instant.now().plusSeconds(3600), null)));
+        when(gateway.revokeByHash(anyString())).thenReturn(true);
         when(gateway.findActiveRefreshOwner(anyString(), any(Instant.class)))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshOwner(7, "cajero1", 42)));
 

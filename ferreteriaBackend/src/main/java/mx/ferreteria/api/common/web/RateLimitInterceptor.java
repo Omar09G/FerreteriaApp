@@ -136,7 +136,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                 return "u" + uid.get();
             }
         }
-        return "ip:" + ipCliente(req);
+        return "ip:" + ipCliente(req, props.trustForwardedFor());
     }
 
     private static Optional<Integer> usuarioActualId() {
@@ -151,10 +151,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         return Optional.empty();
     }
 
-    static String ipCliente(HttpServletRequest req) {
-        String xff = req.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
+    static String ipCliente(HttpServletRequest req, boolean trustForwardedFor) {
+        // BACK-REND-024: XFF solo se respeta si el operador confirma que hay un proxy
+        // de confianza delante (nginx/Pomer) que SIEMPRE sobrescribe la cabecera.
+        // Sin esa garantía, cualquier cliente puede falsificar XFF y evadir rate-limit
+        // o esconder su IP en auditoría. Fail-closed: getRemoteAddr() = la IP real
+        // del socket TCP que llegó al backend.
+        if (trustForwardedFor) {
+            String xff = req.getHeader("X-Forwarded-For");
+            if (xff != null && !xff.isBlank()) {
+                return xff.split(",")[0].trim();
+            }
         }
         return req.getRemoteAddr();
     }

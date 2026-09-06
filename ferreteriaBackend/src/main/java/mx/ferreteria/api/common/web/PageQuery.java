@@ -22,11 +22,13 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 public record PageQuery(int page, int size, String sort) {
 
     /**
-     * Tope por defecto para listas generales. Endpoints de catálogo pequeño
-     * (marcas, unidades de medida, categorías) suelen pedir todo en una sola
-     * llamada; si necesitas más, expón un parámetro o un endpoint sin paginar.
+     * Tope por defecto para listas generales (BACK-REND-018). Antes era 500:
+     * aplicar ese máximo a endpoints como auditoría/JSONB degradaba memoria.
+     * Endpoints de catálogo pequeño (marcas, unidades, categorías) que
+     * realmente necesitan más deben llamar a {@link #toPageable(int)} con un
+     * valor explícito (p. ej. 500).
      */
-    public static final int DEFAULT_MAX_SIZE = 500;
+    public static final int DEFAULT_MAX_SIZE = 100;
 
     /**
      * Whitelist global de campos ordenables. Si una feature requiere otra columna,

@@ -208,7 +208,14 @@ public class AuthService {
         }
         var owner = ownerOpt.get();
 
-        gateway.revokeByHash(hash); // ROTACIÓN
+        // BACK-EST-003: rotación atómica. Si dos requests concurrentes pasan
+        // los checks previos (revokedAt==null, expires>now, usuarioId==uid),
+        // solo uno gana el UPDATE condicional; el segundo ve revoked_at != null
+        // y se rechaza sin emitir un nuevo refresh.
+        if (!gateway.revokeByHash(hash)) {
+            log.warn("refresh concurrente rechazado usuario_id={}", owner.usuarioId());
+            throw new ValidacionException(ErrorCode.TOKEN_EXPIRADO);
+        }
 
         List<String> roles = gateway.rolesOf(owner.usuarioId());
         var principal = new UserPrincipal(owner.usuarioId(), owner.username(),

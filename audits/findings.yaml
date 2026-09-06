@@ -1,6 +1,5 @@
 # findings.yaml - Single source of truth for MEJORAS_ECC.md
-# 0 CRITICAL restantes. 50+2 done.
-# Total findings: 316 - done=52 open=264
+# Total findings: 316 - done=56 open=260
 ---
 - id: BACK-REND-001
   project: backend
@@ -320,9 +319,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: DEFAULT_MAX_SIZE 500->100 (catalogos pequenos pueden pedir 500 explicito via toPageable(int))'
 - id: BACK-REND-019
   project: backend
   dimension: rendimiento
@@ -417,9 +417,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: RateLimitProperties.trustForwardedFor (default false fail-closed); RateLimitInterceptor.ipCliente(req,
+    trust); AuthController.meta() usa getRemoteAddr; application.yml RATE_LIMIT_TRUST_FORWARDED_FOR'
 - id: BACK-REND-025
   project: backend
   dimension: rendimiento
@@ -643,9 +645,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: changePassword YA invalida refresh tokens (sprint 15-16); AuthService:107 gateway.revokeAllRefreshTokens()'
 - id: BACK-SEC-011
   project: backend
   dimension: seguridad
@@ -1378,9 +1381,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: revokeByHash ahora retorna boolean (true=rowcount>0); refresh() rechaza si atomic UPDATE falla (TOCTOU
+    race en rotacion)'
 - id: BACK-EST-004
   project: backend
   dimension: estabilidad

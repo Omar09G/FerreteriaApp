@@ -67,7 +67,7 @@ class RateLimitInterceptorTest {
                 true,
                 true,
                 10_000L,
-                5L, false /*distributed*/, null /*redisUri*/, Map.of(
+                5L, false /*distributed*/, false /*trustForwardedFor*/, null /*redisUri*/, Map.of(
                         "default", new RateLimitProperties.Grupo(2, 1),
                         "catalogo", new RateLimitProperties.Grupo(2, 1),
                         "auth", new RateLimitProperties.Grupo(1, 1)));
@@ -76,7 +76,7 @@ class RateLimitInterceptorTest {
     @Test
     @DisplayName("Disabled=true: no consume, deja pasar y no agrega cabeceras")
     void disabled_passesThroughWithoutConsuming() throws Exception {
-        RateLimitProperties off = new RateLimitProperties(false, true, 1000L, 5L, false /*distributed*/, null /*redisUri*/, propsDefault().grupos());
+        RateLimitProperties off = new RateLimitProperties(false, true, 1000L, 5L, false /*distributed*/, false /*trustForwardedFor*/, null /*redisUri*/, propsDefault().grupos());
         var req = get("/api/v1/productos");
         var res = new MockHttpServletResponse();
         boolean allow = interceptor(off).preHandle(req, res, handlerConPerfil(MarcadorController.class, "catalogo"));
@@ -190,7 +190,7 @@ class RateLimitInterceptorTest {
     @Test
     @DisplayName("scopeByUser=false: siempre cae a IP")
     void scopeByUserFalseUsaIp() throws Exception {
-        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, false, 1000L, 5L, false /*distributed*/, null /*redisUri*/, propsDefault().grupos()));
+        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, false, 1000L, 5L, false /*distributed*/, false /*trustForwardedFor*/, null /*redisUri*/, propsDefault().grupos()));
         HandlerMethod hm = handlerConPerfil(MarcadorController.class, "catalogo");
 
         SecurityContextHolder.getContext().setAuthentication(
@@ -208,26 +208,40 @@ class RateLimitInterceptorTest {
     }
 
     @Test
-    @DisplayName("IP se toma del primer hop de X-Forwarded-For si esta presente")
-    void ipDesdeXForwardedFor() {
+    @DisplayName("IP con trustForwardedFor=true: primer hop de X-Forwarded-For")
+    void ipDesdeXForwardedFor_confianza() {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/productos");
         req.addHeader("X-Forwarded-For", "198.51.100.10, 10.0.0.1");
-        assertThat(RateLimitInterceptor.ipCliente(req)).isEqualTo("198.51.100.10");
+        assertThat(RateLimitInterceptor.ipCliente(req, true)).isEqualTo("198.51.100.10");
+    }
 
+    @Test
+    @DisplayName("IP sin proxy de confianza (fail-closed): usa getRemoteAddr, ignora XFF")
+    void ipFailClosed_ignoraXff() {
+        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/productos");
+        req.addHeader("X-Forwarded-For", "198.51.100.10, 10.0.0.1");
+        req.setRemoteAddr("127.0.0.1");
+        assertThat(RateLimitInterceptor.ipCliente(req, false)).isEqualTo("127.0.0.1");
+    }
+
+    @Test
+    @DisplayName("IP sin cabecera XFF: usa getRemoteAddr")
+    void ipSinXff() {
         MockHttpServletRequest req2 = new MockHttpServletRequest("GET", "/api/v1/productos");
         req2.setRemoteAddr("127.0.0.1");
-        assertThat(RateLimitInterceptor.ipCliente(req2)).isEqualTo("127.0.0.1");
+        assertThat(RateLimitInterceptor.ipCliente(req2, true)).isEqualTo("127.0.0.1");
+        assertThat(RateLimitInterceptor.ipCliente(req2, false)).isEqualTo("127.0.0.1");
 
         MockHttpServletRequest req3 = new MockHttpServletRequest("GET", "/api/v1/productos");
         req3.addHeader("X-Forwarded-For", "");
         req3.setRemoteAddr("127.0.0.1");
-        assertThat(RateLimitInterceptor.ipCliente(req3)).isEqualTo("127.0.0.1");
+        assertThat(RateLimitInterceptor.ipCliente(req3, true)).isEqualTo("127.0.0.1");
     }
 
     @Test
     @DisplayName("Perfil inexistente cae al grupo default del yaml")
     void perfilInexistenteCaeADefault() throws Exception {
-        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, true, 1000L, 5L, false /*distributed*/, null /*redisUri*/, Map.of("default", new RateLimitProperties.Grupo(2, 1))));
+        RateLimitInterceptor itc = interceptor(new RateLimitProperties(true, true, 1000L, 5L, false /*distributed*/, false /*trustForwardedFor*/, null /*redisUri*/, Map.of("default", new RateLimitProperties.Grupo(2, 1))));
         HandlerMethod hm = handlerConPerfil(MarcadorController.class, "catalogo");
 
         var res = new MockHttpServletResponse();

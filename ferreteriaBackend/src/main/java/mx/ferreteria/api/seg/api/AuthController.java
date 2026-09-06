@@ -108,8 +108,10 @@ public class AuthController {
     }
 
     private mx.ferreteria.api.seg.service.RequestMeta meta(HttpServletRequest h) {
-        String xff = h.getHeader("X-Forwarded-For");
-        String ip = xff != null && !xff.isBlank() ? xff.split(",")[0].trim() : h.getRemoteAddr();
+        // BACK-REND-024: XFF solo se respeta si hay un proxy de confianza. Ver
+        // mx.ferreteria.api.common.web.RateLimitInterceptor.ipCliente. Por ahora
+        // se aplica la misma regla fail-closed: getRemoteAddr() (IP real TCP).
+        String ip = h.getRemoteAddr();
         return new RequestMeta(ip, h.getHeader("User-Agent"));
     }
 

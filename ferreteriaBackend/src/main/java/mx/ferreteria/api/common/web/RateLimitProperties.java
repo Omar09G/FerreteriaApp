@@ -27,6 +27,13 @@ public record RateLimitProperties(
          */
         @DefaultValue("false") boolean distributed,
         /**
+         * BACK-REND-024: confiar en X-Forwarded-For para resolver la IP del cliente.
+         * Solo true cuando hay un proxy/load balancer de confianza (nginx, Pomer)
+         * que SIEMPRE sobrescribe XFF; cualquier cliente puede falsificar XFF si llega
+         * al backend directamente. Default false (fail-closed).
+         */
+        @DefaultValue("false") boolean trustForwardedFor,
+        /**
          * URI Redis (solo si distributed=true). Formato: redis://host:port
          */
         String redisUri,

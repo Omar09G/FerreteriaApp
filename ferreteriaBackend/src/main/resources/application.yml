@@ -83,6 +83,10 @@ app:
     scope-by-user: ${RATE_LIMIT_SCOPE_BY_USER:true}
     cache-max-size: ${RATE_LIMIT_CACHE_MAX_SIZE:200000}
     cache-ttl-minutes: ${RATE_LIMIT_CACHE_TTL_MINUTES:30}
+    # BACK-REND-024: fail-closed. Solo true si hay proxy de confianza (nginx/Pomer)
+    # que SIEMPRE sobrescribe X-Forwarded-For. En produccion detras de proxy:
+    # RATE_LIMIT_TRUST_FORWARDED_FOR=true.
+    trust-forwarded-for: ${RATE_LIMIT_TRUST_FORWARDED_FOR:false}
     grupos:
       default:
         capacity: ${RATE_LIMIT_DEFAULT_CAPACITY:300}

@@ -37,7 +37,11 @@ public interface AuthUserGateway {
 
     Optional<RefreshRow> findRefreshRow(String tokenHash);
 
-    void revokeByHash(String tokenHash);
+    /**
+     * Revoca atómicamente el refresh token si no estaba revocado.
+     * @return true si este llamado ganó la carrera (revocó), false si ya estaba revocado/expirado.
+     */
+    boolean revokeByHash(String tokenHash);
 
     /** Revoca TODAS las sesiones previas del usuario (login nuevo = single-active). */
     void revokeAllRefreshTokens(int usuarioId);

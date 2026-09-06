@@ -124,11 +124,12 @@ public class AuthRepository implements AuthUserGateway {
         }
 
         @Override
-        public void revokeByHash(String tokenHash) {
-                jdbc.sql("UPDATE seg.refresh_tokens SET revoked_at = now() "
+        public boolean revokeByHash(String tokenHash) {
+                int rows = jdbc.sql("UPDATE seg.refresh_tokens SET revoked_at = now() "
                                 + "WHERE token_hash = :h AND revoked_at IS NULL")
                                 .param("h", tokenHash)
                                 .update();
+                return rows > 0;
         }
 
         @Override
