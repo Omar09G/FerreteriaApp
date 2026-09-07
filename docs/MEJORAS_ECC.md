@@ -1,6 +1,6 @@
 # MEJORAS ECC — Auditoría Integral del Monorepo Ferretería
 
-> **Generado:** 2026-09-07 17:07 UTC  
+> **Generado:** 2026-09-07 17:09 UTC  
 > **Fuente de verdad:** `audits/findings.yaml`  
 > **Total de hallazgos:** 316  
 > **Por severidad:** `CRITICAL`=18 · `HIGH`=96 · `MEDIUM`=148 · `LOW`=54  

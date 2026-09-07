@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=96 open=220
+# Total: 316 - done=97 open=219
 ---
 - id: BACK-REND-001
   project: backend
@@ -3626,9 +3626,11 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-MITIGADO: ningun host 0.0.0.0/0 trust en repo; deploy/conf/pg_hba.conf usa scram-sha-256 y K8s ConfigMap 00-base.yaml
+    sobreescribe con scram-sha-256; trust solo local/127.0.0.1 contenedor; prod mitigado por NetworkPolicy zero-trust'
 - id: DB-SEC-008
   project: database
   dimension: seguridad
