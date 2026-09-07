@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=71 open=245
+# Total: 316 - done=72 open=244
 ---
 - id: BACK-REND-001
   project: backend
@@ -1691,9 +1691,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: V10__productos_codigo_trgm_idx.sql - GIN trigram sobre inv.productos.codigo (idx_productos_nombre_trgm
+    ya cubria nombre); ANALYZE'
 - id: BACK-ESC-006
   project: backend
   dimension: escalabilidad
