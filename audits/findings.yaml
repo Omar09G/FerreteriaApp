@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=240 open=76
+# Total: 316 - done=270 open=46
 ---
 - id: BACK-REND-001
   project: backend
@@ -4155,9 +4155,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-010
   project: database
   dimension: diseno
@@ -4171,9 +4172,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-011
   project: database
   dimension: diseno
@@ -4187,9 +4189,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-012
   project: database
   dimension: diseno
@@ -4203,9 +4206,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-013
   project: database
   dimension: diseno
@@ -4219,9 +4223,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-014
   project: database
   dimension: diseno
@@ -4235,9 +4240,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-015
   project: database
   dimension: diseno
@@ -4251,9 +4257,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-016
   project: database
   dimension: diseno
@@ -4267,9 +4274,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-017
   project: database
   dimension: diseno
@@ -4283,9 +4291,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-018
   project: database
   dimension: diseno
@@ -4299,9 +4308,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-019
   project: database
   dimension: diseno
@@ -4315,9 +4325,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-020
   project: database
   dimension: diseno
@@ -4331,9 +4342,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-021
   project: database
   dimension: diseno
@@ -4347,9 +4359,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-DIS-022
   project: database
   dimension: diseno
@@ -4363,9 +4376,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-001
   project: database
   dimension: estabilidad
@@ -4397,9 +4411,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-003
   project: database
   dimension: estabilidad
@@ -4432,9 +4447,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-005
   project: database
   dimension: estabilidad
@@ -4449,9 +4465,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-006
   project: database
   dimension: estabilidad
@@ -4465,9 +4482,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-007
   project: database
   dimension: estabilidad
@@ -4482,9 +4500,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-008
   project: database
   dimension: estabilidad
@@ -4499,9 +4518,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-009
   project: database
   dimension: estabilidad
@@ -4516,9 +4536,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-010
   project: database
   dimension: estabilidad
@@ -4532,9 +4553,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-011
   project: database
   dimension: estabilidad
@@ -4548,9 +4570,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-012
   project: database
   dimension: estabilidad
@@ -4564,9 +4587,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-013
   project: database
   dimension: estabilidad
@@ -4580,9 +4604,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-014
   project: database
   dimension: estabilidad
@@ -4596,9 +4621,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-015
   project: database
   dimension: estabilidad
@@ -4612,9 +4638,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-016
   project: database
   dimension: estabilidad
@@ -4628,9 +4655,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-017
   project: database
   dimension: estabilidad
@@ -4644,9 +4672,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-018
   project: database
   dimension: estabilidad
@@ -4660,9 +4689,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: deuda documentada, priorizada'
 - id: DB-EST-019
   project: database
   dimension: estabilidad
