@@ -191,7 +191,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /auth/register valido -> 200 success:true empleado+usuario+rol ENCARGADO_CAJA")
+    @DisplayName("POST /auth/register valido -> 201 Created (recurso nuevo)")
     void register_valid_createsEmpleadoYUsuario() throws Exception {
         Mockito.when(authService.register(any(RegisterRequest.class)))
                 .thenReturn(new RegisterResponse(9, 5, "nuevo01", "nuevo01@ejemplo.mx"));
@@ -201,7 +201,7 @@ class AuthControllerTest {
                         .content("{\"username\":\"nuevo01\",\"email\":\"nuevo01@ejemplo.mx\","
                                 + "\"password\":\"Secreta123\",\"nombre\":\"Juan\","
                                 + "\"apellidoPaterno\":\"Pérez\",\"puestoId\":3}"))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.usuarioId").value(9))
                 .andExpect(jsonPath("$.data.empleadoId").value(5))

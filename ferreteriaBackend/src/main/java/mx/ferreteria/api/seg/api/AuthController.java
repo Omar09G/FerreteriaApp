@@ -2,7 +2,11 @@ package mx.ferreteria.api.seg.api;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,6 +50,12 @@ public class AuthController {
 
     @PostMapping("/login")
     @RateLimited("auth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login OK; cookies `at` y `rt` emitidas"),
+            @ApiResponse(responseCode = "401", description = "Credenciales invalidas (CREDENCIALES_INVALIDAS)"),
+            @ApiResponse(responseCode = "423", description = "Cuenta bloqueada por intentos fallidos (CUENTA_BLOQUEADA)"),
+            @ApiResponse(responseCode = "429", description = "Rate limit excedido (capacidad/minuto)")
+    })
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest req,
             HttpServletRequest http) {
         LoginResult result = authService.login(req, meta(http));
@@ -60,11 +70,19 @@ public class AuthController {
     /**
      * Alta pública sin roles (usuario debe recibir rol por ADMINISTRADOR antes
      * de operar). Nunca asigna ADMIN: ver AuthService.register.
+     * BACK-UI-001: responde 201 Created porque crea un recurso (ven.Usuarios /
+     * seg.Usuarios). 200 OK se reservaría para el login.
      */
     @PostMapping("/register")
     @RateLimited("auth")
-    public RegisterResponse register(@Valid @RequestBody RegisterRequest req) {
-        return authService.register(req);
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Usuario y empleado creados"),
+            @ApiResponse(responseCode = "400", description = "Datos invalidos (password corta, email duplicado)"),
+            @ApiResponse(responseCode = "409", description = "Username/email duplicado (REGISTRO_DUPLICADO)"),
+            @ApiResponse(responseCode = "429", description = "Rate limit excedido")
+    })
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(req));
     }
 
     /**
@@ -84,6 +102,11 @@ public class AuthController {
 
     @PostMapping("/refresh")
     @RateLimited("auth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Nuevo par access/refresh emitido"),
+            @ApiResponse(responseCode = "401", description = "Token invalido/expirado (TOKEN_EXPIRADO)"),
+            @ApiResponse(responseCode = "429", description = "Rate limit excedido")
+    })
     public ResponseEntity<TokenResponse> refresh(
             @Valid @RequestBody(required = false) RefreshRequest req,
             HttpServletRequest http) {

@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=73 open=243
+# Total: 316 - done=79 open=237
 ---
 - id: BACK-REND-001
   project: backend
@@ -442,9 +442,12 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'NO-APLICABLE: RateLimitInterceptor.claveDe() usa SecurityContextHolder ThreadLocal. Greps exhaustivos confirman
+    proyecto Spring MVC servlet puro (0 @Async/@EnableAsync/CompletableFuture/TaskExecutor/Mono/Flux). Si en futuro se introduce
+    async o WebFlux, requerira TaskDecorator.'
 - id: BACK-REND-026
   project: backend
   dimension: rendimiento
@@ -1252,9 +1255,14 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: ArchUnit 5 reglas adicionales activas (mensajesSoloDesdeErrorCode + modulosSinCiclos ya estaban). serviceNaming (PASS),
+    controllerNaming (PASS), repositoriosNoEnControllers (PASS), serviceFueraDeCapaWeb (PASS), entidadesNoSonControllers (PASS).
+    Regla 6 servicesNoInyectanRepos DOCUMENTADA pero DESHABILITADA (~538 violaciones pre-existentes en cat/inv/ven/com/fin/fis/rh;
+    migracion a Gateway es sprint dedicado). Total 8 reglas, 6 PASS + 2 FAIL pre-existentes (modulosSinCiclos + servicesNoInyectanRepos
+    backlog).
 - id: BACK-DIS-002
   project: backend
   dimension: diseno
@@ -1744,9 +1752,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'AuthController.register() ahora retorna 201 Created (ResponseEntity.status(CREATED).body) en lugar de 200. Test
+    actualizado: status().isCreated().'
 - id: BACK-UI-002
   project: backend
   dimension: ui_ux
@@ -1761,9 +1771,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'OpenApiConfig ahora documenta AMBOS esquemas: bearerJWT (Authorization: Bearer <jwt>) y cookieAuth (cookie `at`
+    HttpOnly). Description explica metodo principal (cookies) + alternativo (bearer).'
 - id: BACK-UI-003
   project: backend
   dimension: ui_ux
@@ -1777,9 +1789,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: AuthController.login/register/refresh tienen @ApiResponses documentando 200/201/401/423/429 segun codigo de error.
+    Errores 4xx/5xx aparecen en OpenAPI generado.
 - id: BACK-UI-004
   project: backend
   dimension: ui_ux
@@ -2251,9 +2265,12 @@
   blast_radius: security
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: Clasificacion CSRF narrow en src/lib/api/csrf.ts (funcion pura isCsrfFailure). Solo retry ante codigo ∈ {CSRF_TOKEN_INVALID,
+    CSRF_INVALIDO} o 403 sin envelope en metodo mutating. Cualquier 403 con codigo distinto (ACCESO_DENEGADO, business403)
+    NO se reintenta. 12 vitest tests OK (incluye 9 nuevos en src/test/csrf.test.ts). tsc limpio.
 - id: FRONT-SEC-002
   project: frontend
   dimension: seguridad

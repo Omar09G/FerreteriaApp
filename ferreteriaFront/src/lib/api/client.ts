@@ -16,6 +16,7 @@ import {
 	CSRF_COOKIE,
 	CSRF_HEADER,
 	MUTATING_METHODS,
+	isCsrfFailure,
 	readCookie,
 	ensureCsrfCookie as ensureCsrfCookieInternal,
 } from "@/lib/api/csrf";
@@ -111,16 +112,12 @@ http.interceptors.response.use(
 		};
 
 		// ── 0) CSRF mismatch: re-leer el token una vez y reintentar ──
-		// El XSRF-TOKEN puede haber rotado entre requests; si la cookie aún
-		// tiene valor, copiar el nuevo al header suele bastar. Si no, el caller
-		// debe llamar /csrf-init antes del próximo mutating call.
-		const esCsrf =
-			(error.response?.status === 403 &&
-				error.response?.data?.codigo === "CSRF_TOKEN_INVALID") ||
-			// Spring suele devolver 403 sin cuerpo para CSRF; cualquier 403 en
-			// un mutating method sin mensaje específico lo tratamos como CSRF.
-			(error.response?.status === 403 &&
-				MUTATING_METHODS.has((original.method ?? "get").toLowerCase()));
+		// FRONT-SEC-001: clasificación narrow. NO tratar cualquier 403 como
+		// CSRF — solo cuando el envelope lo identifica (CSRF_TOKEN_INVALID /
+		// CSRF_INVALIDO) o cuando Spring devuelve 403 sin cuerpo en un
+		// método mutating (rechazo pre-controller). Otros 403 (ACL, business)
+		// NO se reintentan — eso provocaba loops sobre denegaciones reales.
+		const esCsrf = isCsrfFailure(error, original.method);
 
 		if (esCsrf && !meta.csrfRefreshed) {
 			meta.csrfRefreshed = true;

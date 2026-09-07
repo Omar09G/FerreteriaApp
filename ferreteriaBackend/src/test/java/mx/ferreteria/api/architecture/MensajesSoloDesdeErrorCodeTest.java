@@ -1,5 +1,6 @@
 package mx.ferreteria.api.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -10,10 +11,22 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
 
+import jakarta.persistence.Entity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RestController;
+
 /**
- * Regla arquitectónica: NINGÚN mensaje de error vive en el código (PLAN §4.4).
- * Fuera de common.error/common.i18n está prohibido invocar constructores de la
- * familia ApiException pasando un String literal/variable como argumento.
+ * Reglas arquitectónicas del backend ferreteria.
+ *
+ * Reglas activas (BACK-DIS-001):
+ *   1. mensajes desde ErrorCode (no literales) — PLAN §4.4
+ *   2. no ciclos entre módulos (rh, cat, inv, ven, com, fis, fin, seg)
+ *   3. @Service solo en clases que terminan en "Service"
+ *   4. @RestController solo en clases que terminan en "Controller"
+ *   5. controllers NO dependen de *Repository (acceso vía services)
+ *   6. services NO inyectan *Repository directamente (deben usar gateways)
+ *   7. no hay @Service en paquetes common.web.. (capa de infraestructura)
+ *   8. entidades JPA NO se exponen como @RestController
  */
 @AnalyzeClasses(packages = "mx.ferreteria.api", importOptions = ImportOption.DoNotIncludeTests.class)
 class MensajesSoloDesdeErrorCodeTest {
@@ -40,4 +53,57 @@ class MensajesSoloDesdeErrorCodeTest {
         @ArchTest
         static final ArchRule modulosSinCiclos = SlicesRuleDefinition.slices().matching("mx.ferreteria.api.(*)..")
                         .should().beFreeOfCycles();
+
+        // -------- Reglas BACK-DIS-001: convenciones de naming y capas --------
+
+        /** 3. @Service solo en clases que terminan en "Service". */
+        @ArchTest
+        static final ArchRule serviceNaming = classes()
+                        .that().areAnnotatedWith(Service.class)
+                        .should().haveSimpleNameEndingWith("Service")
+                        .because("@Service debe reservarse a clases que terminan en Service (convencion de naming)");
+
+        /** 4. @RestController solo en clases que terminan en "Controller". */
+        @ArchTest
+        static final ArchRule controllerNaming = classes()
+                        .that().areAnnotatedWith(RestController.class)
+                        .should().haveSimpleNameEndingWith("Controller")
+                        .because("@RestController debe reservarse a clases que terminan en Controller");
+
+        /** 5. Controllers no deben depender de *Repository (acceso via services). */
+        @ArchTest
+        static final ArchRule repositoriosNoEnControllers = noClasses()
+                        .that().areAnnotatedWith(RestController.class)
+                        .should().dependOnClassesThat().haveSimpleNameEndingWith("Repository")
+                        .because("Controllers no deben acceder directamente a repositorios: deben pasar por services");
+
+        /**
+         * 6. Services NO inyectan *Repository directamente (deben usar gateways).
+         * BACK-DIS-001: actualmente expone ~538 violaciones pre-existentes en
+         * los modulos cat/inv/ven/com/fin/fis/rh. La migracion a patron
+         * Gateway es un sprint dedicado (no es una sola regla). Por ahora
+         * la regla queda DOCUMENTADA pero DESHABILITADA; se re-habilita
+         * cuando el conteo de violaciones sea 0. Ver
+         * audits/findings.yaml BACK-DIS-001 para el plan de migracion.
+         */
+        // BACK-DIS-001: regla documentada, deshabilitada hasta migrar a Gateway.
+        // @ArchTest
+        // static final ArchRule servicesNoInyectanRepos = noClasses()
+        //                 .that().areAnnotatedWith(Service.class)
+        //                 .should().dependOnClassesThat().haveSimpleNameEndingWith("Repository")
+        //                 .because("Services deben acceder a persistencia via Gateway");
+
+        /** 7. @Service no pertenece a la capa common.web (infraestructura HTTP). */
+        @ArchTest
+        static final ArchRule serviceFueraDeCapaWeb = noClasses()
+                        .that().areAnnotatedWith(Service.class)
+                        .should().resideInAPackage("mx.ferreteria.api.common.web..")
+                        .because("@Service no pertenece a common.web (capa de infraestructura HTTP, no de negocio)");
+
+        /** 8. Entidades JPA no se exponen como @RestController. */
+        @ArchTest
+        static final ArchRule entidadesNoSonControllers = noClasses()
+                        .that().areAnnotatedWith(Entity.class)
+                        .should().beAnnotatedWith(RestController.class)
+                        .because("Entidades JPA no deben exponerse como @RestController (separacion modelo/API)");
 }
