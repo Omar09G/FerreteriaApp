@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=97 open=219
+# Total: 316 - done=102 open=214
 ---
 - id: BACK-REND-001
   project: backend
@@ -3856,9 +3856,11 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: PK BIGINT vs INTEGER es convención histórica intencional; migración a uniforme requeriría rewrite de
+    FKs y es breaking. Aceptado como deuda documentada.'
 - id: DB-DIS-002
   project: database
   dimension: diseno
@@ -3872,9 +3874,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: cat schema ya usa PK INTEGER consistente; no requiere cambio. Vease docs/catalogo.md'
 - id: DB-DIS-003
   project: database
   dimension: diseno
@@ -3888,9 +3891,11 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: ven schema PK BIGINT para ventas (alto volumen) es intencional para no agotar secuencia; resto INTEGER
+    es suficiente'
 - id: DB-DIS-004
   project: database
   dimension: diseno
@@ -3904,9 +3909,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: GENERATED ALWAYS STORED ya documentado en 02_tablas.sql comentario linea 310-313; no requiere doc adicional'
 - id: DB-DIS-005
   project: database
   dimension: diseno
@@ -3920,9 +3926,11 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: fn_recalc_totales_venta mezcla calculo+transicion estado es patron trigger existente; refactor a STATEMENT
+    es optimizacion futura tolerable'
 - id: DB-DIS-006
   project: database
   dimension: diseno
