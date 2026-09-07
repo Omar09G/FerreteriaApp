@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=85 open=231
+# Total: 316 - done=92 open=224
 ---
 - id: BACK-REND-001
   project: backend
@@ -2634,9 +2634,11 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: ConfirmDialog reescrito sobre Dialog para renderizar ReactNode sin serializar a string; Dialog ya usaba ReactNode
+    correctamente
 - id: FRONT-ACC-002
   project: frontend
   dimension: accesibilidad
@@ -2978,9 +2980,11 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'Split completado: csrf.ts/refresh.ts/errors.ts ya existían, creado client-base.ts con http+interceptors; client.ts
+    queda como fachada re-export para compatibilidad'
 - id: FRONT-MAN-004
   project: frontend
   dimension: mantenibilidad
@@ -2996,9 +3000,11 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: Agregadas claves rango."ultimos-7"/"ultimos-15"/mes en es/en para alinear con PRESETS_RANGO y DateRangePicker; compat
+    ultimos7/esteMes preservada
 - id: FRONT-MAN-005
   project: frontend
   dimension: mantenibilidad
@@ -3092,9 +3098,11 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-TOLERABLE no-hot-path: fin.fn_cerrar_turno usa idx_mc_turno(turno_caja_id) + idx_ventas_turno; 4 jsonb_object_agg
+    sobre CTE filtrado por turno (<=10 grupos); cierre 1-2/día/caja; V11 ya fija search_path'
 - id: DB-REND-002
   project: database
   dimension: rendimiento
@@ -3109,9 +3117,11 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-MITIGADO: com.fn_detalle_compra_entrada SUM por producto cubierto por idx_mov_inv_producto_fecha(producto_id,
+    creado_en DESC); Index Scan no Seq Scan; V11 ya fija search_path'
 - id: DB-REND-003
   project: database
   dimension: rendimiento
@@ -3125,9 +3135,11 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-TOLERABLE: ven.trg_det_venta_totales AFTER INSERT FOR EACH ROW recalcula SUM via idx_venta_det_venta; venta típica
+    5-50 líneas tolerable; STATEMENT+pg_trigger_depth es optimización futura'
 - id: DB-REND-004
   project: database
   dimension: rendimiento
@@ -3142,9 +3154,11 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DISEÑO CORRECTO: inv.inventario PK(producto_id, almacen_id) con ON CONFLICT DO UPDATE es invariante correcto; contención
+    en SKU alta rotación es serialización esperada; idx_inventario_almacen_stock ya cubre bajo-stock'
 - id: DB-REND-005
   project: database
   dimension: rendimiento
