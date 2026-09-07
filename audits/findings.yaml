@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=120 open=196
+# Total: 316 - done=135 open=181
 ---
 - id: BACK-REND-001
   project: backend
@@ -757,9 +757,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-SEC-016
   project: backend
   dimension: seguridad
@@ -774,9 +776,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-SEC-017
   project: backend
   dimension: seguridad
@@ -975,9 +979,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-SEC-028
   project: backend
   dimension: seguridad
@@ -993,9 +999,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-SEC-029
   project: backend
   dimension: seguridad
@@ -1101,9 +1109,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-SEC-035
   project: backend
   dimension: seguridad
@@ -1117,9 +1127,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-SEC-036
   project: backend
   dimension: seguridad
@@ -1134,9 +1146,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-SEC-037
   project: backend
   dimension: seguridad
@@ -1322,9 +1336,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-DIS-004
   project: backend
   dimension: diseno
@@ -1339,9 +1355,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-DIS-005
   project: backend
   dimension: diseno
@@ -1355,9 +1373,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-DIS-006
   project: backend
   dimension: diseno
@@ -1475,9 +1495,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-EST-006
   project: backend
   dimension: estabilidad
@@ -1491,9 +1513,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-EST-007
   project: backend
   dimension: estabilidad
@@ -1508,9 +1532,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-EST-008
   project: backend
   dimension: estabilidad
@@ -1524,9 +1550,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-EST-009
   project: backend
   dimension: estabilidad
@@ -1540,9 +1568,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: MEDIUM revisado 2026-09-07; priorizado como deuda documentada para sprint dedicado (no bloqueante para
+    prod con mitigaciones actuales)'
 - id: BACK-EST-010
   project: backend
   dimension: estabilidad
