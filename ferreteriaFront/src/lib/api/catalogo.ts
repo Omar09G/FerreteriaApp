@@ -65,7 +65,7 @@ export async function apiCategoriasArbol(): Promise<Categoria[]> {
 
 export async function apiMarcas(): Promise<Marca[]> {
   const { data } = await http.get<PageEnvelope<Marca>>("/marcas", {
-    params: { page: 0, size: 500 },
+    params: { page: 0, size: 99 },
   });
   return data.data;
 }
