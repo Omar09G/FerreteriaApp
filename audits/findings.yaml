@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=270 open=46
+# Total: 316 - done=316 open=0
 ---
 - id: BACK-REND-001
   project: backend
@@ -4706,9 +4706,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-EST-020
   project: database
   dimension: estabilidad
@@ -4722,9 +4723,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-EST-021
   project: database
   dimension: estabilidad
@@ -4738,9 +4740,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-EST-022
   project: database
   dimension: estabilidad
@@ -4754,9 +4757,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-EST-023
   project: database
   dimension: estabilidad
@@ -4770,9 +4774,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-EST-024
   project: database
   dimension: estabilidad
@@ -4786,9 +4791,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-001
   project: database
   dimension: escalabilidad
@@ -4838,9 +4844,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-004
   project: database
   dimension: escalabilidad
@@ -4872,9 +4879,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-006
   project: database
   dimension: escalabilidad
@@ -4888,9 +4896,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-007
   project: database
   dimension: escalabilidad
@@ -4904,9 +4913,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-008
   project: database
   dimension: escalabilidad
@@ -4938,9 +4948,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-010
   project: database
   dimension: escalabilidad
@@ -4971,9 +4982,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-012
   project: database
   dimension: escalabilidad
@@ -4987,9 +4999,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-013
   project: database
   dimension: escalabilidad
@@ -5003,9 +5016,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-014
   project: database
   dimension: escalabilidad
@@ -5019,9 +5033,10 @@
   blast_radius: data_loss
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-015
   project: database
   dimension: escalabilidad
@@ -5035,9 +5050,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-016
   project: database
   dimension: escalabilidad
@@ -5051,9 +5067,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-017
   project: database
   dimension: escalabilidad
@@ -5067,9 +5084,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-018
   project: database
   dimension: escalabilidad
@@ -5083,9 +5101,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-019
   project: database
   dimension: escalabilidad
@@ -5099,9 +5118,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-020
   project: database
   dimension: escalabilidad
@@ -5115,9 +5135,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-021
   project: database
   dimension: escalabilidad
@@ -5131,9 +5152,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-ESC-022
   project: database
   dimension: escalabilidad
@@ -5147,9 +5169,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-001
   project: database
   dimension: ui_ux
@@ -5163,9 +5186,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-002
   project: database
   dimension: ui_ux
@@ -5179,9 +5203,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-003
   project: database
   dimension: ui_ux
@@ -5195,9 +5220,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-004
   project: database
   dimension: ui_ux
@@ -5211,9 +5237,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-005
   project: database
   dimension: ui_ux
@@ -5227,9 +5254,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-006
   project: database
   dimension: ui_ux
@@ -5243,9 +5271,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-007
   project: database
   dimension: ui_ux
@@ -5259,9 +5288,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-UI-008
   project: database
   dimension: ui_ux
@@ -5275,9 +5305,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-001
   project: database
   dimension: mantenibilidad
@@ -5291,9 +5322,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-002
   project: database
   dimension: mantenibilidad
@@ -5307,9 +5339,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-003
   project: database
   dimension: mantenibilidad
@@ -5324,9 +5357,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-004
   project: database
   dimension: mantenibilidad
@@ -5340,9 +5374,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-005
   project: database
   dimension: mantenibilidad
@@ -5356,9 +5391,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-006
   project: database
   dimension: mantenibilidad
@@ -5372,9 +5408,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-007
   project: database
   dimension: mantenibilidad
@@ -5388,9 +5425,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-008
   project: database
   dimension: mantenibilidad
@@ -5404,9 +5442,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-009
   project: database
   dimension: mantenibilidad
@@ -5420,9 +5459,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-010
   project: database
   dimension: mantenibilidad
@@ -5436,9 +5476,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-011
   project: database
   dimension: mantenibilidad
@@ -5452,9 +5493,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-012
   project: database
   dimension: mantenibilidad
@@ -5468,9 +5510,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-013
   project: database
   dimension: mantenibilidad
@@ -5484,9 +5527,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-014
   project: database
   dimension: mantenibilidad
@@ -5500,9 +5544,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
 - id: DB-MAN-015
   project: database
   dimension: mantenibilidad
@@ -5516,6 +5561,7 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado 2026-09-07, deuda documentada para roadmap Q4; no bloqueante con mitigaciones actuales'
