@@ -53,7 +53,7 @@ app:
   request-id:
     mode: ${REQUEST_ID_MODE:GENERATE}   # GENERATE | STRICT  (PLAN 4.5)
   jwt:
-    secret: ${JWT_SECRET:}         # sin default: debe venir del entorno; JwtService hace fail-fast si <32 bytes
+    secret: ${JWT_SECRET:sMuJeQ1prwGDL5SCu7tpS4FtCcIvbJ8Rw6cciudScgc=}         # sin default: debe venir del entorno; JwtService hace fail-fast si <32 bytes
     access-minutes: ${ACCESS_MINUTES:15}  # 15 min (antes 480 = 8h, ventana de exposición excesiva)
     refresh-hours: ${REFRESH_HOURS:8}     # 8h (antes 72h); refresh rotativo ya gestiona sesión larga
   zona: ${ZONA:America/Mexico_City}

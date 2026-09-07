@@ -60,7 +60,7 @@ public class ProductoService {
             pageFull = porCodigo.hasContent() ? porCodigo
                     : repo.findByActivoTrueAndNombreContainingIgnoreCase(termino, pageable);
         } else if (categoriaId != null) {
-            pageProj = repo.findListadoByCategoriaIdAndActivoTrue(categoriaId, pageable);
+            pageProj = repo.findListadoByCategoriaCategoriaIdAndActivoTrue(categoriaId, pageable);
         } else if (marcaId != null) {
             // Marca sin proyeccion dedicada (caso raro en listado): cae a entidad.
             pageFull = repo.findByMarcaMarcaIdAndActivoTrue(marcaId, pageable);
@@ -121,8 +121,8 @@ public class ProductoService {
                 p.getCostoActual(),
                 p.getPrecioMenudeo(),
                 p.getPrecioMayoreo(),
-                Boolean.TRUE.equals(p.getActivo()), // aplicaIva: default true si activo
-                p.getStock() != null ? p.getStock() : BigDecimal.ZERO);
+                p.getAplicaIva() != null ? p.getAplicaIva() : true,
+                BigDecimal.ZERO); // stock se enriquece via inventarioRepo si almacenId != null
     }
 
     @Transactional(readOnly = true)

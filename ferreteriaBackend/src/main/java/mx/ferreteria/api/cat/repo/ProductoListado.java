@@ -18,7 +18,6 @@ public interface ProductoListado {
     java.math.BigDecimal getCostoActual();
     java.math.BigDecimal getPrecioMenudeo();
     java.math.BigDecimal getPrecioMayoreo();
-    java.math.BigDecimal getStock();
-    java.math.BigDecimal getStockMinimo();
+    Boolean getAplicaIva();
     Boolean getActivo();
 }

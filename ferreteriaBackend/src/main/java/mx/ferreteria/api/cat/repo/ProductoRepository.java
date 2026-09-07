@@ -22,7 +22,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     /* -------- Proyecciones BACK-REND-027 (interface-based) -------- */
 
-    Page<ProductoListado> findListadoByCategoriaIdAndActivoTrue(Integer categoriaId, Pageable pageable);
+    Page<ProductoListado> findListadoByCategoriaCategoriaIdAndActivoTrue(Integer categoriaId, Pageable pageable);
 
     Page<ProductoListado> findListadoByActivoTrue(Pageable pageable);
 

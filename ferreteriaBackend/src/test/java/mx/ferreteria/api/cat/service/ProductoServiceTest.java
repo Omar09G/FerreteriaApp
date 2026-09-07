@@ -18,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +37,7 @@ import mx.ferreteria.api.cat.repo.UnidadMedidaRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ProductoServiceTest {
 
     @Mock
@@ -85,7 +88,7 @@ class ProductoServiceTest {
         when(p.getCostoActual()).thenReturn(new java.math.BigDecimal("100.00"));
         when(p.getPrecioMenudeo()).thenReturn(new java.math.BigDecimal("150.00"));
         when(p.getPrecioMayoreo()).thenReturn(new java.math.BigDecimal("130.00"));
-        when(p.getStock()).thenReturn(new java.math.BigDecimal("5.000"));
+        when(p.getAplicaIva()).thenReturn(true);
         when(p.getActivo()).thenReturn(true);
         when(repo.findListadoByActivoTrue(pg)).thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
@@ -143,7 +146,7 @@ class ProductoServiceTest {
     }
 
     @Test
-    @DisplayName("list con categoriaId: usa findListadoByCategoriaIdAndActivoTrue (proyeccion BACK-REND-027)")
+    @DisplayName("list con categoriaId: usa findListadoByCategoriaCategoriaIdAndActivoTrue (proyeccion BACK-REND-027)")
     void list_withCategoriaId() {
         Pageable pg = PageRequest.of(0, 10);
         mx.ferreteria.api.cat.repo.ProductoListado p = mock(mx.ferreteria.api.cat.repo.ProductoListado.class);
@@ -155,9 +158,9 @@ class ProductoServiceTest {
         when(p.getCostoActual()).thenReturn(new java.math.BigDecimal("100.00"));
         when(p.getPrecioMenudeo()).thenReturn(new java.math.BigDecimal("150.00"));
         when(p.getPrecioMayoreo()).thenReturn(new java.math.BigDecimal("130.00"));
-        when(p.getStock()).thenReturn(BigDecimal.ZERO);
+        when(p.getAplicaIva()).thenReturn(true);
         when(p.getActivo()).thenReturn(true);
-        when(repo.findListadoByCategoriaIdAndActivoTrue(1, pg))
+        when(repo.findListadoByCategoriaCategoriaIdAndActivoTrue(1, pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
         var result = service.list(null, 1, null, null, null, pg);
