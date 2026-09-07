@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { withFallback } from "@/router/builder";
 
 const PosPage = withFallback(() => import("@/features/pos/PosPage"));
+const CajaPage = withFallback(() => import("@/features/caja/CajaPage"));
 const CajasAdminPage = withFallback(
   () => import("@/features/caja/CajasAdminPage"),
 );
@@ -73,7 +74,7 @@ export const featureRoutes = [
   {
     path: "caja",
     children: [
-      { path: "cajas", element: <CajasAdminPage /> },
+      { path: "cajas", element: <CajaPage /> },
       { path: "cajas/admin", element: <CajasAdminPage /> },
       { path: "gastos", element: <GastosPage /> },
       { path: "ingresos", element: <GastosPage /> }, // ingresos usa misma page que gastos por ahora
