@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=72 open=244
+# Total: 316 - done=73 open=243
 ---
 - id: BACK-REND-001
   project: backend
@@ -458,9 +458,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: LangParamFilter.shouldNotFilter usa whitelist POSITIVA /api/** (no lista negra). SecurityConfig usa requestMatchers(POST,
+    /api/v1/auth/{login,register,refresh,logout}). No hay gap. Documentado.'
 - id: BACK-REND-027
   project: backend
   dimension: rendimiento
