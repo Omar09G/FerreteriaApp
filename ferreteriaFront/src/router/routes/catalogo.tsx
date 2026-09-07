@@ -1,5 +1,7 @@
 
 
+import { Navigate } from "react-router-dom";
+
 import { withFallback } from "@/router/builder";
 
 const ProductosPage = withFallback(() => import("@/features/catalogo/ProductosPage"));
@@ -16,4 +18,9 @@ export const catalogoChildren = [
   { path: "proveedores", element: <ProveedoresPage /> },
 ];
 
-export const catalogoRoutes = [{ path: "catalogo", children: catalogoChildren }];
+export const catalogoRoutes = [
+  { path: "catalogo", children: catalogoChildren },
+  // Alias legacy: AppShell apuntaba a /compras/proveedores y /catalogos antes de 2026-09-07
+  { path: "compras/proveedores", element: <Navigate to="/catalogo/proveedores" replace /> },
+  { path: "catalogos", element: <Navigate to="/catalogo" replace /> },
+];
