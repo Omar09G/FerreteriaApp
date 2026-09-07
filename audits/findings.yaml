@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=150 open=166
+# Total: 316 - done=175 open=141
 ---
 - id: BACK-REND-001
   project: backend
@@ -1164,9 +1164,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-SEC-038
   project: backend
   dimension: seguridad
@@ -1180,9 +1181,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-SEC-039
   project: backend
   dimension: seguridad
@@ -1197,9 +1199,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-SEC-040
   project: backend
   dimension: seguridad
@@ -1230,9 +1233,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-SEC-042
   project: backend
   dimension: seguridad
@@ -1246,9 +1250,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-SEC-043
   project: backend
   dimension: seguridad
@@ -1262,9 +1267,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-SEC-044
   project: backend
   dimension: seguridad
@@ -1278,9 +1284,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-DIS-001
   project: backend
   dimension: diseno
@@ -1391,9 +1398,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-DIS-007
   project: backend
   dimension: diseno
@@ -1407,9 +1415,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-EST-001
   project: backend
   dimension: estabilidad
@@ -1621,9 +1630,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-EST-013
   project: backend
   dimension: estabilidad
@@ -1637,9 +1647,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-EST-014
   project: backend
   dimension: estabilidad
@@ -1653,9 +1664,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-EST-015
   project: backend
   dimension: estabilidad
@@ -1669,9 +1681,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-ESC-001
   project: backend
   dimension: escalabilidad
@@ -1919,9 +1932,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-UI-008
   project: backend
   dimension: ui_ux
@@ -1935,9 +1949,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-UI-009
   project: backend
   dimension: ui_ux
@@ -1951,9 +1966,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-UI-010
   project: backend
   dimension: ui_ux
@@ -1967,9 +1983,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-MAN-001
   project: backend
   dimension: mantenibilidad
@@ -2120,9 +2137,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-MAN-010
   project: backend
   dimension: mantenibilidad
@@ -2136,9 +2154,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: BACK-MAN-011
   project: backend
   dimension: mantenibilidad
@@ -2152,9 +2171,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: FRONT-REND-001
   project: frontend
   dimension: rendimiento
@@ -2206,9 +2226,10 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: FRONT-REND-004
   project: frontend
   dimension: rendimiento
@@ -2222,9 +2243,10 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: FRONT-REND-005
   project: frontend
   dimension: rendimiento
@@ -2239,9 +2261,10 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: FRONT-REND-006
   project: frontend
   dimension: rendimiento
@@ -2256,9 +2279,10 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: FRONT-REND-007
   project: frontend
   dimension: rendimiento
@@ -2307,9 +2331,10 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado y priorizado como deuda documentada'
 - id: FRONT-REND-010
   project: frontend
   dimension: rendimiento
