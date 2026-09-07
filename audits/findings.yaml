@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=80 open=236
+# Total: 316 - done=82 open=234
 ---
 - id: BACK-REND-001
   project: backend
@@ -357,9 +357,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: Reducido cache-max-size 200k -> 50k. Para multi-replica compartir buckets usar RATE_LIMIT_DISTRIBUTED=true con RATE_LIMIT_REDIS_URI
+    (sprint 13 ya documento el patron)
 - id: BACK-REND-021
   project: backend
   dimension: rendimiento
@@ -2117,9 +2119,12 @@
   blast_radius: perf
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'NO-APLICABLE: arquitectura ya centraliza lazy/Suspense via withFallback() en src/router/builder.tsx (1 lazy + 1
+    template). AppShell queda fuera del boundary raiz (sidebar interactivo). Skeletons granulares ya existen (Skeleton.tsx
+    sprint 24) y se usan en 9 paginas de reportes. tsc 0 errores, vitest 12/12.'
 - id: FRONT-REND-003
   project: frontend
   dimension: rendimiento

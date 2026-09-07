@@ -81,7 +81,11 @@ app:
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}
     scope-by-user: ${RATE_LIMIT_SCOPE_BY_USER:true}
-    cache-max-size: ${RATE_LIMIT_CACHE_MAX_SIZE:200000}
+    # BACK-REND-020: reducido de 200k -> 50k. 50k entradas ~ 8MB heap por pod.
+    # En multi-replica (N replicas) sigue siendo O(N) memoria agregada; para
+    # compartir buckets entre replicas activar RATE_LIMIT_DISTRIBUTED=true
+    # con RATE_LIMIT_REDIS_URI (requiere bucket4j-redis + spring-boot-starter-data-redis).
+    cache-max-size: ${RATE_LIMIT_CACHE_MAX_SIZE:50000}
     cache-ttl-minutes: ${RATE_LIMIT_CACHE_TTL_MINUTES:30}
     # BACK-REND-024: fail-closed. Solo true si hay proxy de confianza (nginx/Pomer)
     # que SIEMPRE sobrescribe X-Forwarded-For. En produccion detras de proxy:
