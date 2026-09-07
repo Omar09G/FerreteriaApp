@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=82 open=234
+# Total: 316 - done=84 open=232
 ---
 - id: BACK-REND-001
   project: backend
@@ -2443,9 +2443,11 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'Cerrado. src/hooks/useDocumentTitle.ts ya existe, 40+ paginas lo usan. Anadido src/test/useDocumentTitle.test.ts
+    (4 tests: set con/sin segmento, rerender, unmount). tsc limpio, vitest 16/16.'
 - id: FRONT-EST-002
   project: frontend
   dimension: estabilidad
@@ -2460,9 +2462,11 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: Solo 1 disable de react-hooks/exhaustive-deps en useInactivityTimeout.ts:95. Patron correcto (refs para closures).
+    Comentario explicativo anadido. tsc limpio, vitest 16/16, eslint 0 errors.
 - id: FRONT-EST-003
   project: frontend
   dimension: estabilidad

@@ -92,6 +92,11 @@ export function useInactivityTimeout() {
 				tickRef.current = null;
 			}
 		};
+		// Intencional: el efecto re-monta listeners + interval cuando cambia el
+		// estado de autenticación (login/logout) y se desarma en el cleanup.
+		// El resto de las dependencias (pingActivity, clearSession, toast, t) se
+		// accede vía refs (líneas 28-43) para mantener identidad estable de los
+		// listeners entre re-attaches y no reiniciar el interval por re-render.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [autenticado]);
 }
