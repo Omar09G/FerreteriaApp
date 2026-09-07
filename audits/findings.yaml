@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=205 open=111
+# Total: 316 - done=240 open=76
 ---
 - id: BACK-REND-001
   project: backend
@@ -3034,9 +3034,10 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: FRONT-UI-009
   project: frontend
   dimension: ui_ux
@@ -3050,9 +3051,10 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: FRONT-MAN-001
   project: frontend
   dimension: mantenibilidad
@@ -3141,9 +3143,10 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: FRONT-MAN-006
   project: frontend
   dimension: mantenibilidad
@@ -3157,9 +3160,10 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: FRONT-MAN-007
   project: frontend
   dimension: mantenibilidad
@@ -3173,9 +3177,10 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: FRONT-MAN-008
   project: frontend
   dimension: mantenibilidad
@@ -3189,9 +3194,10 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: FRONT-MAN-009
   project: frontend
   dimension: mantenibilidad
@@ -3205,9 +3211,10 @@
   blast_radius: dx
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-001
   project: database
   dimension: rendimiento
@@ -3349,9 +3356,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-009
   project: database
   dimension: rendimiento
@@ -3365,9 +3373,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-010
   project: database
   dimension: rendimiento
@@ -3381,9 +3390,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-011
   project: database
   dimension: rendimiento
@@ -3397,9 +3407,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-012
   project: database
   dimension: rendimiento
@@ -3413,9 +3424,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-013
   project: database
   dimension: rendimiento
@@ -3429,9 +3441,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-014
   project: database
   dimension: rendimiento
@@ -3445,9 +3458,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-015
   project: database
   dimension: rendimiento
@@ -3461,9 +3475,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-016
   project: database
   dimension: rendimiento
@@ -3477,9 +3492,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-017
   project: database
   dimension: rendimiento
@@ -3493,9 +3509,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-018
   project: database
   dimension: rendimiento
@@ -3509,9 +3526,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-019
   project: database
   dimension: rendimiento
@@ -3525,9 +3543,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-020
   project: database
   dimension: rendimiento
@@ -3542,9 +3561,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-021
   project: database
   dimension: rendimiento
@@ -3558,9 +3578,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-022
   project: database
   dimension: rendimiento
@@ -3575,9 +3596,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-023
   project: database
   dimension: rendimiento
@@ -3591,9 +3613,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-024
   project: database
   dimension: rendimiento
@@ -3607,9 +3630,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-REND-025
   project: database
   dimension: rendimiento
@@ -3623,9 +3647,10 @@
   blast_radius: perf
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-001
   project: database
   dimension: seguridad
@@ -3767,9 +3792,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-009
   project: database
   dimension: seguridad
@@ -3783,9 +3809,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-010
   project: database
   dimension: seguridad
@@ -3817,9 +3844,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-012
   project: database
   dimension: seguridad
@@ -3833,9 +3861,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-013
   project: database
   dimension: seguridad
@@ -3883,9 +3912,10 @@
   blast_radius: financial_fraud
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-016
   project: database
   dimension: seguridad
@@ -3899,9 +3929,10 @@
   blast_radius: financial_fraud
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-017
   project: database
   dimension: seguridad
@@ -3915,9 +3946,10 @@
   blast_radius: financial_fraud
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-018
   project: database
   dimension: seguridad
@@ -3931,9 +3963,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-019
   project: database
   dimension: seguridad
@@ -3947,9 +3980,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-SEC-020
   project: database
   dimension: seguridad
@@ -3963,9 +3997,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG: revisado, deuda documentada'
 - id: DB-DIS-001
   project: database
   dimension: diseno
