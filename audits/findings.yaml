@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=92 open=224
+# Total: 316 - done=96 open=220
 ---
 - id: BACK-REND-001
   project: backend
@@ -3534,9 +3534,11 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-MITIGADO: deploy/conf/pg_hba.conf local all all trust solo contenedor local; ConfigMap K8s 00-base.yaml:77-79
+    sobreescribe con scram-sha-256'
 - id: DB-SEC-003
   project: database
   dimension: seguridad
@@ -3551,9 +3553,11 @@
   blast_radius: financial_fraud
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'FIX-PARCIAL: V11 REVOKE TRUNCATE ON ALL TABLES IN SCHEMA cat,cfg,rh,seg,inv,com,ven,fin,fis FROM ferreteria_app;
+    segregacion roles queda sprint dedicado'
 - id: DB-SEC-004
   project: database
   dimension: seguridad
@@ -3568,9 +3572,11 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'FIX: V11 REVOKE DELETE ON ven.ventas, ven.cuentas_cobrar, com.compras, com.cuentas_pagar, fin.cortes_caja FROM ferreteria_app;
+    cancelaciones via UPDATE'
 - id: DB-SEC-005
   project: database
   dimension: seguridad
@@ -3584,9 +3590,10 @@
   blast_radius: security
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'FIX: V11 ALTER FUNCTION SET search_path = pg_catalog, public, schema en 25 funciones PL/pgSQL'
 - id: DB-SEC-006
   project: database
   dimension: seguridad
@@ -3604,8 +3611,8 @@
   status: done
   owner: null
   depends_on: []
-  notes: 'FIX: V11 redefine seg.fn_auditar() con to_jsonb(NEW) - ''password_hash'' y to_jsonb(OLD) - ''password_hash''. SELECT
-    sobre seg.auditoria ya no expone bcrypt. Triggers intactos.'
+  notes: 'FIX: V11 redefine seg.fn_auditar con to_jsonb(NEW) - password_hash y to_jsonb(OLD) - password_hash; SELECT ya no
+    expone bcrypt'
 - id: DB-SEC-007
   project: database
   dimension: seguridad
