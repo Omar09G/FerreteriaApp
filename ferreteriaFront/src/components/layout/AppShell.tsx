@@ -92,7 +92,7 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
 			},
 			{
 				clave: "catalogos",
-				a: "/catalogo",
+				a: "/catalogos",
 				icono: <FolderCog className="h-4 w-4" />,
 				roles: ["ADMINISTRADOR"],
 			},

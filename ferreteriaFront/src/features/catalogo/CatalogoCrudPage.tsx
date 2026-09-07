@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 
@@ -201,7 +202,8 @@ function CatalogoForm({
 	);
 }
 
-export default function CatalogoCrudPage({ clave }: { clave: string }) {
+export default function CatalogoCrudPage() {
+	const { clave = "" } = useParams<{ clave: string }>();
 	const { success: toastExito, error: toastError } = useToast();
 	const queryClient = useQueryClient();
 	const [q, setQ] = useState("");
