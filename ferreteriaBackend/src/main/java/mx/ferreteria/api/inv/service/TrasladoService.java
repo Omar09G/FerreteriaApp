@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +45,7 @@ public class TrasladoService {
         private final MovimientoInventarioRepository movimientoRepo;
         private final AlmacenRepository almacenRepo;
         private final ProductoRepository productoRepo;
-        private final JdbcTemplate jdbc;
+        private final mx.ferreteria.api.cat.repo.MotivoMovimientoRepository motivoRepo;
 
         @Transactional(readOnly = true)
         public Page<TrasladoResponse> list(Pageable pageable) {
@@ -134,9 +133,7 @@ public class TrasladoService {
                 repo.flush();
                 // folio lo asigna el trigger cfg.fn_siguiente_folio('TRASLADO') -> T-0000000X
                 // (WHEN folio IS NULL)
-                String folioGenerado = jdbc.queryForObject(
-                                "SELECT folio FROM inv.traslados WHERE traslado_id = ?",
-                                String.class, savedTraslado.getTrasladoId());
+                String folioGenerado = repo.findFolioById(savedTraslado.getTrasladoId());
                 savedTraslado.setFolio(folioGenerado);
 
                 // BACK-EST-004: saveAll batch en lugar de save uno a uno. Hibernate
@@ -190,13 +187,9 @@ public class TrasladoService {
         }
 
         Integer findMotivoId(String clave) {
-                Integer id = jdbc.queryForObject(
-                                "SELECT motivo_id FROM cat.motivos_movimiento WHERE clave = ?",
-                                Integer.class, clave);
-                if (id == null) {
-                        throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
-                }
-                return id;
+                return motivoRepo.findByClave(clave)
+                                .orElseThrow(() -> new ReglaNegocioException(ErrorCode.VALOR_INVALIDO))
+                                .getMotivoId();
         }
 
         private TrasladoResponse toResponse(Traslado t, List<TrasladoDetalle> detalles) {

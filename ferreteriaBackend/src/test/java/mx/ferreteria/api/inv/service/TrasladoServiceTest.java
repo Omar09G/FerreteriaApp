@@ -24,9 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
-
+import mx.ferreteria.api.cat.entity.MotivoMovimiento;
 import mx.ferreteria.api.cat.entity.Producto;
+import mx.ferreteria.api.cat.repo.MotivoMovimientoRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
@@ -61,7 +61,7 @@ class TrasladoServiceTest {
     ProductoRepository productoRepo;
 
     @Mock
-    JdbcTemplate jdbc;
+    MotivoMovimientoRepository motivoRepo;
 
     @Spy
     @InjectMocks
@@ -156,11 +156,13 @@ class TrasladoServiceTest {
 
         Traslado savedTraslado = sampleTraslado(1L, 1, 2);
         when(repo.save(any(Traslado.class))).thenReturn(savedTraslado);
-        when(jdbc.queryForObject(anyString(), eq(String.class), any(Long.class)))
-                .thenReturn("TR-0001");
+        when(repo.findFolioById(1L)).thenReturn("TR-0001");
+        when(motivoRepo.findByClave("TRASLADO_SALIDA"))
+                .thenReturn(Optional.of(MotivoMovimiento.builder().motivoId(1).clave("TRASLADO_SALIDA").tipoDefault("SALIDA").nombre("Salida por traslado").build()));
+        when(motivoRepo.findByClave("TRASLADO_ENTRADA"))
+                .thenReturn(Optional.of(MotivoMovimiento.builder().motivoId(2).clave("TRASLADO_ENTRADA").tipoDefault("ENTRADA").nombre("Entrada por traslado").build()));
         when(detalleRepo.findByTrasladoId(1L))
                 .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("10.000"))));
-        org.mockito.Mockito.doReturn(1, 2).when(service).findMotivoId(org.mockito.ArgumentMatchers.anyString());
 
         TrasladoResponse resp = service.create(req);
 
