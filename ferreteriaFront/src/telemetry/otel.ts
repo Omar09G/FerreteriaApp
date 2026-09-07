@@ -77,21 +77,28 @@ if (!enabled) {
 
 	// Auto-instrumentaciones: navegación, fetch, interacciones. Se registran
 	// DESPUÉS de tracerProvider.register() para que tomen el provider global.
-	registerInstrumentations({
-		instrumentations: [
-			new DocumentLoadInstrumentation(),
-			new FetchInstrumentation({
-				// No rastrear llamadas a /csrf-init (ruido) ni a collectores OTel
-				ignoreUrls: [/\/auth\/csrf-init/, /\/v1\/(traces|metrics)$/],
-				// Añade timing attributes en cada fetch
-				measureRequestSize: true,
-			}),
-			new UserInteractionInstrumentation({
-				// No spamear clicks de elementos del sistema (botones cerrar, etc.)
-				eventNames: ["click", "submit"],
-			}),
-		],
-	});
+	// Guard contra PerformanceEntry incompletas que disparan
+	// "Cannot read properties of undefined (reading 'startTime')" en
+	// DocumentLoadInstrumentation.reportAllChanges (requestIdleCallback).
+	try {
+		registerInstrumentations({
+			instrumentations: [
+				new DocumentLoadInstrumentation(),
+				new FetchInstrumentation({
+					// No rastrear llamadas a /csrf-init (ruido) ni a collectores OTel
+					ignoreUrls: [/\/auth\/csrf-init/, /\/v1\/(traces|metrics)$/],
+					// Añade timing attributes en cada fetch
+					measureRequestSize: true,
+				}),
+				new UserInteractionInstrumentation({
+					// No spamear clicks de elementos del sistema (botones cerrar, etc.)
+					eventNames: ["click", "submit"],
+				}),
+			],
+		});
+	} catch (e) {
+		console.warn("[OTel] instrumentación deshabilitada por entry incompleta", e);
+	}
 
 	// ─── Metrics ───────────────────────────────────────────────────────
 	const meterProvider = new MeterProvider({
