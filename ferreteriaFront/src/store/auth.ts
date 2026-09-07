@@ -15,6 +15,7 @@ interface AuthState {
 	lastActivityAt: number;
 	setSession: (token: TokenResponse) => void;
 	setTokens: (accessToken: string | null, refreshToken: string | null) => void;
+	setMe: (me: MeResponse) => void;
 	clearSession: () => void;
 	pingActivity: () => void;
 }
@@ -36,6 +37,10 @@ export const useAuthStore = create<AuthState>()(
 			// flujos que lo invocan tras refresh.
 			setTokens: (accessToken) =>
 				set({ autenticado: Boolean(accessToken), lastActivityAt: Date.now() }),
+			// FRONT-SEC-002: setMe confirma contra el backend (/auth/me) que la
+			// cookie `at` sigue vigente. Si 401, el llamador hace clearSession.
+			setMe: (me) =>
+				set({ autenticado: true, usuario: me, lastActivityAt: Date.now() }),
 			clearSession: () =>
 				set({ autenticado: false, usuario: null, lastActivityAt: Date.now() }),
 			pingActivity: () => set({ lastActivityAt: Date.now() }),

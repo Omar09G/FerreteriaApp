@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=69 open=247
+# Total: 316 - done=70 open=246
 ---
 - id: BACK-REND-001
   project: backend
@@ -2263,9 +2263,11 @@
   blast_radius: security
   discovered_by: general-react-expert
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: App.tsx anade BootstrapSesion que llama apiMe() al mount; setMe confirma contra backend (cookie HttpOnly
+    es fuente de verdad); 401 -> clearSession. localStorage solo como pista UX'
 - id: FRONT-SEC-003
   project: frontend
   dimension: seguridad

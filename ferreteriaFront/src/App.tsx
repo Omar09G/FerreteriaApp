@@ -3,6 +3,8 @@ import { RouterProvider } from "react-router-dom";
 
 import { useUiStore } from "@/store/ui";
 import { ensureCsrfCookie } from "@/lib/api/client";
+import { apiMe } from "@/lib/api/endpoints";
+import { useAuthStore } from "@/store/auth";
 import { router } from "./router/router";
 
 /** Aplica tema (claro/oscuro/sistema) e idioma al root del documento. */
@@ -41,11 +43,29 @@ function BootstrapCsrf() {
 	return null;
 }
 
+/**
+ * FRONT-SEC-002: al montar la app revalidamos la sesion contra el backend
+ * con /auth/me (la cookie HttpOnly `at` es la fuente de verdad, no
+ * localStorage). Si responde 200 -> setMe; si 401 -> clearSession y el guard
+ * redirige a /login. Una sola llamada por mount; errores silenciosos.
+ */
+function BootstrapSesion() {
+	const setMe = useAuthStore((s) => s.setMe);
+	const clearSession = useAuthStore((s) => s.clearSession);
+	useEffect(() => {
+		apiMe()
+			.then((me) => setMe(me))
+			.catch(() => clearSession());
+	}, [setMe, clearSession]);
+	return null;
+}
+
 export default function App() {
 	return (
 		<>
 			<SincronizarUI />
 			<BootstrapCsrf />
+			<BootstrapSesion />
 			<RouterProvider router={router} />
 		</>
 	);
