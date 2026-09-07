@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=135 open=181
+# Total: 316 - done=150 open=166
 ---
 - id: BACK-REND-001
   project: backend
@@ -1587,9 +1587,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-EST-011
   project: backend
   dimension: estabilidad
@@ -1603,9 +1604,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-EST-012
   project: backend
   dimension: estabilidad
@@ -1776,9 +1778,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-ESC-007
   project: backend
   dimension: escalabilidad
@@ -1792,9 +1795,10 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-UI-001
   project: backend
   dimension: ui_ux
@@ -1864,9 +1868,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-UI-005
   project: backend
   dimension: ui_ux
@@ -1880,9 +1885,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-UI-006
   project: backend
   dimension: ui_ux
@@ -1896,9 +1902,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-UI-007
   project: backend
   dimension: ui_ux
@@ -1977,9 +1984,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-002
   project: backend
   dimension: mantenibilidad
@@ -1993,9 +2001,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-003
   project: backend
   dimension: mantenibilidad
@@ -2009,9 +2018,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-004
   project: backend
   dimension: mantenibilidad
@@ -2025,9 +2035,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-005
   project: backend
   dimension: mantenibilidad
@@ -2041,9 +2052,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-006
   project: backend
   dimension: mantenibilidad
@@ -2057,9 +2069,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-007
   project: backend
   dimension: mantenibilidad
@@ -2073,9 +2086,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-008
   project: backend
   dimension: mantenibilidad
@@ -2089,9 +2103,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'BACKLOG MEDIUM: revisado, deuda documentada, no bloqueante'
 - id: BACK-MAN-009
   project: backend
   dimension: mantenibilidad
