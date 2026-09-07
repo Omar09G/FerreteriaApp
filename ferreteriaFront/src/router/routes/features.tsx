@@ -1,25 +1,43 @@
-
-
 import { Navigate } from "react-router-dom";
 
 import { withFallback } from "@/router/builder";
 
 const PosPage = withFallback(() => import("@/features/pos/PosPage"));
-const CajasAdminPage = withFallback(() => import("@/features/caja/CajasAdminPage"));
+const CajasAdminPage = withFallback(
+  () => import("@/features/caja/CajasAdminPage"),
+);
 const GastosPage = withFallback(() => import("@/features/caja/GastosPage"));
-const ComprasPage = withFallback(() => import("@/features/compras/ComprasPage"));
-const CuentasPagarPage = withFallback(() => import("@/features/compras/CuentasPagarPage"));
-const EmpleadosPage = withFallback(() => import("@/features/rrhh/EmpleadosPage"));
+const ComprasPage = withFallback(
+  () => import("@/features/compras/ComprasPage"),
+);
+const CuentasPagarPage = withFallback(
+  () => import("@/features/compras/CuentasPagarPage"),
+);
+const EmpleadosPage = withFallback(
+  () => import("@/features/rrhh/EmpleadosPage"),
+);
 const NominaPage = withFallback(() => import("@/features/rrhh/NominaPage"));
-const UsuariosPage = withFallback(() => import("@/features/seguridad/UsuariosPage"));
+const UsuariosPage = withFallback(
+  () => import("@/features/seguridad/UsuariosPage"),
+);
 const RolesPage = withFallback(() => import("@/features/seguridad/RolesPage"));
-const AuditoriaPage = withFallback(() => import("@/features/seguridad/AuditoriaPage"));
-const CobranzaPage = withFallback(() => import("@/features/ventas/CobranzaPage"));
+const AuditoriaPage = withFallback(
+  () => import("@/features/seguridad/AuditoriaPage"),
+);
+const CobranzaPage = withFallback(
+  () => import("@/features/ventas/CobranzaPage"),
+);
 const VentasPage = withFallback(() => import("@/features/ventas/VentasPage"));
-const CotizacionesPage = withFallback(() => import("@/features/ventas/CotizacionesPage"));
+const CotizacionesPage = withFallback(
+  () => import("@/features/ventas/CotizacionesPage"),
+);
 const RentasPage = withFallback(() => import("@/features/ventas/RentasPage"));
-const DevolucionesPage = withFallback(() => import("@/features/ventas/DevolucionesPage"));
-const FacturasPage = withFallback(() => import("@/features/fiscal/FacturasPage"));
+const DevolucionesPage = withFallback(
+  () => import("@/features/ventas/DevolucionesPage"),
+);
+const FacturasPage = withFallback(
+  () => import("@/features/fiscal/FacturasPage"),
+);
 
 // Rutas que AppShell espera (ver src/components/layout/AppShell.tsx GRUPOS)
 export const featureRoutes = [
@@ -47,12 +65,16 @@ export const featureRoutes = [
       { index: true, element: <Navigate to="compras" replace /> },
     ],
   },
-  { path: "cuentas-pagar", element: <Navigate to="/compras/cuentas-pagar" replace /> },
+  {
+    path: "cuentas-pagar",
+    element: <Navigate to="/compras/cuentas-pagar" replace />,
+  },
   // caja/*
   {
     path: "caja",
     children: [
       { path: "cajas", element: <CajasAdminPage /> },
+      { path: "cajas/admin", element: <CajasAdminPage /> },
       { path: "gastos", element: <GastosPage /> },
       { path: "ingresos", element: <GastosPage /> }, // ingresos usa misma page que gastos por ahora
       { index: true, element: <Navigate to="cajas" replace /> },
