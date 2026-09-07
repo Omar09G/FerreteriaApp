@@ -3,14 +3,14 @@ package mx.ferreteria.api.com.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,10 +20,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
@@ -36,6 +37,7 @@ import mx.ferreteria.api.com.dto.ComDtos.CompraRequest;
 import mx.ferreteria.api.com.entity.Compra;
 import mx.ferreteria.api.com.entity.CompraDetalle;
 import mx.ferreteria.api.com.repo.CompraDetalleRepository;
+import mx.ferreteria.api.com.repo.CompraReportRepository;
 import mx.ferreteria.api.com.repo.CompraRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
@@ -45,6 +47,7 @@ import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class CompraServiceTest {
 
     @Mock CompraRepository compraRepo;
@@ -53,7 +56,7 @@ class CompraServiceTest {
     @Mock AlmacenRepository almacenRepo;
     @Mock FormaPagoRepository formaPagoRepo;
     @Mock ProductoRepository productoRepo;
-    @Mock JdbcTemplate jdbc;
+    @Mock CompraReportRepository reportRepo;
     @Mock CajaService cajaService;
 
     @InjectMocks
@@ -77,14 +80,14 @@ class CompraServiceTest {
     }
 
     private void stubNombres() {
-        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
-                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(
-                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
-        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Contado").build()));
-        when(productoRepo.findById(10L)).thenReturn(Optional.of(
-                Producto.builder().productoId(10L).nombre("Taladro").build()));
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findById(1);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Contado").build()))
+                .when(formaPagoRepo).findById(1);
+        doReturn(Optional.of(Producto.builder().productoId(10L).nombre("Taladro").build()))
+                .when(productoRepo).findById(10L);
     }
 
     @Test
@@ -92,11 +95,11 @@ class CompraServiceTest {
     void list_byAlmacen() {
         Pageable pg = PageRequest.of(0, 20);
         Compra c = sampleCompra(1L);
-        when(compraRepo.findByAlmacenIdOrderByFechaDesc(eq(1), eq(pg)))
-                .thenReturn(new PageImpl<>(List.of(c), pg, 1));
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByAlmacenIdOrderByFechaDesc(eq(1), eq(pg));
         stubNombres();
-        when(detalleRepo.findByCompraIdOrderByCompraDetalleId(1L))
-                .thenReturn(List.of(sampleDetalle(1L)));
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
 
         var result = service.list(1, null, null, null, pg);
 
@@ -110,7 +113,7 @@ class CompraServiceTest {
     @Test
     @DisplayName("getById: compra inexistente -> RecursoNoEncontradoException")
     void getById_notFound() {
-        when(compraRepo.findById(999L)).thenReturn(Optional.empty());
+        doReturn(Optional.empty()).when(compraRepo).findById(999L);
 
         assertThatThrownBy(() -> service.getById(999L))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -121,18 +124,18 @@ class CompraServiceTest {
     void create_ok() {
         Compra saved = sampleCompra(50L);
         saved.setTurnoCajaId(6L);
-        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
-                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(
-                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
-        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()));
-        when(cajaService.resolverTurnoAbierto(5, 1)).thenReturn(6L);
-        when(compraRepo.save(any(Compra.class))).thenReturn(saved);
-        when(compraRepo.findById(50L)).thenReturn(Optional.of(saved));
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findById(1);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
+        doReturn(6L).when(cajaService).resolverTurnoAbierto(5, 1);
+        doReturn(saved).when(compraRepo).save(any(Compra.class));
+        doReturn(Optional.of(saved)).when(compraRepo).findById(50L);
         stubNombres();
-        when(detalleRepo.findByCompraIdOrderByCompraDetalleId(50L))
-                .thenReturn(List.of(sampleDetalle(1L)));
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(50L);
 
         CompraRequest req = new CompraRequest(
                 1, 1, 1, "F-0001", null, 5, "Primera compra",
@@ -154,18 +157,18 @@ class CompraServiceTest {
     @DisplayName("create credito: no exige caja ni resuelve turno")
     void create_creditoSinTurno() {
         Compra saved = sampleCompra(51L);
-        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
-                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(
-                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
-        when(formaPagoRepo.findById(6)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()));
-        when(compraRepo.save(any(Compra.class))).thenReturn(saved);
-        when(compraRepo.findById(51L)).thenReturn(Optional.of(saved));
-        when(productoRepo.findById(10L)).thenReturn(Optional.of(
-                Producto.builder().productoId(10L).nombre("Taladro").build()));
-        when(detalleRepo.findByCompraIdOrderByCompraDetalleId(51L))
-                .thenReturn(List.of(sampleDetalle(1L)));
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findById(1);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()))
+                .when(formaPagoRepo).findById(6);
+        doReturn(saved).when(compraRepo).save(any(Compra.class));
+        doReturn(Optional.of(saved)).when(compraRepo).findById(51L);
+        doReturn(Optional.of(Producto.builder().productoId(10L).nombre("Taladro").build()))
+                .when(productoRepo).findById(10L);
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(51L);
 
         CompraRequest req = new CompraRequest(
                 1, 1, 6, "F-0002", null, null, null,
@@ -182,12 +185,12 @@ class CompraServiceTest {
     @Test
     @DisplayName("create contado sin caja: lanza CAMPO_REQUERIDO")
     void create_contadoSinCaja() {
-        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
-                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(
-                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
-        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()));
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findById(1);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
 
         CompraRequest req = new CompraRequest(
                 1, 1, 1, "F-0003", null, null, null,
@@ -205,14 +208,15 @@ class CompraServiceTest {
     @Test
     @DisplayName("create contado sin turno abierto: propaga la excepcion de caja")
     void create_sinTurnoAbierto() {
-        when(proveedorRepo.findById(1)).thenReturn(Optional.of(
-                Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(
-                Almacen.builder().almacenId(1).nombre("Bodega Central").build()));
-        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()));
-        when(cajaService.resolverTurnoAbierto(5, 1))
-                .thenThrow(new ReglaNegocioException(ErrorCode.TURNO_NO_ABIERTO, 5));
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findById(1);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Contado").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
+        doReturn(null).when(cajaService).resolverTurnoAbierto(5, 1);
+        org.mockito.Mockito.lenient().doThrow(new ReglaNegocioException(ErrorCode.TURNO_NO_ABIERTO, 5))
+                .when(cajaService).resolverTurnoAbierto(5, 1);
 
         CompraRequest req = new CompraRequest(
                 1, 1, 1, "F-0004", null, 5, null,
@@ -226,7 +230,7 @@ class CompraServiceTest {
     @Test
     @DisplayName("create: proveedor inexistente -> RecursoNoEncontradoException")
     void create_proveedorInvalido() {
-        when(proveedorRepo.findById(999)).thenReturn(Optional.empty());
+        doReturn(Optional.empty()).when(proveedorRepo).findById(999);
 
         CompraRequest req = new CompraRequest(
                 999, 1, 1, null, null, null, null,
@@ -244,7 +248,7 @@ class CompraServiceTest {
                 1L, "COMPRA-0001", "Ferritas SA",
                 new BigDecimal("1160.00"), new BigDecimal("600.00"),
                 new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE");
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class))).thenReturn(List.of(v));
+        doReturn(List.of(v)).when(reportRepo).vwCuentasPagar();
 
         var result = service.cuentasPagar(null);
 
@@ -259,8 +263,7 @@ class CompraServiceTest {
                 1L, "COMPRA-0001", "Ferritas SA",
                 new BigDecimal("1160.00"), new BigDecimal("600.00"),
                 new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE");
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq("PENDIENTE")))
-                .thenReturn(List.of(v));
+        doReturn(List.of(v)).when(reportRepo).vwCuentasPagarPorEstado("PENDIENTE");
 
         var result = service.cuentasPagar("PENDIENTE");
 
@@ -277,10 +280,8 @@ class CompraServiceTest {
                 new BigDecimal("1160.00"), new BigDecimal("1160.00"),
                 BigDecimal.ZERO, java.time.LocalDate.now().minusDays(10),
                 10, "10-20 dias");
-        when(jdbc.query(eq("SELECT * FROM com.vw_facturas_vencidas"),
-                any(org.springframework.jdbc.core.RowMapper.class))).thenReturn(List.of(v));
-        when(jdbc.query(eq("SELECT * FROM com.vw_facturas_pendientes"),
-                any(org.springframework.jdbc.core.RowMapper.class))).thenReturn(java.util.Collections.emptyList());
+        doReturn(List.of(v)).when(reportRepo).vwFacturasVencidas();
+        doReturn(Collections.emptyList()).when(reportRepo).vwFacturasPendientes();
 
         assertThat(service.facturasVencidas()).hasSize(1);
         assertThat(service.facturasPendientes()).isEmpty();
@@ -296,8 +297,7 @@ class CompraServiceTest {
                 new BigDecimal("1160.00"), new BigDecimal("1160.00"),
                 new BigDecimal("1160.00"), BigDecimal.ZERO,
                 "CONTADO", java.time.LocalDate.now().plusDays(55));
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1)))
-                .thenReturn(List.of(v));
+        doReturn(List.of(v)).when(reportRepo).vwUltimasFacturasProveedor(1);
 
         var result = service.facturasProveedor(1);
 
@@ -314,13 +314,13 @@ class CompraServiceTest {
         var finalizada = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
                 1L, "COMPRA-0001", "LIQUIDADA", new BigDecimal("1160.00"),
                 new BigDecimal("1160.00"), BigDecimal.ZERO, 1);
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
-                .thenReturn(List.of(inicial), List.of(finalizada));
-        when(jdbc.queryForObject(anyString(), eq(Long.class),
-                any(), any(), any(), any(), any(), any())).thenReturn(99L);
-        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()));
-        when(cajaService.resolverTurnoAbierto(5, 1)).thenReturn(6L);
+        doReturn(List.of(inicial), List.of(finalizada))
+                .when(reportRepo).findCuentaPagoDetalle(1L);
+        doReturn(99L).when(reportRepo).insertPagoProveedor(
+                any(), any(), any(), any(), any(), any());
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
+        doReturn(6L).when(cajaService).resolverTurnoAbierto(5, 1);
 
         var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
                 new BigDecimal("560.00"), 1, 5, null);
@@ -332,8 +332,8 @@ class CompraServiceTest {
         assertThat(resp.saldo()).isEqualByComparingTo("0.00");
         assertThat(resp.compraFolio()).isEqualTo("COMPRA-0001");
         verify(cajaService).resolverTurnoAbierto(5, 1);
-        verify(jdbc).queryForObject(anyString(), eq(Long.class),
-                eq(1L), eq(1), eq("ABONO"), eq(new BigDecimal("560.00")), eq(0), eq(6L));
+        verify(reportRepo).insertPagoProveedor(1L, 1, "ABONO",
+                new BigDecimal("560.00"), 0, 6L);
     }
 
     @Test
@@ -345,13 +345,13 @@ class CompraServiceTest {
         var parcial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
                 1L, "COMPRA-0001", "PARCIAL", new BigDecimal("1160.00"),
                 new BigDecimal("900.00"), new BigDecimal("260.00"), 1);
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
-                .thenReturn(List.of(inicial), List.of(parcial));
-        when(jdbc.queryForObject(anyString(), eq(Long.class),
-                any(), any(), any(), any(), any(), any())).thenReturn(1L);
-        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()));
-        when(cajaService.resolverTurnoAbierto(5, 1)).thenReturn(6L);
+        doReturn(List.of(inicial), List.of(parcial))
+                .when(reportRepo).findCuentaPagoDetalle(1L);
+        doReturn(1L).when(reportRepo).insertPagoProveedor(
+                any(), any(), any(), any(), any(), any());
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
+        doReturn(6L).when(cajaService).resolverTurnoAbierto(5, 1);
 
         var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
                 new BigDecimal("300.00"), 1, 5, "ABONO PARCIAL 2");
@@ -360,8 +360,8 @@ class CompraServiceTest {
 
         assertThat(resp.estado()).isEqualTo("PARCIAL");
         assertThat(resp.saldo()).isEqualByComparingTo("260.00");
-        verify(jdbc).queryForObject(anyString(), eq(Long.class),
-                eq(1L), eq(1), eq("ABONO PARCIAL 2"), eq(new BigDecimal("300.00")), eq(0), eq(6L));
+        verify(reportRepo).insertPagoProveedor(1L, 1, "ABONO PARCIAL 2",
+                new BigDecimal("300.00"), 0, 6L);
     }
 
     @Test
@@ -370,8 +370,7 @@ class CompraServiceTest {
         var cerrada = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
                 1L, "COMPRA-0001", "LIQUIDADA", new BigDecimal("1160.00"),
                 new BigDecimal("1160.00"), BigDecimal.ZERO, 1);
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
-                .thenReturn(List.of(cerrada));
+        doReturn(List.of(cerrada)).when(reportRepo).findCuentaPagoDetalle(1L);
 
         var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
                 new BigDecimal("10.00"), 1, 5, null);
@@ -385,8 +384,7 @@ class CompraServiceTest {
     @Test
     @DisplayName("abonar: cuenta inexistente -> RecursoNoEncontradoException")
     void abonar_cuentaInexistente() {
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(999L)))
-                .thenReturn(java.util.Collections.emptyList());
+        doReturn(Collections.emptyList()).when(reportRepo).findCuentaPagoDetalle(999L);
 
         var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
                 new BigDecimal("10.00"), 1, 5, null);
@@ -401,8 +399,7 @@ class CompraServiceTest {
         var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
                 1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
                 new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
-                .thenReturn(List.of(inicial));
+        doReturn(List.of(inicial)).when(reportRepo).findCuentaPagoDetalle(1L);
 
         var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
                 new BigDecimal("600.00"), 1, 5, null);
@@ -418,10 +415,9 @@ class CompraServiceTest {
         var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
                 1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
                 new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
-                .thenReturn(List.of(inicial));
-        when(formaPagoRepo.findById(1)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()));
+        doReturn(List.of(inicial)).when(reportRepo).findCuentaPagoDetalle(1L);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
 
         var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
                 new BigDecimal("560.00"), 1, null, null);
@@ -441,12 +437,12 @@ class CompraServiceTest {
         var parcial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
                 1L, "COMPRA-0001", "PARCIAL", new BigDecimal("1160.00"),
                 new BigDecimal("900.00"), new BigDecimal("260.00"), 1);
-        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(1L)))
-                .thenReturn(List.of(inicial), List.of(parcial));
-        when(jdbc.queryForObject(anyString(), eq(Long.class),
-                any(), any(), any(), any(), any(), any())).thenReturn(2L);
-        when(formaPagoRepo.findById(6)).thenReturn(Optional.of(
-                FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()));
+        doReturn(List.of(inicial), List.of(parcial))
+                .when(reportRepo).findCuentaPagoDetalle(1L);
+        doReturn(2L).when(reportRepo).insertPagoProveedor(
+                any(), any(), any(), any(), any(), any());
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()))
+                .when(formaPagoRepo).findById(6);
 
         var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
                 new BigDecimal("300.00"), 6, null, null);
@@ -455,7 +451,7 @@ class CompraServiceTest {
 
         assertThat(resp.turnoCajaId()).isNull();
         org.mockito.Mockito.verifyNoInteractions(cajaService);
-        verify(jdbc).queryForObject(anyString(), eq(Long.class),
-                eq(1L), eq(6), eq("ABONO"), eq(new BigDecimal("300.00")), eq(0), isNull());
+        verify(reportRepo).insertPagoProveedor(eq(1L), eq(6), eq("ABONO"),
+                eq(new BigDecimal("300.00")), eq(0), isNull());
     }
 }

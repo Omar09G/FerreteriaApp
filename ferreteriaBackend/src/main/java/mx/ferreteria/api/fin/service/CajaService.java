@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +26,7 @@ import mx.ferreteria.api.fin.entity.Caja;
 import mx.ferreteria.api.fin.entity.CorteCaja;
 import mx.ferreteria.api.fin.entity.MovimientoCaja;
 import mx.ferreteria.api.fin.entity.TurnoCaja;
+import mx.ferreteria.api.fin.repo.CajaReportRepository;
 import mx.ferreteria.api.fin.repo.CajaRepository;
 import mx.ferreteria.api.fin.repo.CorteCajaRepository;
 import mx.ferreteria.api.fin.repo.MovimientoCajaRepository;
@@ -38,6 +38,18 @@ import mx.ferreteria.api.inv.repo.AlmacenRepository;
 @RequiredArgsConstructor
 @Transactional
 public class CajaService {
+
+        /**
+         * Proyección record usada por {@link CajaReportRepository#findResumenTurno}
+         * para mapear las columnas nativas ({@code monto_apertura},
+         * {@code entradasEfectivo}, {@code salidasEfectivo}) sin acoplar el
+         * servicio a un DTO público.
+         */
+        public record ResumenTurnoRow(
+                        BigDecimal montoApertura,
+                        BigDecimal entradasEfectivo,
+                        BigDecimal salidasEfectivo) {
+        }
 
         /**
          * Conceptos registrables manualmente en caja (los demás los generan los
@@ -54,7 +66,7 @@ public class CajaService {
         private final FormaPagoRepository formaPagoRepo;
         private final CorteCajaRepository corteRepo;
         private final AlmacenRepository almacenRepo;
-        private final JdbcTemplate jdbc;
+        private final CajaReportRepository reportRepo;
 
         // ─── Cajas ──────────────────────────────────────────────────────
 
@@ -233,12 +245,7 @@ public class CajaService {
                                         : formas.containsKey(mc.getFormaPagoId()) ? formas.get(mc.getFormaPagoId()).getNombre() : null;
                         String refDesc = null;
                         if ("com.pagos_proveedor".equals(mc.getRefTabla()) && mc.getRefId() != null) {
-                                refDesc = jdbc.query("""
-                                                SELECT c.folio FROM com.pagos_proveedor p
-                                                JOIN com.cuentas_pagar cp ON cp.cuenta_pagar_id = p.cuenta_pagar_id
-                                                JOIN com.compras c ON c.compra_id = cp.compra_id
-                                                WHERE p.pago_proveedor_id = ?""",
-                                                rs -> rs.next() ? rs.getString(1) : null, mc.getRefId());
+                                refDesc = reportRepo.findFolioPagoProveedor(mc.getRefId());
                         }
                         return new FinDtos.MovimientoCajaResponse(
                                         mc.getMovimientoId(), mc.getTurnoCajaId(), mc.getTipo(),
@@ -252,39 +259,21 @@ public class CajaService {
         public FinDtos.EsperadoCajaResponse obtenerEsperado(Long turnoId) {
                 turnoRepo.findById(turnoId)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-                return jdbc.query("""
-                                SELECT t.monto_apertura AS montoApertura,
-                                       COALESCE(SUM(mc.monto) FILTER (
-                                           WHERE mc.tipo = 'ENTRADA'
-                                             AND COALESCE(fp.es_efectivo, true)), 0) AS entradasEfectivo,
-                                       COALESCE(SUM(mc.monto) FILTER (
-                                           WHERE mc.tipo = 'SALIDA'
-                                             AND COALESCE(fp.es_efectivo, true)), 0) AS salidasEfectivo
-                                FROM fin.turnos_caja t
-                                LEFT JOIN fin.movimientos_caja mc ON mc.turno_caja_id = t.turno_caja_id
-                                    AND mc.concepto <> 'APERTURA'
-                                LEFT JOIN cat.formas_pago fp ON fp.forma_pago_id = mc.forma_pago_id
-                                WHERE t.turno_caja_id = ?
-                                GROUP BY t.monto_apertura
-                                """, rs -> {
-                        rs.next();
-                        BigDecimal apertura = rs.getBigDecimal("montoApertura");
-                        BigDecimal entradas = rs.getBigDecimal("entradasEfectivo");
-                        BigDecimal salidas = rs.getBigDecimal("salidasEfectivo");
-                        return new FinDtos.EsperadoCajaResponse(
-                                        apertura, entradas, salidas,
-                                        apertura.add(entradas).subtract(salidas));
-                }, turnoId);
+                ResumenTurnoRow r = reportRepo.findResumenTurno(turnoId);
+                BigDecimal apertura = r.montoApertura();
+                BigDecimal entradas = r.entradasEfectivo();
+                BigDecimal salidas = r.salidasEfectivo();
+                return new FinDtos.EsperadoCajaResponse(
+                                apertura, entradas, salidas,
+                                apertura.add(entradas).subtract(salidas));
         }
 
         // ─── Corte de caja ──────────────────────────────────────────────
 
         public FinDtos.CorteCajaResponse cerrarTurno(Long turnoId, FinDtos.CorteRequest req) {
                 int usuarioCierreId = UserPrincipal.actual().usuarioId();
-                Long corteId = jdbc.queryForObject(
-                                "SELECT fin.fn_cerrar_turno(?, ?, ?, ?)",
-                                Long.class,
-                                turnoId, req.montoContado(), usuarioCierreId, req.observaciones());
+                Long corteId = reportRepo.cerrarTurno(
+                                turnoId, req.montoContado(), req.observaciones(), usuarioCierreId);
 
                 CorteCaja corte = corteRepo.findById(corteId)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
@@ -357,13 +346,7 @@ public class CajaService {
                                                 .map(FormaPago::getNombre).orElse(null);
                 String refDescripcion = null;
                 if ("com.pagos_proveedor".equals(mc.getRefTabla()) && mc.getRefId() != null) {
-                        refDescripcion = jdbc.query("""
-                                        SELECT c.folio
-                                        FROM com.pagos_proveedor p
-                                        JOIN com.cuentas_pagar cp ON cp.cuenta_pagar_id = p.cuenta_pagar_id
-                                        JOIN com.compras c ON c.compra_id = cp.compra_id
-                                        WHERE p.pago_proveedor_id = ?
-                                        """, rs -> rs.next() ? rs.getString(1) : null, mc.getRefId());
+                        refDescripcion = reportRepo.findFolioPagoProveedor(mc.getRefId());
                 }
                 return new FinDtos.MovimientoCajaResponse(
                                 mc.getMovimientoId(), mc.getTurnoCajaId(), mc.getTipo(),

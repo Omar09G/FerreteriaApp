@@ -22,6 +22,8 @@ public interface EmpleadoGateway {
                        String cp, LocalDate fechaIngreso, LocalDate fechaBaja,
                        BigDecimal sueldoDiario, boolean activo) { }
 
+    record EmpleadoSueldo(int empleadoId, BigDecimal sueldoDiario) { }
+
     List<EmpleadoRow> findEmpleados(int limit, int offset);
 
     long countEmpleados();
@@ -34,6 +36,8 @@ public interface EmpleadoGateway {
     Map<Integer, EmpleadoResumen> resumenByIds(Collection<Integer> empleadoIds);
 
     boolean existsAndActivo(int empleadoId);
+
+    List<EmpleadoSueldo> findActivosConSueldo();
 
     int create(int puestoId, String nombre, String apellidoPaterno, String apellidoMaterno,
                String curp, String nss, String telefono, String email, String calle, String colonia,

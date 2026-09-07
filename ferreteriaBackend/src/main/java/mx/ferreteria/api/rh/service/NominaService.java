@@ -7,18 +7,16 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-
-import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +27,9 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.rh.dto.RhDtos;
 import mx.ferreteria.api.rh.entity.Nomina;
+import mx.ferreteria.api.rh.repo.EmpleadoRepository;
 import mx.ferreteria.api.rh.repo.NominaRepository;
+import mx.ferreteria.api.rh.service.EmpleadoGateway.EmpleadoSueldo;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +37,8 @@ import mx.ferreteria.api.rh.repo.NominaRepository;
 public class NominaService {
 
     private final NominaRepository nominaRepo;
-    private final JdbcTemplate jdbc;
+    private final EmpleadoRepository empleadoRepo;
+    private final EmpleadoGateway empleadoGateway;
 
     @Transactional(readOnly = true)
     public Page<RhDtos.NominaResponse> list(String estado,
@@ -100,8 +101,7 @@ public class NominaService {
         }
         BigDecimal dias = BigDecimal.valueOf(java.time.temporal.ChronoUnit.DAYS.between(ini, fin) + 1);
 
-        List<java.util.Map<String, Object>> empleados = jdbc.queryForList(
-                "SELECT empleado_id, sueldo_diario FROM rh.empleados WHERE activo = true ORDER BY empleado_id");
+        List<EmpleadoSueldo> empleados = empleadoRepo.findActivosConSueldo();
         if (empleados.isEmpty()) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO, "sin empleados activos");
         }
@@ -110,13 +110,13 @@ public class NominaService {
         int omitidas = 0;
         // Batch duplicate check: single SELECT empleado_id FROM rh.nominas WHERE periodo_ini=? AND periodo_fin=? AND empleado_id IN (...)
         List<Integer> allEmpIds = empleados.stream()
-                .map(row -> ((Number) row.get("empleado_id")).intValue())
+                .map(EmpleadoSueldo::empleadoId)
                 .collect(Collectors.toList());
         Set<Integer> existingIds = findExistingEmpleadoIds(ini, fin, allEmpIds);
         List<Nomina> savedEntities = new ArrayList<>();
-        for (java.util.Map<String, Object> row : empleados) {
-            Integer empId = ((Number) row.get("empleado_id")).intValue();
-            BigDecimal sueldo = new BigDecimal(row.get("sueldo_diario").toString());
+        for (EmpleadoSueldo row : empleados) {
+            Integer empId = row.empleadoId();
+            BigDecimal sueldo = row.sueldoDiario();
             BigDecimal percepciones = sueldo.multiply(dias);
             // deducciones 0 por defecto
             if (existingIds.contains(empId)) {
@@ -225,17 +225,13 @@ public class NominaService {
     }
 
     private boolean empleadoExiste(Integer empleadoId) {
-        Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM rh.empleados WHERE empleado_id = ?",
-                Integer.class, empleadoId);
-        return count != null && count > 0;
+        return empleadoGateway.existsAndActivo(empleadoId);
     }
 
     private RhDtos.NominaResponse toResponse(Nomina n) {
-        String nombre = jdbc.queryForObject(
-                "SELECT (COALESCE(nombre, '') || ' ' || COALESCE(apellido_p, ''))::varchar(161)"
-                        + " FROM rh.empleados WHERE empleado_id = ?",
-                String.class, n.getEmpleadoId());
+        String nombre = empleadoGateway.resumenById(n.getEmpleadoId())
+                .map(r -> r.nombreCompleto())
+                .orElse(null);
         return new RhDtos.NominaResponse(
                 n.getNominaId(), n.getEmpleadoId(), nombre,
                 n.getPeriodoIni(), n.getPeriodoFin(),
@@ -248,11 +244,10 @@ public class NominaService {
     private RhDtos.NominaResponse toResponse(Nomina n, Map<Integer, String> nombres) {
         String nombre = nombres.getOrDefault(n.getEmpleadoId(), null);
         if (nombre == null) {
-            // fallback for single missing entry (keeps backward compat with existing mocks)
-            nombre = jdbc.queryForObject(
-                    "SELECT (COALESCE(nombre, '') || ' ' || COALESCE(apellido_p, ''))::varchar(161)"
-                            + " FROM rh.empleados WHERE empleado_id = ?",
-                    String.class, n.getEmpleadoId());
+            // fallback for single missing entry (keeps backward compat)
+            nombre = empleadoGateway.resumenById(n.getEmpleadoId())
+                    .map(r -> r.nombreCompleto())
+                    .orElse(null);
         }
         return new RhDtos.NominaResponse(
                 n.getNominaId(), n.getEmpleadoId(), nombre,
@@ -271,14 +266,7 @@ public class NominaService {
         if (empleadoIds == null || empleadoIds.isEmpty()) {
             return Collections.emptySet();
         }
-        String placeholders = empleadoIds.stream().map(i -> "?").collect(Collectors.joining(","));
-        String sql = "SELECT empleado_id FROM rh.nominas WHERE periodo_ini = ? AND periodo_fin = ? AND empleado_id IN ("
-                + placeholders + ")";
-        List<Object> params = new ArrayList<>();
-        params.add(ini);
-        params.add(fin);
-        params.addAll(empleadoIds);
-        List<Integer> rows = jdbc.query(sql, (rs, rowNum) -> rs.getInt(1), params.toArray());
+        List<Integer> rows = nominaRepo.findEmpleadoIdsByPeriodo(ini, fin, empleadoIds);
         return new HashSet<>(rows);
     }
 
@@ -290,34 +278,11 @@ public class NominaService {
         if (empleadoIds == null || empleadoIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        String placeholders = empleadoIds.stream().map(i -> "?").collect(Collectors.joining(","));
-        String sql = "SELECT empleado_id, (COALESCE(nombre, '') || ' ' || COALESCE(apellido_p, ''))::varchar(161) AS nombre_completo "
-                + "FROM rh.empleados WHERE empleado_id IN (" + placeholders + ")";
-        try {
-            List<Map<String, Object>> rows = jdbc.queryForList(sql, empleadoIds.toArray());
-            if (rows.isEmpty()) {
-                return Collections.emptyMap();
-            }
-            Map<Integer, String> map = new HashMap<>();
-            for (Map<String, Object> row : rows) {
-                Object idObj = row.get("empleado_id");
-                if (idObj == null) idObj = row.get("EMPLEADO_ID");
-                if (idObj == null) idObj = row.values().iterator().next();
-                Integer id = ((Number) idObj).intValue();
-                Object val = row.get("nombre_completo");
-                if (val == null) val = row.get("NOMBRE_COMPLETO");
-                if (val == null) {
-                    java.util.Iterator<Object> it = row.values().iterator();
-                    it.next();
-                    if (it.hasNext()) val = it.next();
-                }
-                String nombre = val != null ? val.toString() : null;
-                map.put(id, nombre);
-            }
-            return map;
-        } catch (Exception e) {
-            // If batch query not mocked (tests mock queryForObject), return empty to trigger per-row fallback
+        Map<Integer, mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen> res = empleadoGateway.resumenByIds(empleadoIds);
+        if (res == null || res.isEmpty()) {
             return Collections.emptyMap();
         }
+        return res.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().nombreCompleto()));
     }
 }

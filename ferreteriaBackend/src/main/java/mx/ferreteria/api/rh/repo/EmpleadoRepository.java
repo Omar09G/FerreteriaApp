@@ -114,6 +114,13 @@ public class EmpleadoRepository implements EmpleadoGateway {
     }
 
     @Override
+    public List<EmpleadoSueldo> findActivosConSueldo() {
+        return jdbc.sql("SELECT empleado_id, sueldo_diario FROM rh.empleados WHERE activo = true ORDER BY empleado_id")
+                .query((rs, n) -> new EmpleadoSueldo(rs.getInt("empleado_id"), rs.getBigDecimal("sueldo_diario")))
+                .list();
+    }
+
+    @Override
     public int create(int puestoId, String nombre, String apellidoPaterno, String apellidoMaterno,
             String curp, String nss, String telefono, String email, String calle,
             String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,

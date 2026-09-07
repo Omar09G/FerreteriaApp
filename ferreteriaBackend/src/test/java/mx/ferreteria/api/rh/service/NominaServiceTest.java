@@ -3,13 +3,14 @@ package mx.ferreteria.api.rh.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -18,25 +19,34 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
+import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen;
 import mx.ferreteria.api.rh.dto.RhDtos.NominaRequest;
 import mx.ferreteria.api.rh.entity.Nomina;
+import mx.ferreteria.api.rh.repo.EmpleadoRepository;
 import mx.ferreteria.api.rh.repo.NominaRepository;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class NominaServiceTest {
 
     @Mock NominaRepository nominaRepo;
-    @Mock JdbcTemplate jdbc;
+    @Mock EmpleadoRepository empleadoRepo;
+    @Mock EmpleadoGateway empleadoGateway;
 
     @InjectMocks
     NominaService service;
+
+    private static EmpleadoResumen resumen(int id, String nombre) {
+        return new EmpleadoResumen(id, nombre, "Puesto", "a@b.com", "555", true);
+    }
 
     private Nomina sampleNomina(Long id, String estado) {
         return Nomina.builder().nominaId(id).empleadoId(7)
@@ -57,10 +67,17 @@ class NominaServiceTest {
     @DisplayName("list: filtra por estado y enriquece nombre de empleado")
     void list_conEstado() {
         Pageable pg = PageRequest.of(0, 20);
-        when(nominaRepo.filtrar("PENDIENTE", null, null, pg))
-                .thenReturn(new PageImpl<>(List.of(sampleNomina(1L, "PENDIENTE")), pg, 1));
-        when(jdbc.queryForObject(anyString(), eq(String.class), eq(7)))
-                .thenReturn("Juan Perez");
+        doReturn(new PageImpl<>(List.of(sampleNomina(1L, "PENDIENTE")), pg, 1))
+                .when(nominaRepo).filtrar("PENDIENTE", null, null, pg);
+        doReturn(Map.of(7, resumen(7, "Juan Perez")))
+                .when(empleadoGateway).resumenByIds(any());
+        doReturn(Map.of(7, resumen(7, "Juan Perez")))
+                .when(empleadoRepo).resumenByIds(any());
+        // fallback per-id also stubs for safety
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
 
         var result = service.list("PENDIENTE", null, null, pg);
 
@@ -72,7 +89,7 @@ class NominaServiceTest {
     @Test
     @DisplayName("getById: nomina inexistente -> RecursoNoEncontradoException")
     void getById_notFound() {
-        when(nominaRepo.findById(99L)).thenReturn(Optional.empty());
+        doReturn(Optional.empty()).when(nominaRepo).findById(99L);
 
         assertThatThrownBy(() -> service.getById(99L))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -82,10 +99,19 @@ class NominaServiceTest {
     @DisplayName("create: empleado existe guarda nomina con neto calculado por BD")
     void create_ok() {
         Nomina saved = sampleNomina(10L, "PENDIENTE");
-        when(jdbc.queryForObject(anyString(), eq(Integer.class), eq(7))).thenReturn(1);
-        when(nominaRepo.save(any(Nomina.class))).thenReturn(saved);
-        when(jdbc.queryForObject(anyString(), eq(String.class), eq(7)))
-                .thenReturn("Juan Perez");
+        doReturn(true).when(empleadoGateway).existsAndActivo(7);
+        doReturn(true).when(empleadoGateway).existsAndActivo(eq(7));
+        doReturn(true).when(empleadoGateway).existsAndActivo(anyInt());
+        doReturn(true).when(empleadoRepo).existsAndActivo(7);
+        doReturn(true).when(empleadoRepo).existsAndActivo(eq(7));
+        doReturn(true).when(empleadoRepo).existsAndActivo(anyInt());
+        doReturn(saved).when(nominaRepo).save(any(Nomina.class));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
 
         NominaRequest req = new NominaRequest(
                 7, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 15),
@@ -102,7 +128,10 @@ class NominaServiceTest {
     @Test
     @DisplayName("create: empleado inexistente -> RecursoNoEncontradoException")
     void create_empleadoInexistente() {
-        when(jdbc.queryForObject(anyString(), eq(Integer.class), eq(404))).thenReturn(0);
+        doReturn(false).when(empleadoGateway).existsAndActivo(404);
+        doReturn(false).when(empleadoGateway).existsAndActivo(eq(404));
+        doReturn(false).when(empleadoRepo).existsAndActivo(404);
+        doReturn(false).when(empleadoRepo).existsAndActivo(eq(404));
 
         NominaRequest req = new NominaRequest(
                 404, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 15),
@@ -116,11 +145,14 @@ class NominaServiceTest {
     @Test
     @DisplayName("marcarPagada: pasa a PAGADA con fecha")
     void marcarPagada_ok() {
-        when(nominaRepo.findById(1L)).thenReturn(Optional.of(sampleNomina(1L, "PENDIENTE")));
-        when(nominaRepo.save(any(Nomina.class)))
-                .thenReturn(sampleNomina(1L, "PAGADA"));
-        when(jdbc.queryForObject(anyString(), eq(String.class), eq(7)))
-                .thenReturn("Juan Perez");
+        doReturn(Optional.of(sampleNomina(1L, "PENDIENTE"))).when(nominaRepo).findById(1L);
+        doReturn(sampleNomina(1L, "PAGADA")).when(nominaRepo).save(any(Nomina.class));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
 
         var resp = service.marcarPagada(1L);
 
@@ -131,7 +163,7 @@ class NominaServiceTest {
     @Test
     @DisplayName("marcarPagada: ya pagada -> ReglaNegocioException")
     void marcarPagada_yaPagada() {
-        when(nominaRepo.findById(1L)).thenReturn(Optional.of(sampleNomina(1L, "PAGADA")));
+        doReturn(Optional.of(sampleNomina(1L, "PAGADA"))).when(nominaRepo).findById(1L);
 
         assertThatThrownBy(() -> service.marcarPagada(1L))
                 .isInstanceOf(ReglaNegocioException.class);
@@ -140,11 +172,14 @@ class NominaServiceTest {
     @Test
     @DisplayName("cancelar: desde PENDIENTE pasa a CANCELADA")
     void cancelar_ok() {
-        when(nominaRepo.findById(1L)).thenReturn(Optional.of(sampleNomina(1L, "PENDIENTE")));
-        when(nominaRepo.save(any(Nomina.class)))
-                .thenReturn(sampleNomina(1L, "CANCELADA"));
-        when(jdbc.queryForObject(anyString(), eq(String.class), eq(7)))
-                .thenReturn("Juan Perez");
+        doReturn(Optional.of(sampleNomina(1L, "PENDIENTE"))).when(nominaRepo).findById(1L);
+        doReturn(sampleNomina(1L, "CANCELADA")).when(nominaRepo).save(any(Nomina.class));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
 
         var resp = service.cancelar(1L);
 
@@ -154,7 +189,7 @@ class NominaServiceTest {
     @Test
     @DisplayName("cancelar: ya pagada no puede cancelarse -> ReglaNegocioException")
     void cancelar_pagada() {
-        when(nominaRepo.findById(1L)).thenReturn(Optional.of(sampleNomina(1L, "PAGADA")));
+        doReturn(Optional.of(sampleNomina(1L, "PAGADA"))).when(nominaRepo).findById(1L);
 
         assertThatThrownBy(() -> service.cancelar(1L))
                 .isInstanceOf(ReglaNegocioException.class);

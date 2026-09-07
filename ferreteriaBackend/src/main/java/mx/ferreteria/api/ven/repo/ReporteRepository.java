@@ -1,0 +1,270 @@
+package mx.ferreteria.api.ven.repo;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import mx.ferreteria.api.ven.dto.ReportDtos;
+import mx.ferreteria.api.ven.entity.Venta;
+
+/**
+ * Consultas nativas del módulo ven ejecutadas desde {@code ReporteService}.
+ * Centraliza aquí las queries que antes vivían en el service con
+ * {@code JdbcTemplate} para que toda la lógica de persistencia del dashboard
+ * quede dentro de repositorios.
+ *
+ * <p>Se extiende {@link JpaRepository} únicamente para que Spring Data detecte
+ * la interfaz como repositorio; los métodos CRUD heredados no se usan.</p>
+ *
+ * <p>Los aliases de cada SELECT ya están en camelCase para que
+ * Spring Data pueda mapear las filas a los records de
+ * {@link ReportDtos} sin transformación adicional.</p>
+ */
+public interface ReporteRepository extends JpaRepository<Venta, Long> {
+
+    /**
+     * Top 20 productos por ingreso en el rango, con ranking por ingreso y por
+     * unidades. Acota a ventas COMPLETADAS y respeta los índices por
+     * {@code fecha_local}.
+     */
+    @Query(value = """
+            SELECT CAST(:inicio AS date) AS mes, p.producto_id AS productoId,
+                   p.codigo, p.nombre AS producto,
+                   c.nombre AS categoria,
+                   SUM(d.cantidad)::numeric(14,2)                       AS unidadesVendidas,
+                   SUM(d.total_linea)::numeric(14,2)                    AS ingresoTotal,
+                   SUM(d.cantidad * d.costo_unitario)::numeric(14,2)    AS costoTotal,
+                   (SUM(d.total_linea) - SUM(d.cantidad * d.costo_unitario))::numeric(14,2)
+                                                                                    AS utilidad,
+                   RANK() OVER (ORDER BY SUM(d.total_linea) DESC)       AS rankingMes,
+                   RANK() OVER (ORDER BY SUM(d.cantidad) DESC)          AS rankingUnidades
+            FROM ven.venta_detalles d
+            JOIN ven.ventas v ON v.venta_id = d.venta_id AND v.estado = 'COMPLETADA'
+            JOIN inv.productos p ON p.producto_id = d.producto_id
+            LEFT JOIN cat.categorias c ON c.categoria_id = p.categoria_id
+            WHERE v.fecha_local BETWEEN :inicio AND :fin
+            GROUP BY p.producto_id, p.codigo, p.nombre, c.nombre
+            ORDER BY ingresoTotal DESC
+            LIMIT 20
+            """, nativeQuery = true)
+    List<ReportDtos.TopProductoResponse> findTopProductos(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * Top 20 clientes por total comprado en el rango, con ranking por mes y
+     * acumulado histórico.
+     */
+    @Query(value = """
+            SELECT CAST(:inicio AS date) AS mes, cl.cliente_id AS clienteId,
+                   cl.razon_social AS cliente,
+                   COUNT(DISTINCT v.venta_id)                       AS numCompras,
+                   SUM(v.total)::numeric(14,2)                      AS totalComprado,
+                   ROUND(AVG(v.total), 2)                           AS ticketPromedio,
+                   RANK() OVER (ORDER BY SUM(v.total) DESC)         AS rankingMes,
+                   RANK() OVER (ORDER BY SUM(v.total) DESC)         AS rankingHistorico
+            FROM ven.ventas v
+            JOIN ven.clientes cl ON cl.cliente_id = v.cliente_id
+            WHERE v.estado = 'COMPLETADA' AND v.fecha_local BETWEEN :inicio AND :fin
+            GROUP BY cl.cliente_id, cl.razon_social
+            ORDER BY totalComprado DESC
+            LIMIT 20
+            """, nativeQuery = true)
+    List<ReportDtos.MejorClienteResponse> findMejoresClientes(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * Ventas diarias totales (vista {@code ven.vw_ventas_totales}) acotadas al
+     * rango solicitado. Los aliases se exponen explícitamente para que Spring
+     * Data mapee cada fila al record {@link ReportDtos.VentaTotalResponse}.
+     */
+    @Query(value = """
+            SELECT fecha,
+                   num_ventas AS numVentas,
+                   subtotal, iva, descuentos,
+                   total_vendido AS totalVendido,
+                   ticket_promedio AS ticketPromedio,
+                   costo_ventas AS costoVentas,
+                   utilidad_bruta AS utilidadBruta
+            FROM ven.vw_ventas_totales
+            WHERE fecha BETWEEN :inicio AND :fin
+            ORDER BY fecha
+            """, nativeQuery = true)
+    List<ReportDtos.VentaTotalResponse> findVentasTotales(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * Top 20 vendedores por total vendido con CTE de costo por venta y
+     * ranking por mes / histórico.
+     */
+    @Query(value = """
+            WITH costo_venta AS (
+                SELECT d.venta_id, SUM(d.cantidad * d.costo_unitario) AS costo
+                FROM ven.venta_detalles d GROUP BY d.venta_id
+            )
+            SELECT CAST(:inicio AS date) AS mes, u.usuario_id AS usuarioId,
+                   (e.nombre || ' ' || e.apellido_p)::varchar(161) AS vendedor,
+                   COUNT(*)                                        AS numVentas,
+                   SUM(v.total)::numeric(14,2)                     AS totalVendido,
+                   ROUND(AVG(v.total), 2)                          AS ticketPromedio,
+                   (SUM(v.subtotal) - COALESCE(SUM(c.costo), 0))::numeric(14,2)
+                                                                          AS utilidadGenerada,
+                   RANK() OVER (ORDER BY SUM(v.total) DESC)        AS rankingMes,
+                   RANK() OVER (ORDER BY SUM(v.total) DESC)        AS rankingHistorico
+            FROM ven.ventas v
+            JOIN seg.usuarios u ON u.usuario_id = v.usuario_id
+            LEFT JOIN rh.empleados e ON e.empleado_id = u.empleado_id
+            LEFT JOIN costo_venta c ON c.venta_id = v.venta_id
+            WHERE v.estado = 'COMPLETADA' AND v.fecha_local BETWEEN :inicio AND :fin
+            GROUP BY u.usuario_id, (e.nombre || ' ' || e.apellido_p)
+            ORDER BY totalVendido DESC
+            LIMIT 20
+            """, nativeQuery = true)
+    List<ReportDtos.MejorVendedorResponse> findMejoresVendedores(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * Ventas agrupadas por hora del día con ranking por total acumulado.
+     */
+    @Query(value = """
+            SELECT EXTRACT(HOUR FROM v.fecha)::smallint AS hora,
+                   COUNT(*)                             AS numVentas,
+                   SUM(v.total)::numeric(14,2)          AS totalAcumulado,
+                   ROUND(AVG(v.total), 2)               AS ticketPromedio,
+                   RANK() OVER (ORDER BY SUM(v.total) DESC) AS rankingHorario
+            FROM ven.ventas v
+            WHERE v.estado = 'COMPLETADA' AND v.fecha_local BETWEEN :inicio AND :fin
+            GROUP BY EXTRACT(HOUR FROM v.fecha)
+            ORDER BY hora
+            """, nativeQuery = true)
+    List<ReportDtos.VentaPorHoraResponse> findVentasPorHora(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * Mejores días de la semana por promedio diario de venta en el rango.
+     */
+    @Query(value = """
+            SELECT EXTRACT(ISODOW FROM v.fecha)::smallint AS diaNum,
+                   CASE EXTRACT(ISODOW FROM v.fecha)::int
+                        WHEN 1 THEN 'Lunes'   WHEN 2 THEN 'Martes'  WHEN 3 THEN 'Miércoles'
+                        WHEN 4 THEN 'Jueves'  WHEN 5 THEN 'Viernes' WHEN 6 THEN 'Sábado'
+                        ELSE 'Domingo' END                     AS diaSemana,
+                   COUNT(DISTINCT v.fecha_local)              AS diasConVenta,
+                   COUNT(*)                                   AS numVentas,
+                   SUM(v.total)::numeric(14,2)                AS totalAcumulado,
+                   ROUND(SUM(v.total) / NULLIF(COUNT(DISTINCT v.fecha_local), 0), 2)
+                                                                       AS promedioPorDia,
+                   RANK() OVER (ORDER BY SUM(v.total)
+                       / NULLIF(COUNT(DISTINCT v.fecha_local), 0) DESC) AS ranking
+            FROM ven.ventas v
+            WHERE v.estado = 'COMPLETADA' AND v.fecha_local BETWEEN :inicio AND :fin
+            GROUP BY EXTRACT(ISODOW FROM v.fecha)
+            ORDER BY ranking
+            """, nativeQuery = true)
+    List<ReportDtos.MejorDiaVentaResponse> findMejoresDiasVenta(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * KPIs del dashboard acotados al rango: ventas, tickets, promedio, cuentas
+     * por cobrar (vigentes y vencidas), valor de inventario, productos
+     * agotados, promociones activas y cajas abiertas.
+     */
+    @Query(value = """
+            SELECT
+              (SELECT COALESCE(SUM(total), 0) FROM ven.ventas
+                WHERE estado = 'COMPLETADA' AND fecha_local BETWEEN :inicio AND :fin)::numeric(14,2)
+                  AS ventasEnRango,
+              (SELECT COUNT(*) FROM ven.ventas
+                WHERE estado = 'COMPLETADA' AND fecha_local BETWEEN :inicio AND :fin) AS ticketsEnRango,
+              (SELECT ROUND(AVG(total), 2) FROM ven.ventas
+                WHERE estado = 'COMPLETADA' AND fecha_local BETWEEN :inicio AND :fin) AS ticketPromedioEnRango,
+              (SELECT COALESCE(SUM(monto_total - monto_pagado), 0) FROM ven.cuentas_cobrar
+                WHERE estado IN ('VIGENTE', 'PARCIAL'))::numeric(14,2)       AS saldoPorCobrar,
+              (SELECT COALESCE(SUM(monto_total - monto_pagado), 0) FROM ven.cuentas_cobrar
+                WHERE estado IN ('VIGENTE', 'PARCIAL')
+                  AND fecha_vencimiento < CURRENT_DATE)::numeric(14,2)       AS cobranzaVencida,
+              (SELECT COALESCE(SUM(i.stock * p.costo_actual), 0)
+                 FROM inv.inventario i JOIN inv.productos p ON p.producto_id = i.producto_id
+                 WHERE p.tipo = 'PRODUCTO')::numeric(14,2)                   AS valorInventario,
+              (SELECT COUNT(*) FROM inv.vw_stock_bajo WHERE alerta = 'AGOTADO')
+                                                                             AS productosAgotados,
+              (SELECT COUNT(*) FROM ven.promociones
+                WHERE estado = 'ACTIVA' AND CURRENT_TIMESTAMP BETWEEN vigencia_desde
+                  AND COALESCE(vigencia_hasta, 'infinity'::timestamptz))    AS promocionesActivas,
+              (SELECT COUNT(*) FROM fin.turnos_caja WHERE estado = 'ABIERTO')
+                                                                             AS cajasAbiertas
+            """, nativeQuery = true)
+    ReportDtos.ResumenDashboardResponse findResumenDashboard(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * Cierres diarios de caja (vista {@code fin.vw_cierre_diario}) acotados al
+     * rango.
+     */
+    @Query(value = """
+            SELECT fecha,
+                   num_cortes AS numCortes,
+                   tickets,
+                   total_vendido AS totalVendido,
+                   utilidad_bruta AS utilidadBruta,
+                   margen_pct_promedio AS margenPctPromedio,
+                   perdidas,
+                   entradas_efectivo AS entradasEfectivo,
+                   salidas_efectivo AS salidasEfectivo,
+                   efectivo_depositado AS efectivoDepositado,
+                   diferencia_total AS diferenciaTotal,
+                   ingresos_digitales AS ingresosDigitales,
+                   todo_cuadrado AS todoCuadrado
+            FROM fin.vw_cierre_diario
+            WHERE fecha BETWEEN :inicio AND :fin
+            ORDER BY fecha
+            """, nativeQuery = true)
+    List<ReportDtos.CierreDiarioResponse> findCierreDiario(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    /**
+     * Productos sin venta reciente (vista {@code inv.vw_productos_sin_movimiento}).
+     */
+    @Query(value = """
+            SELECT producto_id AS productoId,
+                   codigo,
+                   producto,
+                   categoria,
+                   stock,
+                   costo_actual AS costoActual,
+                   dinero_detenido_en_estante AS dineroDetenidoEnEstante,
+                   ultima_venta AS ultimaVenta,
+                   dias_sin_vender AS diasSinVender,
+                   prioridad_promocion AS prioridadPromocion
+            FROM inv.vw_productos_sin_movimiento
+            ORDER BY dias_sin_vender DESC
+            """, nativeQuery = true)
+    List<ReportDtos.ProductosSinMovimientoResponse> findProductosSinMovimiento();
+
+    /**
+     * Top 20 categorías por ingreso en el rango, con ranking por mes y
+     * acumulado histórico.
+     */
+    @Query(value = """
+            SELECT CAST(:inicio AS date) AS mes, c.categoria_id AS categoriaId,
+                   c.nombre AS categoria,
+                   SUM(d.cantidad)::numeric(14,2)                       AS unidadesVendidas,
+                   SUM(d.total_linea)::numeric(14,2)                    AS ingreso,
+                   (SUM(d.total_linea) - SUM(d.cantidad * d.costo_unitario))::numeric(14,2)
+                                                                                    AS utilidad,
+                   RANK() OVER (ORDER BY SUM(d.total_linea) DESC)       AS rankingMes,
+                   RANK() OVER (ORDER BY SUM(d.cantidad) DESC)          AS rankingHistorico
+            FROM ven.venta_detalles d
+            JOIN ven.ventas v ON v.venta_id = d.venta_id AND v.estado = 'COMPLETADA'
+            JOIN inv.productos p ON p.producto_id = d.producto_id
+            LEFT JOIN cat.categorias c ON c.categoria_id = p.categoria_id
+            WHERE v.fecha_local BETWEEN :inicio AND :fin
+            GROUP BY c.categoria_id, c.nombre
+            ORDER BY ingreso DESC
+            LIMIT 20
+            """, nativeQuery = true)
+    List<ReportDtos.MejoresCategoriasResponse> findMejoresCategorias(
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+}

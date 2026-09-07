@@ -13,9 +13,6 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.DataClassRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +27,7 @@ import mx.ferreteria.api.com.dto.ComDtos;
 import mx.ferreteria.api.com.entity.Compra;
 import mx.ferreteria.api.com.entity.CompraDetalle;
 import mx.ferreteria.api.com.repo.CompraDetalleRepository;
+import mx.ferreteria.api.com.repo.CompraReportRepository;
 import mx.ferreteria.api.com.repo.CompraRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
@@ -50,18 +48,8 @@ public class CompraService {
         private final AlmacenRepository almacenRepo;
         private final FormaPagoRepository formaPagoRepo;
         private final ProductoRepository productoRepo;
-        private final JdbcTemplate jdbc;
+        private final CompraReportRepository reportRepo;
         private final CajaService cajaService;
-
-        /**
-         * Mapper seguro para Java records. A diferencia de
-         * {@link org.springframework.jdbc.core.BeanPropertyRowMapper}, que requiere
-         * constructor sin argumentos + setters, usa el constructor canónico y resuelve
-         * snake_case a camelCase automáticamente.
-         */
-        private static <T> RowMapper<T> mapper(Class<T> tipo) {
-                return DataClassRowMapper.newInstance(tipo);
-        }
 
         // ─── Lectura ────────────────────────────────────────────────────
 
@@ -222,51 +210,35 @@ public class CompraService {
 
         @Transactional(readOnly = true)
         public List<ComDtos.CuentasPagarResponse> cuentasPagar(String estado) {
-                String sql = "SELECT * FROM com.vw_cuentas_pagar";
                 if (estado != null && !estado.isBlank()) {
-                        sql += " WHERE estado = ?";
-                        return jdbc.query(sql,
-                                        mapper(ComDtos.CuentasPagarResponse.class), estado);
+                        return reportRepo.vwCuentasPagarPorEstado(estado);
                 }
-                return jdbc.query(sql,
-                                mapper(ComDtos.CuentasPagarResponse.class));
+                return reportRepo.vwCuentasPagar();
         }
 
         @Transactional(readOnly = true)
         public List<ComDtos.FacturaVencidaResponse> facturasVencidas() {
-                return jdbc.query("SELECT * FROM com.vw_facturas_vencidas",
-                                mapper(ComDtos.FacturaVencidaResponse.class));
+                return reportRepo.vwFacturasVencidas();
         }
 
         @Transactional(readOnly = true)
         public List<ComDtos.FacturaPendienteResponse> facturasPendientes() {
-                return jdbc.query("SELECT * FROM com.vw_facturas_pendientes",
-                                mapper(ComDtos.FacturaPendienteResponse.class));
+                return reportRepo.vwFacturasPendientes();
         }
 
         @Transactional(readOnly = true)
         public List<ComDtos.FacturaProveedorResponse> facturasProveedor(Integer proveedorId) {
-                return jdbc.query("SELECT * FROM com.vw_ultimas_facturas_proveedor WHERE proveedor_id = ?",
-                                mapper(ComDtos.FacturaProveedorResponse.class), proveedorId);
+                return reportRepo.vwUltimasFacturasProveedor(proveedorId);
         }
 
         // ─── Abonos a cuentas por pagar (POST) ─────────────────────────────
         // Java orquesta el abono: valida cuenta y monto, resuelve turno/caja y
         // deja que la BD haga el cierre (trigger fn_pago_proveedor_post pasa la
         // cuenta a PARCIAL/LIQUIDADA y registra SALIDA PAGO_PROVEEDOR).
-        private static final String SQL_CUENTA_ABONO = """
-                        SELECT cp.cuenta_pagar_id, c.folio AS compra_folio, cp.estado,
-                               cp.monto_total, cp.monto_pagado,
-                               cp.monto_total - cp.monto_pagado AS saldo, c.almacen_id
-                        FROM com.cuentas_pagar cp
-                        JOIN com.compras c ON c.compra_id = cp.compra_id
-                        WHERE cp.cuenta_pagar_id = ?
-                        """;
 
         @Transactional
         public ComDtos.PagoProveedorResponse abonar(Long cuentaPagarId, ComDtos.PagoProveedorRequest req) {
-                List<ComDtos.CuentaPagoDetalle> filas = jdbc.query(SQL_CUENTA_ABONO,
-                                mapper(ComDtos.CuentaPagoDetalle.class), cuentaPagarId);
+                List<ComDtos.CuentaPagoDetalle> filas = reportRepo.findCuentaPagoDetalle(cuentaPagarId);
                 if (filas.isEmpty()) {
                         throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
                 }
@@ -291,16 +263,11 @@ public class CompraService {
                 String referencia = (req.referencia() == null || req.referencia().isBlank())
                                 ? "ABONO"
                                 : req.referencia().trim();
-                Long pagoProveedorId = jdbc.queryForObject("""
-                                INSERT INTO com.pagos_proveedor
-                                    (cuenta_pagar_id, forma_pago_id, referencia, monto, usuario_id, turno_caja_id)
-                                VALUES (?, ?, ?, ?, ?, ?)
-                                RETURNING pago_proveedor_id
-                                """, Long.class, cuentaPagarId, formaPago.getFormaPagoId(), referencia,
+                Long pagoProveedorId = reportRepo.insertPagoProveedor(
+                                cuentaPagarId, formaPago.getFormaPagoId(), referencia,
                                 req.monto(), UserPrincipal.actual().usuarioId(), turnoCajaId);
 
-                ComDtos.CuentaPagoDetalle actualizada = jdbc.query(SQL_CUENTA_ABONO,
-                                mapper(ComDtos.CuentaPagoDetalle.class), cuentaPagarId).get(0);
+                ComDtos.CuentaPagoDetalle actualizada = reportRepo.findCuentaPagoDetalle(cuentaPagarId).get(0);
                 return new ComDtos.PagoProveedorResponse(
                                 pagoProveedorId, actualizada.estado(), actualizada.montoTotal(),
                                 actualizada.montoPagado(), actualizada.saldo(), actualizada.compraFolio(),

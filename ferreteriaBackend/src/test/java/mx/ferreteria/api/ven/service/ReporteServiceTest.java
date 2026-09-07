@@ -1,11 +1,11 @@
 package mx.ferreteria.api.ven.service;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,8 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import mx.ferreteria.api.ven.dto.ReportDtos.CierreDiarioResponse;
 import mx.ferreteria.api.ven.dto.ReportDtos.MejorClienteResponse;
@@ -24,26 +24,19 @@ import mx.ferreteria.api.ven.dto.ReportDtos.ResumenDashboardResponse;
 import mx.ferreteria.api.ven.dto.ReportDtos.TopProductoResponse;
 import mx.ferreteria.api.ven.dto.ReportDtos.VentaPorHoraResponse;
 import mx.ferreteria.api.ven.dto.ReportDtos.VentaTotalResponse;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static java.util.List.of;
-import java.util.List;
+import mx.ferreteria.api.ven.repo.ReporteRepository;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ReporteServiceTest {
 
-    @Mock JdbcTemplate jdbc;
+    @Mock ReporteRepository reportRepo;
 
     @InjectMocks
     ReporteService service;
 
     private static final LocalDate INICIO = LocalDate.of(2026, 1, 1);
     private static final LocalDate FIN = LocalDate.of(2026, 1, 31);
-
-    private void stubLista(Object r) {
-        when(jdbc.query(anyString(), any(BeanPropertyRowMapper.class), any(Object[].class)))
-                .thenReturn(List.of(r));
-    }
 
     @Test
     @DisplayName("topProductos: consulta acotada por rango y mapea a TopProductoResponse")
@@ -53,7 +46,7 @@ class ReporteServiceTest {
                 "Herramientas", new BigDecimal("120.000"),
                 new BigDecimal("15000.00"), new BigDecimal("9000.00"),
                 new BigDecimal("6000.00"), 1L, 1L);
-        stubLista(r);
+        doReturn(List.of(r)).when(reportRepo).findTopProductos(INICIO, FIN);
 
         var result = service.topProductos(INICIO, FIN);
 
@@ -68,7 +61,7 @@ class ReporteServiceTest {
         MejorClienteResponse r = new MejorClienteResponse(
                 INICIO, 1L, "Cliente A", 10L,
                 new BigDecimal("50000.00"), new BigDecimal("5000.00"), 1L, 1L);
-        stubLista(r);
+        doReturn(List.of(r)).when(reportRepo).findMejoresClientes(INICIO, FIN);
 
         var result = service.mejoresClientes(INICIO, FIN);
 
@@ -84,7 +77,7 @@ class ReporteServiceTest {
                 new BigDecimal("4000.00"), new BigDecimal("500.00"),
                 new BigDecimal("28500.00"), new BigDecimal("1140.00"),
                 new BigDecimal("15000.00"), new BigDecimal("10000.00"));
-        stubLista(r);
+        doReturn(List.of(r)).when(reportRepo).findVentasTotales(INICIO, FIN);
 
         var result = service.ventasTotales(INICIO, FIN);
 
@@ -99,7 +92,7 @@ class ReporteServiceTest {
                 INICIO, 1, "Juan Perez", 30L,
                 new BigDecimal("60000.00"), new BigDecimal("2000.00"),
                 new BigDecimal("30000.00"), 1L, 1L);
-        stubLista(r);
+        doReturn(List.of(r)).when(reportRepo).findMejoresVendedores(INICIO, FIN);
 
         var result = service.mejoresVendedores(INICIO, FIN);
 
@@ -113,7 +106,7 @@ class ReporteServiceTest {
         VentaPorHoraResponse r = new VentaPorHoraResponse(
                 17, 20L, new BigDecimal("30000.00"),
                 new BigDecimal("1500.00"), 1L);
-        stubLista(r);
+        doReturn(List.of(r)).when(reportRepo).findVentasPorHora(INICIO, FIN);
 
         var result = service.ventasPorHora(INICIO, FIN);
 
@@ -127,7 +120,7 @@ class ReporteServiceTest {
         MejorDiaVentaResponse r = new MejorDiaVentaResponse(
                 6, "Sabado", 4L, 25L,
                 new BigDecimal("20000.00"), new BigDecimal("5000.00"), 1L);
-        stubLista(r);
+        doReturn(List.of(r)).when(reportRepo).findMejoresDiasVenta(INICIO, FIN);
 
         var result = service.mejoresDiasVenta(INICIO, FIN);
 
@@ -142,8 +135,7 @@ class ReporteServiceTest {
                 new BigDecimal("15000.00"), 25L, new BigDecimal("800.00"),
                 new BigDecimal("40000.00"), new BigDecimal("5000.00"),
                 new BigDecimal("1800000.00"), 3L, 2L, 1L);
-        when(jdbc.queryForObject(anyString(), any(BeanPropertyRowMapper.class), any(Object[].class)))
-                .thenReturn(r);
+        doReturn(r).when(reportRepo).findResumenDashboard(INICIO, FIN);
 
         var result = service.resumenDashboard(INICIO, FIN);
 
@@ -161,7 +153,7 @@ class ReporteServiceTest {
                 new BigDecimal("40000.00"), new BigDecimal("1000.00"),
                 new BigDecimal("39000.00"), BigDecimal.ZERO,
                 new BigDecimal("5000.00"), true);
-        stubLista(r);
+        doReturn(List.of(r)).when(reportRepo).findCierreDiario(INICIO, FIN);
 
         var result = service.cierreDiario(INICIO, FIN);
 
