@@ -9,7 +9,7 @@
  */
 /* eslint-disable react-refresh/only-export-components */
 import { Suspense } from "react";
-import { Outlet, createBrowserRouter, type RouteObject } from "react-router-dom";
+import { Outlet, createBrowserRouter } from "react-router-dom";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { spinners } from "@/components/router-utils";
@@ -48,11 +48,6 @@ function RequiereAuth() {
   return <Outlet />;
 }
 
-/** Convierte una ruta en layout-route protegido (route.element como children). */
-function protegida<T extends RouteObject>(ruta: T): T {
-  return { ...ruta, element: <Outlet /> } as unknown as T;
-}
-
 export const router = createBrowserRouter([
   // Rutas publicas (login, redirect /) — sin AppShell, sin auth
   ...publicRoutes,
@@ -62,7 +57,7 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <ShellPrivada />,
-        children: privateRoutes.map(protegida),
+        children: privateRoutes,
       },
     ],
   },
