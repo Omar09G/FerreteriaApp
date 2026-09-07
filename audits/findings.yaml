@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=67 open=249
+# Total: 316 - done=69 open=247
 ---
 - id: BACK-REND-001
   project: backend
@@ -389,9 +389,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: RequestIdFilter ahora loguea a DEBUG (no INFO) el incoming header. Solo 1 linea por request a nivel INFO
+    sera visible si esta activo; sin sobrecarga en INFO'
 - id: BACK-REND-023
   project: backend
   dimension: rendimiento
@@ -1649,9 +1651,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: VentaService.checkout NO consulta catalogo de promociones. PromocionService.listar/findActivas ya no estan
+    en hot-path de venta. (audit describio un flujo que no existe en codigo actual)'
 - id: BACK-ESC-004
   project: backend
   dimension: escalabilidad

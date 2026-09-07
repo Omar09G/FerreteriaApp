@@ -48,7 +48,9 @@ public class RequestIdFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
             FilterChain chain) throws ServletException, IOException {
         String incoming = req.getHeader(HEADER);
-        log.info("[RequestIdFilter] uri={} incoming={}", req.getRequestURI(), incoming);
+        // BACK-REND-022: loguear a DEBUG evita escribir 1 linea por request en
+        // INFO (incluso health checks). Solo subir a INFO en diagnostico activo.
+        log.debug("[RequestIdFilter] uri={} incoming={}", req.getRequestURI(), incoming);
         try {
             if (incoming == null || incoming.isBlank()) {
                 if (props.mode() == RequestIdProperties.Mode.STRICT) {
