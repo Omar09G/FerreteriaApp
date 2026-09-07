@@ -134,7 +134,8 @@ public class SegAdminController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sort) {
-        return service.listPermisos(PageQuery.of(page, size, sort).toPageable());
+        // BACK-REND-018: permisos es catálogo pequeño (<100 filas), necesita size=300 para traer todo de una vez en el selector de roles.
+        return service.listPermisos(PageQuery.of(page, size, sort).toPageable(500));
     }
 
     @GetMapping("/permisos/{id}")
