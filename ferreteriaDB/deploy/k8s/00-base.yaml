@@ -14,11 +14,15 @@ metadata:
   name: ferreteria-db-secret
   namespace: ferreteria
 type: Opaque
-# NOTA: en producción usar SealedSecrets / ExternalSecrets / Vault, no texto plano.
+# BACK-SEC-003: este manifiesto NO debe contener passwords reales. En dev/
+# staging se sustituye con SealedSecrets/ExternalSecrets/Vault. Para tests
+# locales usar `kubectl apply -f 00-base.local.yaml` con valores dummy.
+# stringData se mantiene como referencia estructural; el operador de cluster
+# debe SOBREESCRIBIR el Secret antes del primer deploy.
 stringData:
-  POSTGRES_PASSWORD: "CambiaAdmin2026!"
-  POSTGRES_APP_PASSWORD: "CambiaApp2026!"
-  REPLICATION_PASSWORD: "CambiaReplica2026!"
+  POSTGRES_PASSWORD: "REPLACE_ME_VIA_EXTERNAL_SECRETS"
+  POSTGRES_APP_PASSWORD: "REPLACE_ME_VIA_EXTERNAL_SECRETS"
+  REPLICATION_PASSWORD: "REPLACE_ME_VIA_EXTERNAL_SECRETS"
 ---
 apiVersion: v1
 kind: ConfigMap

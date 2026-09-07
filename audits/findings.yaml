@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=70 open=246
+# Total: 316 - done=71 open=245
 ---
 - id: BACK-REND-001
   project: backend
@@ -530,9 +530,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: 00-base.yaml Secret stringData ahora usa REPLACE_ME_VIA_EXTERNAL_SECRETS (no passwords reales). .env.example
+    ya usa placeholders cambia_*. En prod: ExternalSecrets/Vault + docs/secrets.md'
 - id: BACK-SEC-004
   project: backend
   dimension: seguridad
