@@ -21,8 +21,8 @@ public class CreditoController {
 
     private final CreditoService service;
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @GetMapping("/cobranza")
-    @PreAuthorize("hasAuthority('VENDEDOR', 'GERENTE','ADMINISTRADOR')")
     public Page<VenDtos.CuentaCobrarResponse> listCuentas(
             @RequestParam(required = false) String estado,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -33,8 +33,8 @@ public class CreditoController {
         return service.listCuentas(desde, hasta, estado, PageQuery.of(page, size, sort).toPageable());
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     @GetMapping("/{clienteId}")
-    @PreAuthorize("hasAuthority('VENDEDOR', 'GERENTE','ADMINISTRADOR')")
     public Page<VenDtos.CuentaCobrarResponse> listByCliente(
             @PathVariable Long clienteId,
             @RequestParam(required = false) String estado,
