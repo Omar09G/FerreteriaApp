@@ -22,7 +22,6 @@
 import { metrics, trace } from "@opentelemetry/api";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { DocumentLoadInstrumentation } from "@opentelemetry/instrumentation-document-load";
 import { FetchInstrumentation } from "@opentelemetry/instrumentation-fetch";
 import { UserInteractionInstrumentation } from "@opentelemetry/instrumentation-user-interaction";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
@@ -51,6 +50,25 @@ if (!enabled) {
 	// no-op (cero costo en producción local / dev).
 	console.info('[OTel] Desactivado (VITE_OTEL_ENABLED !== "true")');
 } else {
+	// Guard global para "Cannot read properties of undefined (reading 'startTime')"
+	// que dispara DocumentLoadInstrumentation.reportAllChanges vía requestIdleCallback
+	// cuando el browser entrega PerformanceEntry incompleta. Es async, no lo
+	// atrapa el try/catch de registerInstrumentations, así que lo suprimimos
+	// aquí para no ensuciar la consola y no romper la app.
+	window.addEventListener("error", (e) => {
+		if (e.message.includes("startTime") && e.message.includes("reportAllChanges")) {
+			e.preventDefault();
+			console.warn("[OTel] suppressed startTime error", e.message);
+			return true;
+		}
+	});
+	window.addEventListener("unhandledrejection", (e) => {
+		const msg = String(e.reason?.message || e.reason || "");
+		if (msg.includes("startTime") && msg.includes("reportAllChanges")) {
+			e.preventDefault();
+			console.warn("[OTel] suppressed startTime rejection", msg);
+		}
+	});
 	// ─── Recurso común: identifica al servicio en el collector ─────────
 	const resource = resourceFromAttributes({
 		[ATTR_SERVICE_NAME]: "ferreteria-frontend",
@@ -77,13 +95,15 @@ if (!enabled) {
 
 	// Auto-instrumentaciones: navegación, fetch, interacciones. Se registran
 	// DESPUÉS de tracerProvider.register() para que tomen el provider global.
-	// Guard contra PerformanceEntry incompletas que disparan
+	// DocumentLoadInstrumentation deshabilitado: dispara
 	// "Cannot read properties of undefined (reading 'startTime')" en
-	// DocumentLoadInstrumentation.reportAllChanges (requestIdleCallback).
+	// reportAllChanges vía requestIdleCallback con PerformanceEntry incompleta
+	// en algunos browsers (ver VM5306:2). No es crítico para ferretería (solo
+	// métricas de carga inicial); se mantiene Fetch + UserInteraction.
 	try {
 		registerInstrumentations({
 			instrumentations: [
-				new DocumentLoadInstrumentation(),
+				// new DocumentLoadInstrumentation(), // deshabilitado por startTime bug
 				new FetchInstrumentation({
 					// No rastrear llamadas a /csrf-init (ruido) ni a collectores OTel
 					ignoreUrls: [/\/auth\/csrf-init/, /\/v1\/(traces|metrics)$/],
