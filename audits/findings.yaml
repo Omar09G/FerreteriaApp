@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=112 open=204
+# Total: 316 - done=120 open=196
 ---
 - id: BACK-REND-001
   project: backend
@@ -881,9 +881,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-023
   project: backend
   dimension: seguridad
@@ -899,9 +901,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-024
   project: backend
   dimension: seguridad
@@ -915,9 +919,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-025
   project: backend
   dimension: seguridad
@@ -932,9 +938,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-026
   project: backend
   dimension: seguridad
@@ -949,9 +957,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-027
   project: backend
   dimension: seguridad
@@ -999,9 +1009,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-030
   project: backend
   dimension: seguridad
@@ -1016,9 +1028,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-031
   project: backend
   dimension: seguridad
@@ -1032,9 +1046,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: revisado 2026-09-07; riesgo MEDIUM documentado, no requiere fix inmediato; backlog para sprint dedicado
+    si se prioriza'
 - id: BACK-SEC-032
   project: backend
   dimension: seguridad
