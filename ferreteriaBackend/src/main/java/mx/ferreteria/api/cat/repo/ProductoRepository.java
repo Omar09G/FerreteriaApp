@@ -20,4 +20,11 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     Page<Producto> findByActivoTrueAndCodigoIgnoreCase(String codigo, Pageable pageable);
 
+    /* -------- Proyecciones BACK-REND-027 (interface-based) -------- */
+
+    Page<ProductoListado> findListadoByCategoriaIdAndActivoTrue(Integer categoriaId, Pageable pageable);
+
+    Page<ProductoListado> findListadoByActivoTrue(Pageable pageable);
+
+    Page<ProductoListado> findListadoByActivoTrueAndNombreContainingIgnoreCase(String nombre, Pageable pageable);
 }

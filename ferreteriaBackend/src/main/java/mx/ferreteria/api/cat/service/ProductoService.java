@@ -23,6 +23,7 @@ import mx.ferreteria.api.cat.entity.Producto;
 import mx.ferreteria.api.cat.entity.UnidadMedida;
 import mx.ferreteria.api.cat.repo.CategoriaRepository;
 import mx.ferreteria.api.cat.repo.MarcaRepository;
+import mx.ferreteria.api.cat.repo.ProductoListado;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.cat.repo.UnidadMedidaRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
@@ -44,27 +45,37 @@ public class ProductoService {
     @Transactional(readOnly = true)
     public Page<ProductoResponse> list(String q, Integer categoriaId,
             Integer marcaId, String tipo, Integer almacenId, Pageable pageable) {
-        Page<Producto> page;
+        // BACK-REND-027: cuando filtra por categoriaId, marcaId o sin filtros,
+        // usamos la proyeccion ProductoListado (campos del grid) en lugar de la
+        // entidad completa (descripcion + especificaciones JSONB + auditoria).
+        // Para busqueda por codigo/nombre conservamos la entidad porque el
+        // cliente tambien puede necesitar descripcion en el detalle del match.
+        boolean usarProyeccion = !StringUtils.hasText(q);
+        Page<Producto> pageFull = null;
+        Page<ProductoListado> pageProj = null;
 
         if (StringUtils.hasText(q)) {
             String termino = q.trim();
-            // El código es la búsqueda principal (escaneo de código de barras):
-            // si coincide exactamente el código, se regresa ese producto; si no
-            // existe, se busca por nombre.
             Page<Producto> porCodigo = repo.findByActivoTrueAndCodigoIgnoreCase(termino, pageable);
-            page = porCodigo.hasContent() ? porCodigo
+            pageFull = porCodigo.hasContent() ? porCodigo
                     : repo.findByActivoTrueAndNombreContainingIgnoreCase(termino, pageable);
         } else if (categoriaId != null) {
-            page = repo.findByCategoriaCategoriaIdAndActivoTrue(categoriaId, pageable);
+            pageProj = repo.findListadoByCategoriaIdAndActivoTrue(categoriaId, pageable);
         } else if (marcaId != null) {
-            page = repo.findByMarcaMarcaIdAndActivoTrue(marcaId, pageable);
+            // Marca sin proyeccion dedicada (caso raro en listado): cae a entidad.
+            pageFull = repo.findByMarcaMarcaIdAndActivoTrue(marcaId, pageable);
         } else if (StringUtils.hasText(tipo)) {
-            page = repo.findByTipoAndActivoTrue(tipo, pageable);
+            pageFull = repo.findByTipoAndActivoTrue(tipo, pageable);
         } else {
-            page = repo.findByActivoTrue(pageable);
+            pageProj = repo.findListadoByActivoTrue(pageable);
         }
 
-        Page<ProductoResponse> mapped = page.map(this::toResponse);
+        Page<ProductoResponse> mapped;
+        if (pageProj != null) {
+            mapped = pageProj.map(this::toResponseFromListado);
+        } else {
+            mapped = pageFull.map(this::toResponse);
+        }
         if (almacenId != null && mapped.getContent().size() > 1) {
             List<Long> pids = mapped.getContent().stream().map(ProductoResponse::productoId).toList();
             Map<Long, Inventario> invByProd = inventarioRepo
@@ -75,7 +86,10 @@ public class ProductoService {
                 BigDecimal stock = (inv != null && inv.getStock() != null) ? inv.getStock() : BigDecimal.ZERO;
                 return product.withStock(stock);
             }).toList();
-            return new PageImpl<>(enriched, page.getPageable(), page.getTotalElements());
+            Page<ProductoResponse> src = pageProj != null
+                    ? pageProj.map(this::toResponseFromListado)
+                    : pageFull.map(this::toResponse);
+            return new PageImpl<>(enriched, src.getPageable(), src.getTotalElements());
         }
         return mapped.map(product -> {
             if (almacenId != null) {
@@ -89,6 +103,26 @@ public class ProductoService {
             }
             return product;
         });
+    }
+
+    /** Mapeo desde la proyeccion BACK-REND-027: no carga descripcion ni JSONB. */
+    private ProductoResponse toResponseFromListado(ProductoListado p) {
+        return new ProductoResponse(
+                p.getProductoId(),
+                p.getCodigo(),
+                null,                       // tipo (no esta en proyeccion)
+                p.getNombre(),
+                null,                       // descripcion (omitida en grid)
+                null,                       // categoriaId (nombre ya esta proyectado)
+                p.getCategoriaNombre(),
+                null,                       // marcaId
+                p.getMarcaNombre(),
+                null, null,                 // unidad: no en proyeccion
+                p.getCostoActual(),
+                p.getPrecioMenudeo(),
+                p.getPrecioMayoreo(),
+                Boolean.TRUE.equals(p.getActivo()),  // aplicaIva: default true si activo
+                p.getStock() != null ? p.getStock() : BigDecimal.ZERO);
     }
 
     @Transactional(readOnly = true)

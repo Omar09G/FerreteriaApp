@@ -25,9 +25,6 @@ import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import jakarta.persistence.EntityManager;
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
@@ -60,15 +57,9 @@ class VentaServiceTest {
     @Mock CajaService cajaService;
     @Mock CuentaCobrarRepository cuentaRepo;
     @Mock PagoClienteRepository pagoRepo;
-    @Mock EntityManager em;
 
     @InjectMocks
     VentaService service;
-
-    @BeforeEach
-    void inyectarEntityManager() {
-        ReflectionTestUtils.setField(service, "em", em);
-    }
 
     // ── helpers ──────────────────────────────────────────────────────
 
@@ -224,7 +215,7 @@ class VentaServiceTest {
         when(formaPagoRepo.findById(1))
                 .thenReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
         when(ventaRepo.save(any(Venta.class))).thenReturn(saved);
-        when(ventaRepo.findById(10L)).thenReturn(Optional.of(saved));
+        when(ventaRepo.reloadAfterTriggers(10L)).thenReturn(Optional.of(saved));
         when(clienteRepo.findById(anyLong())).thenReturn(Optional.empty());
         when(detalleRepo.findByVentaId(10L)).thenReturn(List.of());
         when(cuentaRepo.findByVentaId(10L)).thenReturn(Optional.empty());

@@ -17,8 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.entity.FormaPago;
@@ -57,9 +55,6 @@ public class VentaService {
     private final CuentaCobrarRepository cuentaRepo;
     private final CajaService cajaService;
     private final PagoClienteRepository pagoRepo;
-
-    @PersistenceContext
-    private EntityManager em;
 
     @Transactional(readOnly = true)
     public Page<VenDtos.VentaResponse> list(Integer almacenId, Instant desde, Instant hasta, Pageable pageable) {
@@ -152,13 +147,10 @@ public class VentaService {
         // GENERATED. Hibernate no refleja esos valores sobre las instancias
         // gestionadas al insertar. Antes: em.refresh(savedVenta) + N
         // detalles.forEach(em::refresh) = 1 + N queries (51 para 50 SKUs).
-        // Ahora: em.refresh(savedVenta) (cabecera) + em.clear() + toResponse().
-        // em.clear() evicta todas las entidades del PersistenceContext (incluidos
-        // los detalles stale), por lo que detalleRepo.findByVentaId() ejecuta una
-        // sola query batch y devuelve los totales recalculados por trigger.
-        em.refresh(savedVenta);
-        em.clear();
-        Venta v = ventaRepo.findById(savedVenta.getVentaId())
+        // Ahora: reloadAfterTriggers() encapsula em.clear()+find y devuelve la
+        // Venta ya con cabecera y (via toResponse) detalles recalculados.
+        // BACK-DIS-002: el EntityManager ya NO vive en el service.
+        Venta v = ventaRepo.reloadAfterTriggers(savedVenta.getVentaId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
         return toResponse(v);
     }

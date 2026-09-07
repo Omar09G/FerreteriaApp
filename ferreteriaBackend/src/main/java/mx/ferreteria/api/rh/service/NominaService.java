@@ -9,6 +9,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+
+import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +33,7 @@ import mx.ferreteria.api.rh.repo.NominaRepository;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Slf4j
 public class NominaService {
 
     private final NominaRepository nominaRepo;
@@ -136,7 +138,12 @@ public class NominaService {
                 savedEntities.add(saved);
                 creadas++;
             } catch (Exception e) {
-                // duplicado concurrente
+                // BACK-EST-001: el catch antes era silencioso (omitidas++; sin log),
+                // haciendo imposible diagnosticar nóminas faltantes. Ahora se loguea
+                // a nivel WARN con el id del empleado y el tipo + mensaje resumido,
+                // sin filtrar PHI/PII porque empleadoId es la PK interna.
+                log.warn("nomina omitida empleado_id={} tipo={} mensaje={}",
+                        empId, e.getClass().getSimpleName(), e.getMessage());
                 omitidas++;
             }
         }

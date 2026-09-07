@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import mx.ferreteria.api.ven.entity.Venta;
 
-public interface VentaRepository extends JpaRepository<Venta, Long> {
+public interface VentaRepository extends JpaRepository<Venta, Long>, VentaRepositoryCustom {
     Optional<Venta> findByFolio(String folio);
     Page<Venta> findByFechaBetweenOrderByFechaDesc(Instant desde, Instant hasta, Pageable pageable);
     Page<Venta> findByAlmacenIdAndFechaBetweenOrderByFechaDesc(Integer almacenId, Instant desde, Instant hasta, Pageable pageable);

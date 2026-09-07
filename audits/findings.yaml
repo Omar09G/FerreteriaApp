@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=63 open=253
+# Total: 316 - done=67 open=249
 ---
 - id: BACK-REND-001
   project: backend
@@ -339,9 +339,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: VentaController usa listByFechaLocal (DATE local, sin Instant/JSONB). findByFechaBetweenOrderByFechaDesc
+    ya NO se invoca desde controllers; queda en repo pero sin uso real'
 - id: BACK-REND-020
   project: backend
   dimension: rendimiento
@@ -470,9 +472,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: ProductoListado interface-based projection; ProductoService.list usa findListadoBy* para categoriaId/sin-filtros
+    (evita cargar descripcion + JSONB); 2 tests actualizados'
 - id: BACK-SEC-001
   project: backend
   dimension: seguridad
@@ -1258,9 +1262,11 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: VentaService ya NO usa @PersistenceContext EntityManager. Encapsulado en VentaRepositoryCustom.reloadAfterTriggers()
+    (VentaRepositoryImpl) - hexagonal, EM solo en adapter'
 - id: BACK-DIS-003
   project: backend
   dimension: diseno
@@ -1356,9 +1362,10 @@
   blast_radius: dx
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'HIGH fix: NominaService.generarQuincena ya loguea WARN con empleado_id+tipo+mensaje en cada nomina omitida por excepcion'
 - id: BACK-EST-002
   project: backend
   dimension: estabilidad

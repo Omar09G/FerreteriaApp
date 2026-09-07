@@ -3,6 +3,7 @@ package mx.ferreteria.api.cat.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -72,11 +73,21 @@ class ProductoServiceTest {
     // ── list ────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("list sin filtros: retorna pagina de productos activos")
+    @DisplayName("list sin filtros: retorna pagina de productos activos (proyeccion BACK-REND-027)")
     void list_all_returnsPage() {
         Pageable pg = PageRequest.of(0, 10);
-        Producto p = sampleProducto();
-        when(repo.findByActivoTrue(pg)).thenReturn(new PageImpl<>(List.of(p), pg, 1));
+        mx.ferreteria.api.cat.repo.ProductoListado p = mock(mx.ferreteria.api.cat.repo.ProductoListado.class);
+        when(p.getProductoId()).thenReturn(1L);
+        when(p.getCodigo()).thenReturn("P001");
+        when(p.getNombre()).thenReturn("Taladro");
+        when(p.getCategoriaNombre()).thenReturn("Herramientas");
+        when(p.getMarcaNombre()).thenReturn("DeWalt");
+        when(p.getCostoActual()).thenReturn(new java.math.BigDecimal("100.00"));
+        when(p.getPrecioMenudeo()).thenReturn(new java.math.BigDecimal("150.00"));
+        when(p.getPrecioMayoreo()).thenReturn(new java.math.BigDecimal("130.00"));
+        when(p.getStock()).thenReturn(new java.math.BigDecimal("5.000"));
+        when(p.getActivo()).thenReturn(true);
+        when(repo.findListadoByActivoTrue(pg)).thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
         var result = service.list(null, null, null, null, null, pg);
 
@@ -132,16 +143,27 @@ class ProductoServiceTest {
     }
 
     @Test
-    @DisplayName("list con categoriaId: usa findByCategoriaCategoriaIdAndActivoTrue")
+    @DisplayName("list con categoriaId: usa findListadoByCategoriaIdAndActivoTrue (proyeccion BACK-REND-027)")
     void list_withCategoriaId() {
         Pageable pg = PageRequest.of(0, 10);
-        Producto p = sampleProducto();
-        when(repo.findByCategoriaCategoriaIdAndActivoTrue(1, pg))
+        mx.ferreteria.api.cat.repo.ProductoListado p = mock(mx.ferreteria.api.cat.repo.ProductoListado.class);
+        when(p.getProductoId()).thenReturn(1L);
+        when(p.getCodigo()).thenReturn("P001");
+        when(p.getNombre()).thenReturn("Taladro");
+        when(p.getCategoriaNombre()).thenReturn("Herramientas");
+        when(p.getMarcaNombre()).thenReturn(null);
+        when(p.getCostoActual()).thenReturn(new java.math.BigDecimal("100.00"));
+        when(p.getPrecioMenudeo()).thenReturn(new java.math.BigDecimal("150.00"));
+        when(p.getPrecioMayoreo()).thenReturn(new java.math.BigDecimal("130.00"));
+        when(p.getStock()).thenReturn(BigDecimal.ZERO);
+        when(p.getActivo()).thenReturn(true);
+        when(repo.findListadoByCategoriaIdAndActivoTrue(1, pg))
                 .thenReturn(new PageImpl<>(List.of(p), pg, 1));
 
         var result = service.list(null, 1, null, null, null, pg);
 
         assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).categoriaNombre()).isEqualTo("Herramientas");
     }
 
     @Test
