@@ -8,11 +8,9 @@
  * Fast Refresh desactivado: el elemento raiz combina varios boundary providers.
  */
 /* eslint-disable react-refresh/only-export-components */
-import { Suspense } from "react";
 import { Outlet, createBrowserRouter } from "react-router-dom";
 import { Navigate, useLocation } from "react-router-dom";
 
-import { spinners } from "@/components/router-utils";
 import { NotFound } from "@/components/errors/PageStates";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAutenticado } from "@/store/auth";
@@ -21,19 +19,14 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { publicRoutes, privateRoutes } from "./registry";
 
 /**
- * Layout raiz: Toast + AppShell + Suspense para cualquier ruta privada.
- * AppShell no acepta children, asi que envolvemos su contenido en un wrapper
- * Outlet-friendly.
+ * Layout raiz: Toast + AppShell. AppShell ya contiene su propio <Outlet />
+ * dentro de <main> (linea 551), por lo que aqui no se añade otro Outlet.
+ * Suspense para lazy pages vive dentro de AppShell alrededor de su Outlet.
  */
 function ShellPrivada() {
   return (
     <ToastProvider>
       <AppShell />
-      {/* AppShell renderiza su propio sidebar; las rutas se montan via outlet en
-          su layout interno. Suspense fuera de AppShell para no romper su chrome. */}
-      <Suspense fallback={spinners.full}>
-        <Outlet />
-      </Suspense>
     </ToastProvider>
   );
 }

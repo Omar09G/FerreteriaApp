@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import {
 	Boxes,
 	BarChart3,
@@ -33,6 +33,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuthStore, tieneRol } from "@/store/auth";
 import { useUiStore, type Tema } from "@/store/ui";
 import { useT } from "@/i18n";
+import { spinners } from "@/components/router-utils";
 import { apiCambiarPassword, apiLogout } from "@/lib/api/endpoints";
 import { esApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/Button";
@@ -548,7 +549,9 @@ export function AppShell() {
 					<Preferencias />
 				</div>
 				<div className="mx-auto max-w-[1400px]">
-					<Outlet />
+					<Suspense fallback={spinners.full}>
+						<Outlet />
+					</Suspense>
 				</div>
 			</main>
 
