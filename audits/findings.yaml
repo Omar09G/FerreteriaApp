@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=102 open=214
+# Total: 316 - done=107 open=209
 ---
 - id: BACK-REND-001
   project: backend
@@ -3944,9 +3944,11 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: fecha_local DATE GENERATED con timezone America/Mexico_City es intencional para reportes locales; GUC
+    timezone fijado por ALTER ROLE ferreteria_app SET timezone; PgBouncer transaction mode preserva SET via pool; aceptado'
 - id: DB-DIS-007
   project: database
   dimension: diseno
@@ -3960,9 +3962,11 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: funciones PL/pgSQL para API son patron trigger/auditoria existente; migracion a INSERT directo requeriria
+    reescribir triggers; aceptado como deuda'
 - id: DB-DIS-008
   project: database
   dimension: diseno
@@ -3976,9 +3980,10 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'DOCUMENTADO: soft-delete mixto (eliminado_en vs activo) es patron por modulo; unificacion requeriria migracion breaking'
 - id: DB-DIS-009
   project: database
   dimension: diseno
@@ -4216,9 +4221,11 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-TOLERABLE: trg_mov_stock AFTER INSERT con ON CONFLICT DO UPDATE es idempotente; stock desincronizado solo con
+    rollback parcial de transaccion externa, no en hot-path'
 - id: DB-EST-002
   project: database
   dimension: estabilidad
@@ -4249,9 +4256,11 @@
   blast_radius: dx
   discovered_by: database-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-TOLERABLE: fn_recalc_totales_venta AFTER-per-row con N recalculos es tolerable para venta tipica 5-50 lineas;
+    STATEMENT es optimizacion futura'
 - id: DB-EST-004
   project: database
   dimension: estabilidad
