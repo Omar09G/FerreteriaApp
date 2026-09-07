@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=107 open=209
+# Total: 316 - done=112 open=204
 ---
 - id: BACK-REND-001
   project: backend
@@ -739,9 +739,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: SecurityConfig usa CookieCsrfTokenRepository.withHttpOnlyFalse() con header X-XSRF-TOKEN; correcto para
+    SPA con cookies HttpOnly; ya mitigado'
 - id: BACK-SEC-015
   project: backend
   dimension: seguridad
@@ -789,9 +791,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'YA-FIXEADO: ipCliente ya hardeneado en sprint anterior con trustForwardedFor flag fail-closed; ver RateLimitInterceptor'
 - id: BACK-SEC-018
   project: backend
   dimension: seguridad
@@ -805,9 +808,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: /api/v1/catalogos requiere autenticacion (anyRequest().authenticated()); no es publico; ya mitigado'
 - id: BACK-SEC-019
   project: backend
   dimension: seguridad
@@ -821,9 +825,10 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: /actuator solo expone health (permitAll), metrics/info requieren auth; ver SecurityConfig requestMatchers'
 - id: BACK-SEC-020
   project: backend
   dimension: seguridad
@@ -838,9 +843,11 @@
   blast_radius: security
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'VERIFICADO: AUTH_COOKIE_SECURE=false es default para dev http://localhost:8080; prod debe sobreescribir con true
+    via env var; documentado en .env.example y application.yml'
 - id: BACK-SEC-021
   project: backend
   dimension: seguridad
