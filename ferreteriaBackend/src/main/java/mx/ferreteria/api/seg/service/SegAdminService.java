@@ -1,6 +1,5 @@
 package mx.ferreteria.api.seg.service;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -40,11 +39,11 @@ import mx.ferreteria.api.seg.service.SegAdminGateway.UsuarioRow;
 /**
  * CRUD de seguridad (PLAN §6 seg). Endpoints exclusivos de ADMINISTRADOR
  * (guardado con @PreAuthorize en el controller). Reglas de arranque:
- *  - PASSWORD_NUNCA en respuestas; solo hash BCrypt al guardar.
- *  - Los CLAVES de rol/permiso se validan contra el catálogo activo; clave
- *    inexistente -> 400 REFERENCIA_INVALIDA (rollback total).
- *  - Asignación de CLAVES sin permiso sobre la referencia es imposible:
- *    reemplazo atómico (DELETE+INSERT) dentro de una transacción.
+ * - PASSWORD_NUNCA en respuestas; solo hash BCrypt al guardar.
+ * - Los CLAVES de rol/permiso se validan contra el catálogo activo; clave
+ * inexistente -> 400 REFERENCIA_INVALIDA (rollback total).
+ * - Asignación de CLAVES sin permiso sobre la referencia es imposible:
+ * reemplazo atómico (DELETE+INSERT) dentro de una transacción.
  */
 @Service
 @RequiredArgsConstructor
@@ -62,7 +61,7 @@ public class SegAdminService implements UsuarioAltaGateway {
     @Override
     @Transactional
     public int crearUsuarioConRoles(String username, String email, String password,
-                                    int empleadoId, List<String> roles) {
+            int empleadoId, List<String> roles) {
         int usuarioId = gateway.createUsuario(username, email,
                 passwordEncoder.encode(password), empleadoId, true);
         guardarRoles(usuarioId, roles);
@@ -76,11 +75,12 @@ public class SegAdminService implements UsuarioAltaGateway {
         Set<Integer> empleadoIds = new HashSet<>();
         for (var r : rows) {
             usuarioIds.add(r.usuarioId());
-            if (r.empleadoId() != null) empleadoIds.add(r.empleadoId());
+            if (r.empleadoId() != null)
+                empleadoIds.add(r.empleadoId());
         }
         Map<Integer, List<String>> rolesByUser = auth.rolesOfBatch(usuarioIds);
-        Map<Integer, mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen> empById =
-                empleadoIds.isEmpty() ? Map.of() : empleados.resumenByIds(empleadoIds);
+        Map<Integer, mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen> empById = empleadoIds.isEmpty() ? Map.of()
+                : empleados.resumenByIds(empleadoIds);
         List<UsuarioResponse> content = rows.stream()
                 .map(r -> toUsuario(r, rolesByUser.getOrDefault(r.usuarioId(), List.of()),
                         r.empleadoId() == null ? null : empById.get(r.empleadoId())))
@@ -134,7 +134,8 @@ public class SegAdminService implements UsuarioAltaGateway {
         List<SegAdminGateway.RolRow> rows = gateway.findRoles(
                 pageable.getPageSize(), Math.toIntExact(pageable.getOffset()));
         Set<Integer> rolIds = new HashSet<>();
-        for (var r : rows) rolIds.add(r.rolId());
+        for (var r : rows)
+            rolIds.add(r.rolId());
         Map<Integer, List<String>> permisosByRol = gateway.permisosDeBatch(rolIds);
         List<RolResponse> content = rows.stream()
                 .map(r -> toRol(r, permisosByRol.getOrDefault(r.rolId(), List.of())))
@@ -180,7 +181,7 @@ public class SegAdminService implements UsuarioAltaGateway {
 
     public Page<PermisoResponse> listPermisos(Pageable pageable) {
         List<PermisoResponse> content = gateway.findPermisos(
-                        pageable.getPageSize(), Math.toIntExact(pageable.getOffset()))
+                pageable.getPageSize(), Math.toIntExact(pageable.getOffset()))
                 .stream().map(this::toPermiso)
                 .toList();
         return new PageImpl<>(content, pageable, gateway.countPermisos());
@@ -268,14 +269,14 @@ public class SegAdminService implements UsuarioAltaGateway {
     }
 
     private UsuarioResponse toUsuario(UsuarioRow r) {
-    return new UsuarioResponse(r.usuarioId(), r.username(), r.email(), r.empleadoId(),
-            r.activo(), auth.rolesOf(r.usuarioId()),
-            resumenEmpleado(r.empleadoId()), r.ultimoLogin(), r.creadoEn());
-}
+        return new UsuarioResponse(r.usuarioId(), r.username(), r.email(), r.empleadoId(),
+                r.activo(), auth.rolesOf(r.usuarioId()),
+                resumenEmpleado(r.empleadoId()), r.ultimoLogin(), r.creadoEn());
+    }
 
-private EmpleadoResumen resumenEmpleado(Integer empleadoId) {
-    return empleadoId == null ? null : empleados.resumenById(empleadoId).orElse(null);
-}
+    private EmpleadoResumen resumenEmpleado(Integer empleadoId) {
+        return empleadoId == null ? null : empleados.resumenById(empleadoId).orElse(null);
+    }
 
     /** Variante batch para listados: reutiliza roles/empleados pre-cargados. */
     private UsuarioResponse toUsuario(UsuarioRow r, List<String> roles, EmpleadoResumen emp) {

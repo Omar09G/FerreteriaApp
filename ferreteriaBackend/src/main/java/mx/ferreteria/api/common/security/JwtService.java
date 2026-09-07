@@ -13,6 +13,7 @@ import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
@@ -111,17 +112,17 @@ public class JwtService {
         return c;
     }
 
-    private io.jsonwebtoken.Jws<Claims> parser(String token) {
+    private Jws<Claims> parser(String token) {
         try {
             return Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
-        } catch (io.jsonwebtoken.SignatureException ex) {
+        } catch (SignatureException ex) {
             // BACK-SEC-033: ventana de rotacion. Si hay previousSecret, intenta
             // validar con esa clave antes de fallar. Si tampoco, propaga la
             // excepcion original para mantener el comportamiento fail-closed.
             if (previousKey != null) {
                 try {
                     return Jwts.parser().verifyWith(previousKey).build().parseSignedClaims(token);
-                } catch (io.jsonwebtoken.SignatureException ex2) {
+                } catch (SignatureException ex2) {
                     throw ex;
                 }
             }

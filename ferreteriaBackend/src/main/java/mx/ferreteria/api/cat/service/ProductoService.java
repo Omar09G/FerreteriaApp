@@ -50,7 +50,7 @@ public class ProductoService {
         // entidad completa (descripcion + especificaciones JSONB + auditoria).
         // Para busqueda por codigo/nombre conservamos la entidad porque el
         // cliente tambien puede necesitar descripcion en el detalle del match.
-        boolean usarProyeccion = !StringUtils.hasText(q);
+
         Page<Producto> pageFull = null;
         Page<ProductoListado> pageProj = null;
 
@@ -110,18 +110,18 @@ public class ProductoService {
         return new ProductoResponse(
                 p.getProductoId(),
                 p.getCodigo(),
-                null,                       // tipo (no esta en proyeccion)
+                null, // tipo (no esta en proyeccion)
                 p.getNombre(),
-                null,                       // descripcion (omitida en grid)
-                null,                       // categoriaId (nombre ya esta proyectado)
+                null, // descripcion (omitida en grid)
+                null, // categoriaId (nombre ya esta proyectado)
                 p.getCategoriaNombre(),
-                null,                       // marcaId
+                null, // marcaId
                 p.getMarcaNombre(),
-                null, null,                 // unidad: no en proyeccion
+                null, null, // unidad: no en proyeccion
                 p.getCostoActual(),
                 p.getPrecioMenudeo(),
                 p.getPrecioMayoreo(),
-                Boolean.TRUE.equals(p.getActivo()),  // aplicaIva: default true si activo
+                Boolean.TRUE.equals(p.getActivo()), // aplicaIva: default true si activo
                 p.getStock() != null ? p.getStock() : BigDecimal.ZERO);
     }
 
