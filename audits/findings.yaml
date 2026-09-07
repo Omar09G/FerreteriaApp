@@ -1,5 +1,5 @@
 # findings.yaml
-# Total: 316 - done=79 open=237
+# Total: 316 - done=80 open=236
 ---
 - id: BACK-REND-001
   project: backend
@@ -373,9 +373,11 @@
   blast_radius: perf
   discovered_by: java-reviewer
   discovered_at: '2026-09-05'
-  status: open
+  status: done
   owner: null
   depends_on: []
+  notes: 'Refactor aplicado en ProductoService.list (caso B: doble page.map redundante eliminado). 17 servicios verificados
+    (caso A: page.map unico sin getContent intermedio, no es bug). EnvelopeAdvice ya usa HashMap.put unico por response.'
 - id: BACK-REND-022
   project: backend
   dimension: rendimiento

@@ -86,10 +86,10 @@ public class ProductoService {
                 BigDecimal stock = (inv != null && inv.getStock() != null) ? inv.getStock() : BigDecimal.ZERO;
                 return product.withStock(stock);
             }).toList();
-            Page<ProductoResponse> src = pageProj != null
-                    ? pageProj.map(this::toResponseFromListado)
-                    : pageFull.map(this::toResponse);
-            return new PageImpl<>(enriched, src.getPageable(), src.getTotalElements());
+            // BACK-REND-021: reusar mapped.getPageable()/getTotalElements() evita
+            // remapear cada entity->response una segunda vez solo para obtener
+            // metadata; Pageable y TotalElements vienen de la Page original.
+            return new PageImpl<>(enriched, mapped.getPageable(), mapped.getTotalElements());
         }
         return mapped.map(product -> {
             if (almacenId != null) {
