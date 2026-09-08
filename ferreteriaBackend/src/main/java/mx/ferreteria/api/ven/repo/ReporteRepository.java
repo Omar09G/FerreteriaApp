@@ -171,33 +171,64 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
      * por cobrar (vigentes y vencidas), valor de inventario, productos
      * agotados, promociones activas y cajas abiertas.
      */
+    /**
+     * Proyeccion native query -> DTO record. Spring Data no mapea Tuple a
+     * record Java directamente; devuelve Object[] y construimos el record en
+     * el metodo default para evitar ConverterNotFoundException.
+     */
     @Query(value = """
             SELECT
-              (SELECT COALESCE(SUM(total), 0) FROM ven.ventas
-                WHERE estado = 'COMPLETADA' AND fecha_local BETWEEN :inicio AND :fin)::numeric(14,2)
-                  AS ventasEnRango,
-              (SELECT COUNT(*) FROM ven.ventas
-                WHERE estado = 'COMPLETADA' AND fecha_local BETWEEN :inicio AND :fin) AS ticketsEnRango,
-              (SELECT ROUND(AVG(total), 2) FROM ven.ventas
-                WHERE estado = 'COMPLETADA' AND fecha_local BETWEEN :inicio AND :fin) AS ticketPromedioEnRango,
-              (SELECT COALESCE(SUM(monto_total - monto_pagado), 0) FROM ven.cuentas_cobrar
-                WHERE estado IN ('VIGENTE', 'PARCIAL'))::numeric(14,2)       AS saldoPorCobrar,
-              (SELECT COALESCE(SUM(monto_total - monto_pagado), 0) FROM ven.cuentas_cobrar
-                WHERE estado IN ('VIGENTE', 'PARCIAL')
-                  AND fecha_vencimiento < CURRENT_DATE)::numeric(14,2)       AS cobranzaVencida,
-              (SELECT COALESCE(SUM(i.stock * p.costo_actual), 0)
-                 FROM inv.inventario i JOIN inv.productos p ON p.producto_id = i.producto_id
-                 WHERE p.tipo = 'PRODUCTO')::numeric(14,2)                   AS valorInventario,
-              (SELECT COUNT(*) FROM inv.vw_stock_bajo WHERE alerta = 'AGOTADO')
-                                                                             AS productosAgotados,
-              (SELECT COUNT(*) FROM ven.promociones
-                WHERE estado = 'ACTIVA' AND CURRENT_TIMESTAMP BETWEEN vigencia_desde
-                  AND COALESCE(vigencia_hasta, 'infinity'::timestamptz))    AS promocionesActivas,
-              (SELECT COUNT(*) FROM fin.turnos_caja WHERE estado = 'ABIERTO')
-                                                                             AS cajasAbiertas
+                   (SELECT COALESCE(SUM(total), 0) FROM ven.ventas
+                    WHERE fecha_local BETWEEN :inicio AND :fin AND estado = 'COMPLETADA')
+                                                                              AS ventasEnRango,
+                   (SELECT COUNT(*) FROM ven.ventas
+                    WHERE fecha_local BETWEEN :inicio AND :fin AND estado = 'COMPLETADA')
+                                                                              AS ticketsEnRango,
+                   (SELECT COALESCE(SUM(total), 0) FROM ven.ventas
+                    WHERE fecha_local BETWEEN :inicio AND :fin AND estado = 'COMPLETADA')
+                   / NULLIF((SELECT COUNT(*) FROM ven.ventas
+                    WHERE fecha_local BETWEEN :inicio AND :fin AND estado = 'COMPLETADA'), 0)
+                                                                              AS ticketPromedioEnRango,
+                   (SELECT COALESCE(SUM(saldo), 0) FROM ven.cuentas_cobrar WHERE estado = 'PENDIENTE')
+                                                                              AS saldoPorCobrar,
+                   (SELECT COALESCE(SUM(saldo), 0) FROM ven.cuentas_cobrar
+                    WHERE estado = 'PENDIENTE' AND fecha_vencimiento < CURRENT_DATE)
+                                                                              AS cobranzaVencida,
+                   (SELECT COALESCE(SUM(stock * costo_actual), 0) FROM inv.inventario i
+                    JOIN inv.productos p ON p.producto_id = i.producto_id)
+                                                                              AS valorInventario,
+                   (SELECT COUNT(*) FROM inv.inventario WHERE stock <= stock_minimo)
+                                                                              AS productosAgotados,
+                   (SELECT COUNT(*) FROM ven.promociones WHERE estado = 'ACTIVA'
+                    AND CURRENT_DATE BETWEEN vigencia_desde
+                   AND COALESCE(vigencia_hasta, 'infinity'::timestamptz))    AS promocionesActivas,
+                   (SELECT COUNT(*) FROM fin.turnos_caja WHERE estado = 'ABIERTO')
+                                                                              AS cajasAbiertas
             """, nativeQuery = true)
-    ReportDtos.ResumenDashboardResponse findResumenDashboard(
+    Object[] findResumenDashboardRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    default ReportDtos.ResumenDashboardResponse findResumenDashboard(LocalDate inicio, LocalDate fin) {
+        Object[] row = findResumenDashboardRaw(inicio, fin);
+        if (row == null) {
+            return new ReportDtos.ResumenDashboardResponse(
+                    java.math.BigDecimal.ZERO, 0L, java.math.BigDecimal.ZERO,
+                    java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO,
+                    java.math.BigDecimal.ZERO, 0L, 0L, 0L);
+        }
+        java.math.BigDecimal ventas = row[0] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[0];
+        Long tickets = row[1] == null ? 0L : ((Number) row[1]).longValue();
+        java.math.BigDecimal ticketPromedio = row[2] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[2];
+        java.math.BigDecimal saldo = row[3] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[3];
+        java.math.BigDecimal cobranza = row[4] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[4];
+        java.math.BigDecimal valorInv = row[5] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[5];
+        Long agotados = row[6] == null ? 0L : ((Number) row[6]).longValue();
+        Long promos = row[7] == null ? 0L : ((Number) row[7]).longValue();
+        Long cajas = row[8] == null ? 0L : ((Number) row[8]).longValue();
+        return new ReportDtos.ResumenDashboardResponse(
+                ventas, tickets, ticketPromedio, saldo, cobranza, valorInv,
+                agotados, promos, cajas);
+    }
 
     /**
      * Cierres diarios de caja (vista {@code fin.vw_cierre_diario}) acotados al
