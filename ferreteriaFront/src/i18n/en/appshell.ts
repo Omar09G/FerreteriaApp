@@ -34,6 +34,7 @@ export default {
     roles: "Roles & permissions",
     auditoria: "Audit log",
     facturas: "Invoices (CFDI)",
+    configuracion: "Settings",
     catalogos: "Catalogs",
   },
   acciones: {

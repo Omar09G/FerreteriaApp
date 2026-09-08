@@ -40,6 +40,56 @@ import {
 } from "@opentelemetry/semantic-conventions";
 import { onCLS, onFCP, onINP, onLCP, onTTFB } from "web-vitals";
 
+// ─── Guard global: debe correr SIEMPRE, incluso con OTel desactivado ────
+// El bug "Cannot read properties of undefined (reading 'startTime')
+// at reportAllChanges" se dispara vía requestIdleCallback con
+// PerformanceEntry incompleta. Es async y no lo atrapa try/catch.
+// Importante: el mensaje del TypeError NO contiene "reportAllChanges",
+// solo el stack. El guard anterior exigía ambos strings en message y
+// nunca se activaba. Además estaba dentro del `else (enabled)`, por lo
+// que con VITE_OTEL_ENABLED=false no se instalaba y quedaba el bundle
+// viejo/cacheado rompiendo igual. Ahora va fuera, en capture y mirando
+// message+stack.
+function isStartTimeBug(msg: string, stack = ""): boolean {
+	return msg.includes("startTime") && (msg.includes("reportAllChanges") || stack.includes("reportAllChanges"));
+}
+window.addEventListener(
+	"error",
+	(e) => {
+		const msg = e.message || String(e.error?.message || "");
+		const stack = String(e.error?.stack || "");
+		if (isStartTimeBug(msg, stack)) {
+			e.preventDefault();
+			// stopImmediatePropagation evita que el overlay de Vite y el
+			// window.onerror impriman el error duplicado.
+			e.stopImmediatePropagation?.();
+			console.warn("[OTel] suppressed startTime error", msg);
+			return true;
+		}
+	},
+	true,
+);
+window.addEventListener("unhandledrejection", (e) => {
+	const msg = String(e.reason?.message || e.reason || "");
+	const stack = String((e.reason as Error)?.stack || "");
+	if (isStartTimeBug(msg, stack)) {
+		e.preventDefault();
+		console.warn("[OTel] suppressed startTime rejection", msg);
+	}
+});
+// Fallback para errores que Vite reporta vía window.onerror (dev overlay)
+const prevOnError = window.onerror;
+window.onerror = function (msg, src, line, col, err) {
+	const m = String(msg || err?.message || "");
+	const s = String(err?.stack || "");
+	if (isStartTimeBug(m, s)) {
+		console.warn("[OTel] suppressed startTime onerror", m);
+		return true;
+	}
+	if (typeof prevOnError === "function") return prevOnError.call(window, msg, src, line, col, err);
+	return false;
+};
+
 const enabled = import.meta.env.VITE_OTEL_ENABLED === "true";
 const endpoint =
 	import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT ||
@@ -50,25 +100,6 @@ if (!enabled) {
 	// no-op (cero costo en producción local / dev).
 	console.info('[OTel] Desactivado (VITE_OTEL_ENABLED !== "true")');
 } else {
-	// Guard global para "Cannot read properties of undefined (reading 'startTime')"
-	// que dispara DocumentLoadInstrumentation.reportAllChanges vía requestIdleCallback
-	// cuando el browser entrega PerformanceEntry incompleta. Es async, no lo
-	// atrapa el try/catch de registerInstrumentations, así que lo suprimimos
-	// aquí para no ensuciar la consola y no romper la app.
-	window.addEventListener("error", (e) => {
-		if (e.message.includes("startTime") && e.message.includes("reportAllChanges")) {
-			e.preventDefault();
-			console.warn("[OTel] suppressed startTime error", e.message);
-			return true;
-		}
-	});
-	window.addEventListener("unhandledrejection", (e) => {
-		const msg = String(e.reason?.message || e.reason || "");
-		if (msg.includes("startTime") && msg.includes("reportAllChanges")) {
-			e.preventDefault();
-			console.warn("[OTel] suppressed startTime rejection", msg);
-		}
-	});
 	// ─── Recurso común: identifica al servicio en el collector ─────────
 	const resource = resourceFromAttributes({
 		[ATTR_SERVICE_NAME]: "ferreteria-frontend",

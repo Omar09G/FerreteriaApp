@@ -32,6 +32,12 @@ class ClienteServiceTest {
     @Mock
     ClienteRepository repo;
 
+    @Mock
+    mx.ferreteria.api.cat.repo.CiudadRepository ciudadRepo;
+
+    @Mock
+    mx.ferreteria.api.ven.repo.LineaCreditoRepository lineaRepo;
+
     @InjectMocks
     ClienteService service;
 
@@ -111,7 +117,8 @@ class ClienteServiceTest {
     @DisplayName("create: save retorna entidad con id")
     void create_savesAndReturns() {
         ClienteRequest req = new ClienteRequest("MORAL", "Nuevo Cliente", null,
-                "NCC850101ABC", "55112233", "nuevo@test.com",
+                "NCC850101ABC", null, "55112233", null, "nuevo@test.com",
+                null, null, null, null,
                 new BigDecimal("50000.00"), 15, true);
         Cliente saved = sampleCliente(10L, "Nuevo Cliente");
         when(repo.save(any(Cliente.class))).thenReturn(saved);
@@ -133,7 +140,7 @@ class ClienteServiceTest {
         when(repo.save(any(Cliente.class))).thenReturn(sampleCliente(1L, "Nuevo Nombre"));
 
         ClienteResponse resp = service.update(1L, new ClienteRequest(null, "Nuevo Nombre",
-                null, null, null, null, null, null, null));
+                null, null, null, null, null, null, null, null, null, null, null, null, null));
 
         assertThat(resp.razonSocial()).isEqualTo("Nuevo Nombre");
         verify(repo).save(existing);
@@ -145,7 +152,7 @@ class ClienteServiceTest {
         when(repo.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.update(999L, new ClienteRequest(null, "X",
-                null, null, null, null, null, null, null)))
+                null, null, null, null, null, null, null, null, null, null, null, null, null)))
                 .isInstanceOf(RecursoNoEncontradoException.class);
     }
 

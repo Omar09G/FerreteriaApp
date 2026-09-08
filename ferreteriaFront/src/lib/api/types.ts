@@ -383,11 +383,20 @@ export interface Cliente {
   razonSocial: string;
   nombreComercial: string | null;
   rfc: string | null;
+  curp: string | null;
+  regimenFiscal: string | null;
   telefono: string | null;
+  whatsapp: string | null;
   email: string | null;
+  calle: string | null;
+  colonia: string | null;
+  ciudadId: number | null;
+  ciudadNombre: string | null;
+  cp: string | null;
   limiteCredito: number | null;
   diasCredito: number | null;
   esMayorista: boolean;
+  activo?: boolean;
 }
 
 export interface Proveedor {
@@ -515,11 +524,28 @@ export interface VentaPago {
   fecha: string;
 }
 
+export interface ClienteVentaInfo {
+  clienteId: number;
+  razonSocial: string;
+  nombreComercial: string | null;
+  rfc: string | null;
+  curp: string | null;
+  regimenFiscal: string | null;
+  telefono: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  calle: string | null;
+  colonia: string | null;
+  cp: string | null;
+  ciudadNombre: string | null;
+}
+
 export interface Venta {
   ventaId: number;
   folio: string;
   clienteId: number | null;
   clienteNombre: string | null;
+  cliente: ClienteVentaInfo | null;
   almacenId: number;
   almacenNombre: string;
   fecha: string;
@@ -1299,6 +1325,63 @@ export interface ProductosSinMovimiento {
   ultimaVenta: string;
   diasSinVender: number;
   prioridadPromocion: string;
+}
+
+/* ── Configuración de ticket ─────────────────────────────────────── */
+
+export interface TicketConfig {
+  ticketConfigId: number | null;
+  almacenId: number | null;
+  logotipoUrl: string | null;
+  mostrarLogotipo: boolean;
+  nombreNegocio: string;
+  direccion: string | null;
+  cp: string | null;
+  rfc: string | null;
+  telefono: string | null;
+  email: string | null;
+  sitioWeb: string | null;
+  tituloDocumento: string;
+  mostrarDatosCliente: boolean;
+  mostrarNumeroFactura: boolean;
+  mostrarCaja: boolean;
+  mostrarFechaHora: boolean;
+  mostrarVendedor: boolean;
+  mostrarDesgloseIva: boolean;
+  mostrarDescuento: boolean;
+  mostrarCambio: boolean;
+  mensajePie: string | null;
+  pieSecundario: string | null;
+  anchoPapelMm: 58 | 80;
+  fontSizePt: number;
+  actualizadoEn: string | null;
+  actualizadoPor: number | null;
+}
+
+export interface TicketConfigRequest {
+  logotipoUrl?: string | null;
+  mostrarLogotipo?: boolean;
+  nombreNegocio?: string;
+  direccion?: string | null;
+  cp?: string | null;
+  rfc?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  sitioWeb?: string | null;
+  tituloDocumento?: string;
+  mostrarDatosCliente?: boolean;
+  mostrarNumeroFactura?: boolean;
+  mostrarCaja?: boolean;
+  mostrarFechaHora?: boolean;
+  mostrarVendedor?: boolean;
+  mostrarDesgloseIva?: boolean;
+  mostrarDescuento?: boolean;
+  mostrarCambio?: boolean;
+  mensajePie?: string | null;
+  pieSecundario?: string | null;
+  anchoPapelMm?: 58 | 80;
+  fontSizePt?: number;
+  almacenId?: number | null;
 }
 
 // ─── Catálogos genéricos (CRUD de ADMINISTRACIÓN) ───────────────────────────

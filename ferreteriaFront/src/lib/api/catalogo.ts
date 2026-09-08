@@ -115,6 +115,11 @@ export async function apiEliminarCliente(id: number): Promise<void> {
   await http.delete(`/clientes/${id}`);
 }
 
+export async function apiGetCliente(id: number): Promise<Cliente> {
+  const { data } = await http.get<Envelope<Cliente>>(`/clientes/${id}`);
+  return data.data;
+}
+
 export async function apiAlmacenes(): Promise<Almacen[]> {
   const { data } = await http.get<PageEnvelope<Almacen>>("/almacenes", {
     params: { page: 0, size: 50 },

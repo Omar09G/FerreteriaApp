@@ -17,9 +17,10 @@ import { Link } from "react-router-dom";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
-import { apiProductos, apiAlmacenes, apiClientes } from "@/lib/api/catalogo";
+import { apiProductos, apiAlmacenes, apiClientes, apiGetCliente } from "@/lib/api/catalogo";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
 import { apiCheckout, apiVentas } from "@/lib/api/venta";
+import { useAuthStore } from "@/store/auth";
 import {
   FORMAS_PAGO,
   type Caja,
@@ -36,6 +37,10 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
+import { apiGetTicketConfig } from "@/lib/api/ticketConfig";
+import { TicketPreview, printTicketById } from "@/features/administracion/TicketPreview";
+import { buildEscPosTicket } from "@/lib/print/escpos";
+import { getSilentEnabled, printViaSerial } from "@/lib/print/serial";
 
 interface Linea {
   productoId: number;
@@ -123,6 +128,7 @@ export default function PosPage() {
   useDocumentTitle("Punto de venta");
   const { error: mostrarError, success: mostrarExito } = useToast();
   const queryClient = useQueryClient();
+  const usuario = useAuthStore((s) => s.usuario);
   const buscadorRef = useRef<HTMLInputElement>(null);
   const cobrarRef = useRef<HTMLButtonElement>(null);
   const confirmarRef = useRef<HTMLButtonElement>(null);
@@ -145,6 +151,18 @@ export default function PosPage() {
   const [cancelarAbierto, setCancelarAbierto] = useState(false);
   const [ventasDiaAbierto, setVentasDiaAbierto] = useState(false);
   const [ventaResultado, setVentaResultado] = useState<Venta | null>(null);
+  const [ultimoEntregado, setUltimoEntregado] = useState<number | null>(null);
+  const ticketConfig = useQuery({
+    queryKey: ["ticket-config-pos", almacenId],
+    queryFn: () => apiGetTicketConfig(typeof almacenId === "number" ? almacenId : undefined),
+    staleTime: 60_000,
+  });
+  const clienteTicket = useQuery({
+    queryKey: ["cliente-ticket", ventaResultado?.clienteId],
+    queryFn: () => apiGetCliente(ventaResultado!.clienteId!),
+    enabled: !!ventaResultado?.clienteId && !ventaResultado?.cliente,
+    staleTime: 60_000,
+  });
 
   const almacenes = useQuery({
     queryKey: ["almacenes"],
@@ -284,7 +302,13 @@ export default function PosPage() {
 
   const checkout = useMutation({
     mutationFn: () => {
-      const monto = Number(recibido) > 0 ? Number(recibido) : 0;
+      // Para efectivo: monto = entregado (para validar >=0.01 y calcular cambio en ticket)
+      // Para no-efectivo (tarjeta/transferencia/cheque/crédito): monto = total (pagos[0].monto debe ser >=0.01)
+      const totalLocal = lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0);
+      const esEfectivoLocal = (FORMAS_PAGO.find((f) => f.id === formaPagoId)?.esEfectivo) ?? formaPagoId === 1;
+      const monto = esEfectivoLocal
+        ? (Number(recibido) > 0 ? Number(recibido) : totalLocal)
+        : totalLocal;
       return apiCheckout({
         almacenId: Number(almacenId),
         cajaId: typeof cajaId === "number" ? cajaId : undefined,
@@ -301,17 +325,60 @@ export default function PosPage() {
         notas: notas.trim() || undefined,
       });
     },
-    onSuccess: (venta) => {
-      // Cierra el dialog de confirmación de inmediato y muestra el ticket.
+    onSuccess: async (venta) => {
       setConfirmAbierto(false);
       mostrarExito(`Venta ${venta.folio} registrada.`);
+      const entregadoNum = Number(recibido);
+      const entregado = Number.isFinite(entregadoNum) && entregadoNum > 0 ? entregadoNum : venta.total;
+      setUltimoEntregado(entregado);
       setVentaResultado(venta);
       limpiarTicket();
-      setVentasDiaAbierto(false); // fuerza refetch la próxima vez
+      setVentasDiaAbierto(false);
       queryClient.invalidateQueries({ queryKey: ["ventas-pos-hoy"] });
-      // Auto-cierra el ticket a los 3s para que la pantalla quede limpia
-      // y lista para la siguiente venta (UX de caja rápida).
-      window.setTimeout(() => setVentaResultado(null), 3000);
+
+      // Background USB: si silenciosa activa, imprimir sin diálogo del navegador
+      if (getSilentEnabled() && ticketConfig.data) {
+        try {
+          const cajaNombre = cajas.data?.find((c: Caja) => c.cajaId === (typeof cajaId === "number" ? cajaId : -1))?.nombre ?? venta.almacenNombre;
+          // Intentar resolver cliente completo si solo viene id
+          let clienteForPrint: import("@/lib/api/types").ClienteVentaInfo | null = venta.cliente ?? null;
+          if (!clienteForPrint && venta.clienteId && clienteTicket.data && clienteTicket.data.clienteId === venta.clienteId) {
+            clienteForPrint = {
+              clienteId: clienteTicket.data.clienteId,
+              razonSocial: clienteTicket.data.razonSocial,
+              nombreComercial: clienteTicket.data.nombreComercial,
+              rfc: clienteTicket.data.rfc,
+              curp: clienteTicket.data.curp,
+              regimenFiscal: clienteTicket.data.regimenFiscal,
+              telefono: clienteTicket.data.telefono,
+              whatsapp: clienteTicket.data.whatsapp,
+              email: clienteTicket.data.email,
+              calle: clienteTicket.data.calle,
+              colonia: clienteTicket.data.colonia,
+              cp: clienteTicket.data.cp,
+              ciudadNombre: clienteTicket.data.ciudadNombre,
+            } as import("@/lib/api/types").ClienteVentaInfo;
+          }
+          const bytes = buildEscPosTicket({
+            config: ticketConfig.data,
+            venta,
+            vendedorNombre: usuario?.username ?? "user",
+            cajaNombre,
+            cliente: clienteForPrint,
+            montoEntregado: entregado,
+          });
+          await printViaSerial(bytes);
+          mostrarExito("Ticket enviado a impresora USB en background.");
+        } catch (e) {
+          // No bloquear venta: fallback a diálogo manual
+          console.warn("Silent print falló, use botón Imprimir:", e);
+        }
+      }
+
+      window.setTimeout(() => {
+        setVentaResultado(null);
+        setUltimoEntregado(null);
+      }, 8000);
     },
     onError: (err) =>
       mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
@@ -1023,44 +1090,72 @@ export default function PosPage() {
 
       <Dialog
         open={ventaResultado !== null}
-        onClose={() => setVentaResultado(null)}
+        onClose={() => {
+          setVentaResultado(null);
+          setUltimoEntregado(null);
+        }}
         title="Venta registrada"
-        width="max-w-md"
+        width="max-w-lg"
       >
         {ventaResultado && (
-          <div className="space-y-3 text-center">
-            <Badge tone="success">Completada</Badge>
-            <div>
-              <p className="text-sm text-muted">Folio</p>
-              <p className="text-lg font-bold text-ink">
-                {ventaResultado.folio}
-              </p>
+          <div className="space-y-3">
+            <div className="text-center">
+              <Badge tone="success">Completada</Badge>
+              <p className="mt-1 text-sm text-muted">Folio</p>
+              <p className="text-lg font-bold text-ink">{ventaResultado.folio}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 text-left text-sm">
               <span className="text-muted">Total</span>
-              <span className="text-right font-semibold tabular-nums">
-                {formatoMoneda(ventaResultado.total)}
-              </span>
+              <span className="text-right font-semibold tabular-nums">{formatoMoneda(ventaResultado.total)}</span>
               <span className="text-muted">Pago</span>
-              <span className="text-right font-medium">
-                {ventaResultado.formaPagoNombre}
-              </span>
+              <span className="text-right font-medium">{ventaResultado.formaPagoNombre}</span>
               <span className="text-muted">Fecha</span>
-              <span className="text-right tabular-nums">
-                {new Date(ventaResultado.fecha).toLocaleString("es-MX")}
-              </span>
+              <span className="text-right tabular-nums">{new Date(ventaResultado.fecha).toLocaleString("es-MX")}</span>
             </div>
-            <div className="flex justify-center gap-2">
-              <Link
-                to="/ventas/cobranza"
-                className="text-sm text-primary hover:underline"
-              >
+            {ticketConfig.data && (
+              <div className="rounded-md border border-line bg-neutral-50 p-2">
+                <div id="ticket-print-venta">
+                  <TicketPreview
+                    config={ticketConfig.data}
+                    venta={ventaResultado}
+                    vendedorNombre={usuario?.username ?? "user"}
+                    cajaNombre={cajas.data?.find((c: Caja) => c.cajaId === cajaId)?.nombre ?? null}
+                    montoEntregado={ultimoEntregado}
+                    clienteOverride={
+                      ventaResultado.cliente ??
+                      (clienteTicket.data
+                        ? ({
+                            clienteId: clienteTicket.data.clienteId,
+                            razonSocial: clienteTicket.data.razonSocial,
+                            nombreComercial: clienteTicket.data.nombreComercial,
+                            rfc: clienteTicket.data.rfc,
+                            curp: clienteTicket.data.curp,
+                            regimenFiscal: clienteTicket.data.regimenFiscal,
+                            telefono: clienteTicket.data.telefono,
+                            whatsapp: clienteTicket.data.whatsapp,
+                            email: clienteTicket.data.email,
+                            calle: clienteTicket.data.calle,
+                            colonia: clienteTicket.data.colonia,
+                            cp: clienteTicket.data.cp,
+                            ciudadNombre: clienteTicket.data.ciudadNombre,
+                          } as unknown as import("@/lib/api/types").ClienteVentaInfo)
+                        : null)
+                    }
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button onClick={() => printTicketById("ticket-print-venta")} variant="primary">
+                Imprimir ticket
+              </Button>
+              <Button variant="ghost" onClick={() => setVentaResultado(null)}>
+                Cerrar
+              </Button>
+              <Link to="/ventas/cobranza" className="inline-flex items-center rounded-md border border-line px-3 py-2 text-sm text-primary hover:bg-warmbg">
                 Ver cobranza
               </Link>
-              <Link
-                to="/dashboard"
-                className="text-sm text-primary hover:underline"
-              >
+              <Link to="/dashboard" className="inline-flex items-center px-3 py-2 text-sm text-primary hover:underline">
                 Ir al inicio
               </Link>
             </div>

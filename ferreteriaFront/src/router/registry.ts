@@ -6,6 +6,7 @@ import { reportesRoutes } from "./routes/reportes";
 import { catalogoRoutes } from "./routes/catalogo";
 import { inventarioRoutes } from "./routes/inventario";
 import { featureRoutes } from "./routes/features";
+import { administracionRoutes } from "./routes/administracion";
 
 /**
  * Registry central de rutas por feature. Cada feature expone su propio array
@@ -24,4 +25,5 @@ export const privateRoutes: RouteObject[] = [
   ...catalogoRoutes,
   ...inventarioRoutes,
   ...featureRoutes,
+  ...administracionRoutes,
 ];

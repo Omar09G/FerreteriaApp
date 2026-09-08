@@ -18,9 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import mx.ferreteria.api.cat.entity.Ciudad;
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
+import mx.ferreteria.api.cat.repo.CiudadRepository;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
 import mx.ferreteria.api.cat.repo.FormaPagoRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
@@ -50,6 +52,7 @@ public class VentaService {
     private final VentaDetalleRepository detalleRepo;
     private final AlmacenRepository almacenRepo;
     private final ClienteRepository clienteRepo;
+    private final CiudadRepository ciudadRepo;
     private final ProductoRepository productoRepo;
     private final FormaPagoRepository formaPagoRepo;
     private final CuentaCobrarRepository cuentaRepo;
@@ -110,6 +113,10 @@ public class VentaService {
 
         formaPagoRepo.findById(req.formaPagoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+
+        if (req.clienteId() != null && !clienteRepo.existsById(req.clienteId())) {
+            throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
+        }
 
         Long turnoCajaId = cajaService.resolverTurnoAbierto(req.cajaId(), req.almacenId());
 
@@ -174,12 +181,17 @@ public class VentaService {
     private List<VenDtos.VentaResponse> toResponses(List<Venta> ventas) {
         List<Long> ventaIds = ventas.stream().map(Venta::getVentaId).toList();
 
-        // Catálogos por id (batch)
         Set<Long> clienteIds = ventas.stream().map(Venta::getClienteId)
                 .filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, Cliente> clientes = clienteIds.isEmpty() ? Map.of()
                 : clienteRepo.findAllById(clienteIds).stream()
                         .collect(Collectors.toMap(Cliente::getClienteId, Function.identity()));
+
+        Set<Integer> ciudadIds = clientes.values().stream()
+                .map(Cliente::getCiudadId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Integer, Ciudad> ciudades = ciudadIds.isEmpty() ? Map.of()
+                : ciudadRepo.findAllById(ciudadIds).stream()
+                        .collect(Collectors.toMap(Ciudad::getCiudadId, Function.identity()));
 
         Set<Integer> almacenIds = ventas.stream().map(Venta::getAlmacenId).collect(Collectors.toSet());
         Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
@@ -189,24 +201,20 @@ public class VentaService {
         Map<Integer, FormaPago> formasPago = formaPagoRepo.findAllById(formaPagoIds).stream()
                 .collect(Collectors.toMap(FormaPago::getFormaPagoId, Function.identity()));
 
-        // Detalles por ventaId (1 query)
         List<VentaDetalle> allDetalles = detalleRepo.findByVentaIdIn(ventaIds);
         Map<Long, List<VentaDetalle>> detallesByVenta = allDetalles.stream()
                 .collect(Collectors.groupingBy(VentaDetalle::getVentaId));
 
-        // Productos de todos los detalles (1 query)
         Set<Long> productoIds = allDetalles.stream().map(VentaDetalle::getProductoId)
                 .collect(Collectors.toSet());
         Map<Long, Producto> productos = productoIds.isEmpty() ? Map.of()
                 : productoRepo.findAllById(productoIds).stream()
                         .collect(Collectors.toMap(Producto::getProductoId, Function.identity()));
 
-        // Cuentas por ventaId (1 query)
         List<CuentaCobrar> cuentas = cuentaRepo.findByVentaIdIn(ventaIds);
         Map<Long, CuentaCobrar> cuentaByVenta = cuentas.stream()
                 .collect(Collectors.toMap(CuentaCobrar::getVentaId, Function.identity()));
 
-        // Pagos por cuentaId (1 query) — ordenar por fecha desc por cuenta
         List<Long> cuentaIds = cuentas.stream().map(CuentaCobrar::getCuentaCobrarId).toList();
         Map<Long, List<PagoCliente>> pagosByCuenta;
         if (cuentaIds.isEmpty()) {
@@ -220,11 +228,11 @@ public class VentaService {
                     .toList());
         }
 
-        // Ensamblar
         List<VenDtos.VentaResponse> result = new ArrayList<>(ventas.size());
         for (Venta v : ventas) {
-            String clienteNombre = v.getClienteId() == null ? null
-                    : clientes.containsKey(v.getClienteId()) ? clientes.get(v.getClienteId()).getRazonSocial() : null;
+            Cliente cli = v.getClienteId() == null ? null : clientes.get(v.getClienteId());
+            String clienteNombre = cli != null ? cli.getRazonSocial() : null;
+            VenDtos.ClienteVentaInfo clienteInfo = toClienteInfo(cli, ciudades);
             String almacenNombre = almacenes.containsKey(v.getAlmacenId())
                     ? almacenes.get(v.getAlmacenId()).getNombre() : null;
             String formaPagoNombre = formasPago.containsKey(v.getFormaPagoId())
@@ -253,7 +261,7 @@ public class VentaService {
 
             result.add(new VenDtos.VentaResponse(
                     v.getVentaId(), v.getFolio(),
-                    v.getClienteId(), clienteNombre,
+                    v.getClienteId(), clienteNombre, clienteInfo,
                     v.getAlmacenId(), almacenNombre,
                     v.getFecha(), v.getFechaLocal(),
                     v.getFormaPagoId(), formaPagoNombre,
@@ -267,11 +275,9 @@ public class VentaService {
     }
 
     private VenDtos.VentaResponse toResponse(Venta v) {
-        String clienteNombre = null;
-        if (v.getClienteId() != null) {
-            clienteNombre = clienteRepo.findById(v.getClienteId())
-                    .map(Cliente::getRazonSocial).orElse(null);
-        }
+        Cliente cli = v.getClienteId() != null ? clienteRepo.findById(v.getClienteId()).orElse(null) : null;
+        String clienteNombre = cli != null ? cli.getRazonSocial() : null;
+        VenDtos.ClienteVentaInfo clienteInfo = toClienteInfo(cli, null);
         String almacenNombre = almacenRepo.findById(v.getAlmacenId())
                 .map(Almacen::getNombre).orElse(null);
         String formaPagoNombre = formaPagoRepo.findById(v.getFormaPagoId())
@@ -296,7 +302,7 @@ public class VentaService {
                 .orElse(List.of());
         return new VenDtos.VentaResponse(
                 v.getVentaId(), v.getFolio(),
-                v.getClienteId(), clienteNombre,
+                v.getClienteId(), clienteNombre, clienteInfo,
                 v.getAlmacenId(), almacenNombre,
                 v.getFecha(), v.getFechaLocal(),
                 v.getFormaPagoId(), formaPagoNombre,
@@ -305,5 +311,22 @@ public class VentaService {
                 v.getDescuentoTotal(), v.getTotal(),
                 v.getEstado(), v.getUsuarioId(), v.getTurnoCajaId(),
                 v.getNotas(), detalles, pagos);
+    }
+
+    private VenDtos.ClienteVentaInfo toClienteInfo(Cliente c, Map<Integer, Ciudad> ciudades) {
+        if (c == null) return null;
+        String ciudadNombre = null;
+        if (c.getCiudadId() != null) {
+            if (ciudades != null && ciudades.containsKey(c.getCiudadId())) {
+                ciudadNombre = ciudades.get(c.getCiudadId()).getNombre();
+            } else {
+                ciudadNombre = ciudadRepo.findById(c.getCiudadId()).map(Ciudad::getNombre).orElse(null);
+            }
+        }
+        return new VenDtos.ClienteVentaInfo(
+                c.getClienteId(), c.getRazonSocial(), c.getNombreComercial(),
+                c.getRfc(), c.getCurp(), c.getRegimenFiscal(),
+                c.getTelefono(), c.getWhatsapp(), c.getEmail(),
+                c.getCalle(), c.getColonia(), c.getCp(), ciudadNombre);
     }
 }

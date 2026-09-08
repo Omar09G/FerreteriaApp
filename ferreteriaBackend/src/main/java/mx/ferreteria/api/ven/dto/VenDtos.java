@@ -67,9 +67,17 @@ public final class VenDtos {
         @NotNull @DecimalMin(value = "0.01", inclusive = true) BigDecimal monto,
         @Size(max = 80) String referencia
     ) {}
+    public record ClienteVentaInfo(
+        Long clienteId, String razonSocial, String nombreComercial,
+        String rfc, String curp, String regimenFiscal,
+        String telefono, String whatsapp, String email,
+        String calle, String colonia, String cp, String ciudadNombre
+    ) {}
+
     public record VentaResponse(
         Long ventaId, String folio,
         Long clienteId, String clienteNombre,
+        ClienteVentaInfo cliente,
         Integer almacenId, String almacenNombre,
         Instant fecha, LocalDate fechaLocal,
         Integer formaPagoId, String formaPagoNombre,

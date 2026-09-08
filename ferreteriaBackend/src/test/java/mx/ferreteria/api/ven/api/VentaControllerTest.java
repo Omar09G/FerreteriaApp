@@ -58,7 +58,7 @@ class VentaControllerTest {
 
     private VenDtos.VentaResponse sampleResp() {
         return new VenDtos.VentaResponse(
-                1L, "V-2024-001", null, null, 1, "Almacen Central",
+                1L, "V-2024-001", null, null, null, 1, "Almacen Central",
                 Instant.now(), LocalDate.now(), 1, "EFECTIVO",
                 new BigDecimal("16.00"), true,
                 new BigDecimal("100.00"), new BigDecimal("16.00"),
@@ -123,7 +123,7 @@ class VentaControllerTest {
     @DisplayName("PATCH /api/v1/ventas/1/cancelar -> 200")
     void cancel_ok() throws Exception {
         VenDtos.VentaResponse cancelled = new VenDtos.VentaResponse(
-                1L, "V-2024-001", null, null, 1, "Almacen Central",
+                1L, "V-2024-001", null, null, null, 1, "Almacen Central",
                 Instant.now(), LocalDate.now(), 1, "EFECTIVO",
                 new BigDecimal("16.00"), true,
                 BigDecimal.ZERO, BigDecimal.ZERO,

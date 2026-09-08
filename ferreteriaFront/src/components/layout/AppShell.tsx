@@ -221,6 +221,12 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
 				a: "/fiscal/facturas",
 				icono: <FileText className="h-4 w-4" />,
 			},
+			{
+				clave: "configuracion",
+				a: "/administracion/configuracion",
+				icono: <Settings className="h-4 w-4" />,
+				roles: ["ADMINISTRADOR"],
+			},
 		],
 	},
 ];

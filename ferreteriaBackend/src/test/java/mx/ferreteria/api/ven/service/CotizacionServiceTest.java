@@ -52,7 +52,7 @@ class CotizacionServiceTest {
 
     private VenDtos.VentaResponse sampleVentaResponse(Long ventaId) {
         return new VenDtos.VentaResponse(
-                ventaId, "V-0010", null, null,
+                ventaId, "V-0010", null, null, null,
                 1, "Almacén Principal", Instant.now(), java.time.LocalDate.now(),
                 1, "Efectivo", new BigDecimal("16.00"), true,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,

@@ -58,8 +58,9 @@ class ClienteControllerTest {
 
         private ClienteResponse sampleCliente() {
                 return new ClienteResponse(1L, "FISICA", "Juan Perez", null,
-                                "PEPJ800101ABC", "5512345678", "juan@test.com",
-                                new BigDecimal("50000.00"), 30, false);
+                                "PEPJ800101ABC", null, null, "5512345678", null, "juan@test.com",
+                                null, null, null, null, null,
+                                new BigDecimal("50000.00"), 30, false, true);
         }
 
         // ── GET /api/v1/clientes ────────────────────────────────────────
@@ -69,7 +70,9 @@ class ClienteControllerTest {
         void list_returns200WithEnvelope() throws Exception {
                 ClienteResponse r1 = sampleCliente();
                 ClienteResponse r2 = new ClienteResponse(2L, "MORAL", "Empresa SA", null,
-                                null, null, null, BigDecimal.ZERO, 0, true);
+                                null, null, null, null, null, null,
+                                null, null, null, null, null,
+                                BigDecimal.ZERO, 0, true, true);
                 when(service.list(eq(null), any()))
                                 .thenReturn(new PageImpl<>(List.of(r1, r2), PageRequest.of(0, 20), 2));
 

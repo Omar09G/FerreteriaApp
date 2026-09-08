@@ -89,8 +89,14 @@ public final class CatDtos {
                         @NotBlank @Size(max = 180) String razonSocial,
                         @Size(max = 180) String nombreComercial,
                         @Pattern(regexp = "^[A-ZÑ&]{3,4}[0-9]{6}[A-V1-9][A-Z0-9]{2}$") @Size(max = 13) String rfc,
+                        @Size(max = 18) String curp,
                         @Pattern(regexp = "^[0-9+()\\-\\s]{7,20}$") @Size(max = 20) String telefono,
+                        @Size(max = 20) String whatsapp,
                         @Email @Size(max = 120) String email,
+                        @Size(max = 150) String calle,
+                        @Size(max = 100) String colonia,
+                        Integer ciudadId,
+                        @Size(max = 10) String cp,
                         @DecimalMin(value = "0", inclusive = true) BigDecimal limiteCredito,
                         @Min(0) Integer diasCredito,
                         Boolean esMayorista) {
@@ -102,11 +108,20 @@ public final class CatDtos {
                         String razonSocial,
                         String nombreComercial,
                         String rfc,
+                        String curp,
+                        String regimenFiscal,
                         String telefono,
+                        String whatsapp,
                         String email,
+                        String calle,
+                        String colonia,
+                        Integer ciudadId,
+                        String ciudadNombre,
+                        String cp,
                         BigDecimal limiteCredito,
                         Integer diasCredito,
-                        Boolean esMayorista) {
+                        Boolean esMayorista,
+                        Boolean activo) {
         }
 
         // ── Producto ───────────────────────────────────────────────────

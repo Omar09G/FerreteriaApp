@@ -40,11 +40,32 @@ public class Cliente {
     @Column(length = 13)
     private String rfc;
 
+    @Column(length = 18)
+    private String curp;
+
+    @Column(length = 10)
+    private String regimenFiscal;
+
     @Column(length = 20)
     private String telefono;
 
+    @Column(length = 20)
+    private String whatsapp;
+
     @Column(length = 120)
     private String email;
+
+    @Column(length = 150)
+    private String calle;
+
+    @Column(length = 100)
+    private String colonia;
+
+    @Column(name = "ciudad_id")
+    private Integer ciudadId;
+
+    @Column(length = 10)
+    private String cp;
 
     @Column(nullable = false, precision = 12, scale = 2)
     @Builder.Default
