@@ -189,11 +189,11 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                    / NULLIF((SELECT COUNT(*) FROM ven.ventas
                     WHERE fecha_local BETWEEN :inicio AND :fin AND estado = 'COMPLETADA'), 0)
                                                                               AS ticketPromedioEnRango,
-                   (SELECT COALESCE(SUM(saldo), 0) FROM ven.cuentas_cobrar WHERE estado = 'PENDIENTE')
-                                                                              AS saldoPorCobrar,
-                   (SELECT COALESCE(SUM(saldo), 0) FROM ven.cuentas_cobrar
-                    WHERE estado = 'PENDIENTE' AND fecha_vencimiento < CURRENT_DATE)
-                                                                              AS cobranzaVencida,
+                   (SELECT COALESCE(SUM(monto_total - monto_pagado), 0) FROM ven.cuentas_cobrar
+                    WHERE estado IN ('VIGENTE', 'PARCIAL'))                   AS saldoPorCobrar,
+                   (SELECT COALESCE(SUM(monto_total - monto_pagado), 0) FROM ven.cuentas_cobrar
+                    WHERE estado IN ('VIGENTE', 'PARCIAL')
+                      AND fecha_vencimiento < CURRENT_DATE)                 AS cobranzaVencida,
                    (SELECT COALESCE(SUM(stock * costo_actual), 0) FROM inv.inventario i
                     JOIN inv.productos p ON p.producto_id = i.producto_id)
                                                                               AS valorInventario,
