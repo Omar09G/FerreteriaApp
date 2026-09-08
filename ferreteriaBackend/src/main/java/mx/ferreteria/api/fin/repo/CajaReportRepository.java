@@ -57,11 +57,14 @@ public interface CajaReportRepository extends JpaRepository<Caja, Integer> {
     Object[] findResumenTurnoRaw(@Param("turnoId") Long turnoId);
 
     default mx.ferreteria.api.fin.service.CajaService.ResumenTurnoRow findResumenTurno(Long turnoId) {
-        Object[] row = findResumenTurnoRaw(turnoId);
-        if (row == null) {
+        // Spring Data envuelve una sola fila de native query en Object[1][N];
+        // la "fila" es result[0]. Si no hay filas, devuelve [] (length 0).
+        Object[] result = findResumenTurnoRaw(turnoId);
+        if (result == null || result.length == 0 || result[0] == null) {
             return new mx.ferreteria.api.fin.service.CajaService.ResumenTurnoRow(
                     java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO);
         }
+        Object[] row = (Object[]) result[0];
         java.math.BigDecimal apertura = row[0] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[0];
         java.math.BigDecimal entradas = row[1] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[1];
         java.math.BigDecimal salidas = row[2] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[2];

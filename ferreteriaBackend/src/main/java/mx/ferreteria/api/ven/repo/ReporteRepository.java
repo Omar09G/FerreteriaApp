@@ -209,13 +209,16 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
 
     default ReportDtos.ResumenDashboardResponse findResumenDashboard(LocalDate inicio, LocalDate fin) {
-        Object[] row = findResumenDashboardRaw(inicio, fin);
-        if (row == null) {
+        // Spring Data envuelve una sola fila de native query en Object[1][N]; la
+        // "fila" es row[0]. Si no hay filas, devuelve [] (length 0).
+        Object[] result = findResumenDashboardRaw(inicio, fin);
+        if (result == null || result.length == 0 || result[0] == null) {
             return new ReportDtos.ResumenDashboardResponse(
                     java.math.BigDecimal.ZERO, 0L, java.math.BigDecimal.ZERO,
                     java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO,
                     java.math.BigDecimal.ZERO, 0L, 0L, 0L);
         }
+        Object[] row = (Object[]) result[0];
         java.math.BigDecimal ventas = row[0] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[0];
         Long tickets = row[1] == null ? 0L : ((Number) row[1]).longValue();
         java.math.BigDecimal ticketPromedio = row[2] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[2];
