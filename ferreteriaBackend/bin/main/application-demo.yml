@@ -1,0 +1,5 @@
+# Perfil demo: SOLO desarrollo. Carga datos dummy al arrancar (PLAN §11 M0).
+# Nunca activar en produccion: SPRING_PROFILES_ACTIVE=demo esta prohibido ahi.
+logging:
+  level:
+    mx.ferreteria: DEBUG

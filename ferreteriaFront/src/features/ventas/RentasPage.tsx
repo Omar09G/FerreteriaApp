@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RotateCcw, Search, Plus, Trash2, X } from "lucide-react";
+import { RotateCcw, Search, Plus, Trash2, X , Eye} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -23,7 +23,7 @@ import {
 	aLocalDate,
 	formatoFecha,
 	formatoFechaHora,
-	formatoMoneda,
+	formatoMoneda, formatoNumero,
 } from "@/lib/format";
 import type { RangoFechas } from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
@@ -511,6 +511,8 @@ export default function RentasPage() {
 	const [cancelarConfirmacion, setCancelarConfirmacion] =
 		useState<Renta | null>(null);
 
+	const [vistaDetalle, setVistaDetalle] = useState<Renta | null>(null);
+
 	const { data, isLoading, error, isFetching } = useQuery({
 		queryKey: ["rentas", estado, rango?.inicio, rango?.fin, page],
 		queryFn: () =>
@@ -622,6 +624,16 @@ export default function RentasPage() {
 			align: "right",
 			render: (v) => (
 				<div className="flex justify-end gap-1">
+					<button
+						type="button"
+						aria-label="Ver detalles"
+						title="Ver detalles"
+						className="rounded p-1.5 text-muted hover:bg-orange-50 hover:text-ink"
+						onClick={() => setVistaDetalle(v)}
+					>
+						<Eye className="h-4 w-4" />
+					</button>
+
 					{(v.estado === "ABIERTA" || v.estado === "VENCIDA") && (
 						<button
 							type="button"
@@ -644,6 +656,7 @@ export default function RentasPage() {
 							<X className="h-4 w-4" />
 						</button>
 					)}
+
 				</div>
 			),
 		},
@@ -763,6 +776,72 @@ export default function RentasPage() {
 					Se devuelve el depósito de garantía y se libera el artículo.
 				</p>
 			</ConfirmDialog>
+
+			<Dialog
+				open={vistaDetalle !== null}
+				onClose={() => setVistaDetalle(null)}
+				title={`Traslado ${vistaDetalle?.rentaId}`}
+				width="max-w-2xl"
+			>
+				{vistaDetalle && (
+					<div className="space-y-2">
+						{/* Encabezados de la Lista - Total col-span = 12 */}
+						<div className="grid grid-cols-12 gap-2 px-3 py-2 bg-surface-muted rounded-md text-xs font-semibold text-ink-muted tracking-wider">
+							<div className="col-span-4">Producto</div>
+							<div className="col-span-2 text-right">Cant.</div>
+							<div className="col-span-2 text-right">Costo/Día</div>
+							<div className="col-span-2 text-right">Días Cob.</div>
+							<div className="col-span-2 text-right">Subtotal</div>
+						</div>
+
+						{/* Cuerpo de la Lista */}
+						<div className="max-h-[50vh] overflow-y-auto space-y-1.5 pr-1">
+							{vistaDetalle?.detalles.map((d) => (
+								<div
+									key={d.productoId}
+									className="grid grid-cols-12 gap-2 items-center p-3 rounded-lg border border-line bg-surface hover:border-ink-muted/30 transition-colors"
+								>
+									{/* Producto: Ocupa el 33% del espacio (4/12) */}
+									<div className="col-span-4">
+										<p className="text-sm font-medium text-ink line-clamp-2" title={d.productoNombre}>
+											{d.productoNombre}
+										</p>
+										<span className="text-[10px] text-ink-muted block mt-0.5">ID: {d.productoId}</span>
+									</div>
+
+									{/* Cantidad: Ocupa el 16.6% (2/12) */}
+									<div className="col-span-2 text-right">
+										<p className="text-sm font-semibold text-ink">
+											{formatoNumero(d.cantidad ?? "0")}
+										</p>
+									</div>
+
+									{/* Costo/Día: Ocupa el 16.6% (2/12) */}
+									<div className="col-span-2 text-right">
+										<p className="text-sm text-ink-muted">
+											{formatoMoneda(d.costoDia ?? "0")}
+										</p>
+									</div>
+
+									{/* Días Cobrados: Ocupa el 16.6% (2/12) */}
+									<div className="col-span-2 text-right">
+										<p className="text-sm text-ink-muted">
+											{formatoNumero(d.diasCobrados ?? "0")}
+										</p>
+									</div>
+
+									{/* Subtotal: Ocupa el 16.6% (2/12) y resalta más */}
+									<div className="col-span-2 text-right">
+										<p className="text-sm font-bold text-ink">
+											{formatoMoneda(d.subtotal ?? "0")}
+										</p>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+			</Dialog>
 		</div>
 	);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, Eye } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
@@ -17,7 +17,7 @@ import {
 	type CotizacionRequest,
 	type Producto,
 } from "@/lib/api/types";
-import { formatoFecha, formatoFechaHora, formatoMoneda } from "@/lib/format";
+import {formatoFecha, formatoFechaHora, formatoMoneda, formatoNumero} from "@/lib/format";
 import type { RangoFechas } from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -414,6 +414,7 @@ export default function CotizacionesPage() {
 	const [page, setPage] = useState(0);
 	const [nuevaAbierta, setNuevaAbierta] = useState(false);
 	const [aConvertir, setAConvertir] = useState<Cotizacion | null>(null);
+	const [vistaDetalle, setVistaDetalle] = useState<Cotizacion | null>(null);
 
 	const { data, isLoading, error, isFetching } = useQuery({
 		queryKey: ["cotizaciones", estado, rango?.inicio, rango?.fin, page],
@@ -525,6 +526,17 @@ export default function CotizacionesPage() {
 			align: "right",
 			render: (v) => (
 				<div className="flex justify-end gap-1">
+					{
+						<button
+							type="button"
+							aria-label="Ver detalles"
+							title="Ver detalles"
+							className="rounded p-1.5 text-primary hover:bg-primary-50"
+							onClick={() => setVistaDetalle(v)}
+						>
+							<Eye className="h-4 w-4" />
+						</button>
+					}
 					{v.estado === "VIGENTE" && (
 						<button
 							type="button"
@@ -536,6 +548,7 @@ export default function CotizacionesPage() {
 							<ShoppingCart className="h-4 w-4" />
 						</button>
 					)}
+
 				</div>
 			),
 		},
@@ -641,6 +654,64 @@ export default function CotizacionesPage() {
 						}
 						onClose={() => setAConvertir(null)}
 					/>
+				)}
+			</Dialog>
+
+			<Dialog
+				open={vistaDetalle !== null}
+				onClose={() => setVistaDetalle(null)}
+				title="Detalles de cotización"
+				width="max-w-2xl"
+			>
+				{vistaDetalle && (
+					<div className="space-y-2">
+						{/* Encabezados de la Lista - Total exacto: 6 + 2 + 2 + 2 = 12 */}
+						<div className="grid grid-cols-12 gap-2 px-3 py-2 bg-surface-muted rounded-md text-xs font-semibold text-ink-muted tracking-wider uppercase">
+							<div className="col-span-6">Producto</div>
+							<div className="col-span-2 text-right">Cant.</div>
+							<div className="col-span-2 text-right">Precio Unit.</div>
+							<div className="col-span-2 text-right">Importe</div>
+						</div>
+
+						{/* Cuerpo de la Lista */}
+						<div className="max-h-[50vh] overflow-y-auto space-y-1.5 pr-1">
+							{vistaDetalle?.detalles.map((d) => (
+								<div
+									key={d.productoId}
+									className="grid grid-cols-12 gap-2 items-center p-3 rounded-lg border border-line bg-surface hover:border-ink-muted/30 transition-colors"
+								>
+									{/* Producto: 50% del ancho del modal */}
+									<div className="col-span-6">
+										<p className="text-sm font-medium text-ink line-clamp-2" title={d.productoNombre}>
+											{d.productoNombre}
+										</p>
+										<span className="text-[10px] text-ink-muted block mt-0.5">ID: {d.productoId}</span>
+									</div>
+
+									{/* Cantidad */}
+									<div className="col-span-2 text-right">
+										<p className="text-sm text-ink-muted">
+											{formatoNumero(d.cantidad ?? "0")}
+										</p>
+									</div>
+
+									{/* Precio Unitario */}
+									<div className="col-span-2 text-right">
+										<p className="text-sm text-ink-muted">
+											{formatoMoneda(d.precioUnitario ?? "0")}
+										</p>
+									</div>
+
+									{/* Importe Línea (Resaltado por ser el total de la fila) */}
+									<div className="col-span-2 text-right">
+										<p className="text-sm font-bold text-ink">
+											{formatoMoneda(d.importeLinea ?? "0")}
+										</p>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
 				)}
 			</Dialog>
 		</div>

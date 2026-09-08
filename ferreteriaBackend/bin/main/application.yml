@@ -1,0 +1,137 @@
+spring:
+  application:
+    name: ferreteria-backend
+  autoconfigure:
+    exclude:
+      # Auth es 100% JWT contra seg.usuarios. Sin esta exclusión el auto-config de
+      # Spring Security registra un usuario in-memory y loguea
+      # "Using generated security password: ..." (warn de arranque).
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    # prepareThreshold=0: sin prepared statements server-side (default 5) porque
+    # PgBouncer usa pool_mode=transaction y las sentencias S_n rompen el pooling.
+    url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:6432}/${PG_DATABASE:ferreteria}?prepareThreshold=0
+    username: ${PG_USER:ferreteria_app}
+    password: ${PG_PASSWORD:cambia_app_seguro}
+    # Pool sizing: Hikari 10 <= PgBouncer default_pool_size 50 <= PG max_connections 300 / HPA maxReplicas 3
+    # Math: 3 replicas * 10 Hikari = 30 conexiones backend vs 50 PgBouncer pool = OK (headroom 20)
+    # Antes: HPA 6 * 120 = 720 > 300 PG max => outage. Ahora: HPA 3 * 50 = 150 < 300 OK.
+    hikari:
+      maximum-pool-size: 10      # <= default_pool_size de PgBouncer
+      minimum-idle: 2
+      connection-timeout: 3000
+      max-lifetime: 1700000       # 28 min < PgBouncer server_lifetime
+      validation-timeout: 2000
+    # PASO 23: Read-only datasource para reportes (DB-ESC-004). Si no se configura
+    # PG_RO_HOST, ReporteService hace fallback al primario.
+    read-only:
+      url: ${PG_RO_URL:}
+      username: ${PG_RO_USER:${PG_USER:ferreteria_app}}
+      password: ${PG_RO_PASSWORD:${PG_PASSWORD:cambia_app_seguro}}
+  jpa:
+    open-in-view: false
+    properties:
+      '[hibernate.jdbc.time_zone]': ${ZONA:America/Mexico_City}  # alineado con el cluster PG
+      '[hibernate.jdbc.batch_size]': 50
+      '[hibernate.order_inserts]': true
+      '[hibernate.order_updates]': true
+      '[hibernate.default_batch_fetch_size]': 32
+  flyway:
+    locations: classpath:db/migration   # generadas por :generateMigrations
+    #Solo para DESA enabled: false
+    enabled: false 
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+
+app:
+  request-id:
+    mode: ${REQUEST_ID_MODE:GENERATE}   # GENERATE | STRICT  (PLAN 4.5)
+  jwt:
+    secret: ${JWT_SECRET:sMuJeQ1prwGDL5SCu7tpS4FtCcIvbJ8Rw6cciudScgc=}         # sin default: debe venir del entorno; JwtService hace fail-fast si <32 bytes
+    access-minutes: ${ACCESS_MINUTES:15}  # 15 min (antes 480 = 8h, ventana de exposición excesiva)
+    refresh-hours: ${REFRESH_HOURS:8}     # 8h (antes 72h); refresh rotativo ya gestiona sesión larga
+  zona: ${ZONA:America/Mexico_City}
+  # CORS restrictivo por origen configurado (PLAN M7)
+  cors:
+    # Default incluye Vite (5173) + Angular CLI (4200) + backend (8080).
+    # En prod sobreescribir con CORS_ALLOWED_ORIGINS al dominio público (HTTPS).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4200,http://localhost:8080}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+    exposed-headers: ${CORS_EXPOSED_HEADERS:X-Request-Id,X-RateLimit-Limit,X-RateLimit-Remaining,Retry-After}
+    max-age-seconds: ${CORS_MAX_AGE:3600}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  # Cookies HttpOnly para autenticación (XSS-proof). Tanto el access como el
+  # refresh viajan en cookies; el front nunca los lee desde JS.
+  # En dev (http) Secure=false; en prod sobre HTTPS debe ir true.
+  auth:
+    cookie:
+      secure: ${AUTH_COOKIE_SECURE:false}
+      same-site: ${AUTH_COOKIE_SAMESITE:Lax}
+      path: ${AUTH_COOKIE_PATH:/}
+      refresh-name: ${AUTH_COOKIE_REFRESH_NAME:rt}
+      access-name: ${AUTH_COOKIE_ACCESS_NAME:at}
+  # Rate limit bucket4j por controller (PLAN M7)
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    scope-by-user: ${RATE_LIMIT_SCOPE_BY_USER:true}
+    # BACK-REND-020: reducido de 200k -> 50k. 50k entradas ~ 8MB heap por pod.
+    # En multi-replica (N replicas) sigue siendo O(N) memoria agregada; para
+    # compartir buckets entre replicas activar RATE_LIMIT_DISTRIBUTED=true
+    # con RATE_LIMIT_REDIS_URI (requiere bucket4j-redis + spring-boot-starter-data-redis).
+    cache-max-size: ${RATE_LIMIT_CACHE_MAX_SIZE:50000}
+    cache-ttl-minutes: ${RATE_LIMIT_CACHE_TTL_MINUTES:30}
+    # BACK-REND-024: fail-closed. Solo true si hay proxy de confianza (nginx/Pomer)
+    # que SIEMPRE sobrescribe X-Forwarded-For. En produccion detras de proxy:
+    # RATE_LIMIT_TRUST_FORWARDED_FOR=true.
+    trust-forwarded-for: ${RATE_LIMIT_TRUST_FORWARDED_FOR:false}
+    grupos:
+      default:
+        capacity: ${RATE_LIMIT_DEFAULT_CAPACITY:300}
+        refill-per-second: ${RATE_LIMIT_DEFAULT_REFILL:10}
+      auth:
+        capacity: ${RATE_LIMIT_AUTH_CAPACITY:10}
+        refill-per-second: ${RATE_LIMIT_AUTH_REFILL:1}
+      catalogo:
+        capacity: ${RATE_LIMIT_CATALOGO_CAPACITY:1200}
+        refill-per-second: ${RATE_LIMIT_CATALOGO_REFILL:40}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # health queda expuesto; info/metrics/prometheus solo vía red interna
+        # (ver SecurityConfig: ya no son permitAll)
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms,1s,2s,5s
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [${REQUEST_ID:-%X{requestId}}] %logger{36} - %msg%n"
+  level:
+    root: INFO
+
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

@@ -383,18 +383,30 @@ export default function TrasladosPage() {
 				width="max-w-lg"
 			>
 				{viewDetalle && (
-					<div className="space-y-3">
-						<div className="grid grid-cols-2 gap-2 text-center">
+					<div className="space-y-2">
+						{/* Encabezados de la Lista */}
+						<div className="grid grid-cols-12 gap-2 px-3 py-1.5 bg-surface-muted rounded-md text-xs font-semibold text-ink-muted  tracking-wider">
+							<div className="col-span-9">Producto</div>
+							<div className="col-span-3 text-right">Cant.</div>
+						</div>
+
+						{/* Cuerpo de la Lista */}
+						<div className="max-h-[50vh] overflow-y-auto space-y-1.5 pr-1">
 							{viewDetalle?.detalles.map((d) => (
-								<div key={d.productoId}   className="grid grid-cols-1 gap-1 text-center">
-								<div className="rounded-md border border-line p-2">
-									<p className="text-sm font-medium text-ink">{d.productoNombre}</p>
-
-								</div>
-									<div className="rounded-md border border-line p-2">
-									<p className="text-sm font-medium text-ink">{formatoNumero(d.cantidad ?? "0")}</p>
-								</div>
-
+								<div
+									key={d.productoId}
+									className="grid grid-cols-12 gap-2 items-center p-3 rounded-lg border border-line bg-surface hover:border-ink-muted/30 transition-colors"
+								>
+									<div className="col-span-9">
+										<p className="text-sm font-medium text-ink line-clamp-2">
+											{d.productoNombre}
+										</p>
+									</div>
+									<div className="col-span-3 text-right">
+										<p className="text-sm font-bold text-ink">
+											{formatoNumero(d.cantidad ?? "0")}
+										</p>
+									</div>
 								</div>
 							))}
 						</div>
