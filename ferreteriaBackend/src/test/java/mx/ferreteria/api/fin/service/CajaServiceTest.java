@@ -230,7 +230,7 @@ class CajaServiceTest {
     @Test
     @DisplayName("cerrarTurno: llama fn_cerrar_turno y re-lee el corte")
     void cerrarTurno_ok() {
-        doReturn(1L).when(reportRepo).cerrarTurno(eq(1L), eq(new BigDecimal("6160.00")), isNull(), eq(0));
+        doReturn(1L).when(reportRepo).cerrarTurno(eq(1L), eq(new BigDecimal("6160.00")), eq(0), isNull());
         when(cajaRepo.findById(1)).thenReturn(Optional.of(sampleCaja(1, "Caja Central")));
         when(almacenRepo.findById(1)).thenReturn(Optional.of(
                 Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
@@ -240,7 +240,7 @@ class CajaServiceTest {
 
         assertThat(resp.corteId()).isEqualTo(1L);
         assertThat(resp.resultadoCaja()).isEqualTo("CUADRADO");
-        verify(reportRepo).cerrarTurno(eq(1L), eq(new BigDecimal("6160.00")), isNull(), eq(0));
+        verify(reportRepo).cerrarTurno(eq(1L), eq(new BigDecimal("6160.00")), eq(0), isNull());
     }
 
     @Test

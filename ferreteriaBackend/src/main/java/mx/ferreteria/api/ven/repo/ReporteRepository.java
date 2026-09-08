@@ -1,8 +1,11 @@
 package mx.ferreteria.api.ven.repo;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import jakarta.persistence.Tuple;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,13 +53,37 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             ORDER BY ingresoTotal DESC
             LIMIT 20
             """, nativeQuery = true)
-    List<ReportDtos.TopProductoResponse> findTopProductos(
+    List<Tuple> findTopProductosRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Método puente que expone el Record de forma limpia a tus servicios
+    default List<ReportDtos.TopProductoResponse> findTopProductos(LocalDate inicio, LocalDate fin) {
+        return findTopProductosRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.TopProductoResponse(
+                        // Convierte el java.sql.Date nativo a LocalDate de Java 8+
+                        tuple.get("mes", java.sql.Date.class).toLocalDate(),
+                        // p.producto_id (Ajustar si tu ID no es Long/Integer en tu BD)
+                        ((Number) tuple.get("productoId")).longValue(),
+                        tuple.get("codigo", String.class),
+                        tuple.get("producto", String.class),
+                        tuple.get("categoria", String.class),
+                        tuple.get("unidadesVendidas", BigDecimal.class),
+                        tuple.get("ingresoTotal", BigDecimal.class),
+                        tuple.get("costoTotal", BigDecimal.class),
+                        tuple.get("utilidad", BigDecimal.class),
+                        // Evita ClassCastException si RANK() viene como Integer o Long
+                        ((Number) tuple.get("rankingMes")).longValue(),
+                        ((Number) tuple.get("rankingUnidades")).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
+
 
     /**
      * Top 20 clientes por total comprado en el rango, con ranking por mes y
      * acumulado histórico.
      */
+
     @Query(value = """
             SELECT CAST(:inicio AS date) AS mes, cl.cliente_id AS clienteId,
                    cl.razon_social AS cliente,
@@ -72,8 +99,29 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             ORDER BY totalComprado DESC
             LIMIT 20
             """, nativeQuery = true)
-    List<ReportDtos.MejorClienteResponse> findMejoresClientes(
+    List<Tuple> findMejoresClientesRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Método puente para exponer el Record limpio hacia tus servicios
+    default List<ReportDtos.MejorClienteResponse> findMejoresClientes(LocalDate inicio, LocalDate fin) {
+        return findMejoresClientesRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.MejorClienteResponse(
+                        // Extrae java.sql.Date y convierte a LocalDate
+                        tuple.get("mes", java.sql.Date.class).toLocalDate(),
+                        // cl.cliente_id (Casteo numérico seguro)
+                        ((Number) tuple.get("clienteId")).longValue(),
+                        tuple.get("cliente", String.class),
+                        // COUNT(DISTINCT...) casteado de forma segura a Long
+                        ((Number) tuple.get("numCompras")).longValue(),
+                        tuple.get("totalComprado", java.math.BigDecimal.class),
+                        // ROUND(AVG(...)) interpretado como BigDecimal para precisión monetaria
+                        tuple.get("ticketPromedio", java.math.BigDecimal.class),
+                        // RANK() casteados a Long de forma segura
+                        ((Number) tuple.get("rankingMes")).longValue(),
+                        ((Number) tuple.get("rankingHistorico")).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
 
     /**
      * Ventas diarias totales (vista {@code ven.vw_ventas_totales}) acotadas al
@@ -92,8 +140,27 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             WHERE fecha BETWEEN :inicio AND :fin
             ORDER BY fecha
             """, nativeQuery = true)
-    List<ReportDtos.VentaTotalResponse> findVentasTotales(
+    List<Tuple> findVentasTotalesRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Este método puente resolverá el error de conversión de forma transparente
+    default List<ReportDtos.VentaTotalResponse> findVentasTotales(LocalDate inicio, LocalDate fin) {
+        return findVentasTotalesRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.VentaTotalResponse(
+                        // Dependiendo de tu BD, la fecha puede requerir java.sql.Date o java.time.LocalDate
+                        tuple.get("fecha", java.sql.Date.class).toLocalDate(),
+                        // Forzamos el casteo numérico seguro por si la BD devuelve BigInteger/Integer
+                        ((Number) tuple.get("numVentas")).longValue(),
+                        tuple.get("subtotal", BigDecimal.class),
+                        tuple.get("iva", BigDecimal.class),
+                        tuple.get("descuentos", BigDecimal.class),
+                        tuple.get("totalVendido", BigDecimal.class),
+                        tuple.get("ticketPromedio", BigDecimal.class),
+                        tuple.get("costoVentas", BigDecimal.class),
+                        tuple.get("utilidadBruta", BigDecimal.class)
+                ))
+                .collect(Collectors.toList());
+    }
 
     /**
      * Top 20 vendedores por total vendido con CTE de costo por venta y
@@ -122,8 +189,30 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             ORDER BY totalVendido DESC
             LIMIT 20
             """, nativeQuery = true)
-    List<ReportDtos.MejorVendedorResponse> findMejoresVendedores(
+    List<Tuple> findMejoresVendedoresRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Método puente para exponer el Record limpio hacia tus servicios
+    default List<ReportDtos.MejorVendedorResponse> findMejoresVendedores(LocalDate inicio, LocalDate fin) {
+        return findMejoresVendedoresRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.MejorVendedorResponse(
+                        // Extrae java.sql.Date nativo y convierte a LocalDate
+                        tuple.get("mes", java.sql.Date.class).toLocalDate(),
+                        // u.usuario_id (Casteo seguro)
+                        (int) ((Number) tuple.get("usuarioId")).longValue(),
+                        tuple.get("vendedor", String.class),
+                        // COUNT(*) mapeado de forma segura a Long
+                        ((Number) tuple.get("numVentas")).longValue(),
+                        tuple.get("totalVendido", java.math.BigDecimal.class),
+                        // ROUND(AVG(...)) interpretado como BigDecimal
+                        tuple.get("ticketPromedio", java.math.BigDecimal.class),
+                        tuple.get("utilidadGenerada", java.math.BigDecimal.class),
+                        // RANK() casteados a Long de forma segura
+                        ((Number) tuple.get("rankingMes")).longValue(),
+                        ((Number) tuple.get("rankingHistorico")).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
 
     /**
      * Ventas agrupadas por hora del día con ranking por total acumulado.
@@ -139,8 +228,25 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             GROUP BY EXTRACT(HOUR FROM v.fecha)
             ORDER BY hora
             """, nativeQuery = true)
-    List<ReportDtos.VentaPorHoraResponse> findVentasPorHora(
+    List<Tuple> findVentasPorHoraRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Método puente para exponer el Record limpio hacia tus servicios
+    default List<ReportDtos.VentaPorHoraResponse> findVentasPorHora(LocalDate inicio, LocalDate fin) {
+        return findVentasPorHoraRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.VentaPorHoraResponse(
+                        // Extrae el valor numérico de la hora de forma segura como Integer
+                        ((Number) tuple.get("hora")).intValue(),
+                        // COUNT(*) mapeado de forma segura a Long
+                        ((Number) tuple.get("numVentas")).longValue(),
+                        tuple.get("totalAcumulado", java.math.BigDecimal.class),
+                        // ROUND(AVG(...)) interpretado como BigDecimal
+                        tuple.get("ticketPromedio", java.math.BigDecimal.class),
+                        // RANK() casteado a Long de forma segura
+                        ((Number) tuple.get("rankingHorario")).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
 
     /**
      * Mejores días de la semana por promedio diario de venta en el rango.
@@ -163,8 +269,26 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             GROUP BY EXTRACT(ISODOW FROM v.fecha)
             ORDER BY ranking
             """, nativeQuery = true)
-    List<ReportDtos.MejorDiaVentaResponse> findMejoresDiasVenta(
+    List<Tuple> findMejoresDiasVentaRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Método puente para exponer el Record limpio hacia tus servicios
+    default List<ReportDtos.MejorDiaVentaResponse> findMejoresDiasVenta(LocalDate inicio, LocalDate fin) {
+        return findMejoresDiasVentaRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.MejorDiaVentaResponse(
+                        // Extrae diaNum como un entero estándar de forma segura
+                        ((Number) tuple.get("diaNum")).intValue(),
+                        tuple.get("diaSemana", String.class),
+                        // Campos de agregación COUNT casteados a Long de manera segura
+                        ((Number) tuple.get("diasConVenta")).longValue(),
+                        ((Number) tuple.get("numVentas")).longValue(),
+                        tuple.get("totalAcumulado", java.math.BigDecimal.class),
+                        tuple.get("promedioPorDia", java.math.BigDecimal.class),
+                        // RANK() casteado a Long
+                        ((Number) tuple.get("ranking")).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
 
     /**
      * KPIs del dashboard acotados al rango: ventas, tickets, promedio, cuentas
@@ -255,8 +379,33 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             WHERE fecha BETWEEN :inicio AND :fin
             ORDER BY fecha
             """, nativeQuery = true)
-    List<ReportDtos.CierreDiarioResponse> findCierreDiario(
+    List<Tuple> findCierreDiarioRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Método puente para exponer el Record limpio hacia tus servicios
+    default List<ReportDtos.CierreDiarioResponse> findCierreDiario(LocalDate inicio, LocalDate fin) {
+        return findCierreDiarioRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.CierreDiarioResponse(
+                        // Extrae java.sql.Date nativo y convierte a LocalDate
+                        tuple.get("fecha", java.sql.Date.class).toLocalDate(),
+                        // Campos de conteo enteros (ajusta a .intValue() si usas Integer/int)
+                        ((Number) tuple.get("numCortes")).longValue(),
+                        ((Number) tuple.get("tickets")).longValue(),
+                        // Campos monetarios y porcentajes mapeados a BigDecimal
+                        tuple.get("totalVendido", java.math.BigDecimal.class),
+                        tuple.get("utilidadBruta", java.math.BigDecimal.class),
+                        tuple.get("margenPctPromedio", java.math.BigDecimal.class),
+                        tuple.get("perdidas", java.math.BigDecimal.class),
+                        tuple.get("entradasEfectivo", java.math.BigDecimal.class),
+                        tuple.get("salidasEfectivo", java.math.BigDecimal.class),
+                        tuple.get("efectivoDepositado", java.math.BigDecimal.class),
+                        tuple.get("diferenciaTotal", java.math.BigDecimal.class),
+                        tuple.get("ingresosDigitales", java.math.BigDecimal.class),
+                        // Bandera booleana del estado del cierre
+                        tuple.get("todoCuadrado", Boolean.class)
+                ))
+                .collect(Collectors.toList());
+    }
 
     /**
      * Productos sin venta reciente (vista {@code inv.vw_productos_sin_movimiento}).
@@ -275,7 +424,37 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             FROM inv.vw_productos_sin_movimiento
             ORDER BY dias_sin_vender DESC
             """, nativeQuery = true)
-    List<ReportDtos.ProductosSinMovimientoResponse> findProductosSinMovimiento();
+    List<Tuple> findProductosSinMovimientoRaw();
+
+    // Método puente para exponer el Record limpio hacia tus servicios
+    default List<ReportDtos.ProductosSinMovimientoResponse> findProductosSinMovimiento() {
+        return findProductosSinMovimientoRaw().stream()
+                .map(tuple -> {
+                    // Control de nulos seguro para productos que nunca se han vendido
+                    java.sql.Date sqlDate = tuple.get("ultimaVenta", java.sql.Date.class);
+                    java.time.LocalDate ultimaVentaLocalDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+
+                    return new ReportDtos.ProductosSinMovimientoResponse(
+                            // productoId (Casteo seguro)
+                            ((Number) tuple.get("productoId")).longValue(),
+                            tuple.get("codigo", String.class),
+                            tuple.get("producto", String.class),
+                            tuple.get("categoria", String.class),
+                            // stock (Ajusta a .intValue() si tu record usa Integer)
+                            ((Number) tuple.get("stock")).longValue(),
+                            // Campos monetarios mapeados a BigDecimal
+                            tuple.get("costoActual", java.math.BigDecimal.class),
+                            tuple.get("dineroDetenidoEnEstante", java.math.BigDecimal.class),
+                            // Fecha con soporte de nulos
+                            ultimaVentaLocalDate,
+                            // diasSinVender
+                            ((Number) tuple.get("diasSinVender")).longValue(),
+                            // prioridadPromocion (Ajusta el tipo si usas un Enum o número)
+                            tuple.get("prioridadPromocion", String.class)
+                    );
+                })
+                .collect(Collectors.toList());
+    }
 
     /**
      * Top 20 categorías por ingreso en el rango, con ranking por mes y
@@ -299,6 +478,26 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             ORDER BY ingreso DESC
             LIMIT 20
             """, nativeQuery = true)
-    List<ReportDtos.MejoresCategoriasResponse> findMejoresCategorias(
+    List<Tuple> findMejoresCategoriasRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
+    // Método puente para exponer el Record limpio hacia tus servicios
+    default List<ReportDtos.MejoresCategoriasResponse> findMejoresCategorias(LocalDate inicio, LocalDate fin) {
+        return findMejoresCategoriasRaw(inicio, fin).stream()
+                .map(tuple -> new ReportDtos.MejoresCategoriasResponse(
+                        // Extrae java.sql.Date nativo y convierte a LocalDate
+                        tuple.get("mes", java.sql.Date.class).toLocalDate(),
+                        // c.categoria_id (Casteo numérico seguro)
+                        ((Number) tuple.get("categoriaId")).longValue(),
+                        tuple.get("categoria", String.class),
+                        // Valores calculados en Postgres mapeados a BigDecimal
+                        tuple.get("unidadesVendidas", Long.class),
+                        tuple.get("ingreso", java.math.BigDecimal.class),
+                        tuple.get("utilidad", java.math.BigDecimal.class),
+                        // RANK() casteados a Long de forma segura
+                        ((Number) tuple.get("rankingMes")).longValue(),
+                        ((Number) tuple.get("rankingHistorico")).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
 }

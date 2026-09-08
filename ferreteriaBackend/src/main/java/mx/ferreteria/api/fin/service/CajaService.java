@@ -273,7 +273,7 @@ public class CajaService {
         public FinDtos.CorteCajaResponse cerrarTurno(Long turnoId, FinDtos.CorteRequest req) {
                 int usuarioCierreId = UserPrincipal.actual().usuarioId();
                 Long corteId = reportRepo.cerrarTurno(
-                                turnoId, req.montoContado(), req.observaciones(), usuarioCierreId);
+                                turnoId, req.montoContado(), usuarioCierreId, req.observaciones());
 
                 CorteCaja corte = corteRepo.findById(corteId)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));

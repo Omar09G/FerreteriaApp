@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, Eye } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
 import { apiAlmacenes, apiProductos } from "@/lib/api/catalogo";
 import { apiCrearTraslado, apiTraslados } from "@/lib/api/inventario";
 import type { Producto, Traslado, TrasladoRequest } from "@/lib/api/types";
-import { formatoFechaHora } from "@/lib/format";
+import {formatoFechaHora, formatoNumero} from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -236,6 +236,7 @@ export default function TrasladosPage() {
 	const [estado, setEstado] = useState("");
 	const [page, setPage] = useState(0);
 	const [dialogoAbierto, setDialogoAbierto] = useState(false);
+	const [viewDetalle, setViewDetalle] = useState<Traslado | null>(null);
 
 	const { data, isLoading, error, isFetching } = useQuery({
 		queryKey: ["traslados", estado, page],
@@ -288,9 +289,7 @@ export default function TrasladosPage() {
 					tone={
 						v.estado === "APLICADO"
 							? "success"
-							: v.estado === "CANCELADO"
-								? "danger"
-								: "default"
+							: v.estado !== "CANCELADO" ? "default" : "danger"
 					}
 				>
 					{v.estado}
@@ -306,6 +305,17 @@ export default function TrasladosPage() {
 				</span>
 			),
 		},
+		{
+			key: "detalle",
+			header: "Detalle",
+			render: (v) => (
+				<div className="flex items-center gap-2">
+					<Button variant="ghost" size="sm" title={`Ver traslado ${v.folio}`} onClick={() => setViewDetalle(v)}>
+						<Eye className="h-4 w-4" />
+					</Button>
+				</div>
+			),
+		}
 	];
 
 	return (
@@ -365,6 +375,34 @@ export default function TrasladosPage() {
 					onClose={() => setDialogoAbierto(false)}
 				/>
 			</Dialog>
+
+			<Dialog
+				open={!!viewDetalle}
+				onClose={() => setViewDetalle(null)}
+				title={`Traslado ${viewDetalle?.folio}`}
+				width="max-w-lg"
+			>
+				{viewDetalle && (
+					<div className="space-y-3">
+						<div className="grid grid-cols-2 gap-2 text-center">
+							{viewDetalle?.detalles.map((d) => (
+								<div key={d.productoId}   className="grid grid-cols-1 gap-1 text-center">
+								<div className="rounded-md border border-line p-2">
+									<p className="text-sm font-medium text-ink">{d.productoNombre}</p>
+
+								</div>
+									<div className="rounded-md border border-line p-2">
+									<p className="text-sm font-medium text-ink">{formatoNumero(d.cantidad ?? "0")}</p>
+								</div>
+
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+			</Dialog>
 		</div>
+
+
 	);
 }

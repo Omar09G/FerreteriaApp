@@ -73,12 +73,14 @@ public interface CajaReportRepository extends JpaRepository<Caja, Integer> {
 
     /**
      * Cierra el turno llamando a la función PL/pgSQL {@code fin.fn_cerrar_turno},
-     * que materializa el corte y devuelve su identificador.
+     * que materializa el corte y devuelve su identificador. Orden de
+     * parametros debe coincidir con la firma DB:
+     * {@code (p_turno bigint, p_monto_contado numeric, p_usuario_cierre integer, p_notas text)}.
      */
-    @Query(value = "SELECT fin.fn_cerrar_turno(:turnoId, :montoReal, :notas, :usuarioId)",
+    @Query(value = "SELECT fin.fn_cerrar_turno(:turnoId, :montoReal, :usuarioId, :notas)",
             nativeQuery = true)
     Long cerrarTurno(@Param("turnoId") Long turnoId,
             @Param("montoReal") BigDecimal montoReal,
-            @Param("notas") String notas,
-            @Param("usuarioId") Integer usuarioId);
+            @Param("usuarioId") Integer usuarioId,
+            @Param("notas") String notas);
 }

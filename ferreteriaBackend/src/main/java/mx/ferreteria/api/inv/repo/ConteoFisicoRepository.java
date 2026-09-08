@@ -8,4 +8,5 @@ import mx.ferreteria.api.inv.entity.ConteoFisico;
 
 public interface ConteoFisicoRepository extends JpaRepository<ConteoFisico, Long> {
     Page<ConteoFisico> findByAlmacenId(Integer almacenId, Pageable pageable);
+
 }

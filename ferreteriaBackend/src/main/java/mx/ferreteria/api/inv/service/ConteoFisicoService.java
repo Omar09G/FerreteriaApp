@@ -36,7 +36,13 @@ public class ConteoFisicoService {
 
     @Transactional(readOnly = true)
     public Page<ConteoFisicoResponse> list(Integer almacenId, Pageable pageable) {
-        Page<ConteoFisico> page = repo.findByAlmacenId(almacenId, pageable);
+
+        if (almacenId != null && almacenId != 0 && almacenRepo.existsById(almacenId)) {
+            Page<ConteoFisico> page = repo.findByAlmacenId(almacenId, pageable);
+            return page.map(this::toResponse);
+        }
+        //Obtener todos los alamcenes si no se especifica un almacenId válido
+        Page<ConteoFisico> page = repo.findAll(pageable);
         return page.map(this::toResponse);
     }
 
