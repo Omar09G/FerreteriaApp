@@ -22,7 +22,7 @@ import type {
   PromocionRequest,
   TipoPromocion,
 } from "@/lib/api/types";
-import { formatoFechaHora } from "@/lib/format";
+import { aLocalDate, formatoFechaHora } from "@/lib/format";
 import { useTieneRol } from "@/store/auth";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -105,6 +105,9 @@ function datetimeLocalAiso(s: string | undefined | null): string | undefined {
 }
 
 function vacioARequest(): PromocionRequest {
+  const hoy = new Date();
+  const hasta = new Date();
+  hasta.setDate(hoy.getDate() + 15);
   return {
     nombre: "",
     descripcion: undefined,
@@ -118,11 +121,11 @@ function vacioARequest(): PromocionRequest {
     paga: undefined,
     maxUsosTotal: undefined,
     maxUsosCliente: undefined,
-    vigenciaDesde: new Date().toISOString(),
-    vigenciaHasta: undefined,
+    vigenciaDesde: `${aLocalDate(hoy)}T07:00:00`,
+    vigenciaHasta: `${aLocalDate(hasta)}T20:00:00`,
     diasSemana: [1, 2, 3, 4, 5, 6, 7],
-    horaDesde: undefined,
-    horaHasta: undefined,
+    horaDesde: "07:00",
+    horaHasta: "20:00",
     soloMayoristas: false,
     estado: "ACTIVA",
     productos: [],
@@ -172,10 +175,10 @@ function PromocionForm({
     return vacioARequest();
   });
   const [vigenciaDesdeStr, setVigenciaDesdeStr] = useState<string>(
-    inicial?.vigenciaDesde ? inicial.vigenciaDesde.slice(0, 16) : "",
+    () => (inicial?.vigenciaDesde ?? body.vigenciaDesde)?.slice(0, 16) ?? "",
   );
   const [vigenciaHastaStr, setVigenciaHastaStr] = useState<string>(
-    inicial?.vigenciaHasta ? inicial.vigenciaHasta.slice(0, 16) : "",
+    () => (inicial?.vigenciaHasta ?? body.vigenciaHasta)?.slice(0, 16) ?? "",
   );
   const [intento, setIntento] = useState(false);
 
@@ -221,14 +224,38 @@ function PromocionForm({
         : [...b.categorias, id],
     }));
 
+  const seleccionarTodasCategorias = () =>
+    setBody((b) => ({
+      ...b,
+      categorias: categoriasList.map((c) => c.categoriaId),
+    }));
+
+  const quitarTodasCategorias = () =>
+    setBody((b) => ({ ...b, categorias: [] }));
+
   const agregarProducto = (id: number) =>
     setBody((b) => ({
       ...b,
       productos: b.productos.includes(id) ? b.productos : [...b.productos, id],
     }));
 
+  const agregarTodosProductos = () => {
+    const disponibles =
+      productos.data?.data
+        .filter((p) => !body.productos.includes(p.productoId))
+        .map((p) => p.productoId) ?? [];
+    if (disponibles.length === 0) return;
+    setBody((b) => ({
+      ...b,
+      productos: [...b.productos, ...disponibles],
+    }));
+  };
+
   const quitarProducto = (id: number) =>
     setBody((b) => ({ ...b, productos: b.productos.filter((x) => x !== id) }));
+
+  const quitarTodosProductos = () =>
+    setBody((b) => ({ ...b, productos: [] }));
 
   const invalido = body.nombre.trim() === "" || body.diasSemana.length === 0;
 
@@ -512,9 +539,27 @@ function PromocionForm({
       )}
 
       <div className="sm:col-span-2 mt-2">
-        <span className="text-xs font-medium text-muted">
-          {t("catalogo.promociones.campos.categoriasAplicables")}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted">
+            {t("catalogo.promociones.campos.categoriasAplicables")}
+          </span>
+          {!categorias.isLoading && categoriasList.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() =>
+                body.categorias.length === categoriasList.length
+                  ? quitarTodasCategorias()
+                  : seleccionarTodasCategorias()
+              }
+            >
+              {body.categorias.length === categoriasList.length
+                ? "Quitar todas"
+                : "Seleccionar todas"}
+            </Button>
+          )}
+        </div>
         {categorias.isLoading ? (
           <Spinner />
         ) : (
@@ -555,6 +600,21 @@ function PromocionForm({
         ) : (
           <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="max-h-40 overflow-y-auto rounded-md border border-line p-2">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-muted">
+                  Disponibles
+                </span>
+                {productos.data?.data.filter((p) => !body.productos.includes(p.productoId)).length ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={agregarTodosProductos}
+                  >
+                    Agregar todos
+                  </Button>
+                ) : null}
+              </div>
               {productos.data?.data.length === 0 && (
                 <span className="text-xs text-muted">
                   {t("catalogo.promociones.campos.sinCoincidencias")}
@@ -574,9 +634,21 @@ function PromocionForm({
                   </button>
                 ))}
             </div>
-            <div className="rounded-md border border-line p-2">
-              <div className="mb-1 text-xs font-medium">
-                {t("catalogo.promociones.campos.seleccionados")}
+            <div className="max-h-40 overflow-y-auto rounded-md border border-line p-2">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-medium">
+                  {t("catalogo.promociones.campos.seleccionados")}
+                </span>
+                {productosSeleccionados.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={quitarTodosProductos}
+                  >
+                    Quitar todos
+                  </Button>
+                )}
               </div>
               {productosSeleccionados.length === 0 && (
                 <span className="text-xs text-muted">

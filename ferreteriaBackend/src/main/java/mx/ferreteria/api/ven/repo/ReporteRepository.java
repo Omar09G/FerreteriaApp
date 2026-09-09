@@ -491,7 +491,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         ((Number) tuple.get("categoriaId")).longValue(),
                         tuple.get("categoria", String.class),
                         // Valores calculados en Postgres mapeados a BigDecimal
-                        tuple.get("unidadesVendidas", Long.class),
+                        ((Number) tuple.get("unidadesVendidas")).longValue(),
                         tuple.get("ingreso", java.math.BigDecimal.class),
                         tuple.get("utilidad", java.math.BigDecimal.class),
                         // RANK() casteados a Long de forma segura
