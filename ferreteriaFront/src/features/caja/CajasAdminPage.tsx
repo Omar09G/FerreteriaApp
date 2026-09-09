@@ -90,10 +90,9 @@ function CajaForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 pt-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
-					Cancelar
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>Cancelar
 				</Button>
-				<Button type="submit" variant="primary" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" variant="primary" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -203,7 +202,7 @@ export default function CajasAdminPage() {
 			header: "Acciones",
 			render: (c) => (
 				<div className="flex gap-1">
-					<Button
+					<Button hotkey="F4"
 						variant="ghost"
 						size="sm"
 						aria-label="Editar"
@@ -236,7 +235,7 @@ export default function CajasAdminPage() {
 						Da de alta, modifica o da de baja las cajas que usan turnos de caja.
 					</p>
 				</div>
-				<Button
+				<Button hotkey="F4"
 					onClick={() => {
 						setEditing(null);
 						setDialogoAbierto(true);

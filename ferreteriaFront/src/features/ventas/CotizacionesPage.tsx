@@ -126,7 +126,7 @@ function CotizacionForm({
 			</div>
 
 			<div className="flex flex-wrap items-end gap-2">
-				<Input
+				<Input hotkey="F3"
 					label="Buscar producto"
 					value={busqueda}
 					onChange={(e) => setBusqueda(e.target.value)}
@@ -136,7 +136,7 @@ function CotizacionForm({
 					placeholder="Artículo a cotizar"
 					className="w-72"
 				/>
-				<Button
+				<Button hotkey="F3"
 					variant="secondary"
 					disabled={resultados.isFetching || busqueda.trim() === q}
 					onClick={() => setQ(busqueda.trim())}
@@ -247,10 +247,10 @@ function CotizacionForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Registrar cotización"}
 				</Button>
 			</div>
@@ -379,10 +379,10 @@ function ConvertirForm({
 				caja y dejará de estar vigente.
 			</p>
 			<div className="flex justify-end gap-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Convirtiendo…" : "Convertir a venta"}
 				</Button>
 			</div>
@@ -571,7 +571,7 @@ export default function CotizacionesPage() {
 							setPage(0);
 						}}
 					/>
-					<Button onClick={() => setNuevaAbierta(true)}>
+					<Button hotkey="F4" onClick={() => setNuevaAbierta(true)}>
 						<Plus className="h-4 w-4" /> Nueva cotización
 					</Button>
 				</div>

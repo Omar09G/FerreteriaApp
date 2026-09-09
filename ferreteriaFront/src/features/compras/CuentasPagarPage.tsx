@@ -172,10 +172,10 @@ function AbonoDialog({
 				</p>
 			)}
 			<div className="flex justify-end gap-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Registrar abono"}
 				</Button>
 			</div>

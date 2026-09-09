@@ -121,10 +121,10 @@ function NuevaFacturaForm({
 				/>
 			</div>
 			<div className="flex justify-end gap-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Crear factura"}
 				</Button>
 			</div>
@@ -289,7 +289,7 @@ export default function FacturasPage() {
 						Facturas emitidas y recibidas con timbrado fiscal.
 					</p>
 				</div>
-				<Button onClick={() => setCreando(true)}>
+				<Button hotkey="F4" onClick={() => setCreando(true)}>
 					<Plus className="h-4 w-4" /> Nueva factura
 				</Button>
 			</header>

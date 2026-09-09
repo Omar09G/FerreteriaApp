@@ -568,7 +568,7 @@ export default function CajaPage() {
 							</option>
 						))}
 					</Select>
-					<Button
+					<Button hotkey="F4"
 						variant="secondary"
 						disabled={cajaId === "" || abrir.isPending}
 						onClick={() => setAbrirAbierto(true)}
@@ -735,7 +735,7 @@ export default function CajaPage() {
 																}
 															/>
 															<div className="flex items-end">
-																<Button
+																<Button hotkey="Ctrl+Enter"
 																	variant="secondary"
 																	disabled={
 																		registrar.isPending ||
@@ -854,7 +854,7 @@ export default function CajaPage() {
 						onChange={(e) => setMontoApertura(e.target.value)}
 					/>
 					<div className="flex justify-end gap-2">
-						<Button variant="ghost" onClick={() => setAbrirAbierto(false)}>
+						<Button hotkey="Esc" variant="ghost" onClick={() => setAbrirAbierto(false)}>
 							Cancelar
 						</Button>
 						<Button
@@ -921,7 +921,7 @@ export default function CajaPage() {
 						onChange={(e) => setObservaciones(e.target.value)}
 					/>
 					<div className="flex justify-end gap-2">
-						<Button variant="ghost" onClick={() => setCerrarAbierto(false)}>
+						<Button hotkey="Esc" variant="ghost" onClick={() => setCerrarAbierto(false)}>
 							Cancelar
 						</Button>
 						<Button

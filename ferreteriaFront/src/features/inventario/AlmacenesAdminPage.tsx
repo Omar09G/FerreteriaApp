@@ -86,10 +86,10 @@ function AlmacenForm({
 				<p className="text-sm text-red-600">El nombre es obligatorio.</p>
 			)}
 			<div className="flex justify-end gap-2 pt-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" variant="primary" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" variant="primary" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -242,7 +242,7 @@ export default function AlmacenesAdminPage() {
 						Da de alta, modifica o da de baja los almacenes de la empresa.
 					</p>
 				</div>
-				<Button
+				<Button hotkey="F4"
 					onClick={() => {
 						setEditing(null);
 						setDialogoAbierto(true);

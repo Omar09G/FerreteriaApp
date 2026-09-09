@@ -113,7 +113,7 @@ export default function ConfiguracionPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => printTicketById()}>Probar impresión</Button>
-          <Button onClick={() => mutate.mutate()} disabled={mutate.isPending}>
+          <Button hotkey="Ctrl+Enter" onClick={() => mutate.mutate()} disabled={mutate.isPending}>
             <Save className="h-4 w-4" /> {mutate.isPending ? "Guardando…" : "Guardar"}
           </Button>
         </div>

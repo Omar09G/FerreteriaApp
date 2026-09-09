@@ -193,10 +193,10 @@ function EmpleadoForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -320,7 +320,7 @@ export default function EmpleadosPage() {
 						administrador.
 					</p>
 				</div>
-				<Button onClick={() => setDialogoAbierto(true)}>
+				<Button hotkey="F4" onClick={() => setDialogoAbierto(true)}>
 					<UserPlus className="h-4 w-4" /> Nuevo empleado
 				</Button>
 			</header>

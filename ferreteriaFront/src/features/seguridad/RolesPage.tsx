@@ -98,10 +98,10 @@ function RolForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -183,10 +183,10 @@ function PermisosDialog({ rol, onClose }: { rol: Rol; onClose: () => void }) {
 				</div>
 			)}
 			<div className="flex justify-end gap-2">
-				<Button variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button
+				<Button hotkey="Ctrl+Enter"
 					disabled={setPermisos.isPending}
 					onClick={() =>
 						setPermisos.mutate({ id: rol.rolId, permisos: chequeados })
@@ -328,7 +328,7 @@ export default function RolesPage() {
 						Administración de roles y sus permisos. Solo administrador.
 					</p>
 				</div>
-				<Button onClick={() => setDialogoCreado(true)}>
+				<Button hotkey="F4" onClick={() => setDialogoCreado(true)}>
 					<Plus className="h-4 w-4" /> Nuevo rol
 				</Button>
 			</header>

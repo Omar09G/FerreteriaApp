@@ -191,10 +191,10 @@ function CatalogoForm({
 				</p>
 			)}
 			<div className="col-span-full flex justify-end gap-2 pt-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" variant="primary" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" variant="primary" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -360,7 +360,7 @@ export default function CatalogoCrudPage() {
 						{descriptor.tabla}
 					</p>
 				</div>
-				<Button onClick={abrirNuevo} variant="primary">
+				<Button hotkey="F4" onClick={abrirNuevo} variant="primary">
 					<Plus className="h-4 w-4" /> Nuevo
 				</Button>
 			</div>
@@ -381,7 +381,7 @@ export default function CatalogoCrudPage() {
 						onChange={(e) => setQ(e.target.value)}
 						className="max-w-xs"
 					/>
-					<Button type="submit" variant="secondary">
+					<Button hotkey="F3" type="submit" variant="secondary">
 						Buscar
 					</Button>
 				</form>

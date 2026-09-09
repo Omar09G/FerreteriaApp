@@ -168,10 +168,10 @@ function GastoForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button
+				<Button hotkey="Ctrl+Enter"
 					type="submit"
 					disabled={guardando}
 					variant={inicial ? "primary" : "primary"}
@@ -267,10 +267,10 @@ function IngresoForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando
 						? "Guardando…"
 						: inicial
@@ -590,7 +590,7 @@ export default function GastosPage() {
 							setPage(0);
 						}}
 					/>
-					<Button
+					<Button hotkey="Ctrl+Enter"
 						onClick={() => setDialogo(tab === "gastos" ? "gasto" : "ingreso")}
 					>
 						{tab === "gastos" ? (

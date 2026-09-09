@@ -125,7 +125,7 @@ function TrasladoForm({
 			</div>
 
 			<div className="flex flex-wrap items-end gap-2">
-				<Input
+				<Input hotkey="F3"
 					label="Buscar producto"
 					value={busqueda}
 					onChange={(e) => setBusqueda(e.target.value)}
@@ -133,7 +133,7 @@ function TrasladoForm({
 					placeholder="Artículo a trasladar"
 					className="w-72"
 				/>
-				<Button
+				<Button hotkey="F3"
 					variant="secondary"
 					disabled={resultados.isFetching || busqueda.trim() === q}
 					onClick={() => setQ(busqueda.trim())}
@@ -217,10 +217,10 @@ function TrasladoForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Registrar traslado"}
 				</Button>
 			</div>
@@ -327,7 +327,7 @@ export default function TrasladosPage() {
 						Traslado de existencias entre almacenes.
 					</p>
 				</div>
-				<Button onClick={() => setDialogoAbierto(true)}>
+				<Button hotkey="F4" onClick={() => setDialogoAbierto(true)}>
 					<Plus className="h-4 w-4" /> Nuevo traslado
 				</Button>
 			</header>

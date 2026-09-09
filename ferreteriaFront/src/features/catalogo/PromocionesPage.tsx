@@ -543,7 +543,7 @@ function PromocionForm({
 				<span className="text-xs font-medium text-muted">
 					{t("catalogo.promociones.campos.productosAplicables")}
 				</span>
-				<Input
+				<Input hotkey="F3"
 					className="mt-1"
 					placeholder={t("catalogo.promociones.campos.buscarProducto")}
 					value={busquedaProducto}
@@ -602,7 +602,7 @@ function PromocionForm({
 			</div>
 
 			<div className="sm:col-span-2 mt-2 flex justify-end gap-2">
-				<Button
+				<Button hotkey="Esc"
 					variant="ghost"
 					type="button"
 					disabled={guardando}
@@ -610,7 +610,7 @@ function PromocionForm({
 				>
 					{t("comun.cancelar")}
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando
 						? t("catalogo.promociones.guardando")
 						: esEdicion
@@ -804,7 +804,7 @@ export default function PromocionesPage() {
 					</p>
 				</div>
 				{puedeAdministrar && (
-					<Button onClick={() => setDialogo("nuevo")}>
+					<Button hotkey="F4" onClick={() => setDialogo("nuevo")}>
 						<Tag className="h-4 w-4" /> {t("catalogo.promociones.nueva")}
 					</Button>
 				)}

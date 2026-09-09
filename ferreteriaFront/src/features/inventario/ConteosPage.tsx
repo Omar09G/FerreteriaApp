@@ -110,7 +110,7 @@ function ConteoForm({
 			</Select>
 
 			<div className="flex flex-wrap items-end gap-2">
-				<Input
+				<Input hotkey="F3"
 					label="Buscar producto"
 					value={busqueda}
 					onChange={(e) => setBusqueda(e.target.value)}
@@ -118,7 +118,7 @@ function ConteoForm({
 					placeholder="Artículo a contar"
 					className="w-72"
 				/>
-				<Button
+				<Button hotkey="F3"
 					variant="secondary"
 					disabled={resultados.isFetching || busqueda.trim() === q}
 					onClick={() => setQ(busqueda.trim())}
@@ -212,10 +212,10 @@ function ConteoForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Registrar conteo"}
 				</Button>
 			</div>
@@ -286,7 +286,7 @@ export default function ConteosPage() {
 						Inventarios físicos realizados para conciliar contra el stock.
 					</p>
 				</div>
-				<Button onClick={() => setDialogoAbierto(true)}>
+				<Button hotkey="F4" onClick={() => setDialogoAbierto(true)}>
 					<Plus className="h-4 w-4" /> Nuevo conteo
 				</Button>
 			</header>

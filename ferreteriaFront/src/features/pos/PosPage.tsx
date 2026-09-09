@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useHotkey } from "@/hooks/useHotkey";
 import { esApiError } from "@/lib/api/client";
 import { apiProductos, apiAlmacenes, apiClientes, apiGetCliente } from "@/lib/api/catalogo";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
@@ -385,10 +386,10 @@ export default function PosPage() {
   });
 
   /** El click en "Confirmar y cobrar" cierra el dialog de inmediato para evitar doble-submit. */
-  const confirmarYcobrar = () => {
+  const confirmarYcobrar = useCallback(() => {
     setConfirmAbierto(false);
     checkout.mutate();
-  };
+  }, [checkout]);
 
   const total = lineas.reduce(
     (acc, l) => acc + l.cantidad * l.precioUnitario,
@@ -420,24 +421,27 @@ export default function PosPage() {
     notas !== "";
   const puedeCancelar = puedeLimpiar || clienteId !== "" || formaPagoId !== 1;
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (ventaResultado || confirmAbierto) return;
-      if (e.key === "F1") {
-        e.preventDefault();
-        buscadorRef.current?.focus();
-        buscadorRef.current?.select();
-        return;
-      }
-      if (e.key === "F2") {
-        if (!puedeVender || checkout.isPending) return;
-        e.preventDefault();
-        setConfirmAbierto(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [puedeVender, checkout, ventaResultado, confirmAbierto]);
+  const enfocarBuscador = useCallback(() => {
+    buscadorRef.current?.focus();
+    buscadorRef.current?.select();
+  }, []);
+
+  const abrirConfirmacion = useCallback(() => {
+    if (!puedeVender || checkout.isPending) return;
+    setConfirmAbierto(true);
+  }, [puedeVender, checkout.isPending]);
+
+  useHotkey("F1", enfocarBuscador, {
+    enabled: !ventaResultado && !confirmAbierto,
+  });
+  useHotkey("F2", abrirConfirmacion, {
+    enabled: !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
+  });
+  // Ctrl+Enter confirma ventas: abrir dialog si no abierto, o confirmar si ya abierto via Button auto-wire (evita doble mutate)
+  useHotkey("Ctrl+Enter", abrirConfirmacion, {
+    enabled: !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
+  });
+  // Confirmar dentro del Dialog se maneja via Button hotkey="Ctrl+Enter" (montado solo cuando confirmAbierto)
 
   const cambiarCantidad = (id: number, n: number) => {
     const linea = lineas.find((l) => l.productoId === id);
@@ -658,6 +662,7 @@ export default function PosPage() {
               <div className="flex-1 min-w-[16rem]">
                 <Input
                   label="Buscar producto"
+                  hotkey="F1"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   onKeyDown={(e) => {
@@ -678,6 +683,7 @@ export default function PosPage() {
                 />
               </div>
               <Button
+                hotkey="F3"
                 onClick={() => busqueda.trim() && setQ(busqueda.trim())}
                 disabled={
                   resultados.isFetching ||
@@ -890,11 +896,11 @@ export default function PosPage() {
             <Button
               ref={cobrarRef}
               type="button"
+              hotkey="F2"
               disabled={!puedeVender || checkout.isPending}
               onClick={() => setConfirmAbierto(true)}
               className="mt-3 w-full"
               size="lg"
-              title="Atajo: F2"
             >
               <ShoppingBasket className="h-5 w-5" />
               {checkout.isPending
@@ -1066,6 +1072,7 @@ export default function PosPage() {
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="ghost"
+                    hotkey="Esc"
                     disabled={checkout.isPending}
                     onClick={() => setConfirmAbierto(false)}
                   >
@@ -1073,9 +1080,9 @@ export default function PosPage() {
                   </Button>
                   <Button
                     ref={confirmarRef}
+                    hotkey="Ctrl+Enter"
                     disabled={checkout.isPending}
                     onClick={confirmarYcobrar}
-                    title="Enter"
                   >
                     <ShoppingBasket className="h-4 w-4" />
                     {checkout.isPending

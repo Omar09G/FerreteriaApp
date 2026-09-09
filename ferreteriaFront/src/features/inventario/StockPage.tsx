@@ -240,14 +240,14 @@ function AjusteDialog({
 					</div>
 
 					<div className="flex justify-end gap-2 pt-1">
-						<Button
+						<Button hotkey="Esc"
 							variant="ghost"
 							disabled={ajuste.isPending}
 							onClick={onClose}
 						>
 							Cancelar
 						</Button>
-						<Button disabled={invalido || ajuste.isPending} onClick={guardar}>
+						<Button hotkey="Ctrl+Enter" disabled={invalido || ajuste.isPending} onClick={guardar}>
 							{tipo === "ENTRADA" ? (
 								<ArrowUpCircle className="h-4 w-4" />
 							) : (
@@ -391,7 +391,7 @@ export default function StockPage() {
 			header: "Acciones",
 			align: "right",
 			render: (v) => (
-				<Button
+				<Button hotkey="Ctrl+Enter"
 					variant="secondary"
 					size="sm"
 					onClick={() =>

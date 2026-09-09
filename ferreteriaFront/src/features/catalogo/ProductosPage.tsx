@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useHotkey } from "@/hooks/useHotkey";
 import { PackagePlus, Pencil, Search, Trash2 } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -245,10 +246,10 @@ function ProductoForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button type="button" variant="ghost" hotkey="Esc" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button type="submit" hotkey="Ctrl+Enter" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -281,6 +282,20 @@ export default function ProductosPage() {
 		setFiltroTipo(tipo);
 		setPage(0);
 	};
+
+	const busquedaRef = useRef<HTMLInputElement>(null);
+	const abrirNuevo = useCallback(() => {
+		setEditando(null);
+		setDialogoAbierto(true);
+	}, []);
+	const buscarCb = useCallback(() => {
+		setFiltroTipo("");
+		setFiltroQ(busqueda.trim());
+		setPage(0);
+	}, [busqueda]);
+
+	useHotkey("F4", abrirNuevo, { enabled: !dialogoAbierto && !eliminarConfirmacion });
+	useHotkey("F3", buscarCb, { enabled: !dialogoAbierto && !eliminarConfirmacion });
 
 	const { data, isLoading, error, isFetching } = useQuery({
 		queryKey: ["productos", filtroQ, filtroTipo, page],
@@ -416,6 +431,7 @@ export default function ProductosPage() {
 					</p>
 				</div>
 				<Button
+					hotkey="F4"
 					onClick={() => {
 						setEditando(null);
 						setDialogoAbierto(true);
@@ -429,13 +445,16 @@ export default function ProductosPage() {
 				<div className="flex flex-wrap items-end gap-2">
 					<Input
 						label="Buscar"
+						hotkey="F3"
 						value={busqueda}
+						ref={busquedaRef}
 						onChange={(e) => setBusqueda(e.target.value)}
 						onKeyDown={(e) => e.key === "Enter" && aplicarBusqueda()}
 						placeholder="Nombre del producto"
 						className="w-64"
 					/>
 					<Button
+						hotkey="F3"
 						onClick={aplicarBusqueda}
 						disabled={isFetching || busqueda === filtroQ}
 					>

@@ -171,10 +171,10 @@ function NominaForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -437,7 +437,7 @@ export default function NominaPage() {
 					>
 						<Banknote className="h-4 w-4" /> Pagar nómina {pendientes.length > 0 && `(${pendientes.length})`}
 					</Button>
-					<Button onClick={() => setDialogoAbierto(true)}>
+					<Button hotkey="F4" onClick={() => setDialogoAbierto(true)}>
 						<CalendarPlus className="h-4 w-4" /> Nueva nómina
 					</Button>
 				</div>
@@ -479,14 +479,14 @@ export default function NominaPage() {
 				width="max-w-md"
 				footer={
 					<>
-						<Button
+						<Button hotkey="Ctrl+Enter"
 							variant="ghost"
 							disabled={pagar.isPending}
 							onClick={() => setPagarConfirmacion(null)}
 						>
 							Cancelar
 						</Button>
-						<Button
+						<Button hotkey="Ctrl+Enter"
 							disabled={pagar.isPending}
 							onClick={() =>
 								pagarConfirmacion && pagar.mutate(pagarConfirmacion.nominaId)
@@ -556,7 +556,7 @@ export default function NominaPage() {
 						Si ya existe nómina para un empleado en ese periodo se omite (única por empleado/periodo).
 					</p>
 					<div className="flex justify-end gap-2">
-						<Button variant="ghost" disabled={generar.isPending} onClick={() => setGenerarAbierto(false)}>
+						<Button hotkey="Esc" variant="ghost" disabled={generar.isPending} onClick={() => setGenerarAbierto(false)}>
 							Cancelar
 						</Button>
 						<Button disabled={generar.isPending} onClick={() => generar.mutate(quincena)}>
@@ -573,7 +573,7 @@ export default function NominaPage() {
 				width="max-w-md"
 				footer={
 					<>
-						<Button variant="ghost" disabled={pagarLote.isPending} onClick={() => setPagarLoteAbierto(false)}>
+						<Button hotkey="Esc" variant="ghost" disabled={pagarLote.isPending} onClick={() => setPagarLoteAbierto(false)}>
 							Cancelar
 						</Button>
 						<Button

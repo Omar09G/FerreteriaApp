@@ -136,10 +136,10 @@ function ProveedorForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -284,7 +284,7 @@ export default function ProveedoresPage() {
 						Proveedores de mercancía, su facturación y condiciones de crédito.
 					</p>
 				</div>
-				<Button
+				<Button hotkey="F4"
 					onClick={() => {
 						setEditando(null);
 						setDialogoAbierto(true);
@@ -296,7 +296,7 @@ export default function ProveedoresPage() {
 
 			<Card>
 				<div className="flex flex-wrap items-end gap-2">
-					<Input
+					<Input hotkey="F3"
 						label="Buscar"
 						value={busqueda}
 						onChange={(e) => setBusqueda(e.target.value)}
@@ -309,7 +309,7 @@ export default function ProveedoresPage() {
 						placeholder="Razón social, RFC o régimen"
 						className="w-64"
 					/>
-					<Button
+					<Button hotkey="F3"
 						onClick={() => {
 							setFiltroQ(busqueda.trim());
 							setPage(0);

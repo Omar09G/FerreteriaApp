@@ -114,10 +114,10 @@ function UsuarioForm({
 				</p>
 			)}
 			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" onClick={onClose}>
+				<Button hotkey="Esc" type="button" variant="ghost" onClick={onClose}>
 					Cancelar
 				</Button>
-				<Button type="submit" disabled={guardando}>
+				<Button hotkey="Ctrl+Enter" type="submit" disabled={guardando}>
 					{guardando ? "Guardando…" : "Guardar"}
 				</Button>
 			</div>
@@ -300,7 +300,7 @@ export default function UsuariosPage() {
 						Altas, roles y contraseñas del sistema. Solo administrador.
 					</p>
 				</div>
-				<Button onClick={() => setDialogoAbierto(true)}>
+				<Button hotkey="F4" onClick={() => setDialogoAbierto(true)}>
 					<UserPlus className="h-4 w-4" /> Nuevo usuario
 				</Button>
 			</header>
@@ -361,10 +361,10 @@ export default function UsuariosPage() {
 						))}
 					</div>
 					<div className="flex justify-end gap-2">
-						<Button variant="ghost" onClick={() => setEditandoRoles(null)}>
+						<Button hotkey="Esc" variant="ghost" onClick={() => setEditandoRoles(null)}>
 							Cancelar
 						</Button>
-						<Button
+						<Button hotkey="Ctrl+Enter"
 							disabled={setRoles.isPending || editandoRoles === null}
 							onClick={() =>
 								editandoRoles &&
@@ -432,14 +432,14 @@ export default function UsuariosPage() {
 						</p>
 					)}
 					<div className="flex justify-end gap-2">
-						<Button
+						<Button hotkey="Esc"
 							variant="ghost"
 							disabled={reset.isPending}
 							onClick={() => setResetUsuario(null)}
 						>
 							Cancelar
 						</Button>
-						<Button
+						<Button hotkey="F4"
 							disabled={reset.isPending || resetUsuario === null}
 							onClick={() => {
 								setIntentoReset(true);
