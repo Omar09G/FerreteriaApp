@@ -3,11 +3,9 @@ package mx.ferreteria.api.inv.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -45,160 +43,162 @@ import mx.ferreteria.api.inv.repo.TrasladoRepository;
 @ExtendWith(MockitoExtension.class)
 class TrasladoServiceTest {
 
-    @Mock
-    TrasladoRepository repo;
+        @Mock
+        TrasladoRepository repo;
 
-    @Mock
-    TrasladoDetalleRepository detalleRepo;
+        @Mock
+        TrasladoDetalleRepository detalleRepo;
 
-    @Mock
-    MovimientoInventarioRepository movimientoRepo;
+        @Mock
+        MovimientoInventarioRepository movimientoRepo;
 
-    @Mock
-    AlmacenRepository almacenRepo;
+        @Mock
+        AlmacenRepository almacenRepo;
 
-    @Mock
-    ProductoRepository productoRepo;
+        @Mock
+        ProductoRepository productoRepo;
 
-    @Mock
-    MotivoMovimientoRepository motivoRepo;
+        @Mock
+        MotivoMovimientoRepository motivoRepo;
 
-    @Spy
-    @InjectMocks
-    TrasladoService service;
+        @Spy
+        @InjectMocks
+        TrasladoService service;
 
-    private Producto sampleProducto(Long id, String nombre) {
-        return Producto.builder().productoId(id).codigo("P" + id).nombre(nombre).build();
-    }
+        private Producto sampleProducto(Long id, String nombre) {
+                return Producto.builder().productoId(id).codigo("P" + id).nombre(nombre).build();
+        }
 
-    private Almacen sampleAlmacen(Integer id, String nombre) {
-        return Almacen.builder().almacenId(id).nombre(nombre).build();
-    }
+        private Almacen sampleAlmacen(Integer id, String nombre) {
+                return Almacen.builder().almacenId(id).nombre(nombre).build();
+        }
 
-    private Traslado sampleTraslado(Long id, Integer origen, Integer destino) {
-        return Traslado.builder()
-                .trasladoId(id)
-                .folio("TR-" + id)
-                .almacenOrigen(origen)
-                .almacenDestino(destino)
-                .estado("APLICADO")
-                .usuarioId(1)
-                .build();
-    }
+        private Traslado sampleTraslado(Long id, Integer origen, Integer destino) {
+                return Traslado.builder()
+                                .trasladoId(id)
+                                .folio("TR-" + id)
+                                .almacenOrigen(origen)
+                                .almacenDestino(destino)
+                                .estado("APLICADO")
+                                .usuarioId(1)
+                                .build();
+        }
 
-    private TrasladoDetalle sampleDetalle(Long trasladoId, Long productoId, BigDecimal cantidad) {
-        return TrasladoDetalle.builder()
-                .trasladoId(trasladoId)
-                .productoId(productoId)
-                .cantidad(cantidad)
-                .build();
-    }
+        private TrasladoDetalle sampleDetalle(Long trasladoId, Long productoId, BigDecimal cantidad) {
+                return TrasladoDetalle.builder()
+                                .trasladoId(trasladoId)
+                                .productoId(productoId)
+                                .cantidad(cantidad)
+                                .build();
+        }
 
-    // ── list ────────────────────────────────────────────────────────
+        // ── list ────────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("list: retorna pagina de traslados con detalles")
-    void list_returnsPage() {
-        Pageable pg = PageRequest.of(0, 10);
-        Traslado t = sampleTraslado(1L, 1, 2);
-        when(repo.findAllByOrderByCreadoEnDesc(pg))
-                .thenReturn(new PageImpl<>(List.of(t), pg, 1));
-        when(detalleRepo.findByTrasladoId(1L))
-                .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("20.000"))));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
-        when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
-        when(productoRepo.findAllById(List.of(1L)))
-                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
+        @Test
+        @DisplayName("list: retorna pagina de traslados con detalles")
+        void list_returnsPage() {
+                Pageable pg = PageRequest.of(0, 10);
+                Traslado t = sampleTraslado(1L, 1, 2);
+                when(repo.findAllByOrderByCreadoEnDesc(pg))
+                                .thenReturn(new PageImpl<>(List.of(t), pg, 1));
+                when(detalleRepo.findByTrasladoId(1L))
+                                .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("20.000"))));
+                when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
+                when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
+                when(productoRepo.findAllById(List.of(1L)))
+                                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
 
-        var result = service.list(pg);
+                var result = service.list(pg);
 
-        assertThat(result.getContent()).hasSize(1);
-        TrasladoResponse resp = result.getContent().get(0);
-        assertThat(resp.almacenOrigenNombre()).isEqualTo("Origen");
-        assertThat(resp.almacenDestinoNombre()).isEqualTo("Destino");
-        assertThat(resp.detalles()).hasSize(1);
-    }
+                assertThat(result.getContent()).hasSize(1);
+                TrasladoResponse resp = result.getContent().get(0);
+                assertThat(resp.almacenOrigenNombre()).isEqualTo("Origen");
+                assertThat(resp.almacenDestinoNombre()).isEqualTo("Destino");
+                assertThat(resp.detalles()).hasSize(1);
+        }
 
-    // ── getById ─────────────────────────────────────────────────────
+        // ── getById ─────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("getById: retorna traslado con detalles")
-    void getById_returnsTraslado() {
-        Traslado t = sampleTraslado(1L, 1, 2);
-        when(repo.findById(1L)).thenReturn(Optional.of(t));
-        when(detalleRepo.findByTrasladoId(1L))
-                .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("10.000"))));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
-        when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
-        when(productoRepo.findAllById(List.of(1L)))
-                .thenReturn(List.of(sampleProducto(1L, "Clavo")));
+        @Test
+        @DisplayName("getById: retorna traslado con detalles")
+        void getById_returnsTraslado() {
+                Traslado t = sampleTraslado(1L, 1, 2);
+                when(repo.findById(1L)).thenReturn(Optional.of(t));
+                when(detalleRepo.findByTrasladoId(1L))
+                                .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("10.000"))));
+                when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
+                when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
+                when(productoRepo.findAllById(List.of(1L)))
+                                .thenReturn(List.of(sampleProducto(1L, "Clavo")));
 
-        TrasladoResponse resp = service.getById(1L);
+                TrasladoResponse resp = service.getById(1L);
 
-        assertThat(resp.trasladoId()).isEqualTo(1L);
-        assertThat(resp.folio()).startsWith("TR-");
-        assertThat(resp.detalles()).hasSize(1);
-        assertThat(resp.detalles().get(0).productoNombre()).isEqualTo("Clavo");
-    }
+                assertThat(resp.trasladoId()).isEqualTo(1L);
+                assertThat(resp.folio()).startsWith("TR-");
+                assertThat(resp.detalles()).hasSize(1);
+                assertThat(resp.detalles().get(0).productoNombre()).isEqualTo("Clavo");
+        }
 
-    // ── create ──────────────────────────────────────────────────────
+        // ── create ──────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("create ok: guarda traslado + detalles + 2 movimientos por detalle")
-    void create_ok() {
-        TrasladoRequest req = new TrasladoRequest(1, 2,
-                List.of(new TrasladoDetalleRequest(1L, new BigDecimal("10.000"))));
+        @Test
+        @DisplayName("create ok: guarda traslado + detalles + 2 movimientos por detalle")
+        void create_ok() {
+                TrasladoRequest req = new TrasladoRequest(1, 2,
+                                List.of(new TrasladoDetalleRequest(1L, new BigDecimal("10.000"))));
 
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
-        when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
-        when(productoRepo.findAllById(Set.of(1L)))
-                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
+                when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
+                when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
+                when(productoRepo.findAllById(Set.of(1L)))
+                                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
 
-        Traslado savedTraslado = sampleTraslado(1L, 1, 2);
-        when(repo.save(any(Traslado.class))).thenReturn(savedTraslado);
-        when(repo.findFolioById(1L)).thenReturn("TR-0001");
-        when(motivoRepo.findByClave("TRASLADO_SALIDA"))
-                .thenReturn(Optional.of(MotivoMovimiento.builder().motivoId(1).clave("TRASLADO_SALIDA").tipoDefault("SALIDA").nombre("Salida por traslado").build()));
-        when(motivoRepo.findByClave("TRASLADO_ENTRADA"))
-                .thenReturn(Optional.of(MotivoMovimiento.builder().motivoId(2).clave("TRASLADO_ENTRADA").tipoDefault("ENTRADA").nombre("Entrada por traslado").build()));
-        when(detalleRepo.findByTrasladoId(1L))
-                .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("10.000"))));
+                Traslado savedTraslado = sampleTraslado(1L, 1, 2);
+                when(repo.save(any(Traslado.class))).thenReturn(savedTraslado);
+                when(repo.findFolioById(1L)).thenReturn("TR-0001");
+                when(motivoRepo.findByClave("TRASLADO_SALIDA"))
+                                .thenReturn(Optional.of(MotivoMovimiento.builder().motivoId(1).clave("TRASLADO_SALIDA")
+                                                .tipoDefault("SALIDA").nombre("Salida por traslado").build()));
+                when(motivoRepo.findByClave("TRASLADO_ENTRADA"))
+                                .thenReturn(Optional.of(MotivoMovimiento.builder().motivoId(2).clave("TRASLADO_ENTRADA")
+                                                .tipoDefault("ENTRADA").nombre("Entrada por traslado").build()));
+                when(detalleRepo.findByTrasladoId(1L))
+                                .thenReturn(List.of(sampleDetalle(1L, 1L, new BigDecimal("10.000"))));
 
-        TrasladoResponse resp = service.create(req);
+                TrasladoResponse resp = service.create(req);
 
-        assertThat(resp.trasladoId()).isEqualTo(1L);
-        assertThat(resp.almacenOrigen()).isEqualTo(1);
-        assertThat(resp.almacenDestino()).isEqualTo(2);
-        verify(repo).save(any(Traslado.class));
-        verify(detalleRepo).saveAll(any());
-        @SuppressWarnings("unchecked")
-        org.mockito.ArgumentCaptor<List<MovimientoInventario>> movCaptor =
-                org.mockito.ArgumentCaptor.forClass(List.class);
-        verify(movimientoRepo).saveAll(movCaptor.capture());
-        assertThat(movCaptor.getValue()).hasSize(2);
-    }
+                assertThat(resp.trasladoId()).isEqualTo(1L);
+                assertThat(resp.almacenOrigen()).isEqualTo(1);
+                assertThat(resp.almacenDestino()).isEqualTo(2);
+                verify(repo).save(any(Traslado.class));
+                verify(detalleRepo).saveAll(any());
+                @SuppressWarnings("unchecked")
+                org.mockito.ArgumentCaptor<List<MovimientoInventario>> movCaptor = org.mockito.ArgumentCaptor
+                                .forClass(List.class);
+                verify(movimientoRepo).saveAll(movCaptor.capture());
+                assertThat(movCaptor.getValue()).hasSize(2);
+        }
 
-    @Test
-    @DisplayName("create mismo almacen origen y destino: ReglaNegocioException")
-    void create_sameWarehouse() {
-        TrasladoRequest req = new TrasladoRequest(1, 1,
-                List.of(new TrasladoDetalleRequest(1L, new BigDecimal("5.000"))));
+        @Test
+        @DisplayName("create mismo almacen origen y destino: ReglaNegocioException")
+        void create_sameWarehouse() {
+                TrasladoRequest req = new TrasladoRequest(1, 1,
+                                List.of(new TrasladoDetalleRequest(1L, new BigDecimal("5.000"))));
 
-        assertThatThrownBy(() -> service.create(req))
-                .isInstanceOf(ReglaNegocioException.class);
-    }
+                assertThatThrownBy(() -> service.create(req))
+                                .isInstanceOf(ReglaNegocioException.class);
+        }
 
-    @Test
-    @DisplayName("create producto inexistente: RecursoNoEncontradoException")
-    void create_productNotFound() {
-        TrasladoRequest req = new TrasladoRequest(1, 2,
-                List.of(new TrasladoDetalleRequest(999L, new BigDecimal("5.000"))));
+        @Test
+        @DisplayName("create producto inexistente: RecursoNoEncontradoException")
+        void create_productNotFound() {
+                TrasladoRequest req = new TrasladoRequest(1, 2,
+                                List.of(new TrasladoDetalleRequest(999L, new BigDecimal("5.000"))));
 
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
-        when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
-        when(productoRepo.findAllById(Set.of(999L))).thenReturn(List.of());
+                when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Origen")));
+                when(almacenRepo.findById(2)).thenReturn(Optional.of(sampleAlmacen(2, "Destino")));
+                when(productoRepo.findAllById(Set.of(999L))).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.create(req))
-                .isInstanceOf(RecursoNoEncontradoException.class);
-    }
+                assertThatThrownBy(() -> service.create(req))
+                                .isInstanceOf(RecursoNoEncontradoException.class);
+        }
 }

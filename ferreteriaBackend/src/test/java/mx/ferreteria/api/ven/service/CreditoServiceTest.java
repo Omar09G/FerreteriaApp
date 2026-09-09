@@ -25,7 +25,7 @@ import org.springframework.data.domain.Pageable;
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
 import mx.ferreteria.api.ven.entity.CuentaCobrar;
-import mx.ferreteria.api.ven.entity.PagoCliente;
+
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
 import mx.ferreteria.api.ven.repo.PagoClienteRepository;
@@ -35,10 +35,14 @@ import mx.ferreteria.api.ven.repo.VentaRepository;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class CreditoServiceTest {
 
-    @Mock CuentaCobrarRepository cuentaRepo;
-    @Mock PagoClienteRepository pagoRepo;
-    @Mock VentaRepository ventaRepo;
-    @Mock ClienteRepository clienteRepo;
+    @Mock
+    CuentaCobrarRepository cuentaRepo;
+    @Mock
+    PagoClienteRepository pagoRepo;
+    @Mock
+    VentaRepository ventaRepo;
+    @Mock
+    ClienteRepository clienteRepo;
 
     @InjectMocks
     CreditoService service;

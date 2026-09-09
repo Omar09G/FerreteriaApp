@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.BeforeEach;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,242 +48,255 @@ import mx.ferreteria.api.ven.repo.VentaRepository;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class VentaServiceTest {
 
-    @Mock VentaRepository ventaRepo;
-    @Mock VentaDetalleRepository detalleRepo;
-    @Mock AlmacenRepository almacenRepo;
-    @Mock ClienteRepository clienteRepo;
-    @Mock ProductoRepository productoRepo;
-    @Mock FormaPagoRepository formaPagoRepo;
-    @Mock CajaService cajaService;
-    @Mock CuentaCobrarRepository cuentaRepo;
-    @Mock PagoClienteRepository pagoRepo;
+        @Mock
+        VentaRepository ventaRepo;
+        @Mock
+        VentaDetalleRepository detalleRepo;
+        @Mock
+        AlmacenRepository almacenRepo;
+        @Mock
+        ClienteRepository clienteRepo;
+        @Mock
+        ProductoRepository productoRepo;
+        @Mock
+        FormaPagoRepository formaPagoRepo;
+        @Mock
+        CajaService cajaService;
+        @Mock
+        CuentaCobrarRepository cuentaRepo;
+        @Mock
+        PagoClienteRepository pagoRepo;
 
-    @InjectMocks
-    VentaService service;
+        @InjectMocks
+        VentaService service;
 
-    // ── helpers ──────────────────────────────────────────────────────
+        // ── helpers ──────────────────────────────────────────────────────
 
-    private Venta sampleVenta(Long id, String folio, String estado) {
-        return Venta.builder()
-                .ventaId(id).folio(folio).almacenId(1).formaPagoId(1)
-                .subtotal(new BigDecimal("100.00")).iva(new BigDecimal("16.00"))
-                .total(new BigDecimal("116.00")).estado(estado).usuarioId(1)
-                .ivaTasa(new BigDecimal("16.00")).ivaIncluido(true)
-                .descuentoTotal(BigDecimal.ZERO).fecha(Instant.now())
-                .build();
-    }
+        private Venta sampleVenta(Long id, String folio, String estado) {
+                return Venta.builder()
+                                .ventaId(id).folio(folio).almacenId(1).formaPagoId(1)
+                                .subtotal(new BigDecimal("100.00")).iva(new BigDecimal("16.00"))
+                                .total(new BigDecimal("116.00")).estado(estado).usuarioId(1)
+                                .ivaTasa(new BigDecimal("16.00")).ivaIncluido(true)
+                                .descuentoTotal(BigDecimal.ZERO).fecha(Instant.now())
+                                .build();
+        }
 
-    private VentaDetalle sampleDetalle(Long id, Long ventaId, Long productoId) {
-        return VentaDetalle.builder()
-                .ventaDetalleId(id).ventaId(ventaId).productoId(productoId)
-                .cantidad(new BigDecimal("2.000")).precioUnitario(new BigDecimal("50.00"))
-                .costoUnitario(BigDecimal.ZERO).descuentoLinea(BigDecimal.ZERO)
-                .build();
-    }
+        private VentaDetalle sampleDetalle(Long id, Long ventaId, Long productoId) {
+                return VentaDetalle.builder()
+                                .ventaDetalleId(id).ventaId(ventaId).productoId(productoId)
+                                .cantidad(new BigDecimal("2.000")).precioUnitario(new BigDecimal("50.00"))
+                                .costoUnitario(BigDecimal.ZERO).descuentoLinea(BigDecimal.ZERO)
+                                .build();
+        }
 
-    private void stubToResponse() {
-        when(almacenRepo.findById(1))
-                .thenReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
-        when(formaPagoRepo.findById(1))
-                .thenReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
-        when(detalleRepo.findByVentaId(anyLong())).thenReturn(List.of());
-        when(cuentaRepo.findByVentaId(anyLong())).thenReturn(Optional.empty());
-        when(productoRepo.findById(anyLong()))
-                .thenReturn(Optional.of(Producto.builder().productoId(1L).nombre("Martillo").build()));
-        when(clienteRepo.findById(anyLong())).thenReturn(Optional.empty());
-    }
+        private void stubToResponse() {
+                when(almacenRepo.findById(1))
+                                .thenReturn(Optional
+                                                .of(Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
+                when(formaPagoRepo.findById(1))
+                                .thenReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
+                when(detalleRepo.findByVentaId(anyLong())).thenReturn(List.of());
+                when(cuentaRepo.findByVentaId(anyLong())).thenReturn(Optional.empty());
+                when(productoRepo.findById(anyLong()))
+                                .thenReturn(Optional.of(Producto.builder().productoId(1L).nombre("Martillo").build()));
+                when(clienteRepo.findById(anyLong())).thenReturn(Optional.empty());
+        }
 
-    private Pageable pg() {
-        return PageRequest.of(0, 10);
-    }
+        private Pageable pg() {
+                return PageRequest.of(0, 10);
+        }
 
-    // ── list ────────────────────────────────────────────────────────
+        // ── list ────────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("list sin filtros: findAll retorna pagina con items")
-    void list_all() {
-        Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
-        when(ventaRepo.findAll(pg())).thenReturn(new PageImpl<>(List.of(v), pg(), 1));
-        stubToResponse();
+        @Test
+        @DisplayName("list sin filtros: findAll retorna pagina con items")
+        void list_all() {
+                Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
+                when(ventaRepo.findAll(pg())).thenReturn(new PageImpl<>(List.of(v), pg(), 1));
+                stubToResponse();
 
-        var result = service.list(null, null, null, pg());
+                var result = service.list(null, null, null, pg());
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).ventaId()).isEqualTo(1L);
-    }
+                assertThat(result.getContent()).hasSize(1);
+                assertThat(result.getContent().get(0).ventaId()).isEqualTo(1L);
+        }
 
-    @Test
-    @DisplayName("list por almacen y rango: findByAlmacenIdAndFechaBetween retorna filtrado")
-    void list_byAlmacen() {
-        Instant desde = Instant.parse("2025-01-01T00:00:00Z");
-        Instant hasta = Instant.parse("2025-12-31T23:59:59Z");
-        Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
-        when(ventaRepo.findByAlmacenIdAndFechaBetweenOrderByFechaDesc(1, desde, hasta, pg()))
-                .thenReturn(new PageImpl<>(List.of(v), pg(), 1));
-        stubToResponse();
+        @Test
+        @DisplayName("list por almacen y rango: findByAlmacenIdAndFechaBetween retorna filtrado")
+        void list_byAlmacen() {
+                Instant desde = Instant.parse("2025-01-01T00:00:00Z");
+                Instant hasta = Instant.parse("2025-12-31T23:59:59Z");
+                Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
+                when(ventaRepo.findByAlmacenIdAndFechaBetweenOrderByFechaDesc(1, desde, hasta, pg()))
+                                .thenReturn(new PageImpl<>(List.of(v), pg(), 1));
+                stubToResponse();
 
-        var result = service.list(1, desde, hasta, pg());
+                var result = service.list(1, desde, hasta, pg());
 
-        assertThat(result.getContent()).hasSize(1);
-    }
+                assertThat(result.getContent()).hasSize(1);
+        }
 
-    @Test
-    @DisplayName("list por rango de fechas: findByFechaBetween retorna filtrado")
-    void list_byDateRange() {
-        Instant desde = Instant.parse("2025-01-01T00:00:00Z");
-        Instant hasta = Instant.parse("2025-12-31T23:59:59Z");
-        Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
-        when(ventaRepo.findByFechaBetweenOrderByFechaDesc(desde, hasta, pg()))
-                .thenReturn(new PageImpl<>(List.of(v), pg(), 1));
-        stubToResponse();
+        @Test
+        @DisplayName("list por rango de fechas: findByFechaBetween retorna filtrado")
+        void list_byDateRange() {
+                Instant desde = Instant.parse("2025-01-01T00:00:00Z");
+                Instant hasta = Instant.parse("2025-12-31T23:59:59Z");
+                Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
+                when(ventaRepo.findByFechaBetweenOrderByFechaDesc(desde, hasta, pg()))
+                                .thenReturn(new PageImpl<>(List.of(v), pg(), 1));
+                stubToResponse();
 
-        var result = service.list(null, desde, hasta, pg());
+                var result = service.list(null, desde, hasta, pg());
 
-        assertThat(result.getContent()).hasSize(1);
-    }
+                assertThat(result.getContent()).hasSize(1);
+        }
 
-    @Test
-    @DisplayName("list batch: 2 ventas usa 6 queries fijas (no N+1)")
-    void list_batch() {
-        Venta v1 = sampleVenta(1L, "V-001", "COMPLETADA");
-        Venta v2 = sampleVenta(2L, "V-002", "COMPLETADA");
-        v2.setClienteId(2L);
-        VentaDetalle d1 = sampleDetalle(10L, 1L, 1L);
-        VentaDetalle d2 = sampleDetalle(11L, 2L, 1L);
+        @Test
+        @DisplayName("list batch: 2 ventas usa 6 queries fijas (no N+1)")
+        void list_batch() {
+                Venta v1 = sampleVenta(1L, "V-001", "COMPLETADA");
+                Venta v2 = sampleVenta(2L, "V-002", "COMPLETADA");
+                v2.setClienteId(2L);
+                VentaDetalle d1 = sampleDetalle(10L, 1L, 1L);
+                VentaDetalle d2 = sampleDetalle(11L, 2L, 1L);
 
-        when(ventaRepo.findAll(pg())).thenReturn(new PageImpl<>(List.of(v1, v2), pg(), 2));
-        when(clienteRepo.findAllById(any())).thenReturn(List.of(
-                Cliente.builder().clienteId(2L).razonSocial("Cliente 2").build()));
-        when(almacenRepo.findAllById(any())).thenReturn(List.of(
-                Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
-        when(formaPagoRepo.findAllById(any())).thenReturn(List.of(
-                FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
-        when(detalleRepo.findByVentaIdIn(List.of(1L, 2L))).thenReturn(List.of(d1, d2));
-        when(productoRepo.findAllById(any())).thenReturn(List.of(
-                Producto.builder().productoId(1L).nombre("Martillo").build()));
-        when(cuentaRepo.findByVentaIdIn(List.of(1L, 2L))).thenReturn(List.of());
-        when(pagoRepo.findByCuentaCobrarIdIn(any())).thenReturn(List.of());
+                when(ventaRepo.findAll(pg())).thenReturn(new PageImpl<>(List.of(v1, v2), pg(), 2));
+                when(clienteRepo.findAllById(any())).thenReturn(List.of(
+                                Cliente.builder().clienteId(2L).razonSocial("Cliente 2").build()));
+                when(almacenRepo.findAllById(any())).thenReturn(List.of(
+                                Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
+                when(formaPagoRepo.findAllById(any())).thenReturn(List.of(
+                                FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
+                when(detalleRepo.findByVentaIdIn(List.of(1L, 2L))).thenReturn(List.of(d1, d2));
+                when(productoRepo.findAllById(any())).thenReturn(List.of(
+                                Producto.builder().productoId(1L).nombre("Martillo").build()));
+                when(cuentaRepo.findByVentaIdIn(List.of(1L, 2L))).thenReturn(List.of());
+                when(pagoRepo.findByCuentaCobrarIdIn(any())).thenReturn(List.of());
 
-        var result = service.list(null, null, null, pg());
+                var result = service.list(null, null, null, pg());
 
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getContent().get(0).ventaId()).isEqualTo(1L);
-        assertThat(result.getContent().get(1).ventaId()).isEqualTo(2L);
-        // Batch: 1 call each, no per-item loop
-        verify(clienteRepo).findAllById(any());
-        verify(almacenRepo).findAllById(any());
-        verify(formaPagoRepo).findAllById(any());
-        verify(detalleRepo).findByVentaIdIn(List.of(1L, 2L));
-        verify(productoRepo).findAllById(any());
-        verify(cuentaRepo).findByVentaIdIn(List.of(1L, 2L));
-    }
+                assertThat(result.getContent()).hasSize(2);
+                assertThat(result.getContent().get(0).ventaId()).isEqualTo(1L);
+                assertThat(result.getContent().get(1).ventaId()).isEqualTo(2L);
+                // Batch: 1 call each, no per-item loop
+                verify(clienteRepo).findAllById(any());
+                verify(almacenRepo).findAllById(any());
+                verify(formaPagoRepo).findAllById(any());
+                verify(detalleRepo).findByVentaIdIn(List.of(1L, 2L));
+                verify(productoRepo).findAllById(any());
+                verify(cuentaRepo).findByVentaIdIn(List.of(1L, 2L));
+        }
 
-    // ── getById ─────────────────────────────────────────────────────
+        // ── getById ─────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("getById encontrado: retorna VentaResponse con nombres resueltos")
-    void getById_found() {
-        Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
-        when(ventaRepo.findById(1L)).thenReturn(Optional.of(v));
-        stubToResponse();
+        @Test
+        @DisplayName("getById encontrado: retorna VentaResponse con nombres resueltos")
+        void getById_found() {
+                Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
+                when(ventaRepo.findById(1L)).thenReturn(Optional.of(v));
+                stubToResponse();
 
-        var resp = service.getById(1L);
+                var resp = service.getById(1L);
 
-        assertThat(resp.ventaId()).isEqualTo(1L);
-        assertThat(resp.almacenNombre()).isEqualTo("Almacen Central");
-        assertThat(resp.formaPagoNombre()).isEqualTo("EFECTIVO");
-    }
+                assertThat(resp.ventaId()).isEqualTo(1L);
+                assertThat(resp.almacenNombre()).isEqualTo("Almacen Central");
+                assertThat(resp.formaPagoNombre()).isEqualTo("EFECTIVO");
+        }
 
-    @Test
-    @DisplayName("getById inexistente: lanza RecursoNoEncontradoException")
-    void getById_notFound() {
-        when(ventaRepo.findById(999L)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("getById inexistente: lanza RecursoNoEncontradoException")
+        void getById_notFound() {
+                when(ventaRepo.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getById(999L))
-                .isInstanceOf(RecursoNoEncontradoException.class);
-    }
+                assertThatThrownBy(() -> service.getById(999L))
+                                .isInstanceOf(RecursoNoEncontradoException.class);
+        }
 
-    // ── checkout ────────────────────────────────────────────────────
+        // ── checkout ────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("checkout ok: guarda venta, detalles y pagos")
-    void checkout_ok() {
-        Venta saved = sampleVenta(10L, "V-010", "COMPLETADA");
-        when(almacenRepo.existsById(1)).thenReturn(true);
-        when(almacenRepo.findById(1))
-                .thenReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
-        when(formaPagoRepo.findById(1))
-                .thenReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
-        when(ventaRepo.save(any(Venta.class))).thenReturn(saved);
-        when(ventaRepo.reloadAfterTriggers(10L)).thenReturn(Optional.of(saved));
-        when(clienteRepo.findById(anyLong())).thenReturn(Optional.empty());
-        when(detalleRepo.findByVentaId(10L)).thenReturn(List.of());
-        when(cuentaRepo.findByVentaId(10L)).thenReturn(Optional.empty());
-        when(productoRepo.findById(anyLong()))
-                .thenReturn(Optional.of(Producto.builder().productoId(1L).nombre("Martillo").build()));
+        @Test
+        @DisplayName("checkout ok: guarda venta, detalles y pagos")
+        void checkout_ok() {
+                Venta saved = sampleVenta(10L, "V-010", "COMPLETADA");
+                when(almacenRepo.existsById(1)).thenReturn(true);
+                when(almacenRepo.findById(1))
+                                .thenReturn(Optional
+                                                .of(Almacen.builder().almacenId(1).nombre("Almacen Central").build()));
+                when(formaPagoRepo.findById(1))
+                                .thenReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("EFECTIVO").build()));
+                when(ventaRepo.save(any(Venta.class))).thenReturn(saved);
+                when(ventaRepo.reloadAfterTriggers(10L)).thenReturn(Optional.of(saved));
+                when(clienteRepo.findById(anyLong())).thenReturn(Optional.empty());
+                when(detalleRepo.findByVentaId(10L)).thenReturn(List.of());
+                when(cuentaRepo.findByVentaId(10L)).thenReturn(Optional.empty());
+                when(productoRepo.findById(anyLong()))
+                                .thenReturn(Optional.of(Producto.builder().productoId(1L).nombre("Martillo").build()));
 
-        VenDtos.VentaRequest req = new VenDtos.VentaRequest(
-                1, null, null, null, 1,
-                List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("50.00"))),
-                List.of(new VenDtos.PagoRequest(1, new BigDecimal("116.00"), null)),
-                null);
+                VenDtos.VentaRequest req = new VenDtos.VentaRequest(
+                                1, null, null, null, 1,
+                                List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("2.000"),
+                                                new BigDecimal("50.00"))),
+                                List.of(new VenDtos.PagoRequest(1, new BigDecimal("116.00"), null)),
+                                null);
 
-        var resp = service.checkout(req);
+                var resp = service.checkout(req);
 
-        assertThat(resp.ventaId()).isEqualTo(10L);
-        verify(detalleRepo).save(any(VentaDetalle.class));
-        verify(ventaRepo).flush();
-    }
+                assertThat(resp.ventaId()).isEqualTo(10L);
+                verify(detalleRepo).save(any(VentaDetalle.class));
+                verify(ventaRepo).flush();
+        }
 
-    @Test
-    @DisplayName("checkout almacen no encontrado: lanza RecursoNoEncontradoException")
-    void checkout_almacenNotFound() {
-        when(almacenRepo.findById(99)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("checkout almacen no encontrado: lanza RecursoNoEncontradoException")
+        void checkout_almacenNotFound() {
+                when(almacenRepo.findById(99)).thenReturn(Optional.empty());
 
-        VenDtos.VentaRequest req = new VenDtos.VentaRequest(
-                99, null, null, null, 1,
-                List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("1.000"), new BigDecimal("10.00"))),
-                List.of(new VenDtos.PagoRequest(1, new BigDecimal("10.00"), null)),
-                null);
+                VenDtos.VentaRequest req = new VenDtos.VentaRequest(
+                                99, null, null, null, 1,
+                                List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("1.000"),
+                                                new BigDecimal("10.00"))),
+                                List.of(new VenDtos.PagoRequest(1, new BigDecimal("10.00"), null)),
+                                null);
 
-        assertThatThrownBy(() -> service.checkout(req))
-                .isInstanceOf(RecursoNoEncontradoException.class);
-        verify(detalleRepo, never()).save(any());
-    }
+                assertThatThrownBy(() -> service.checkout(req))
+                                .isInstanceOf(RecursoNoEncontradoException.class);
+                verify(detalleRepo, never()).save(any());
+        }
 
-    // ── cancel ──────────────────────────────────────────────────────
+        // ── cancel ──────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("cancel ok: venta activa se marca como CANCELADA")
-    void cancel_ok() {
-        Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
-        when(ventaRepo.findById(1L)).thenReturn(Optional.of(v));
-        stubToResponse();
+        @Test
+        @DisplayName("cancel ok: venta activa se marca como CANCELADA")
+        void cancel_ok() {
+                Venta v = sampleVenta(1L, "V-001", "COMPLETADA");
+                when(ventaRepo.findById(1L)).thenReturn(Optional.of(v));
+                stubToResponse();
 
-        var resp = service.cancel(1L, "Cliente solicitó");
+                var resp = service.cancel(1L, "Cliente solicitó");
 
-        assertThat(v.getEstado()).isEqualTo("CANCELADA");
-        verify(ventaRepo).save(v);
-        assertThat(resp.estado()).isEqualTo("CANCELADA");
-    }
+                assertThat(v.getEstado()).isEqualTo("CANCELADA");
+                verify(ventaRepo).save(v);
+                assertThat(resp.estado()).isEqualTo("CANCELADA");
+        }
 
-    @Test
-    @DisplayName("cancel ya cancelada: lanza ReglaNegocioException")
-    void cancel_alreadyCancelled() {
-        Venta v = sampleVenta(1L, "V-001", "CANCELADA");
-        when(ventaRepo.findById(1L)).thenReturn(Optional.of(v));
+        @Test
+        @DisplayName("cancel ya cancelada: lanza ReglaNegocioException")
+        void cancel_alreadyCancelled() {
+                Venta v = sampleVenta(1L, "V-001", "CANCELADA");
+                when(ventaRepo.findById(1L)).thenReturn(Optional.of(v));
 
-        assertThatThrownBy(() -> service.cancel(1L, "Motivo"))
-                .isInstanceOf(ReglaNegocioException.class);
-        verify(ventaRepo, never()).save(any());
-    }
+                assertThatThrownBy(() -> service.cancel(1L, "Motivo"))
+                                .isInstanceOf(ReglaNegocioException.class);
+                verify(ventaRepo, never()).save(any());
+        }
 
-    @Test
-    @DisplayName("cancel inexistente: lanza RecursoNoEncontradoException")
-    void cancel_notFound() {
-        when(ventaRepo.findById(999L)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("cancel inexistente: lanza RecursoNoEncontradoException")
+        void cancel_notFound() {
+                when(ventaRepo.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.cancel(999L, "Motivo"))
-                .isInstanceOf(RecursoNoEncontradoException.class);
-    }
+                assertThatThrownBy(() -> service.cancel(999L, "Motivo"))
+                                .isInstanceOf(RecursoNoEncontradoException.class);
+        }
 }

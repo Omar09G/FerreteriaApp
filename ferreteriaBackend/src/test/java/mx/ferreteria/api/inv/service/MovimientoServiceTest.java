@@ -3,7 +3,6 @@ package mx.ferreteria.api.inv.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,164 +35,164 @@ import mx.ferreteria.api.inv.repo.MovimientoInventarioRepository;
 @ExtendWith(MockitoExtension.class)
 class MovimientoServiceTest {
 
-    @Mock
-    MovimientoInventarioRepository repo;
+        @Mock
+        MovimientoInventarioRepository repo;
 
-    @Mock
-    ProductoRepository productoRepo;
+        @Mock
+        ProductoRepository productoRepo;
 
-    @Mock
-    AlmacenRepository almacenRepo;
+        @Mock
+        AlmacenRepository almacenRepo;
 
-    @InjectMocks
-    MovimientoService service;
+        @InjectMocks
+        MovimientoService service;
 
-    private Producto sampleProducto(Long id, String nombre) {
-        return Producto.builder()
-                .productoId(id)
-                .codigo("P" + id)
-                .nombre(nombre)
-                .build();
-    }
+        private Producto sampleProducto(Long id, String nombre) {
+                return Producto.builder()
+                                .productoId(id)
+                                .codigo("P" + id)
+                                .nombre(nombre)
+                                .build();
+        }
 
-    private Almacen sampleAlmacen(Integer id, String nombre) {
-        return Almacen.builder()
-                .almacenId(id)
-                .nombre(nombre)
-                .build();
-    }
+        private Almacen sampleAlmacen(Integer id, String nombre) {
+                return Almacen.builder()
+                                .almacenId(id)
+                                .nombre(nombre)
+                                .build();
+        }
 
-    private MovimientoInventario sampleMovimiento(Long id, Long productoId, Integer almacenId, String tipo) {
-        return MovimientoInventario.builder()
-                .movimientoId(id)
-                .productoId(productoId)
-                .almacenId(almacenId)
-                .tipo(tipo)
-                .cantidad(new BigDecimal("10.000"))
-                .motivoId(1)
-                .build();
-    }
+        private MovimientoInventario sampleMovimiento(Long id, Long productoId, Integer almacenId, String tipo) {
+                return MovimientoInventario.builder()
+                                .movimientoId(id)
+                                .productoId(productoId)
+                                .almacenId(almacenId)
+                                .tipo(tipo)
+                                .cantidad(new BigDecimal("10.000"))
+                                .motivoId(1)
+                                .build();
+        }
 
-    private static final LocalDate INICIO = LocalDate.of(2026, 1, 1);
-    private static final LocalDate FIN = LocalDate.of(2026, 1, 31);
+        private static final LocalDate INICIO = LocalDate.of(2026, 1, 1);
+        private static final LocalDate FIN = LocalDate.of(2026, 1, 31);
 
-    // ── listByProducto ──────────────────────────────────────────────
+        // ── listByProducto ──────────────────────────────────────────────
 
-    @Test
-    @DisplayName("listByProducto: retorna pagina de movimientos del rango con nombres resueltos")
-    void listByProducto_returnsPage() {
-        Pageable pg = PageRequest.of(0, 10);
-        MovimientoInventario m = sampleMovimiento(1L, 1L, 1, "ENTRADA");
-        when(repo.findByProductoEnRango(1L, INICIO, FIN, pg))
-                .thenReturn(new PageImpl<>(List.of(m), pg, 1));
-        when(productoRepo.findAllById(List.of(1L)))
-                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
-        when(almacenRepo.findAllById(List.of(1)))
-                .thenReturn(List.of(sampleAlmacen(1, "Central")));
+        @Test
+        @DisplayName("listByProducto: retorna pagina de movimientos del rango con nombres resueltos")
+        void listByProducto_returnsPage() {
+                Pageable pg = PageRequest.of(0, 10);
+                MovimientoInventario m = sampleMovimiento(1L, 1L, 1, "ENTRADA");
+                when(repo.findByProductoEnRango(1L, INICIO, FIN, pg))
+                                .thenReturn(new PageImpl<>(List.of(m), pg, 1));
+                when(productoRepo.findAllById(List.of(1L)))
+                                .thenReturn(List.of(sampleProducto(1L, "Tornillo")));
+                when(almacenRepo.findAllById(List.of(1)))
+                                .thenReturn(List.of(sampleAlmacen(1, "Central")));
 
-        var result = service.listByProducto(1L, INICIO, FIN, pg);
+                var result = service.listByProducto(1L, INICIO, FIN, pg);
 
-        assertThat(result.getContent()).hasSize(1);
-        MovimientoInventarioResponse resp = result.getContent().get(0);
-        assertThat(resp.productoId()).isEqualTo(1L);
-        assertThat(resp.productoNombre()).isEqualTo("Tornillo");
-        assertThat(resp.almacenNombre()).isEqualTo("Central");
-    }
+                assertThat(result.getContent()).hasSize(1);
+                MovimientoInventarioResponse resp = result.getContent().get(0);
+                assertThat(resp.productoId()).isEqualTo(1L);
+                assertThat(resp.productoNombre()).isEqualTo("Tornillo");
+                assertThat(resp.almacenNombre()).isEqualTo("Central");
+        }
 
-    // ── listByAlmacen ───────────────────────────────────────────────
+        // ── listByAlmacen ───────────────────────────────────────────────
 
-    @Test
-    @DisplayName("listByAlmacen: retorna pagina de movimientos del rango")
-    void listByAlmacen_returnsPage() {
-        Pageable pg = PageRequest.of(0, 10);
-        MovimientoInventario m = sampleMovimiento(1L, 1L, 1, "SALIDA");
-        when(repo.findByAlmacenEnRango(1, INICIO, FIN, pg))
-                .thenReturn(new PageImpl<>(List.of(m), pg, 1));
-        when(productoRepo.findAllById(List.of(1L)))
-                .thenReturn(List.of(sampleProducto(1L, "Clavo")));
-        when(almacenRepo.findAllById(List.of(1)))
-                .thenReturn(List.of(sampleAlmacen(1, "Central")));
+        @Test
+        @DisplayName("listByAlmacen: retorna pagina de movimientos del rango")
+        void listByAlmacen_returnsPage() {
+                Pageable pg = PageRequest.of(0, 10);
+                MovimientoInventario m = sampleMovimiento(1L, 1L, 1, "SALIDA");
+                when(repo.findByAlmacenEnRango(1, INICIO, FIN, pg))
+                                .thenReturn(new PageImpl<>(List.of(m), pg, 1));
+                when(productoRepo.findAllById(List.of(1L)))
+                                .thenReturn(List.of(sampleProducto(1L, "Clavo")));
+                when(almacenRepo.findAllById(List.of(1)))
+                                .thenReturn(List.of(sampleAlmacen(1, "Central")));
 
-        var result = service.listByAlmacen(1, INICIO, FIN, pg);
+                var result = service.listByAlmacen(1, INICIO, FIN, pg);
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).tipo()).isEqualTo("SALIDA");
-    }
+                assertThat(result.getContent()).hasSize(1);
+                assertThat(result.getContent().get(0).tipo()).isEqualTo("SALIDA");
+        }
 
-    // ── create ──────────────────────────────────────────────────────
+        // ── create ──────────────────────────────────────────────────────
 
-    @Test
-    @DisplayName("create ENTRADA: guarda y retorna respuesta")
-    void create_entrada() {
-        MovimientoInventarioRequest req = new MovimientoInventarioRequest(
-                1L, 1, "ENTRADA", new BigDecimal("5.000"),
-                new BigDecimal("12.50"), 1, null, null, null);
-        when(productoRepo.findById(1L)).thenReturn(Optional.of(sampleProducto(1L, "Tornillo")));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Central")));
-        MovimientoInventario saved = sampleMovimiento(10L, 1L, 1, "ENTRADA");
-        when(repo.save(any(MovimientoInventario.class))).thenReturn(saved);
+        @Test
+        @DisplayName("create ENTRADA: guarda y retorna respuesta")
+        void create_entrada() {
+                MovimientoInventarioRequest req = new MovimientoInventarioRequest(
+                                1L, 1, "ENTRADA", new BigDecimal("5.000"),
+                                new BigDecimal("12.50"), 1, null, null, null);
+                when(productoRepo.findById(1L)).thenReturn(Optional.of(sampleProducto(1L, "Tornillo")));
+                when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Central")));
+                MovimientoInventario saved = sampleMovimiento(10L, 1L, 1, "ENTRADA");
+                when(repo.save(any(MovimientoInventario.class))).thenReturn(saved);
 
-        MovimientoInventarioResponse resp = service.create(req);
+                MovimientoInventarioResponse resp = service.create(req);
 
-        assertThat(resp.movimientoId()).isEqualTo(10L);
-        assertThat(resp.tipo()).isEqualTo("ENTRADA");
-        assertThat(resp.productoNombre()).isEqualTo("Tornillo");
-        verify(repo).save(any(MovimientoInventario.class));
-    }
+                assertThat(resp.movimientoId()).isEqualTo(10L);
+                assertThat(resp.tipo()).isEqualTo("ENTRADA");
+                assertThat(resp.productoNombre()).isEqualTo("Tornillo");
+                verify(repo).save(any(MovimientoInventario.class));
+        }
 
-    @Test
-    @DisplayName("create SALIDA: guarda y retorna respuesta")
-    void create_salida() {
-        MovimientoInventarioRequest req = new MovimientoInventarioRequest(
-                1L, 1, "SALIDA", new BigDecimal("3.000"),
-                new BigDecimal("12.50"), 1, null, null, null);
-        when(productoRepo.findById(1L)).thenReturn(Optional.of(sampleProducto(1L, "Tornillo")));
-        when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Central")));
-        MovimientoInventario saved = MovimientoInventario.builder()
-                .movimientoId(11L).productoId(1L).almacenId(1).tipo("SALIDA")
-                .cantidad(new BigDecimal("3.000")).costoUnitario(new BigDecimal("12.50")).motivoId(1)
-                .build();
-        when(repo.save(any(MovimientoInventario.class))).thenReturn(saved);
+        @Test
+        @DisplayName("create SALIDA: guarda y retorna respuesta")
+        void create_salida() {
+                MovimientoInventarioRequest req = new MovimientoInventarioRequest(
+                                1L, 1, "SALIDA", new BigDecimal("3.000"),
+                                new BigDecimal("12.50"), 1, null, null, null);
+                when(productoRepo.findById(1L)).thenReturn(Optional.of(sampleProducto(1L, "Tornillo")));
+                when(almacenRepo.findById(1)).thenReturn(Optional.of(sampleAlmacen(1, "Central")));
+                MovimientoInventario saved = MovimientoInventario.builder()
+                                .movimientoId(11L).productoId(1L).almacenId(1).tipo("SALIDA")
+                                .cantidad(new BigDecimal("3.000")).costoUnitario(new BigDecimal("12.50")).motivoId(1)
+                                .build();
+                when(repo.save(any(MovimientoInventario.class))).thenReturn(saved);
 
-        MovimientoInventarioResponse resp = service.create(req);
+                MovimientoInventarioResponse resp = service.create(req);
 
-        assertThat(resp.tipo()).isEqualTo("SALIDA");
-        assertThat(resp.cantidad()).isEqualByComparingTo(new BigDecimal("3.000"));
-    }
+                assertThat(resp.tipo()).isEqualTo("SALIDA");
+                assertThat(resp.cantidad()).isEqualByComparingTo(new BigDecimal("3.000"));
+        }
 
-    @Test
-    @DisplayName("create tipo invalido: ReglaNegocioException")
-    void create_invalidTipo() {
-        MovimientoInventarioRequest req = new MovimientoInventarioRequest(
-                1L, 1, "X", new BigDecimal("1.000"),
-                null, 1, null, null, null);
+        @Test
+        @DisplayName("create tipo invalido: ReglaNegocioException")
+        void create_invalidTipo() {
+                MovimientoInventarioRequest req = new MovimientoInventarioRequest(
+                                1L, 1, "X", new BigDecimal("1.000"),
+                                null, 1, null, null, null);
 
-        assertThatThrownBy(() -> service.create(req))
-                .isInstanceOf(ReglaNegocioException.class);
-    }
+                assertThatThrownBy(() -> service.create(req))
+                                .isInstanceOf(ReglaNegocioException.class);
+        }
 
-    @Test
-    @DisplayName("create producto inexistente: RecursoNoEncontradoException")
-    void create_productoNotFound() {
-        MovimientoInventarioRequest req = new MovimientoInventarioRequest(
-                999L, 1, "ENTRADA", new BigDecimal("1.000"),
-                null, 1, null, null, null);
-        when(productoRepo.findById(999L)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("create producto inexistente: RecursoNoEncontradoException")
+        void create_productoNotFound() {
+                MovimientoInventarioRequest req = new MovimientoInventarioRequest(
+                                999L, 1, "ENTRADA", new BigDecimal("1.000"),
+                                null, 1, null, null, null);
+                when(productoRepo.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(req))
-                .isInstanceOf(RecursoNoEncontradoException.class);
-    }
+                assertThatThrownBy(() -> service.create(req))
+                                .isInstanceOf(RecursoNoEncontradoException.class);
+        }
 
-    @Test
-    @DisplayName("create almacen inexistente: RecursoNoEncontradoException")
-    void create_almacenNotFound() {
-        MovimientoInventarioRequest req = new MovimientoInventarioRequest(
-                1L, 999, "ENTRADA", new BigDecimal("1.000"),
-                null, 1, null, null, null);
-        when(productoRepo.findById(1L)).thenReturn(Optional.of(sampleProducto(1L, "Tornillo")));
-        when(almacenRepo.findById(999)).thenReturn(Optional.empty());
+        @Test
+        @DisplayName("create almacen inexistente: RecursoNoEncontradoException")
+        void create_almacenNotFound() {
+                MovimientoInventarioRequest req = new MovimientoInventarioRequest(
+                                1L, 999, "ENTRADA", new BigDecimal("1.000"),
+                                null, 1, null, null, null);
+                when(productoRepo.findById(1L)).thenReturn(Optional.of(sampleProducto(1L, "Tornillo")));
+                when(almacenRepo.findById(999)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(req))
-                .isInstanceOf(RecursoNoEncontradoException.class);
-    }
+                assertThatThrownBy(() -> service.create(req))
+                                .isInstanceOf(RecursoNoEncontradoException.class);
+        }
 }

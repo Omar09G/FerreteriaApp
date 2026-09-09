@@ -3,7 +3,6 @@ package mx.ferreteria.api.fis.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -29,7 +28,8 @@ import mx.ferreteria.api.fis.repo.FacturaFisRepository;
 @ExtendWith(MockitoExtension.class)
 class FacturaFisServiceTest {
 
-    @Mock FacturaFisRepository facturaRepo;
+    @Mock
+    FacturaFisRepository facturaRepo;
 
     @InjectMocks
     FacturaFisService service;

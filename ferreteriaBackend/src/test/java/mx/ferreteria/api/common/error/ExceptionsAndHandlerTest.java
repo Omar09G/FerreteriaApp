@@ -57,7 +57,9 @@ class ExceptionsAndHandlerTest {
         assertThat(new ErrorInternoException(ErrorCode.ERROR_INTERNO, "abc")
                 .errorCode().http()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 
-        assertThatThrownBy(() -> { throw ex; }).hasMessage("STOCK_INSUFICIENTE");
+        assertThatThrownBy(() -> {
+            throw ex;
+        }).hasMessage("STOCK_INSUFICIENTE");
     }
 
     @Test
@@ -102,7 +104,7 @@ class ExceptionsAndHandlerTest {
         org.slf4j.MDC.put("requestId", rid);
         try {
             Map<String, Object> body = handler.errorBody(ErrorCode.ERROR_INTERNO,
-                    new Object[] {rid}, Locale.of("es"), request);
+                    new Object[] { rid }, Locale.of("es"), request);
             assertThat(body.get("errorMessage").toString()).contains(rid);
         } finally {
             org.slf4j.MDC.remove("requestId");
@@ -150,7 +152,8 @@ class ExceptionsAndHandlerTest {
     void handleValidation_collectsFieldErrors() throws Exception {
         class Holder {
             @SuppressWarnings("unused")
-            void crear(String nombre) { }
+            void crear(String nombre) {
+            }
         }
         var metodo = Holder.class.getDeclaredMethod("crear", String.class);
         var parameter = new org.springframework.core.MethodParameter(metodo, 0);

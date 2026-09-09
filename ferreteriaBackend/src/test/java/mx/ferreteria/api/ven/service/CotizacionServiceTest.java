@@ -25,7 +25,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.entity.Producto;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
@@ -41,11 +40,16 @@ import mx.ferreteria.api.ven.repo.CotizacionRepository;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class CotizacionServiceTest {
 
-    @Mock CotizacionRepository repo;
-    @Mock CotizacionDetalleRepository detalleRepo;
-    @Mock ClienteRepository clienteRepo;
-    @Mock ProductoRepository productoRepo;
-    @Mock VentaService ventaService;
+    @Mock
+    CotizacionRepository repo;
+    @Mock
+    CotizacionDetalleRepository detalleRepo;
+    @Mock
+    ClienteRepository clienteRepo;
+    @Mock
+    ProductoRepository productoRepo;
+    @Mock
+    VentaService ventaService;
 
     @InjectMocks
     CotizacionService service;
