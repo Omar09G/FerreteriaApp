@@ -36,14 +36,14 @@ public class ProductoController {
 
     @GetMapping
     public Page<ProductoResponse> list(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) Integer categoriaId,
-            @RequestParam(required = false) Integer marcaId,
-            @RequestParam(required = false) String tipo,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) Integer almacenId) {
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "categoriaId", required = false) Integer categoriaId,
+            @RequestParam(name = "marcaId", required = false) Integer marcaId,
+            @RequestParam(name = "tipo", required = false) String tipo,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "almacenId", required = false) Integer almacenId) {
         return service.list(q, categoriaId, marcaId, tipo, almacenId, PageQuery.of(page, size, sort).toPageable());
     }
 

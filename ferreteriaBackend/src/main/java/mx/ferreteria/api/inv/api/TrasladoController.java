@@ -32,9 +32,9 @@ public class TrasladoController {
 
     @GetMapping
     public Page<TrasladoResponse> list(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.list(PageQuery.of(page, size, sort).toPageable());
     }
 

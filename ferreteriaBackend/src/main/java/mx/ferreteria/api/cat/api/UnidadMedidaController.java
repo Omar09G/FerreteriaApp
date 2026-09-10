@@ -36,10 +36,10 @@ public class UnidadMedidaController {
 
     @GetMapping
     public Page<UnidadMedidaResponse> list(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.list(q, PageQuery.of(page, size, sort).toPageable());
     }
 

@@ -64,7 +64,8 @@ public class ClienteService {
                 .esMayorista(req.esMayorista() != null ? req.esMayorista() : false)
                 .build();
         Cliente saved = repo.save(entity);
-        // Auto-creacion de linea de credito si hay limite>0 (independiente de esMayorista)
+        // Auto-creacion de linea de credito si hay limite>0 (independiente de
+        // esMayorista)
         autoCrearOActualizarLinea(saved);
         return toResponse(saved);
     }
@@ -115,12 +116,15 @@ public class ClienteService {
         int dias = c.getDiasCredito() != null && c.getDiasCredito() > 0 ? c.getDiasCredito() : 15;
         // Coerce a rango del trigger (1..365)
         dias = Math.max(1, Math.min(dias, 365));
-        var existente = lineaRepo.findByClienteIdAndEstado(c.getClienteId(), "ACTIVA").orElse(null);
+        LineaCredito existente = lineaRepo.findByClienteIdAndEstado(c.getClienteId(), "ACTIVA").orElse(null);
         int actor = 1;
         try {
             actor = UserPrincipal.actual().usuarioId();
-            if (actor == 0) actor = 1;
-        } catch (Exception ignored) { actor = 1; }
+            if (actor == 0)
+                actor = 1;
+        } catch (Exception ignored) {
+            actor = 1;
+        }
         if (existente != null) {
             existente.setMontoAutorizado(limite);
             existente.setDiasCredito((short) dias);

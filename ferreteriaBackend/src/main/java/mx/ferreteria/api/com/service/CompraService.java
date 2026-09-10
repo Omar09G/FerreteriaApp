@@ -10,6 +10,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -52,6 +55,9 @@ public class CompraService {
         private final ProductoRepository productoRepo;
         private final CompraReportRepository reportRepo;
         private final CajaService cajaService;
+
+        @PersistenceContext
+        private EntityManager em;
 
         // ─── Lectura ────────────────────────────────────────────────────
 
@@ -271,9 +277,17 @@ public class CompraService {
                 String referencia = (req.referencia() == null || req.referencia().isBlank())
                                 ? "ABONO"
                                 : req.referencia().trim();
-                Long pagoProveedorId = reportRepo.insertPagoProveedor(
-                                cuentaPagarId, formaPago.getFormaPagoId(), referencia,
-                                req.monto(), UserPrincipal.actual().usuarioId(), turnoCajaId);
+                Long pagoProveedorId = ((Number) em.createNativeQuery(
+                                "INSERT INTO com.pagos_proveedor (cuenta_pagar_id, forma_pago_id, referencia, monto, usuario_id, turno_caja_id) "
+                                + "VALUES (:cuentaPagarId, :formaPagoId, :referencia, :monto, :usuarioId, :turnoCajaId) RETURNING pago_proveedor_id")
+                                .setParameter("cuentaPagarId", cuentaPagarId)
+                                .setParameter("formaPagoId", formaPago.getFormaPagoId())
+                                .setParameter("referencia", referencia)
+                                .setParameter("monto", req.monto())
+                                .setParameter("usuarioId", UserPrincipal.actual().usuarioId())
+                                .setParameter("turnoCajaId", turnoCajaId)
+                                .getSingleResult()).longValue();
+                em.flush();
 
                 ComDtos.CuentaPagoDetalle actualizada = reportRepo.findCuentaPagoDetalle(cuentaPagarId).get(0);
                 return new ComDtos.PagoProveedorResponse(

@@ -25,13 +25,13 @@ public class CompraController {
 
     @GetMapping
     public Page<ComDtos.CompraResponse> list(
-            @RequestParam(required = false) Integer almacenId,
-            @RequestParam(required = false) Integer proveedorId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "almacenId", required = false) Integer almacenId,
+            @RequestParam(name = "proveedorId", required = false) Integer proveedorId,
+            @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.list(almacenId, proveedorId, desde, hasta,
                 PageQuery.of(page, size, sort).toPageable());
     }

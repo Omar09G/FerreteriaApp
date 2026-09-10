@@ -32,9 +32,9 @@ public class ConteoFisicoController {
 
     @GetMapping
     public Page<ConteoFisicoResponse> list(
-            @RequestParam(required = false) Integer almacenId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
+            @RequestParam(name = "almacenId", required = false) Integer almacenId,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size) {
         return service.list(almacenId, PageQuery.of(page, size, null).toPageable());
     }
 

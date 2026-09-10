@@ -22,7 +22,7 @@ public class TicketConfigController {
     private final TicketConfigService service;
 
     @GetMapping
-    public TicketConfigResponse get(@RequestParam(required = false) Integer almacenId) {
+    public TicketConfigResponse get(@RequestParam(name = "almacenId", required = false) Integer almacenId) {
         return service.get(almacenId);
     }
 

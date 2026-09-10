@@ -23,9 +23,9 @@ public class DevolucionController {
     @GetMapping("/venta/{ventaId}")
     public Page<VenDtos.DevolucionResponse> listByVenta(
             @PathVariable Long ventaId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.listByVenta(ventaId, PageQuery.of(page, size, sort).toPageable());
     }
 

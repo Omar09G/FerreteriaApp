@@ -93,7 +93,7 @@ public class ProductoService {
         }
         return mapped.map(product -> {
             if (almacenId != null) {
-                var inventario = inventarioRepo.findByAlmacenIdAndProductoId(almacenId, product.productoId());
+                Inventario inventario = inventarioRepo.findByAlmacenIdAndProductoId(almacenId, product.productoId());
                 if (inventario != null) {
                     product = product
                             .withStock(inventario.getStock() != null ? inventario.getStock() : BigDecimal.ZERO);

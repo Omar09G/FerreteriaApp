@@ -47,9 +47,9 @@ public class SegAdminController {
 
     @GetMapping("/usuarios")
     public Page<UsuarioResponse> listUsuarios(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.listUsuarios(PageQuery.of(page, size, sort).toPageable());
     }
 
@@ -90,9 +90,9 @@ public class SegAdminController {
 
     @GetMapping("/roles")
     public Page<RolResponse> listRoles(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.listRoles(PageQuery.of(page, size, sort).toPageable());
     }
 
@@ -131,9 +131,9 @@ public class SegAdminController {
 
     @GetMapping("/permisos")
     public Page<PermisoResponse> listPermisos(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         // BACK-REND-018: permisos es catálogo pequeño (<100 filas), necesita size=300 para traer todo de una vez en el selector de roles.
         return service.listPermisos(PageQuery.of(page, size, sort).toPageable(500));
     }

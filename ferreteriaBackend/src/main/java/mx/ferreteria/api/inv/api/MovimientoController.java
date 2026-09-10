@@ -35,13 +35,13 @@ public class MovimientoController {
 
     @GetMapping
     public Page<MovimientoInventarioResponse> list(
-            @RequestParam(required = false) Long productoId,
-            @RequestParam(required = false) Integer almacenId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "productoId", required = false) Long productoId,
+            @RequestParam(name = "almacenId", required = false) Integer almacenId,
+            @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         var rango = RangoFechas.of(fechaInicio, fechaFin);
         var pageable = PageQuery.of(page, size, sort).toPageable();
         if (productoId != null) {

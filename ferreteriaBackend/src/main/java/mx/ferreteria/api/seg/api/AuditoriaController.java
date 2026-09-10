@@ -35,17 +35,17 @@ public class AuditoriaController {
 
     @GetMapping
     public Page<AuditoriaResponse> listar(
-            @RequestParam(required = false) String esquema,
-            @RequestParam(required = false) String tabla,
-            @RequestParam(required = false) String accion,
-            @RequestParam(required = false) String usuario,
-            @RequestParam(required = false) Long registroId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
-            @RequestParam(required = false) String texto,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "esquema", required = false) String esquema,
+            @RequestParam(name = "tabla", required = false) String tabla,
+            @RequestParam(name = "accion", required = false) String accion,
+            @RequestParam(name = "usuario", required = false) String usuario,
+            @RequestParam(name = "registroId", required = false) Long registroId,
+            @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(name = "texto", required = false) String texto,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         Pageable pageable = PageQuery.of(page, size, sort).toPageable();
         return service.buscar(esquema, tabla, accion, usuario, registroId,
                 fechaInicio, fechaFin, texto, pageable);

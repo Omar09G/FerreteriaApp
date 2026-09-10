@@ -171,7 +171,7 @@ function CompraForm({
           value={formaPagoId}
           onChange={(e) => setFormaPagoId(Number(e.target.value))}
         >
-          {FORMAS_PAGO.filter((f) => f.id !== 6).map((f) => (
+          {FORMAS_PAGO.map((f) => (
             <option key={f.id} value={f.id}>
               {f.nombre}
             </option>

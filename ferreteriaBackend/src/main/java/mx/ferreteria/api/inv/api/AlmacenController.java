@@ -37,11 +37,11 @@ public class AlmacenController {
 
     @GetMapping
     public Page<AlmacenResponse> list(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) Boolean todos,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "todos", required = false) Boolean todos,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.list(q, Boolean.TRUE.equals(todos), PageQuery.of(page, size, sort).toPageable());
     }
 

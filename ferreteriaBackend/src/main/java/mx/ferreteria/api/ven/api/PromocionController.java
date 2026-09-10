@@ -44,14 +44,14 @@ public class PromocionController {
 
     @GetMapping
     public Page<PromocionResponse> listar(
-            @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) String tipo,
-            @RequestParam(required = false) String estado,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant desde,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant hasta,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "nombre", required = false) String nombre,
+            @RequestParam(name = "tipo", required = false) String tipo,
+            @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant desde,
+            @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant hasta,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         Pageable pageable = PageQuery.of(page, size, sort).toPageable();
         return service.listar(nombre, tipo, estado, desde, hasta, pageable);
     }

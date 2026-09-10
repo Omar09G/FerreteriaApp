@@ -26,10 +26,10 @@ public class InventarioController {
 
     @GetMapping
     public Page<InventarioResponse> list(
-            @RequestParam(required = false) Integer almacenId,
-            @RequestParam(required = false) Boolean soloBajoStock,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
+            @RequestParam(name = "almacenId", required = false) Integer almacenId,
+            @RequestParam(name = "soloBajoStock", required = false) Boolean soloBajoStock,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size) {
         var pageable = PageQuery.of(page, size, null).toPageable();
         if (Boolean.TRUE.equals(soloBajoStock)) {
             if (almacenId != null) {

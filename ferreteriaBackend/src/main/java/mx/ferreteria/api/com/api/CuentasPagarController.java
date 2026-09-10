@@ -24,7 +24,7 @@ public class CuentasPagarController {
 
     @GetMapping("/cuentas-pagar")
     public List<ComDtos.CuentasPagarResponse> cuentasPagar(
-            @RequestParam(required = false) String estado) {
+            @RequestParam(name = "estado", required = false) String estado) {
         return service.cuentasPagar(estado);
     }
 

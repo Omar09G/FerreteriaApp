@@ -58,9 +58,9 @@ public class CajaController {
     @GetMapping("/{cajaId}/turnos")
     public Page<FinDtos.TurnoCajaResponse> listTurnos(
             @PathVariable Integer cajaId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
         return service.listTurnos(cajaId, PageQuery.of(page, size, sort).toPageable());
     }
 
@@ -74,7 +74,7 @@ public class CajaController {
     public FinDtos.TurnoCajaResponse abrirTurno(
             @PathVariable Integer cajaId,
             @Valid @RequestBody FinDtos.TurnoAperturaRequest req) {
-        var fullReq = new FinDtos.TurnoAperturaRequest(cajaId, req.montoApertura());
+        FinDtos.TurnoAperturaRequest fullReq = new FinDtos.TurnoAperturaRequest(cajaId, req.montoApertura());
         return service.abrirTurno(fullReq);
     }
 
