@@ -12,7 +12,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +58,12 @@ public class CompraService {
         @Transactional(readOnly = true)
         public Page<ComDtos.CompraResponse> list(Integer almacenId, Integer proveedorId,
                         LocalDate desde, LocalDate hasta, Pageable pageable) {
+                // Fix: findByOrderByFechaDesc(Pageable) con Pageable unsorted no respeta OrderBy en algunas versiones de Spring Data.
+                // Normalizamos a Sort por defecto fecha DESC cuando el front no envía `sort` (caso /compras?page=0&size=15).
+                if (pageable.getSort().isUnsorted()) {
+                        pageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                                        Sort.by(Sort.Direction.DESC, "fecha"));
+                }
                 Page<Compra> page;
                 if (almacenId != null && desde != null && hasta != null) {
                         page = compraRepo.findByAlmacenIdAndFechaLocalBetweenOrderByFechaDesc(almacenId, desde, hasta,
@@ -67,7 +75,7 @@ public class CompraService {
                 } else if (desde != null && hasta != null) {
                         page = compraRepo.findByFechaLocalBetweenOrderByFechaDesc(desde, hasta, pageable);
                 } else {
-                        page = compraRepo.findAll(pageable);
+                        page = compraRepo.findByOrderByFechaDesc(pageable);
                 }
                 return toResponsePage(page);
         }

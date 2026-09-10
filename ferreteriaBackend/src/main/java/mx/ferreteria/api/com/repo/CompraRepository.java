@@ -18,4 +18,6 @@ public interface CompraRepository extends JpaRepository<Compra, Long> {
     Page<Compra> findByAlmacenIdOrderByFechaDesc(Integer almacenId, Pageable pageable);
 
     Page<Compra> findByProveedorIdOrderByFechaDesc(Integer proveedorId, Pageable pageable);
+
+    Page<Compra> findByOrderByFechaDesc(Pageable pageable);
 }

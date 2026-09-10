@@ -310,6 +310,8 @@ export default function CobranzaPage() {
           <Badge tone="warning">Parcial</Badge>
         ) : d > 0 && isDeuda ? (
           <Badge tone="danger">Vigente vencida</Badge>
+        ) : v.estado === "VIGENTE" ? (
+          <Badge tone="success">{v.estado}</Badge>
         ) : (
           <Badge tone="info">{v.estado}</Badge>
         );
