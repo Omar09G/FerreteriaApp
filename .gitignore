@@ -21,3 +21,7 @@ scripts/*
 *.class
 *.xml
 .idea/
+scripts/
+audits/
+docs/
+
