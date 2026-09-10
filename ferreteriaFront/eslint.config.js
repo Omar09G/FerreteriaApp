@@ -21,9 +21,6 @@ export default defineConfig([
 			globals: globals.browser,
 		},
 		rules: {
-			// Login y POS usan autoFocus intencional para el primer input;
-			// se degrada a warning para no bloquear lint pero mantiene visibilidad.
-			"jsx-a11y/no-autofocus": "warn",
 			// Dialog backdrop usa onMouseDown para cerrar al click en overlay;
 			// no es contenido interactivo nativo.
 			"jsx-a11y/no-static-element-interactions": "warn",

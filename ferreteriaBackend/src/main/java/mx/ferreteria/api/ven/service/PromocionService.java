@@ -1,12 +1,20 @@
 package mx.ferreteria.api.ven.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -16,10 +24,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import mx.ferreteria.api.cat.entity.Cliente;
+import mx.ferreteria.api.cat.repo.ClienteRepository;
+import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
+import mx.ferreteria.api.ven.dto.VenDtos.PromocionEvaluacionResponse;
+import mx.ferreteria.api.ven.dto.VenDtos.PromocionEvaluarRequest;
 import mx.ferreteria.api.ven.dto.VenDtos.PromocionRequest;
 import mx.ferreteria.api.ven.dto.VenDtos.PromocionResponse;
 import mx.ferreteria.api.ven.entity.Promocion;
@@ -58,6 +71,11 @@ public class PromocionService {
     private final PromocionRepository repo;
     private final PromocionProductoRepository productosRepo;
     private final PromocionCategoriaRepository categoriasRepo;
+    private final ClienteRepository clienteRepo;
+    private final ProductoRepository productoRepo;
+
+    @PersistenceContext
+    private EntityManager em;
 
     public Page<PromocionResponse> listar(String nombre, String tipo, String estado,
             Instant desde, Instant hasta, Pageable pageable) {

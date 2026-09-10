@@ -411,7 +411,6 @@ export default function UsuariosPage() {
 						label="Nueva contraseña (mín. 8)"
 						required
 						type="password"
-						autoFocus
 						value={nuevaPassword}
 						onChange={(e) => setNuevaPassword(e.target.value)}
 						onKeyDown={(e) => {

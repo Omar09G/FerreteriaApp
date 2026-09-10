@@ -277,4 +277,39 @@ public final class VenDtos {
         Integer usuarioId,
         Instant creadoEn
     ) {}
+
+    // ─── Evaluación de promociones para POS ───────────────────────────
+    public record PromocionEvaluarItem(
+            @NotNull @Positive Long productoId,
+            @NotNull @DecimalMin(value = "0.001", inclusive = true) BigDecimal cantidad,
+            @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal precioUnitario
+    ) {}
+    public record PromocionEvaluarRequest(
+            Long clienteId,
+            @NotNull @NotEmpty @Valid List<PromocionEvaluarItem> items
+    ) {}
+    public record PromocionEvaluacionResponse(
+            Long promocionId,
+            String nombre,
+            String tipo,
+            String estado,
+            Boolean aplica,
+            String motivo,
+            BigDecimal beneficioEstimado,
+            BigDecimal valorPct,
+            BigDecimal valorMonto,
+            BigDecimal compraMinTotal,
+            BigDecimal compraMinCantidad,
+            Integer maxUsosTotal,
+            Integer maxUsosCliente,
+            Integer usosActual,
+            Instant vigenciaDesde,
+            Instant vigenciaHasta,
+            List<Short> diasSemana,
+            LocalTime horaDesde,
+            LocalTime horaHasta,
+            Boolean soloMayoristas,
+            List<Long> productos,
+            List<Integer> categorias
+    ) {}
 }

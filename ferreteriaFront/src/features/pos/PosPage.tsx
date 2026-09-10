@@ -426,6 +426,11 @@ export default function PosPage() {
     buscadorRef.current?.select();
   }, []);
 
+  useEffect(() => {
+    const id = window.setTimeout(() => enfocarBuscador(), 0);
+    return () => window.clearTimeout(id);
+  }, [enfocarBuscador]);
+
   const abrirConfirmacion = useCallback(() => {
     if (!puedeVender || checkout.isPending) return;
     setConfirmAbierto(true);
@@ -674,7 +679,6 @@ export default function PosPage() {
                   placeholder="Escanea el código o escribe el nombre"
                   className="w-full"
                   ref={buscadorRef}
-                  autoFocus
                   hint={
                     modoBarcode
                       ? "Código de barras detectado: se añade directo al ticket."
