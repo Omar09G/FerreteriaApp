@@ -198,8 +198,8 @@ public class CotizacionService {
         VenDtos.VentaResponse venta = ventaService.checkout(new VenDtos.VentaRequest(
                 almacenId, cajaId,
                 cot.getClienteId(), cotizacionId,
-                formaPagoId, detalleReqs, List.of(),
-                "Venta generada de la cotización " + cot.getFolio()));
+                formaPagoId, detalleReqs, List.of(new VenDtos.PagoRequest(formaPagoId, cot.getTotal(), null)),
+                "Venta generada de la cotización " + cot.getFolio(), null));
 
         cot.setEstado("CONVERTIDA");
         cot.setVentaGeneradaId(venta.ventaId());

@@ -4,23 +4,35 @@ import {
   AlertCircle,
   Barcode,
   Ban,
+  CheckCircle2,
   Eraser,
+  Gift,
+  Info,
   Minus,
   Plus,
   Search,
   ShoppingBasket,
   Store,
+  Tag,
   Trash2,
   User,
+  XCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useHotkey } from "@/hooks/useHotkey";
+import { useDebounce } from "@/hooks/useDebounce";
 import { esApiError } from "@/lib/api/client";
-import { apiProductos, apiAlmacenes, apiClientes, apiGetCliente } from "@/lib/api/catalogo";
+import {
+  apiProductos,
+  apiAlmacenes,
+  apiClientes,
+  apiGetCliente,
+} from "@/lib/api/catalogo";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
 import { apiCheckout, apiVentas } from "@/lib/api/venta";
+import { apiEvaluarPromociones } from "@/lib/api/promociones";
 import { useAuthStore } from "@/store/auth";
 import {
   FORMAS_PAGO,
@@ -39,7 +51,10 @@ import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { apiGetTicketConfig } from "@/lib/api/ticketConfig";
-import { TicketPreview, printTicketById } from "@/features/administracion/TicketPreview";
+import {
+  TicketPreview,
+  printTicketById,
+} from "@/features/administracion/TicketPreview";
 import { buildEscPosTicket } from "@/lib/print/escpos";
 import { getSilentEnabled, printViaSerial } from "@/lib/print/serial";
 
@@ -155,7 +170,8 @@ export default function PosPage() {
   const [ultimoEntregado, setUltimoEntregado] = useState<number | null>(null);
   const ticketConfig = useQuery({
     queryKey: ["ticket-config-pos", almacenId],
-    queryFn: () => apiGetTicketConfig(typeof almacenId === "number" ? almacenId : undefined),
+    queryFn: () =>
+      apiGetTicketConfig(typeof almacenId === "number" ? almacenId : undefined),
     staleTime: 60_000,
   });
   const clienteTicket = useQuery({
@@ -197,6 +213,24 @@ export default function PosPage() {
     queryFn: () =>
       apiVentas({ desde: hoyLocal(), hasta: hoyLocal(), page: 0, size: 100 }),
     enabled: ventasDiaAbierto,
+  });
+
+  // ── Evaluación de promociones (diagnóstico en vivo) ──
+  const lineasDebounced = useDebounce(lineas, 400);
+  const clienteIdNum = clienteId ? Number(clienteId) : undefined;
+  const promoEval = useQuery({
+    queryKey: ["promos-evaluar", lineasDebounced, clienteIdNum],
+    queryFn: () =>
+      apiEvaluarPromociones({
+        clienteId: clienteIdNum,
+        items: lineasDebounced.map((l) => ({
+          productoId: l.productoId,
+          cantidad: l.cantidad,
+          precioUnitario: l.precioUnitario,
+        })),
+      }),
+    enabled: lineasDebounced.length > 0,
+    staleTime: 20_000,
   });
 
   /**
@@ -303,13 +337,23 @@ export default function PosPage() {
 
   const checkout = useMutation({
     mutationFn: () => {
-      // Para efectivo: monto = entregado (para validar >=0.01 y calcular cambio en ticket)
-      // Para no-efectivo (tarjeta/transferencia/cheque/crédito): monto = total (pagos[0].monto debe ser >=0.01)
-      const totalLocal = lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0);
-      const esEfectivoLocal = (FORMAS_PAGO.find((f) => f.id === formaPagoId)?.esEfectivo) ?? formaPagoId === 1;
+      const promoAplic = (promoEval.data?.find((p) => p.aplica) ?? null) as
+        | import("@/lib/api/types").PromocionEvaluacion
+        | null;
+      const beneficioLocal = promoAplic?.beneficioEstimado ?? 0;
+      const totalLocal = lineas.reduce(
+        (acc, l) => acc + l.cantidad * l.precioUnitario,
+        0,
+      );
+      const totalConDescLocal = Math.max(0, totalLocal - beneficioLocal);
+      const esEfectivoLocal =
+        FORMAS_PAGO.find((f) => f.id === formaPagoId)?.esEfectivo ??
+        formaPagoId === 1;
       const monto = esEfectivoLocal
-        ? (Number(recibido) > 0 ? Number(recibido) : totalLocal)
-        : totalLocal;
+        ? Number(recibido) > 0
+          ? Number(recibido)
+          : totalConDescLocal
+        : totalConDescLocal;
       return apiCheckout({
         almacenId: Number(almacenId),
         cajaId: typeof cajaId === "number" ? cajaId : undefined,
@@ -324,13 +368,17 @@ export default function PosPage() {
           { formaPagoId, monto, referencia: referencia.trim() || undefined },
         ],
         notas: notas.trim() || undefined,
+        promocionId: promoAplic?.promocionId ?? undefined,
       });
     },
     onSuccess: async (venta) => {
       setConfirmAbierto(false);
       mostrarExito(`Venta ${venta.folio} registrada.`);
       const entregadoNum = Number(recibido);
-      const entregado = Number.isFinite(entregadoNum) && entregadoNum > 0 ? entregadoNum : venta.total;
+      const entregado =
+        Number.isFinite(entregadoNum) && entregadoNum > 0
+          ? entregadoNum
+          : venta.total;
       setUltimoEntregado(entregado);
       setVentaResultado(venta);
       limpiarTicket();
@@ -340,10 +388,21 @@ export default function PosPage() {
       // Background USB: si silenciosa activa, imprimir sin diálogo del navegador
       if (getSilentEnabled() && ticketConfig.data) {
         try {
-          const cajaNombre = cajas.data?.find((c: Caja) => c.cajaId === (typeof cajaId === "number" ? cajaId : -1))?.nombre ?? venta.almacenNombre;
+          const cajaNombre =
+            cajas.data?.find(
+              (c: Caja) =>
+                c.cajaId === (typeof cajaId === "number" ? cajaId : -1),
+            )?.nombre ?? venta.almacenNombre;
           // Intentar resolver cliente completo si solo viene id
-          let clienteForPrint: import("@/lib/api/types").ClienteVentaInfo | null = venta.cliente ?? null;
-          if (!clienteForPrint && venta.clienteId && clienteTicket.data && clienteTicket.data.clienteId === venta.clienteId) {
+          let clienteForPrint:
+            | import("@/lib/api/types").ClienteVentaInfo
+            | null = venta.cliente ?? null;
+          if (
+            !clienteForPrint &&
+            venta.clienteId &&
+            clienteTicket.data &&
+            clienteTicket.data.clienteId === venta.clienteId
+          ) {
             clienteForPrint = {
               clienteId: clienteTicket.data.clienteId,
               razonSocial: clienteTicket.data.razonSocial,
@@ -396,10 +455,18 @@ export default function PosPage() {
     0,
   );
   const resumen = resumenVenta(lineas);
+  // Promoción aplicable (la mejor según /evaluar, ya ordenada aplica desc)
+  const promoAplicable = (promoEval.data?.find((p) => p.aplica) ?? null) as
+    | import("@/lib/api/types").PromocionEvaluacion
+    | null;
+  const beneficio = promoAplicable?.beneficioEstimado ?? 0;
+  const totalConDescuento = Math.max(0, total - beneficio);
   const forma = FORMAS_PAGO.find((f) => f.id === formaPagoId) ?? FORMAS_PAGO[0];
   const esEfectivo = forma.esEfectivo;
   const cambio =
-    esEfectivo && Number(recibido) >= total ? Number(recibido) - total : 0;
+    esEfectivo && Number(recibido) >= totalConDescuento
+      ? Number(recibido) - totalConDescuento
+      : 0;
 
   const cajaSeleccionada = typeof cajaId === "number";
   const turnoCargando = cajaSeleccionada && turnoActual.isLoading;
@@ -411,7 +478,7 @@ export default function PosPage() {
     turnoAbierto &&
     lineas.length > 0 &&
     lineas.every((l) => l.cantidad > 0 && l.precioUnitario >= 0) &&
-    (!esEfectivo || Number(recibido) >= total);
+    (!esEfectivo || Number(recibido) >= totalConDescuento);
 
   const puedeLimpiar =
     lineas.length > 0 ||
@@ -440,11 +507,13 @@ export default function PosPage() {
     enabled: !ventaResultado && !confirmAbierto,
   });
   useHotkey("F2", abrirConfirmacion, {
-    enabled: !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
+    enabled:
+      !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
   });
   // Ctrl+Enter confirma ventas: abrir dialog si no abierto, o confirmar si ya abierto via Button auto-wire (evita doble mutate)
   useHotkey("Ctrl+Enter", abrirConfirmacion, {
-    enabled: !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
+    enabled:
+      !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
   });
   // Confirmar dentro del Dialog se maneja via Button hotkey="Ctrl+Enter" (montado solo cuando confirmAbierto)
 
@@ -498,6 +567,19 @@ export default function PosPage() {
         v.clienteNombre ?? <span className="text-muted">Consumidor final</span>,
     },
     { key: "p", header: "Pago", render: (v) => v.formaPagoNombre },
+    {
+      key: "d",
+      header: "Desc.",
+      align: "right",
+      render: (v) =>
+        Number(v.descuentoTotal) > 0 ? (
+          <span className="tabular-nums text-green-700">
+            −{formatoMoneda(v.descuentoTotal)}
+          </span>
+        ) : (
+          <span className="tabular-nums text-muted">—</span>
+        ),
+    },
     {
       key: "t",
       header: "Total",
@@ -847,6 +929,184 @@ export default function PosPage() {
             )}
           </Card>
 
+          {/* ── Diagnóstico de promociones (texto de validación) ── */}
+          <Card titulo="Promoción">
+            {lineas.length === 0 ? (
+              <div className="flex items-start gap-2 rounded-md border border-dashed border-line bg-canvas/50 p-3 text-sm text-muted">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Agrega productos para validar qué promoción aplica. Se evalúan
+                  vigencia, días/horario, mayorista, límites y montos mínimos.
+                </span>
+              </div>
+            ) : promoEval.isLoading ? (
+              <div className="flex items-center gap-2 py-4 text-sm text-muted">
+                <Spinner /> Evaluando promociones…
+              </div>
+            ) : promoEval.isError ? (
+              <p className="text-sm text-red-600">
+                {esApiError(promoEval.error)
+                  ? promoEval.error.mensajeParaUsuario()
+                  : String(promoEval.error)}
+              </p>
+            ) : promoEval.data ? (
+              <div className="space-y-3">
+                {/* Resumen aplicado / no aplicado */}
+                {(() => {
+                  const aplicables = promoEval.data.filter((p) => p.aplica);
+                  const mejor = aplicables[0] ?? null;
+                  const totalFmt = formatoMoneda(total);
+                  if (mejor) {
+                    const ahorro = formatoMoneda(mejor.beneficioEstimado);
+                    const pct = mejor.valorPct
+                      ? `${mejor.valorPct}%`
+                      : mejor.valorMonto
+                        ? formatoMoneda(mejor.valorMonto)
+                        : "";
+                    return (
+                      <div className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/20 dark:text-green-300">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold">
+                            Promoción aplicable: {mejor.nombre}{" "}
+                            {pct && (
+                              <span className="font-normal">
+                                · {pct} · #{mejor.promocionId} {mejor.tipo}
+                              </span>
+                            )}
+                          </p>
+                          <p className="mt-0.5 text-xs">
+                            Ahorro estimado {ahorro} sobre {totalFmt}. En el
+                            ticket verás el descuento al confirmar.
+                          </p>
+                          <p className="mt-1 break-words text-xs opacity-80">
+                            {mejor.motivo}
+                          </p>
+                        </div>
+                        <Badge tone="success">Aplica</Badge>
+                      </div>
+                    );
+                  }
+                  const foco =
+                    promoEval.data.find((p) => p.promocionId === 3) ??
+                    promoEval.data[0];
+                  return (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+                      <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold">
+                          Ninguna promoción aplica sobre {totalFmt}
+                        </p>
+                        {foco && (
+                          <p className="mt-0.5 break-words text-xs">
+                            Ej. “{foco.nombre}” (#{foco.promocionId} {foco.tipo}
+                            ): {foco.motivo}
+                          </p>
+                        )}
+                      </div>
+                      <Badge tone="warning">Sin promo</Badge>
+                    </div>
+                  );
+                })()}
+
+                {/* Campo de texto de validación (requisito explícito) */}
+                <div className="rounded-md border border-line bg-canvas p-3">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
+                    <Tag className="h-3.5 w-3.5" /> Validación de promoción para
+                    el ticket
+                  </div>
+                  <div className="mt-2 rounded-md border border-line bg-surface px-3 py-2.5 font-mono text-xs leading-relaxed text-ink">
+                    {(() => {
+                      const aplicables = promoEval.data.filter((p) => p.aplica);
+                      if (aplicables.length) {
+                        return aplicables
+                          .map(
+                            (p) =>
+                              `✓ #${p.promocionId} ${p.nombre} [${p.tipo}] → ${p.motivo}`,
+                          )
+                          .join("\n");
+                      }
+                      return promoEval.data
+                        .map(
+                          (p) =>
+                            `${p.aplica ? "✓" : "✗"} #${p.promocionId} ${p.nombre} [${p.tipo}] → ${p.motivo}`,
+                        )
+                        .join("\n");
+                    })()}
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-muted">
+                    Se recalcula al cambiar productos, cantidades o cliente.
+                    Fuente:{" "}
+                    <span className="font-mono">POST /promociones/evaluar</span>{" "}
+                    (vigencia, ISODOW, hora America/Mexico_City, mayorista,
+                    límites, compra mínima y match producto/categoría).
+                  </p>
+                </div>
+
+                {/* Detalle por promoción (desplegable) */}
+                <details className="rounded-md border border-line">
+                  <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-ink hover:bg-canvas">
+                    Ver detalle de {promoEval.data.length} promociones
+                  </summary>
+                  <div className="divide-y divide-line border-t border-line">
+                    {promoEval.data.map((p) => (
+                      <div
+                        key={p.promocionId}
+                        className="flex items-start gap-2 px-3 py-2.5"
+                      >
+                        <span
+                          className={`mt-0.5 shrink-0 ${p.aplica ? "text-green-600" : "text-muted"}`}
+                        >
+                          {p.aplica ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <XCircle className="h-4 w-4" />
+                          )}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-ink">
+                            <Gift className="h-3.5 w-3.5 text-muted" /> #
+                            {p.promocionId} {p.nombre}
+                            <Badge tone={p.aplica ? "success" : "default"}>
+                              {p.aplica ? "Aplica" : "No aplica"}
+                            </Badge>
+                            <span className="text-xs font-normal text-muted">
+                              {p.tipo} · {p.estado}{" "}
+                              {p.diasSemana?.length
+                                ? `· días ${p.diasSemana.join(",")}`
+                                : ""}{" "}
+                              {p.horaDesde
+                                ? `· ${p.horaDesde}–${p.horaHasta}`
+                                : ""}
+                            </span>
+                          </p>
+                          <p className="mt-1 break-words text-xs leading-relaxed text-muted">
+                            {p.motivo}{" "}
+                            {p.beneficioEstimado > 0 && (
+                              <span className="font-semibold text-ink">
+                                · beneficio {formatoMoneda(p.beneficioEstimado)}
+                              </span>
+                            )}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted">
+                            Mín total{" "}
+                            {p.compraMinTotal != null
+                              ? formatoMoneda(Number(p.compraMinTotal))
+                              : "—"}{" "}
+                            · mín cant {p.compraMinCantidad ?? "—"} · usos{" "}
+                            {p.usosActual}/{p.maxUsosTotal ?? "∞"} · prod{" "}
+                            {p.productos.length} · cat {p.categorias.length}{" "}
+                            {p.soloMayoristas ? "· solo mayoristas" : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            ) : null}
+          </Card>
+
           <Card titulo="Cobro">
             <div className="grid grid-cols-2 gap-3">
               <Select
@@ -868,7 +1128,11 @@ export default function PosPage() {
                   step="0.01"
                   value={recibido}
                   onChange={(e) => setRecibido(e.target.value)}
-                  placeholder={String(total)}
+                  placeholder={
+                    promoAplicable
+                      ? totalConDescuento.toString()
+                      : total.toString()
+                  }
                 />
               ) : (
                 <Input
@@ -897,6 +1161,24 @@ export default function PosPage() {
               onChange={(e) => setNotas(e.target.value)}
               className="mt-3"
             />
+            {promoAplicable && (
+              <div className="mt-2 flex items-center justify-between rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm dark:border-green-900/40 dark:bg-green-950/20">
+                <span className="flex items-center gap-1.5 font-medium text-green-800 dark:text-green-300">
+                  <Gift className="h-4 w-4" /> {promoAplicable.nombre}
+                  <Badge tone="success" className="ml-1">
+                    {promoAplicable.valorPct
+                      ? `${promoAplicable.valorPct}%`
+                      : formatoMoneda(
+                          Number(promoAplicable.valorMonto ?? 0),
+                        )}{" "}
+                    · #{promoAplicable.promocionId}
+                  </Badge>
+                </span>
+                <span className="font-bold tabular-nums text-green-700 dark:text-green-300">
+                  −{formatoMoneda(beneficio)}
+                </span>
+              </div>
+            )}
             <Button
               ref={cobrarRef}
               type="button"
@@ -909,7 +1191,9 @@ export default function PosPage() {
               <ShoppingBasket className="h-5 w-5" />
               {checkout.isPending
                 ? "Registrando…"
-                : `Cobrar ${formatoMoneda(total)}`}
+                : promoAplicable
+                  ? `Cobrar ${formatoMoneda(totalConDescuento)} (ahorro ${formatoMoneda(beneficio)})`
+                  : `Cobrar ${formatoMoneda(total)}`}
             </Button>
           </Card>
         </div>
@@ -1007,30 +1291,105 @@ export default function PosPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 sm:grid-cols-4">
-                  <div>
-                    <p className="text-xs text-muted">Subtotal</p>
-                    <p className="font-medium tabular-nums">
-                      {formatoMoneda(resumen.subtotalSinIva)}
-                    </p>
+                {promoAplicable ? (
+                  <div className="rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-900/40 dark:bg-green-950/20">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-green-700 dark:text-green-300">
+                          <Gift className="h-3.5 w-3.5" /> Promoción aplicada
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-green-800 dark:text-green-200">
+                          {promoAplicable.nombre}{" "}
+                          <span className="font-normal text-green-700 dark:text-green-300">
+                            · #{promoAplicable.promocionId}{" "}
+                            {promoAplicable.tipo}{" "}
+                            {promoAplicable.valorPct
+                              ? `${promoAplicable.valorPct}%`
+                              : formatoMoneda(
+                                  Number(promoAplicable.valorMonto ?? 0),
+                                )}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 text-xs text-green-700 dark:text-green-300">
+                          {promoAplicable.motivo}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-md bg-white px-2.5 py-1 text-sm font-bold tabular-nums text-green-700 dark:bg-green-900/30 dark:text-green-200">
+                        −{formatoMoneda(beneficio)}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-green-700/70 dark:text-green-300/70">
+                          Subtotal
+                        </p>
+                        <p className="font-medium tabular-nums text-green-900 dark:text-green-100">
+                          {formatoMoneda(resumen.subtotalSinIva)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-green-700/70 dark:text-green-300/70">
+                          Descuento
+                        </p>
+                        <p className="font-bold tabular-nums text-green-700 dark:text-green-300">
+                          −{formatoMoneda(beneficio)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-green-700/70 dark:text-green-300/70">
+                          Total a cobrar
+                        </p>
+                        <p className="text-base font-bold tabular-nums text-green-800 dark:text-green-200">
+                          {formatoMoneda(totalConDescuento)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted">IVA (16%)</p>
-                    <p className="font-medium tabular-nums">
-                      {formatoMoneda(resumen.ivaEstimado)}
-                    </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 sm:grid-cols-4">
+                    <div>
+                      <p className="text-xs text-muted">Subtotal</p>
+                      <p className="font-medium tabular-nums">
+                        {formatoMoneda(resumen.subtotalSinIva)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">IVA (16%)</p>
+                      <p className="font-medium tabular-nums">
+                        {formatoMoneda(resumen.ivaEstimado)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">Forma de pago</p>
+                      <p className="font-medium text-ink">{forma.nombre}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">Total</p>
+                      <p className="text-base font-bold tabular-nums text-primary">
+                        {formatoMoneda(resumen.total)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted">Forma de pago</p>
-                    <p className="font-medium text-ink">{forma.nombre}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted">Total</p>
-                    <p className="text-base font-bold tabular-nums text-primary">
-                      {formatoMoneda(resumen.total)}
-                    </p>
-                  </div>
-                </div>
+                )}
+                {/* Diagnóstico cuando no aplica (útil para depurar promo #3) */}
+                {!promoAplicable &&
+                  promoEval.data &&
+                  promoEval.data.length > 0 && (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                      <p className="flex items-center gap-1.5 font-semibold">
+                        <Info className="h-3.5 w-3.5" /> Sin promoción aplicable
+                        — revisar condiciones
+                      </p>
+                      <p className="mt-1 break-words font-mono text-[11px]">
+                        {promoEval.data
+                          .slice(0, 2)
+                          .map(
+                            (p) => `#${p.promocionId} ${p.nombre}: ${p.motivo}`,
+                          )
+                          .join(" | ")}
+                      </p>
+                    </div>
+                  )}
 
                 {esEfectivo ? (
                   <div className="grid grid-cols-2 gap-2 rounded-md border border-line p-3 text-sm">
@@ -1091,7 +1450,9 @@ export default function PosPage() {
                     <ShoppingBasket className="h-4 w-4" />
                     {checkout.isPending
                       ? "Registrando…"
-                      : `Confirmar y cobrar ${formatoMoneda(resumen.total)}`}
+                      : promoAplicable
+                        ? `Confirmar y cobrar ${formatoMoneda(totalConDescuento)}`
+                        : `Confirmar y cobrar ${formatoMoneda(resumen.total)}`}
                   </Button>
                 </div>
               </div>
@@ -1113,16 +1474,52 @@ export default function PosPage() {
             <div className="text-center">
               <Badge tone="success">Completada</Badge>
               <p className="mt-1 text-sm text-muted">Folio</p>
-              <p className="text-lg font-bold text-ink">{ventaResultado.folio}</p>
+              <p className="text-lg font-bold text-ink">
+                {ventaResultado.folio}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 text-left text-sm">
-              <span className="text-muted">Total</span>
-              <span className="text-right font-semibold tabular-nums">{formatoMoneda(ventaResultado.total)}</span>
+              <span className="text-muted">Subtotal</span>
+              <span className="text-right tabular-nums">
+                {formatoMoneda(ventaResultado.subtotal)}
+              </span>
+              {Number(ventaResultado.descuentoTotal) > 0 && (
+                <>
+                  <span className="text-green-700 dark:text-green-300">
+                    Descuento
+                  </span>
+                  <span className="text-right font-semibold tabular-nums text-green-700 dark:text-green-300">
+                    −{formatoMoneda(ventaResultado.descuentoTotal)}
+                  </span>
+                </>
+              )}
+              <span className="font-semibold text-ink">Total</span>
+              <span className="text-right font-bold tabular-nums text-primary">
+                {formatoMoneda(ventaResultado.total)}
+              </span>
               <span className="text-muted">Pago</span>
-              <span className="text-right font-medium">{ventaResultado.formaPagoNombre}</span>
+              <span className="text-right font-medium">
+                {ventaResultado.formaPagoNombre}
+              </span>
               <span className="text-muted">Fecha</span>
-              <span className="text-right tabular-nums">{new Date(ventaResultado.fecha).toLocaleString("es-MX")}</span>
+              <span className="text-right tabular-nums">
+                {new Date(ventaResultado.fecha).toLocaleString("es-MX")}
+              </span>
             </div>
+            {Number(ventaResultado.descuentoTotal) > 0 &&
+              ventaResultado.detalles.some(
+                (d) => (d.promocionId as unknown as number) != null,
+              ) && (
+                <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800 dark:border-green-900/40 dark:bg-green-950/20 dark:text-green-300">
+                  Promoción aplicada en ticket:{" "}
+                  {ventaResultado.detalles
+                    .filter((d) => (d.promocionId as unknown as number) != null)
+                    .map((d) => `#${d.promocionId as unknown as number}`)
+                    .join(", ")}{" "}
+                  · descuento {formatoMoneda(ventaResultado.descuentoTotal)}{" "}
+                  registrado en uso de promoción.
+                </p>
+              )}
             {ticketConfig.data && (
               <div className="rounded-md border border-line bg-neutral-50 p-2">
                 <div id="ticket-print-venta">
@@ -1130,7 +1527,10 @@ export default function PosPage() {
                     config={ticketConfig.data}
                     venta={ventaResultado}
                     vendedorNombre={usuario?.username ?? "user"}
-                    cajaNombre={cajas.data?.find((c: Caja) => c.cajaId === cajaId)?.nombre ?? null}
+                    cajaNombre={
+                      cajas.data?.find((c: Caja) => c.cajaId === cajaId)
+                        ?.nombre ?? null
+                    }
                     montoEntregado={ultimoEntregado}
                     clienteOverride={
                       ventaResultado.cliente ??
@@ -1157,16 +1557,25 @@ export default function PosPage() {
               </div>
             )}
             <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={() => printTicketById("ticket-print-venta")} variant="primary">
+              <Button
+                onClick={() => printTicketById("ticket-print-venta")}
+                variant="primary"
+              >
                 Imprimir ticket
               </Button>
               <Button variant="ghost" onClick={() => setVentaResultado(null)}>
                 Cerrar
               </Button>
-              <Link to="/ventas/cobranza" className="inline-flex items-center rounded-md border border-line px-3 py-2 text-sm text-primary hover:bg-warmbg">
+              <Link
+                to="/ventas/cobranza"
+                className="inline-flex items-center rounded-md border border-line px-3 py-2 text-sm text-primary hover:bg-warmbg"
+              >
                 Ver cobranza
               </Link>
-              <Link to="/dashboard" className="inline-flex items-center px-3 py-2 text-sm text-primary hover:underline">
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center px-3 py-2 text-sm text-primary hover:underline"
+              >
                 Ir al inicio
               </Link>
             </div>
@@ -1215,7 +1624,7 @@ export default function PosPage() {
           )}
           {ventasHoy.data && (
             <>
-              <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 text-sm sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 text-sm sm:grid-cols-4">
                 <div>
                   <p className="text-xs text-muted">Tickets</p>
                   <p className="text-base font-bold tabular-nums">
@@ -1227,6 +1636,18 @@ export default function PosPage() {
                   <p className="text-base font-bold tabular-nums text-primary">
                     {formatoMoneda(
                       ventasHoy.data.data.reduce((acc, v) => acc + v.total, 0),
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted">Descuentos</p>
+                  <p className="text-base font-bold tabular-nums text-green-700">
+                    −
+                    {formatoMoneda(
+                      ventasHoy.data.data.reduce(
+                        (acc, v) => acc + Number(v.descuentoTotal ?? 0),
+                        0,
+                      ),
                     )}
                   </p>
                 </div>

@@ -62,3 +62,9 @@ export async function apiActualizarPromocion(
 export async function apiEliminarPromocion(id: number): Promise<void> {
 	await http.delete(`/promociones/${id}`);
 }
+
+export async function apiEvaluarPromociones(body: import("./types").PromocionEvaluarRequest): Promise<import("./types").PromocionEvaluacion[]> {
+	const { data } = await http.post<import("./types").PromocionEvaluacion[]>("/promociones/evaluar", body);
+	if (Array.isArray(data)) return data as unknown as import("./types").PromocionEvaluacion[];
+	return (data as unknown as { data: import("./types").PromocionEvaluacion[] }).data ?? [];
+}

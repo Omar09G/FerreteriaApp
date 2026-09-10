@@ -238,7 +238,7 @@ class VentaServiceTest {
                                 List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("2.000"),
                                                 new BigDecimal("50.00"))),
                                 List.of(new VenDtos.PagoRequest(1, new BigDecimal("116.00"), null)),
-                                null);
+                                null, null);
 
                 var resp = service.checkout(req);
 
@@ -257,7 +257,7 @@ class VentaServiceTest {
                                 List.of(new VenDtos.VentaDetalleRequest(1L, new BigDecimal("1.000"),
                                                 new BigDecimal("10.00"))),
                                 List.of(new VenDtos.PagoRequest(1, new BigDecimal("10.00"), null)),
-                                null);
+                                null, null);
 
                 assertThatThrownBy(() -> service.checkout(req))
                                 .isInstanceOf(RecursoNoEncontradoException.class);

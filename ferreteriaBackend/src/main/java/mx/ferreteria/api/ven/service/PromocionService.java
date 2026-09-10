@@ -300,4 +300,263 @@ public class PromocionService {
                 p.getSoloMayoristas(), p.getEstado(),
                 productos, categorias, p.getUsuarioId(), p.getCreadoEn());
     }
+
+    /* ─── Evaluación para POS (diagnóstico) ─────────────────────────── */
+
+    @Transactional(readOnly = true)
+    public List<PromocionEvaluacionResponse> evaluar(PromocionEvaluarRequest req) {
+        List<Promocion> todas = repo.findAll();
+        if (todas.isEmpty()) return List.of();
+
+        // Batch de relaciones
+        List<Long> pids = todas.stream().map(Promocion::getPromocionId).toList();
+        Map<Long, List<Long>> productosByPromo = productosRepo.findByPromocionIdIn(pids).stream()
+                .collect(Collectors.groupingBy(PromocionProducto::getPromocionId,
+                        Collectors.mapping(PromocionProducto::getProductoId, Collectors.toList())));
+        Map<Long, List<Integer>> categoriasByPromo = categoriasRepo.findByPromocionIdIn(pids).stream()
+                .collect(Collectors.groupingBy(PromocionCategoria::getPromocionId,
+                        Collectors.mapping(PromocionCategoria::getCategoriaId, Collectors.toList())));
+
+        // Datos del carrito
+        BigDecimal total = req.items().stream()
+                .map(it -> it.precioUnitario().multiply(it.cantidad()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCantidad = req.items().stream()
+                .map(it -> it.cantidad())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Set<Long> productosEnCarrito = req.items().stream().map(it -> it.productoId()).collect(Collectors.toSet());
+        // Mapa producto -> categoria
+        Map<Long, Integer> categoriaPorProducto = Map.of();
+        if (!productosEnCarrito.isEmpty()) {
+            categoriaPorProducto = productoRepo.findAllById(productosEnCarrito).stream()
+                    .filter(p -> p.getCategoria() != null)
+                    .collect(Collectors.toMap(p -> p.getProductoId(), p -> p.getCategoria().getCategoriaId()));
+        }
+
+        Cliente cliente = null;
+        if (req.clienteId() != null) {
+            cliente = clienteRepo.findById(req.clienteId()).orElse(null);
+        }
+
+        ZoneId zona = ZoneId.of("America/Mexico_City");
+        ZonedDateTime ahoraZoned = ZonedDateTime.now(zona);
+        Instant ahora = ahoraZoned.toInstant();
+        int dow = ahoraZoned.getDayOfWeek().getValue(); // 1=Lunes .. 7=Domingo = ISODOW
+        LocalTime horaActual = ahoraZoned.toLocalTime();
+
+        List<PromocionEvaluacionResponse> out = new ArrayList<>();
+        for (Promocion p : todas) {
+            List<Long> prods = productosByPromo.getOrDefault(p.getPromocionId(), List.of());
+            List<Integer> cats = categoriasByPromo.getOrDefault(p.getPromocionId(), List.of());
+            List<String> fallos = new ArrayList<>();
+            boolean aplica = true;
+
+            if (!"ACTIVA".equals(p.getEstado())) {
+                fallos.add("Estado no ACTIVA (" + p.getEstado() + ")");
+                aplica = false;
+            }
+            if (p.getVigenciaDesde() != null && ahora.isBefore(p.getVigenciaDesde())) {
+                fallos.add("Aún no inicia (desde " + p.getVigenciaDesde() + ")");
+                aplica = false;
+            }
+            if (p.getVigenciaHasta() != null && ahora.isAfter(p.getVigenciaHasta())) {
+                fallos.add("Vigencia vencida (hasta " + p.getVigenciaHasta() + ")");
+                aplica = false;
+            }
+            if (p.getDiasSemana() != null && !p.getDiasSemana().isEmpty() && !p.getDiasSemana().contains((short) dow)) {
+                fallos.add("Día no permitido (hoy " + dow + " ∉ " + p.getDiasSemana() + ")");
+                aplica = false;
+            }
+            if (p.getHoraDesde() != null) {
+                LocalTime desde = p.getHoraDesde();
+                LocalTime hasta = p.getHoraHasta() != null ? p.getHoraHasta() : LocalTime.of(23, 59, 59);
+                boolean enHora = !horaActual.isBefore(desde) && !horaActual.isAfter(hasta);
+                if (!enHora) {
+                    fallos.add("Fuera de horario (" + desde + "–" + hasta + ", ahora " + horaActual.withSecond(0).withNano(0) + ")");
+                    aplica = false;
+                }
+            }
+            if (Boolean.TRUE.equals(p.getSoloMayoristas())) {
+                boolean esMayorista = cliente != null && Boolean.TRUE.equals(cliente.getEsMayorista());
+                if (!esMayorista) {
+                    fallos.add("Solo mayoristas" + (cliente == null ? " (sin cliente)" : ""));
+                    aplica = false;
+                }
+            }
+            if (p.getMaxUsosTotal() != null && p.getUsosActual() != null && p.getUsosActual() >= p.getMaxUsosTotal()) {
+                fallos.add("Límite total alcanzado (" + p.getUsosActual() + "/" + p.getMaxUsosTotal() + ")");
+                aplica = false;
+            }
+            if (p.getMaxUsosCliente() != null && req.clienteId() != null) {
+                long usosCliente = contarUsosCliente(p.getPromocionId(), req.clienteId());
+                if (usosCliente >= p.getMaxUsosCliente()) {
+                    fallos.add("Límite por cliente alcanzado (" + usosCliente + "/" + p.getMaxUsosCliente() + ")");
+                    aplica = false;
+                }
+            }
+            if (p.getCompraMinTotal() != null && total.compareTo(p.getCompraMinTotal()) < 0) {
+                fallos.add("Compra mínima $" + p.getCompraMinTotal() + " no alcanzada (actual $" + total.setScale(2, RoundingMode.HALF_UP) + ")");
+                aplica = false;
+            }
+            if (p.getCompraMinCantidad() != null && totalCantidad.compareTo(p.getCompraMinCantidad()) < 0) {
+                fallos.add("Cantidad mínima " + p.getCompraMinCantidad() + " no alcanzada (actual " + totalCantidad.stripTrailingZeros().toPlainString() + ")");
+                aplica = false;
+            }
+            // Filtro producto/categoría: si listas vacías, considerar que aplica a todo solo para DESCUENTO_TOTAL_VENTA
+            boolean requiereProducto = !prods.isEmpty() || !cats.isEmpty();
+            boolean hayMatch = false;
+            if (!requiereProducto) {
+                // Vacío = aplica a todos solo si es total venta; para tipos de producto consideramos que falta configuración
+                if ("DESCUENTO_TOTAL_VENTA".equals(p.getTipo())) {
+                    hayMatch = true;
+                } else {
+                    // Para tipos de producto sin productos/categorías, no puede aplicar (no hay matching explícito)
+                    // No marcamos fallo duro, pero el beneficio será 0 si no hay líneas que califiquen
+                    hayMatch = !req.items().isEmpty();
+                }
+            } else {
+                for (var it : req.items()) {
+                    Long pid = it.productoId();
+                    Integer cat = categoriaPorProducto.get(pid);
+                    if (prods.contains(pid) || (cat != null && cats.contains(cat))) {
+                        hayMatch = true;
+                        break;
+                    }
+                }
+                if (!hayMatch) {
+                    fallos.add("Ningún producto/categoría del ticket coincide (requiere prod " + prods + " o cat " + cats + ")");
+                    aplica = false;
+                }
+            }
+
+            BigDecimal beneficio = BigDecimal.ZERO;
+            if (aplica && hayMatch) {
+                beneficio = calcularBeneficio(p, req.items(), categoriaPorProducto, total, totalCantidad, prods, cats);
+                if (beneficio.compareTo(BigDecimal.ZERO) <= 0) {
+                    // Si el cálculo da 0, marcar como no aplica con motivo
+                    fallos.add("Cálculo de beneficio dio $0 (verifica lleva/paga o precio especial)");
+                    aplica = false;
+                }
+            }
+
+            String motivo;
+            if (aplica) {
+                motivo = "Aplica — beneficio estimado $" + beneficio.setScale(2, RoundingMode.HALF_UP);
+            } else {
+                motivo = String.join("; ", fallos);
+            }
+
+            out.add(new PromocionEvaluacionResponse(
+                    p.getPromocionId(), p.getNombre(), p.getTipo(), p.getEstado(),
+                    aplica, motivo, beneficio,
+                    p.getValorPct(), p.getValorMonto(),
+                    p.getCompraMinTotal(), p.getCompraMinCantidad(),
+                    p.getMaxUsosTotal(), p.getMaxUsosCliente(), p.getUsosActual(),
+                    p.getVigenciaDesde(), p.getVigenciaHasta(),
+                    p.getDiasSemana(), p.getHoraDesde(), p.getHoraHasta(),
+                    p.getSoloMayoristas(),
+                    prods, cats
+            ));
+        }
+        // Orden: las que aplican primero, luego por beneficio desc
+        out.sort((a, b) -> {
+            int cmp = Boolean.compare(b.aplica(), a.aplica());
+            if (cmp != 0) return cmp;
+            return b.beneficioEstimado().compareTo(a.beneficioEstimado());
+        });
+        return out;
+    }
+
+    private long contarUsosCliente(Long promocionId, Long clienteId) {
+        try {
+            Object res = em.createNativeQuery("SELECT COUNT(*) FROM ven.promocion_usos WHERE promocion_id = :pid AND cliente_id = :cid")
+                    .setParameter("pid", promocionId)
+                    .setParameter("cid", clienteId)
+                    .getSingleResult();
+            if (res instanceof Number n) return n.longValue();
+            return 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private BigDecimal calcularBeneficio(Promocion p, List<mx.ferreteria.api.ven.dto.VenDtos.PromocionEvaluarItem> items,
+                                         Map<Long, Integer> catPorProd, BigDecimal total, BigDecimal totalCant,
+                                         List<Long> prods, List<Integer> cats) {
+        return switch (p.getTipo()) {
+            case "DESCUENTO_TOTAL_VENTA" -> {
+                BigDecimal base = total;
+                BigDecimal pctBenef = p.getValorPct() != null
+                        ? base.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                        : null;
+                BigDecimal montoBenef = p.getValorMonto();
+                BigDecimal elegido;
+                if (pctBenef != null && montoBenef != null) {
+                    // Si ambos, usar el menor (monto como tope)
+                    elegido = pctBenef.min(montoBenef);
+                } else if (pctBenef != null) {
+                    elegido = pctBenef;
+                } else {
+                    elegido = montoBenef != null ? montoBenef : BigDecimal.ZERO;
+                }
+                yield elegido;
+            }
+            case "DESCUENTO_PRODUCTO" -> {
+                BigDecimal sum = BigDecimal.ZERO;
+                for (var it : items) {
+                    boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    BigDecimal lineaTotal = it.precioUnitario().multiply(it.cantidad());
+                    BigDecimal b = p.getValorPct() != null
+                            ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                            : (p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO);
+                    sum = sum.add(b);
+                }
+                yield sum;
+            }
+            case "POR_CANTIDAD" -> {
+                boolean cumpleCant = p.getCompraMinCantidad() == null || totalCant.compareTo(p.getCompraMinCantidad()) >= 0;
+                if (!cumpleCant) yield BigDecimal.ZERO;
+                BigDecimal sum = BigDecimal.ZERO;
+                for (var it : items) {
+                    boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    BigDecimal lineaTotal = it.precioUnitario().multiply(it.cantidad());
+                    BigDecimal b = p.getValorPct() != null
+                            ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                            : (p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO);
+                    sum = sum.add(b);
+                }
+                yield sum;
+            }
+            case "PRECIO_ESPECIAL" -> {
+                BigDecimal sum = BigDecimal.ZERO;
+                BigDecimal precioEsp = p.getPrecioEspecial() != null ? p.getPrecioEspecial() : BigDecimal.ZERO;
+                for (var it : items) {
+                    boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    BigDecimal ahorroUnit = it.precioUnitario().subtract(precioEsp);
+                    if (ahorroUnit.compareTo(BigDecimal.ZERO) < 0) ahorroUnit = BigDecimal.ZERO;
+                    sum = sum.add(ahorroUnit.multiply(it.cantidad()));
+                }
+                yield sum;
+            }
+            case "NXM" -> {
+                BigDecimal sum = BigDecimal.ZERO;
+                BigDecimal lleva = p.getLleva();
+                BigDecimal paga = p.getPaga();
+                if (lleva == null || paga == null || lleva.compareTo(BigDecimal.ZERO) <= 0) yield BigDecimal.ZERO;
+                for (var it : items) {
+                    boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    long veces = it.cantidad().divide(lleva, 0, RoundingMode.FLOOR).longValue();
+                    if (veces <= 0) continue;
+                    BigDecimal gratis = lleva.subtract(paga);
+                    sum = sum.add(gratis.multiply(BigDecimal.valueOf(veces)).multiply(it.precioUnitario()));
+                }
+                yield sum;
+            }
+            default -> BigDecimal.ZERO;
+        };
+    }
 }

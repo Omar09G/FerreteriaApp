@@ -134,6 +134,9 @@ function DetalleVenta({ venta }: { venta: Venta }) {
 									Precio
 								</th>
 								<th scope="col" className="px-2 py-1 text-right">
+									Desc.
+								</th>
+								<th scope="col" className="px-2 py-1 text-right">
 									Importe
 								</th>
 							</tr>
@@ -141,12 +144,22 @@ function DetalleVenta({ venta }: { venta: Venta }) {
 						<tbody className="divide-y divide-line">
 							{venta.detalles.map((d) => (
 								<tr key={d.ventaDetalleId}>
-									<td className="px-2 py-1.5">{d.productoNombre}</td>
+									<td className="px-2 py-1.5">
+										<div className="flex flex-wrap items-center gap-1">
+											<span>{d.productoNombre}</span>
+											{d.promocionId && (
+												<span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400">promo #{d.promocionId}</span>
+											)}
+										</div>
+									</td>
 									<td className="px-2 py-1.5 text-right tabular-nums">
 										{d.cantidad}
 									</td>
 									<td className="px-2 py-1.5 text-right tabular-nums">
 										{formatoMoneda(d.precioUnitario)}
+									</td>
+									<td className="px-2 py-1.5 text-right tabular-nums">
+										{Number(d.descuentoLinea) > 0 ? <span className="text-green-700">−{formatoMoneda(d.descuentoLinea)}</span> : <span className="text-muted">—</span>}
 									</td>
 									<td className="px-2 py-1.5 text-right font-medium tabular-nums">
 										{formatoMoneda(d.totalLinea)}
@@ -317,6 +330,17 @@ export default function VentasPage() {
 		},
 		{ key: "a", header: "Almacén", render: (v) => v.almacenNombre },
 		{ key: "p", header: "Forma", render: (v) => v.formaPagoNombre },
+		{
+			key: "d",
+			header: "Descuento",
+			align: "right",
+			render: (v) =>
+				Number(v.descuentoTotal) > 0 ? (
+					<span className="font-medium tabular-nums text-green-700">−{formatoMoneda(v.descuentoTotal)}</span>
+				) : (
+					<span className="tabular-nums text-muted">—</span>
+				),
+		},
 		{
 			key: "t",
 			header: "Total",

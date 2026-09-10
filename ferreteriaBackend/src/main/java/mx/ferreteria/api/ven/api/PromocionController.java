@@ -18,8 +18,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 import jakarta.validation.Valid;
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.ven.dto.VenDtos.PromocionEvaluacionResponse;
+import mx.ferreteria.api.ven.dto.VenDtos.PromocionEvaluarRequest;
 import mx.ferreteria.api.ven.dto.VenDtos.PromocionRequest;
 import mx.ferreteria.api.ven.dto.VenDtos.PromocionResponse;
 import mx.ferreteria.api.ven.service.PromocionService;
@@ -73,5 +77,10 @@ public class PromocionController {
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public void eliminar(@PathVariable long id) {
         service.eliminar(id);
+    }
+
+    @PostMapping("/evaluar")
+    public List<PromocionEvaluacionResponse> evaluar(@Valid @RequestBody PromocionEvaluarRequest req) {
+        return service.evaluar(req);
     }
 }

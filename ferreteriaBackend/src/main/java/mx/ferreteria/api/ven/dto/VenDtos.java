@@ -55,7 +55,8 @@ public final class VenDtos {
         @NotNull @Positive Integer formaPagoId,
         @NotNull @NotEmpty @Valid List<VentaDetalleRequest> detalles,
         @NotNull @NotEmpty @Valid List<PagoRequest> pagos,
-        @Size(max = 500) String notas
+        @Size(max = 500) String notas,
+        Long promocionId
     ) {}
     public record VentaDetalleRequest(
         @NotNull @Positive Long productoId,
@@ -93,7 +94,7 @@ public final class VenDtos {
         Long ventaDetalleId, Long productoId, String productoNombre,
         BigDecimal cantidad, BigDecimal precioUnitario,
         BigDecimal costoUnitario, BigDecimal descuentoLinea,
-        BigDecimal totalLinea
+        BigDecimal totalLinea, Long promocionId
     ) {}
     public record PagoResponse(
         Long pagoClienteId, Integer formaPagoId,

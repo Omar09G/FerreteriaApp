@@ -514,6 +514,7 @@ export interface VentaDetalle {
   costoUnitario: number;
   descuentoLinea: number;
   totalLinea: number;
+  promocionId?: number | null;
 }
 
 export interface VentaPago {
@@ -575,6 +576,7 @@ export interface VentaRequest {
   detalles: { productoId: number; cantidad: number; precioUnitario: number }[];
   pagos: { formaPagoId: number; monto: number; referencia?: string }[];
   notas?: string;
+  promocionId?: number | null;
 }
 
 export interface VentaCancelRequest {
@@ -1279,6 +1281,40 @@ export interface PromocionRequest {
   horaHasta?: string;
   soloMayoristas?: boolean;
   estado?: EstadoPromocion;
+  productos: number[];
+  categorias: number[];
+}
+
+export interface PromocionEvaluarItem {
+  productoId: number;
+  cantidad: number;
+  precioUnitario: number;
+}
+export interface PromocionEvaluarRequest {
+  clienteId?: number;
+  items: PromocionEvaluarItem[];
+}
+export interface PromocionEvaluacion {
+  promocionId: number;
+  nombre: string;
+  tipo: TipoPromocion;
+  estado: EstadoPromocion;
+  aplica: boolean;
+  motivo: string;
+  beneficioEstimado: number;
+  valorPct?: number | null;
+  valorMonto?: number | null;
+  compraMinTotal?: number | null;
+  compraMinCantidad?: number | null;
+  maxUsosTotal?: number | null;
+  maxUsosCliente?: number | null;
+  usosActual: number;
+  vigenciaDesde: string;
+  vigenciaHasta?: string | null;
+  diasSemana: number[];
+  horaDesde?: string | null;
+  horaHasta?: string | null;
+  soloMayoristas: boolean;
   productos: number[];
   categorias: number[];
 }
