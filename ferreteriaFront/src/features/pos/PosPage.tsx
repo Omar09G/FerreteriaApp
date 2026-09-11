@@ -1037,9 +1037,7 @@ export default function PosPage() {
                       </div>
                     );
                   }
-                  const foco =
-                    promoEval.data.find((p) => p.promocionId === 3) ??
-                    promoEval.data[0];
+                  const foco = promoEval.data[0];
                   return (
                     <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
                       <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1058,8 +1056,6 @@ export default function PosPage() {
                     </div>
                   );
                 })()}
-
-                {/* Campo de texto de validación (requisito explícito) */}
                 <div className="rounded-md border border-line bg-canvas p-3">
                   <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
                     <Tag className="h-3.5 w-3.5" /> Validación de promoción para
@@ -1084,13 +1080,6 @@ export default function PosPage() {
                         .join("\n");
                     })()}
                   </div>
-                  <p className="mt-1.5 text-[11px] text-muted">
-                    Se recalcula al cambiar productos, cantidades o cliente.
-                    Fuente:{" "}
-                    <span className="font-mono">POST /promociones/evaluar</span>{" "}
-                    (vigencia, ISODOW, hora America/Mexico_City, mayorista,
-                    límites, compra mínima y match producto/categoría).
-                  </p>
                 </div>
 
                 {/* Detalle por promoción (desplegable) */}
