@@ -113,9 +113,11 @@ public class SecurityConfig {
                                                                 "/api/v1/auth/refresh",
                                                                 "/api/v1/auth/logout")
                                                 .permitAll()
-                                                .requestMatchers("/actuator/health", "/actuator/health/**")
+                                                .requestMatchers("/actuator/health", "/actuator/health/**",
+                                                                                "/actuator/prometheus")
                                                 .permitAll()
-                                                // info/metrics/prometheus y docs requieren auth
+                                                // info/metrics y docs requieren auth (prometheus va sin auth:
+                                                // Prometheus raspa sin JWT y solo expone contadores, sin PII)
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                                 .formLogin(f -> f.disable())

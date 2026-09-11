@@ -23,6 +23,7 @@ receivers:
         cors:
           allowed_origins:
             - http://localhost:8080
+            - http://192.168.110.30:8080
             - http://localhost:5173
             - http://localhost:4200
           allowed_headers:
@@ -88,19 +89,11 @@ processors:
     num_traces: 50000         # ventana de traces en memoria
     expected_new_traces_per_sec: 100
     policies:
-      # 100% de errores y excepciones
+      # 100% de errores (el javaagent marca ERROR los spans con excepcion)
       - name: errors-always
         type: status_code
         status_code:
           status_codes: [ERROR]
-      - name: exceptions-always
-        type: and
-        and:
-          and_sub_policy:
-            - name: has-exception
-              type: span
-              span:
-                - 'attributes["exception.type"] exists'
       # Latencia >2s: capturar siempre (slow traces)
       - name: slow-traces
         type: latency

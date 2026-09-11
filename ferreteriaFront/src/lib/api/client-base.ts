@@ -20,13 +20,32 @@ import {
 import { doRefresh, puedeRefrescar, type RetryMeta } from "@/lib/api/refresh";
 
 function nuevoRequestId(): string {
-	if (
-		typeof crypto !== "undefined" &&
-		typeof crypto.randomUUID === "function"
-	) {
-		return crypto.randomUUID();
+	// crypto.randomUUID solo existe en contextos seguros (https/localhost).
+	// En LAN por http://IP no está disponible y el fallback anterior
+	// (Date.now-Math.random) no es UUID: el backend lo rechaza con 400
+	// REQUEST_ID_INVALIDO (RequestIdFilter valida UUID.fromString).
+	// Por eso todas las ramas generan UUID v4 válido.
+	const c =
+		typeof crypto !== "undefined"
+			? (crypto as Crypto & { randomUUID?: () => string })
+			: undefined;
+	if (c && typeof c.randomUUID === "function") {
+		return c.randomUUID();
 	}
-	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+	// getRandomValues SÍ está disponible en contextos no-seguros.
+	if (c && typeof c.getRandomValues === "function") {
+		const b = c.getRandomValues(new Uint8Array(16));
+		b[6] = (b[6] & 0x0f) | 0x40; // versión 4
+		b[8] = (b[8] & 0x3f) | 0x80; // variante RFC 4122
+		const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+		return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+	}
+	// Último recurso (SSR/tests sin WebCrypto): Math.random con formato UUID v4.
+	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (ch) => {
+		const r = Math.floor(Math.random() * 16);
+		const v = ch === "x" ? r : (r & 0x3) | 0x8;
+		return v.toString(16);
+	});
 }
 
 const apiUrl = env.apiUrl;
