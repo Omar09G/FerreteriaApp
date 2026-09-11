@@ -27,6 +27,7 @@ import { useTieneRol } from "@/store/auth";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { Dialog } from "@/components/ui/Dialog";
@@ -629,7 +630,7 @@ function PromocionForm({
                     onClick={() => agregarProducto(p.productoId)}
                     className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-primary-50"
                   >
-                    <span className="font-mono text-muted">{p.codigo}</span> ·{" "}
+                    <span className="font-mono text-muted">{p.codigo}</span><CodigosBarras codigos={p.codigosBarras} max={1} /> ·{" "}
                     {p.nombre}
                   </button>
                 ))}
@@ -662,8 +663,8 @@ function PromocionForm({
                   onClick={() => quitarProducto(p.productoId)}
                   className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-red-50"
                 >
-                  <span className="font-mono text-muted">{p.codigo}</span> ·{" "}
-                  {p.nombre}
+<span className="font-mono text-muted">{p.codigo}</span><CodigosBarras codigos={p.codigosBarras} max={1} /> ·{" "}
+                    {p.nombre}
                   <span className="ml-2 text-red-600">
                     {t("catalogo.promociones.campos.quitar")}
                   </span>

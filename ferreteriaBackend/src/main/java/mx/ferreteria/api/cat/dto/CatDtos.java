@@ -3,6 +3,7 @@ package mx.ferreteria.api.cat.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -126,6 +127,11 @@ public final class CatDtos {
 
         // ── Producto ───────────────────────────────────────────────────
 
+        public record CodigoBarrasRequest(
+                        @NotBlank @Size(max = 50) String codigo,
+                        @DecimalMin(value = "0", inclusive = false) BigDecimal factor) {
+        }
+
         public record ProductoRequest(
                         @Size(max = 40) String codigo,
                         @NotBlank @Size(max = 20) @Pattern(regexp = "PRODUCTO|SERVICIO|HERRAMIENTA_RENTA") String tipo,
@@ -137,7 +143,8 @@ public final class CatDtos {
                         @DecimalMin(value = "0", inclusive = true) BigDecimal costoActual,
                         @DecimalMin(value = "0", inclusive = true) BigDecimal precioMenudeo,
                         @DecimalMin(value = "0", inclusive = true) BigDecimal precioMayoreo,
-                        Boolean aplicaIva) {
+                        Boolean aplicaIva,
+                        List<@Valid CodigoBarrasRequest> codigosBarras) {
         }
 
         public record ProductoResponse(
@@ -156,14 +163,26 @@ public final class CatDtos {
                         BigDecimal precioMenudeo,
                         BigDecimal precioMayoreo,
                         Boolean aplicaIva,
-                        BigDecimal stockActual) {
+                        BigDecimal stockActual,
+                        List<String> codigosBarras,
+                        BigDecimal factorEscaneo) {
 
                 public ProductoResponse withStock(BigDecimal stockActual) {
                         return new ProductoResponse(
                                         productoId, codigo, tipo, nombre, descripcion,
                                         categoriaId, categoriaNombre, marcaId, marcaNombre,
                                         unidadMedidaId, unidadMedidaClave, costoActual,
-                                        precioMenudeo, precioMayoreo, aplicaIva, stockActual);
+                                        precioMenudeo, precioMayoreo, aplicaIva, stockActual,
+                                        codigosBarras, factorEscaneo);
+                }
+
+                public ProductoResponse withFactorEscaneo(BigDecimal factorEscaneo) {
+                        return new ProductoResponse(
+                                        productoId, codigo, tipo, nombre, descripcion,
+                                        categoriaId, categoriaNombre, marcaId, marcaNombre,
+                                        unidadMedidaId, unidadMedidaClave, costoActual,
+                                        precioMenudeo, precioMayoreo, aplicaIva, stockActual,
+                                        codigosBarras, factorEscaneo);
                 }
         }
 }

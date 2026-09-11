@@ -20,6 +20,7 @@ import { formatoMoneda } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { Dialog } from "@/components/ui/Dialog";
@@ -94,9 +95,23 @@ function ProductoForm({
 	);
 	const [aplicaIva, setAplicaIva] = useState(producto?.aplicaIva ?? true);
 	const [intento, setIntento] = useState(false);
+	// Códigos de barras (inv.producto_codigos_barras). Estado local listo;
+	// aún NO se envía: el backend lo rechaza como propiedad desconocida
+	// (500). Se activará con PLAN_CODIGO_BARRAS §4.
+	const [barras, setBarras] = useState<{ codigo: string; factor: string }[]>(
+		() => (producto?.codigosBarras ?? []).map((c) => ({ codigo: c, factor: "1" })),
+	);
 
 	const invalido =
 		nombre.trim() === "" || categoriaId === "" || unidadId === "";
+
+	const codigosLimpios = barras.map((b) => b.codigo.trim()).filter(Boolean);
+	const barrasDuplicadas =
+		new Set(codigosLimpios.map((c) => c.toLowerCase())).size !==
+		codigosLimpios.length;
+	const factorInvalido = barras.some(
+		(b) => b.factor.trim() !== "" && !(Number(b.factor) > 0),
+	);
 
 	const enviar = (e: { preventDefault: () => void }) => {
 		e.preventDefault();
@@ -203,6 +218,85 @@ function ProductoForm({
 					value={descripcion}
 					onChange={(e) => setDescripcion(e.target.value)}
 				/>
+			</div>
+			<div className="rounded-md border border-line p-3 sm:col-span-2">
+				<div className="mb-2 flex items-center justify-between">
+					<span className="text-sm font-medium text-ink">
+						Códigos de barras
+					</span>
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						onClick={() =>
+							setBarras((prev) => [...prev, { codigo: "", factor: "1" }])
+						}
+					>
+						Agregar
+					</Button>
+				</div>
+				{barras.length === 0 && (
+					<p className="text-xs text-muted">
+						Sin códigos. Agrega el EAN/UPC de la etiqueta del producto.
+					</p>
+				)}
+				{barras.map((b, i) => (
+					<div
+						key={i}
+						className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_96px_auto] sm:items-end"
+					>
+						<Input
+							label={i === 0 ? "Código" : undefined}
+							value={b.codigo}
+							onChange={(e) =>
+								setBarras((prev) =>
+									prev.map((x, j) =>
+										j === i ? { ...x, codigo: e.target.value } : x,
+									),
+								)
+							}
+							placeholder="Ej. 7501234567001"
+							inputMode="numeric"
+							className="w-full"
+						/>
+						<Input
+							label={i === 0 ? "Factor" : undefined}
+							type="number"
+							inputMode="decimal"
+							step="0.001"
+							min="0"
+							value={b.factor}
+							onChange={(e) =>
+								setBarras((prev) =>
+									prev.map((x, j) =>
+										j === i ? { ...x, factor: e.target.value } : x,
+									),
+								)
+							}
+							hint={i === 0 ? "Uds. por escaneo" : undefined}
+							className="w-full"
+						/>
+						<button
+							type="button"
+							aria-label={`Quitar código ${i + 1}`}
+							className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 justify-self-start sm:justify-self-auto"
+							onClick={() =>
+								setBarras((prev) => prev.filter((_, j) => j !== i))
+							}
+						>
+							<Trash2 className="h-4 w-4" />
+						</button>
+					</div>
+				))}
+				{(barrasDuplicadas || factorInvalido) && (
+					<p className="text-xs text-red-600">
+						Revisa códigos duplicados o factores inválidos (deben ser &gt; 0).
+					</p>
+				)}
+				<p className="mt-1 text-xs text-muted">
+					Pendiente de backend: se guardarán cuando el API lo soporte
+					(PLAN_CODIGO_BARRAS §4).
+				</p>
 			</div>
 			<Input
 				label="Costo actual"
@@ -365,6 +459,11 @@ export default function ProductosPage() {
 			render: (v) => (
 				<span className="font-mono text-xs text-muted">{v.codigo ?? "—"}</span>
 			),
+		},
+		{
+			key: "cb",
+			header: "Códigos",
+			render: (v) => <CodigosBarras codigos={v.codigosBarras} variante="compacto" />,
 		},
 		{
 			key: "n",

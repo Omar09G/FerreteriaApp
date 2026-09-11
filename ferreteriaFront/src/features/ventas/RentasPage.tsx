@@ -29,6 +29,7 @@ import type { RangoFechas } from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { Dialog } from "@/components/ui/Dialog";
@@ -289,7 +290,7 @@ function RentaForm({
 								<span className="block truncate text-sm font-medium text-ink">
 									{p.nombre}
 								</span>
-								<span className="text-xs text-muted">{p.codigo ?? "—"}</span>
+								<span className="text-xs text-muted">{p.codigo ?? "—"}<CodigosBarras codigos={p.codigosBarras} max={1} /></span>
 							</span>
 							<Plus className="h-4 w-4 shrink-0 text-primary" />
 						</button>

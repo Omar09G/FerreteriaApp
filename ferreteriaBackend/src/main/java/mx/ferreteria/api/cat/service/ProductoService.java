@@ -2,11 +2,15 @@ package mx.ferreteria.api.cat.service;
 
 import java.math.BigDecimal;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -15,18 +19,22 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import lombok.RequiredArgsConstructor;
+import mx.ferreteria.api.cat.dto.CatDtos.CodigoBarrasRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoResponse;
 import mx.ferreteria.api.cat.entity.Categoria;
 import mx.ferreteria.api.cat.entity.Marca;
 import mx.ferreteria.api.cat.entity.Producto;
+import mx.ferreteria.api.cat.entity.ProductoCodigoBarras;
 import mx.ferreteria.api.cat.entity.UnidadMedida;
 import mx.ferreteria.api.cat.repo.CategoriaRepository;
+import mx.ferreteria.api.cat.repo.CodigoBarrasRepository;
 import mx.ferreteria.api.cat.repo.MarcaRepository;
 import mx.ferreteria.api.cat.repo.ProductoListado;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.cat.repo.UnidadMedidaRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
+import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.inv.entity.Inventario;
 import mx.ferreteria.api.inv.repo.InventarioRepository;
@@ -37,6 +45,7 @@ import mx.ferreteria.api.inv.repo.InventarioRepository;
 public class ProductoService {
 
     private final ProductoRepository repo;
+    private final CodigoBarrasRepository barrasRepo;
     private final CategoriaRepository categoriaRepo;
     private final MarcaRepository marcaRepo;
     private final UnidadMedidaRepository unidadMedidaRepo;
@@ -53,12 +62,23 @@ public class ProductoService {
 
         Page<Producto> pageFull = null;
         Page<ProductoListado> pageProj = null;
+        // factor por producto cuando el match fue por código de barras
+        Map<Long, BigDecimal> factorPorProducto = Map.of();
 
         if (StringUtils.hasText(q)) {
             String termino = q.trim();
-            Page<Producto> porCodigo = repo.findByActivoTrueAndCodigoIgnoreCase(termino, pageable);
-            pageFull = porCodigo.hasContent() ? porCodigo
-                    : repo.findByActivoTrueAndNombreContainingIgnoreCase(termino, pageable);
+            // 1º código de barras exacto (solo productos activos: los dados
+            // de baja no deben venderse aunque se escaneen).
+            Optional<ProductoCodigoBarras> barra = barrasRepo.findByCodigoBarras(termino);
+            if (barra.isPresent() && Boolean.TRUE.equals(barra.get().getProducto().getActivo())) {
+                Producto p = barra.get().getProducto();
+                pageFull = new PageImpl<>(List.of(p), pageable, 1);
+                factorPorProducto = Map.of(p.getProductoId(), barra.get().getFactor());
+            } else {
+                Page<Producto> porCodigo = repo.findByActivoTrueAndCodigoIgnoreCase(termino, pageable);
+                pageFull = porCodigo.hasContent() ? porCodigo
+                        : repo.findByActivoTrueAndNombreContainingIgnoreCase(termino, pageable);
+            }
         } else if (categoriaId != null) {
             pageProj = repo.findListadoByCategoriaCategoriaIdAndActivoTrue(categoriaId, pageable);
         } else if (marcaId != null) {
@@ -74,7 +94,18 @@ public class ProductoService {
         if (pageProj != null) {
             mapped = pageProj.map(this::toResponseFromListado);
         } else {
-            mapped = pageFull.map(this::toResponse);
+            mapped = pageFull.map(this::baseResponse);
+        }
+        // Adjunta barras en UNA sola consulta (evita N+1) + factor de escaneo.
+        if (!mapped.getContent().isEmpty()) {
+            List<Long> ids = mapped.getContent().stream().map(ProductoResponse::productoId).toList();
+            Map<Long, List<String>> barrasPorProd = barrasRepo.findByProductoProductoIdIn(ids).stream()
+                    .collect(Collectors.groupingBy(b -> b.getProducto().getProductoId(),
+                            Collectors.mapping(ProductoCodigoBarras::getCodigoBarras, Collectors.toList())));
+            final Map<Long, BigDecimal> factores = factorPorProducto;
+            mapped = mapped.map(r -> completarBarras(r,
+                    barrasPorProd.getOrDefault(r.productoId(), List.of()),
+                    factores.get(r.productoId())));
         }
         if (almacenId != null && mapped.getContent().size() > 1) {
             List<Long> pids = mapped.getContent().stream().map(ProductoResponse::productoId).toList();
@@ -122,7 +153,8 @@ public class ProductoService {
                 p.getPrecioMenudeo(),
                 p.getPrecioMayoreo(),
                 p.getAplicaIva() != null ? p.getAplicaIva() : true,
-                BigDecimal.ZERO); // stock se enriquece via inventarioRepo si almacenId != null
+                BigDecimal.ZERO, // stock se enriquece via inventarioRepo si almacenId != null
+                null, null); // barras/factor se adjuntan en lote en list()
     }
 
     @Transactional(readOnly = true)
@@ -157,7 +189,9 @@ public class ProductoService {
                 .precioMayoreo(req.precioMayoreo())
                 .aplicaIva(req.aplicaIva() != null ? req.aplicaIva() : true)
                 .build();
-        return toResponse(repo.save(entity));
+        Producto saved = repo.save(entity);
+        guardarBarras(saved, req.codigosBarras());
+        return toResponse(saved);
     }
 
     public ProductoResponse update(Long id, ProductoRequest req) {
@@ -193,7 +227,9 @@ public class ProductoService {
             entity.setAplicaIva(req.aplicaIva());
         }
 
-        return toResponse(repo.save(entity));
+        Producto saved = repo.save(entity);
+        guardarBarras(saved, req.codigosBarras());
+        return toResponse(saved);
     }
 
     public void deactivate(Long id) {
@@ -204,6 +240,25 @@ public class ProductoService {
     }
 
     private ProductoResponse toResponse(Producto p) {
+        return completarBarras(baseResponse(p), codigosDe(p.getProductoId()), null);
+    }
+
+    /** Códigos del producto en una sola consulta (detalle / create / update). */
+    private List<String> codigosDe(Long productoId) {
+        return barrasRepo.findByProductoProductoId(productoId).stream()
+                .map(ProductoCodigoBarras::getCodigoBarras).toList();
+    }
+
+    private ProductoResponse completarBarras(ProductoResponse r, List<String> codigos, BigDecimal factor) {
+        return new ProductoResponse(
+                r.productoId(), r.codigo(), r.tipo(), r.nombre(), r.descripcion(),
+                r.categoriaId(), r.categoriaNombre(), r.marcaId(), r.marcaNombre(),
+                r.unidadMedidaId(), r.unidadMedidaClave(), r.costoActual(),
+                r.precioMenudeo(), r.precioMayoreo(), r.aplicaIva(), r.stockActual(),
+                codigos, factor);
+    }
+
+    private ProductoResponse baseResponse(Producto p) {
         return new ProductoResponse(
                 p.getProductoId(),
                 p.getCodigo(),
@@ -220,6 +275,41 @@ public class ProductoService {
                 p.getPrecioMenudeo(),
                 p.getPrecioMayoreo(),
                 p.getAplicaIva(),
-                BigDecimal.ZERO);
+                BigDecimal.ZERO,
+                null, null);
+    }
+
+    /**
+     * Guarda (create) o reemplaza (update) los códigos de barras.
+     * Duplicado contra OTRO producto, o repetido en el request → 409
+     * VALOR_DUPLICADO (nunca 500: el traductor BD no mapea el 23505).
+     */
+    private void guardarBarras(Producto producto, List<CodigoBarrasRequest> codigos) {
+        barrasRepo.deleteByProductoProductoId(producto.getProductoId());
+        if (codigos == null || codigos.isEmpty()) {
+            return;
+        }
+        Set<String> vistos = new HashSet<>();
+        for (CodigoBarrasRequest cb : codigos) {
+            String codigo = cb.codigo().trim();
+            if (!vistos.add(codigo.toLowerCase())) {
+                throw new ReglaNegocioException(ErrorCode.VALOR_DUPLICADO, codigo);
+            }
+            Optional<ProductoCodigoBarras> existente = barrasRepo.findByCodigoBarras(codigo);
+            if (existente.isPresent()
+                    && !existente.get().getProducto().getProductoId().equals(producto.getProductoId())) {
+                throw new ReglaNegocioException(ErrorCode.VALOR_DUPLICADO, codigo);
+            }
+        }
+        try {
+            barrasRepo.saveAll(codigos.stream().map(cb -> ProductoCodigoBarras.builder()
+                    .codigoBarras(cb.codigo().trim())
+                    .producto(producto)
+                    .factor(cb.factor() != null ? cb.factor() : BigDecimal.ONE)
+                    .build()).toList());
+        } catch (DataIntegrityViolationException e) {
+            // Carrera contra el pre-chequeo: la PK lo frena igual.
+            throw new ReglaNegocioException(ErrorCode.VALOR_DUPLICADO, codigos.get(0).codigo());
+        }
     }
 }

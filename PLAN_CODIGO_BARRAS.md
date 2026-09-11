@@ -33,11 +33,13 @@ Validar (no se tocan, la venta sigue igual — solo cambia el lookup):
 - `CHECK (factor > 0)`: ya existe en la tabla.
 
 Agregar (coherencia con el resto del esquema):
-- `trg_audit_barras`: `seg.fn_auditar` AFTER I/U/D en
-  `producto_codigos_barras` (igual que `trg_audit_producto`, :1162-1163).
-- `trg_touch_producto_por_barras`: al cambiar barras, tocar
-  `productos.actualizado_en` (igual que `trg_touch_producto`, :1189-1190).
-- Índice: la PK ya indexa el lookup exacto; nada más que agregar.
+- `trg_barras_touch_producto` + `inv.fn_barras_touch_producto()`
+  (implementado en `02_tablas.sql` + aplicado a la BD viva): al cambiar
+  barras se toca `productos.actualizado_en` del padre.
+- ~~Trigger de auditoría~~ NO implementado a propósito:
+  `seg.fn_auditar` castea la PK a BIGINT y los códigos alfanuméricos lo
+  romperían. Las barras quedan auditadas indirectamente (create/update de
+  producto tocan al padre y disparan su auditoría).
 
 Datos: los 5 códigos de `05_dummy.sql` son **solo demo** — en prod hay que
 cargar los EAN reales (importe masivo o alta en Productos-admin, fase 2).

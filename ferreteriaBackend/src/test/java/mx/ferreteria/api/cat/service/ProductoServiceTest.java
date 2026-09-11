@@ -24,17 +24,22 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import mx.ferreteria.api.cat.dto.CatDtos.CodigoBarrasRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoResponse;
 import mx.ferreteria.api.cat.entity.Categoria;
 import mx.ferreteria.api.cat.entity.Marca;
 import mx.ferreteria.api.cat.entity.Producto;
+import mx.ferreteria.api.cat.entity.ProductoCodigoBarras;
 import mx.ferreteria.api.cat.entity.UnidadMedida;
 import mx.ferreteria.api.cat.repo.CategoriaRepository;
+import mx.ferreteria.api.cat.repo.CodigoBarrasRepository;
 import mx.ferreteria.api.cat.repo.MarcaRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.cat.repo.UnidadMedidaRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
+import mx.ferreteria.api.common.error.ReglaNegocioException;
+import mx.ferreteria.api.common.i18n.ErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -42,6 +47,8 @@ class ProductoServiceTest {
 
     @Mock
     ProductoRepository repo;
+    @Mock
+    CodigoBarrasRepository barrasRepo;
     @Mock
     CategoriaRepository categoriaRepo;
     @Mock
@@ -237,7 +244,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 "P001", "PRODUCTO", "Taladro", "desc", 1, 1, 1,
-                new BigDecimal("100"), new BigDecimal("150"), null, true);
+                new BigDecimal("100"), new BigDecimal("150"), null, true, null);
 
         ProductoResponse resp = service.create(req);
 
@@ -254,7 +261,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 999, null, 1,
-                null, null, null, null);
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -268,7 +275,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 1, null, 999,
-                null, null, null, null);
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -283,7 +290,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 1, 999, 1,
-                null, null, null, null);
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -301,7 +308,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
-                null, null, null, null);
+                null, null, null, null, null);
 
         ProductoResponse resp = service.create(req);
 
@@ -323,7 +330,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 "P002", "SERVICIO", "NuevoNombre", "desc", 1, 1, 1,
-                new BigDecimal("200"), new BigDecimal("300"), null, false);
+                new BigDecimal("200"), new BigDecimal("300"), null, false, null);
 
         ProductoResponse resp = service.update(1L, req);
 
@@ -338,10 +345,124 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 1, null, 1,
-                null, null, null, null);
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(999L, req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
+    // ── codigos de barras ─────────────────────────────────────────
+
+    private ProductoCodigoBarras sampleBarra(Producto p, String codigo, String factor) {
+        return ProductoCodigoBarras.builder()
+                .codigoBarras(codigo).producto(p).factor(new BigDecimal(factor)).build();
+    }
+
+    @Test
+    @DisplayName("list con EAN: match por barras primero, con factor y sin tocar codigo/nombre")
+    void list_barcodeMatchFirst() {
+        Pageable pg = PageRequest.of(0, 20);
+        Producto p = sampleProducto();
+        ProductoCodigoBarras barra = sampleBarra(p, "7501234567001", "6");
+        when(barrasRepo.findByCodigoBarras("7501234567001")).thenReturn(Optional.of(barra));
+        when(barrasRepo.findByProductoProductoIdIn(List.of(1L))).thenReturn(List.of(barra));
+
+        var result = service.list("7501234567001", null, null, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).codigo()).isEqualTo("P001");
+        assertThat(result.getContent().get(0).factorEscaneo()).isEqualByComparingTo("6");
+        assertThat(result.getContent().get(0).codigosBarras()).containsExactly("7501234567001");
+        verify(repo, never()).findByActivoTrueAndCodigoIgnoreCase(any(), any());
+        verify(repo, never()).findByActivoTrueAndNombreContainingIgnoreCase(any(), any());
+    }
+
+    @Test
+    @DisplayName("list con EAN de producto inactivo: no hace match, cae a codigo/nombre")
+    void list_barcodeInactive_fallsThrough() {
+        Pageable pg = PageRequest.of(0, 20);
+        Producto inactivo = sampleProducto();
+        inactivo.setActivo(false);
+        when(barrasRepo.findByCodigoBarras("7501234567001"))
+                .thenReturn(Optional.of(sampleBarra(inactivo, "7501234567001", "1")));
+        when(repo.findByActivoTrueAndCodigoIgnoreCase("7501234567001", pg))
+                .thenReturn(new PageImpl<>(List.of(), pg, 0));
+        when(repo.findByActivoTrueAndNombreContainingIgnoreCase("7501234567001", pg))
+                .thenReturn(new PageImpl<>(List.of(), pg, 0));
+
+        var result = service.list("7501234567001", null, null, null, null, pg);
+
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("create con barras: guarda producto + barras y las devuelve")
+    void create_withBarras() {
+        when(categoriaRepo.findById(1)).thenReturn(Optional.of(sampleCategoria()));
+        when(unidadMedidaRepo.findById(1)).thenReturn(Optional.of(sampleUM()));
+        Producto saved = sampleProducto();
+        when(repo.save(any(Producto.class))).thenReturn(saved);
+        when(barrasRepo.findByCodigoBarras("7501234567001")).thenReturn(Optional.empty());
+        ProductoCodigoBarras guardada = sampleBarra(saved, "7501234567001", "1");
+        when(barrasRepo.findByProductoProductoId(1L)).thenReturn(List.of(guardada));
+
+        ProductoRequest req = new ProductoRequest(
+                "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
+                null, null, null, null,
+                List.of(new CodigoBarrasRequest("7501234567001", new BigDecimal("1"))));
+
+        ProductoResponse resp = service.create(req);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(barrasRepo).saveAll(captor.capture());
+        @SuppressWarnings("unchecked")
+        List<ProductoCodigoBarras> entidades = captor.getValue();
+        assertThat(entidades).hasSize(1);
+        assertThat(entidades.get(0).getCodigoBarras()).isEqualTo("7501234567001");
+        assertThat(resp.codigosBarras()).containsExactly("7501234567001");
+    }
+
+    @Test
+    @DisplayName("create con barra de OTRO producto: 409 VALOR_DUPLICADO")
+    void create_barraDuplicada() {
+        when(categoriaRepo.findById(1)).thenReturn(Optional.of(sampleCategoria()));
+        when(unidadMedidaRepo.findById(1)).thenReturn(Optional.of(sampleUM()));
+        when(repo.save(any(Producto.class))).thenReturn(sampleProducto());
+        Producto otro = sampleProducto();
+        otro.setProductoId(99L);
+        when(barrasRepo.findByCodigoBarras("7501234567001"))
+                .thenReturn(Optional.of(sampleBarra(otro, "7501234567001", "1")));
+
+        ProductoRequest req = new ProductoRequest(
+                "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
+                null, null, null, null,
+                List.of(new CodigoBarrasRequest("7501234567001", null)));
+
+        assertThatThrownBy(() -> service.create(req))
+                .isInstanceOf(ReglaNegocioException.class)
+                .extracting(e -> ((ReglaNegocioException) e).errorCode())
+                .isEqualTo(ErrorCode.VALOR_DUPLICADO);
+    }
+
+    @Test
+    @DisplayName("update reemplaza barras: borra anteriores y guarda nuevas")
+    void update_replacesBarras() {
+        Producto existing = sampleProducto();
+        when(repo.findById(1L)).thenReturn(Optional.of(existing));
+        when(categoriaRepo.findById(1)).thenReturn(Optional.of(sampleCategoria()));
+        when(unidadMedidaRepo.findById(1)).thenReturn(Optional.of(sampleUM()));
+        when(repo.save(any(Producto.class))).thenReturn(existing);
+        when(barrasRepo.findByCodigoBarras("7501234567009")).thenReturn(Optional.empty());
+
+        ProductoRequest req = new ProductoRequest(
+                "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
+                null, null, null, null,
+                List.of(new CodigoBarrasRequest("7501234567009", new BigDecimal("2"))));
+
+        service.update(1L, req);
+
+        verify(barrasRepo).deleteByProductoProductoId(1L);
+        verify(barrasRepo).saveAll(any());
     }
 
     // ── deactivate ──────────────────────────────────────────────────

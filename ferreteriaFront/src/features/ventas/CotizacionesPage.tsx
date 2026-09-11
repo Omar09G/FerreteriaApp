@@ -22,6 +22,7 @@ import type { RangoFechas } from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
@@ -162,7 +163,7 @@ function CotizacionForm({
 									{p.nombre}
 								</span>
 								<span className="text-xs text-muted">
-									{p.codigo ?? "—"} · {formatoMoneda(p.precioMenudeo)}
+									{p.codigo ?? "—"} · {formatoMoneda(p.precioMenudeo)}<CodigosBarras codigos={p.codigosBarras} max={1} />
 								</span>
 							</span>
 							<Plus className="h-4 w-4 shrink-0 text-primary" />

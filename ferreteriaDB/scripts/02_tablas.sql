@@ -1189,6 +1189,23 @@ BEGIN NEW.actualizado_en := now(); RETURN NEW; END $$;
 DROP TRIGGER IF EXISTS trg_touch_producto ON inv.productos;
 CREATE TRIGGER trg_touch_producto  BEFORE UPDATE ON inv.productos
     FOR EACH ROW EXECUTE FUNCTION common_touch_updated_at();
+
+-- Barras: sin trigger de auditoría propio (seg.fn_auditar castea la PK a
+-- BIGINT y los códigos alfanuméricos lo romperían) y sin touch directo
+-- (la tabla no tiene actualizado_en). En cambio se toca el padre para que
+-- los cambios de códigos queden reflejados en productos.actualizado_en.
+CREATE OR REPLACE FUNCTION inv.fn_barras_touch_producto() RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE inv.productos SET actualizado_en = now()
+     WHERE producto_id = COALESCE(NEW.producto_id, OLD.producto_id);
+    RETURN COALESCE(NEW, OLD);
+END $$;
+
+DROP TRIGGER IF EXISTS trg_barras_touch_producto ON inv.producto_codigos_barras;
+CREATE TRIGGER trg_barras_touch_producto AFTER INSERT OR UPDATE OR DELETE
+    ON inv.producto_codigos_barras
+    FOR EACH ROW EXECUTE FUNCTION inv.fn_barras_touch_producto();
 DROP TRIGGER IF EXISTS trg_touch_cliente ON ven.clientes;
 CREATE TRIGGER trg_touch_cliente   BEFORE UPDATE ON ven.clientes
     FOR EACH ROW EXECUTE FUNCTION common_touch_updated_at();

@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Barcode,
   Ban,
+  Camera,
   CheckCircle2,
   Eraser,
   Gift,
@@ -46,6 +47,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
+import { ScannerCamara } from "@/components/ScannerCamara";
+import { camaraDisponible } from "@/lib/camara";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
@@ -168,6 +171,7 @@ export default function PosPage() {
   const [notas, setNotas] = useState("");
   const [confirmAbierto, setConfirmAbierto] = useState(false);
   const [cancelarAbierto, setCancelarAbierto] = useState(false);
+  const [scannerAbierto, setScannerAbierto] = useState(false);
   const [ventasDiaAbierto, setVentasDiaAbierto] = useState(false);
   const [ventaResultado, setVentaResultado] = useState<Venta | null>(null);
   const [ultimoEntregado, setUltimoEntregado] = useState<number | null>(null);
@@ -321,7 +325,8 @@ export default function PosPage() {
     window.setTimeout(() => buscadorRef.current?.focus(), 0);
   };
 
-  /** Si la búsqueda resuelve a un único producto cuyo código coincide exacto, lo añade al ticket. */
+  /** Si la búsqueda resuelve a un único producto que coincide exacto
+   * (por código interno o por código de barras escaneado), lo añade al ticket. */
   // Efecto intencional: reacciona a una respuesta de la API (sistema externo) y reinicia el input.
   // No se puede derivar: depende del resultado asíncrono de la búsqueda, no de otro estado del componente.
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -332,10 +337,13 @@ export default function PosPage() {
     if (ultimoAutoAddRef.current === limpio) return;
     if (resultados.data.data.length !== 1) return;
     const unico = resultados.data.data[0];
-    if (!coincideCodigoExacto(unico, limpio)) return;
+    const esCodigoInterno = coincideCodigoExacto(unico, limpio);
+    const esBarraEscaneada =
+      modoBarcode && (unico.codigosBarras ?? []).includes(limpio);
+    if (!esCodigoInterno && !esBarraEscaneada) return;
     ultimoAutoAddRef.current = limpio;
     agregar(unico, `Escaneado: ${unico.nombre}`);
-  }, [resultados.data, busqueda, mostrarExito, agregar]);
+  }, [resultados.data, busqueda, modoBarcode, mostrarExito, agregar]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const checkout = useMutation({
@@ -512,6 +520,27 @@ export default function PosPage() {
   useHotkey("F2", abrirConfirmacion, {
     enabled:
       !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
+  });
+
+  /** Cámara como lector: lo detectado entra al mismo flujo que el escáner USB. */
+  const abrirScanner = useCallback(() => {
+    if (!camaraDisponible()) {
+      mostrarError(
+        "La cámara requiere conexión segura (HTTPS). Funciona en localhost o con la PWA instalada.",
+      );
+      return;
+    }
+    setScannerAbierto(true);
+  }, [mostrarError]);
+
+  const alDetectarCodigo = useCallback((codigo: string) => {
+    setScannerAbierto(false);
+    setBusqueda(codigo);
+    window.setTimeout(() => buscadorRef.current?.focus(), 0);
+  }, []);
+
+  useHotkey("F4", abrirScanner, {
+    enabled: !ventaResultado && !confirmAbierto && !scannerAbierto,
   });
   // Ctrl+Enter confirma ventas: abrir dialog si no abierto, o confirmar si ya abierto via Button auto-wire (evita doble mutate)
   useHotkey("Ctrl+Enter", abrirConfirmacion, {
@@ -782,6 +811,15 @@ export default function PosPage() {
               >
                 <Search className="h-4 w-4" /> Buscar
               </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                hotkey="F4"
+                onClick={abrirScanner}
+                aria-label="Escanear con cámara"
+              >
+                <Camera className="h-4 w-4" /> Escanear
+              </Button>
               {modoBarcode && (
                 <span
                   className="inline-flex h-9 items-center gap-1 rounded-md border border-primary/40 bg-orange-100 px-2 text-xs font-medium text-primary"
@@ -793,6 +831,11 @@ export default function PosPage() {
             </div>
 
             {qEfectivo && resultados.isLoading && <Spinner />}
+            <ScannerCamara
+              abierto={scannerAbierto}
+              onDetectado={alDetectarCodigo}
+              onCerrar={() => setScannerAbierto(false)}
+            />
             {qEfectivo && resultados.data && (
               <div
                 className="mt-3 max-h-64 overflow-auto rounded-md border border-line"
