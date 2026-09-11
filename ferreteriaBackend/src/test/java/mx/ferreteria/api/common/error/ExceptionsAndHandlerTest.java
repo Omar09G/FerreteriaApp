@@ -13,9 +13,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import mx.ferreteria.api.common.i18n.ErrorCode;
 
@@ -145,6 +147,16 @@ class ExceptionsAndHandlerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(500);
         assertThat(response.getBody().get("codigo")).isEqualTo("ERROR_INTERNO");
         assertThat(response.getBody().get("errorMessage").toString()).doesNotContain("secreto-interno");
+    }
+
+    @Test
+    @DisplayName("handleNoHandler: ruta no definida -> 403 ACCESO_DENEGADO (no 500)")
+    void handleNoHandler_returnsForbidden() {
+        var response = handler.handleNoHandler(
+                new NoResourceFoundException(HttpMethod.GET, "/ruta-fantasma"), request);
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody().get("errorCode")).isEqualTo(403);
+        assertThat(response.getBody().get("codigo")).isEqualTo("ACCESO_DENEGADO");
     }
 
     @Test

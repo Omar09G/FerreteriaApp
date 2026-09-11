@@ -12,9 +12,11 @@ import mx.ferreteria.api.common.web.RateLimitInterceptor;
 import mx.ferreteria.api.common.web.RateLimitProperties;
 
 /**
- * Registro del interceptor de rate limit (PLAN M7) en rutas {@code /api/**}.
- * Vive en {@code common.config} (excluido del gate de cobertura JaCoCo).
- * Las dependencias se inyectan por constructor para evitar acoplamiento estatico.
+ * Registro del interceptor de rate limit (PLAN M7) en TODAS las rutas.
+ * Cubre /api/** y también las no definidas (/, /favicon.ico, actuator,
+ * swagger): esas usan la bolsa común "default:sin-handler:ip" para frenar
+ * scanners. Ver RateLimitInterceptor (los controllers reales mantienen su
+ * propio bucket y no se ven afectados).
  */
 @Configuration
 @RequiredArgsConstructor
@@ -27,6 +29,6 @@ public class RateLimitConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new RateLimitInterceptor(rateLimitProperties, messages, objectMapper))
-                .addPathPatterns("/api/**");
+                .addPathPatterns("/**");
     }
 }

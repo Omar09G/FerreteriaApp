@@ -20,6 +20,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -78,6 +80,20 @@ public class GlobalExceptionHandler {
         }
         body.put("details", details);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    /**
+     * Ruta no definida (p. ej. GET /): Spring lanza NoResourceFoundException
+     * (o NoHandlerFoundException según configuración). Antes caía en
+     * handleUnexpected → 500 ERROR_INTERNO + log ERROR con stack por cada
+     * probeo. Contrato: 403 ACCESO_DENEGADO + log WARN sin stack (causa cliente,
+     * no falla interna).
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<Map<String, Object>> handleNoHandler(Exception ex, HttpServletRequest req) {
+        log.warn("Ruta no definida path={} metodo={}", req.getRequestURI(), req.getMethod());
+        return ResponseEntity.status(ErrorCode.ACCESO_DENEGADO.http())
+                .body(errorBody(ErrorCode.ACCESO_DENEGADO, new Object[0], currentLocale(req), req));
     }
 
     @ExceptionHandler(Exception.class)

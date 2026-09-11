@@ -82,13 +82,21 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
-        if (!(handler instanceof HandlerMethod hm)) {
-            return true;
+        // Sin HandlerMethod (ruta no definida, estático, actuator, swagger):
+        // antes se dejaba pasar sin control y los probeos llegaban sin freno
+        // hasta el handler de errores. Ahora consumen del perfil "default" en
+        // una bolsa común por IP ("sin-handler"): frena scanners sin bloquear
+        // en cascada a los controllers reales (cada uno tiene su bucket).
+        String perfil;
+        String controllerId;
+        if (handler instanceof HandlerMethod hm) {
+            perfil = perfilDe(hm);
+            controllerId = controllerId(hm);
+        } else {
+            perfil = "default";
+            controllerId = "sin-handler";
         }
-
-        String perfil = perfilDe(hm);
         RateLimitProperties.Grupo grupo = props.grupo(perfil);
-        String controllerId = controllerId(hm);
         String usuarioOIp = claveDe(request);
         String clave = perfil + ":" + controllerId + ":" + usuarioOIp;
         Bucket bucket = buckets.get(clave, k -> nuevoBucket(grupo));

@@ -98,14 +98,21 @@ class RateLimitInterceptorTest {
     }
 
     @Test
-    @DisplayName("Handler != HandlerMethod (recurso estatico) pasa sin consumir")
-    void nonHandlerMethodPassesThrough() throws Exception {
-        var req = get("/api/v1/productos");
-        var res = new MockHttpServletResponse();
-        boolean allow = interceptor(propsDefault()).preHandle(req, res, new Object());
+    @DisplayName("Sin HandlerMethod (ruta no definida): consume bolsa default y agota en 429")
+    void nonHandlerMethodConsumesDefaultBucket() throws Exception {
+        RateLimitInterceptor itc = interceptor(propsDefault()); // default Grupo(2,1)
+        var res1 = new MockHttpServletResponse();
+        assertThat(itc.preHandle(get("/ruta-que-no-existe"), res1, new Object())).isTrue();
+        assertThat(res1.getHeader("X-RateLimit-Limit")).isEqualTo("2");
+        assertThat(res1.getHeader("X-RateLimit-Remaining")).isEqualTo("1");
 
-        assertThat(allow).isTrue();
-        assertThat(res.getHeader("X-RateLimit-Limit")).isNull();
+        var res2 = new MockHttpServletResponse();
+        assertThat(itc.preHandle(get("/ruta-que-no-existe"), res2, new Object())).isTrue();
+
+        var res3 = new MockHttpServletResponse();
+        assertThat(itc.preHandle(get("/ruta-que-no-existe"), res3, new Object())).isFalse();
+        assertThat(res3.getStatus()).isEqualTo(429);
+        assertThat(body(res3).get("codigo").asText()).isEqualTo("LIMITE_VELOCIDAD_EXCEDIDO");
     }
 
     @Test

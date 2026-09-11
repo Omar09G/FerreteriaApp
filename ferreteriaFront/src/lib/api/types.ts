@@ -340,6 +340,21 @@ export interface Producto {
   precioMayoreo: number | null;
   aplicaIva: boolean;
   stockActual?: number;
+  /**
+   * Códigos de barras del producto (tabla inv.producto_codigos_barras).
+   * Ausente hasta que el backend los incluya en la respuesta.
+   */
+  codigosBarras?: string[];
+  /**
+   * Factor del código escaneado (unidades por pitido) cuando el match de
+   * búsqueda fue por barras. Solo presente en ese caso.
+   */
+  factorEscaneo?: number | null;
+}
+
+export interface CodigoBarrasRequest {
+  codigo: string;
+  factor?: number | null;
 }
 
 export interface ProductoRequest {
@@ -354,6 +369,11 @@ export interface ProductoRequest {
   precioMenudeo?: number | null;
   precioMayoreo?: number | null;
   aplicaIva?: boolean;
+  /**
+   * Pendiente de backend (PLAN_CODIGO_BARRAS §4): el API aún no lo acepta
+   * (propiedad desconocida → 500). No incluir en el payload hasta entonces.
+   */
+  codigosBarras?: CodigoBarrasRequest[];
 }
 
 export interface Categoria {

@@ -45,6 +45,7 @@ import { formatoFechaHora, formatoMoneda, hoyLocal } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
@@ -61,6 +62,7 @@ import { getSilentEnabled, printViaSerial } from "@/lib/print/serial";
 interface Linea {
   productoId: number;
   codigo: string | null;
+  codigosBarras?: string[];
   nombre: string;
   cantidad: number;
   stockActual?: number;
@@ -72,6 +74,7 @@ function lineaDeProducto(p: Producto): Linea {
   return {
     productoId: p.productoId,
     codigo: p.codigo,
+    codigosBarras: p.codigosBarras,
     nombre: p.nombre,
     cantidad: 1,
     stockActual: p.stockActual,
@@ -815,6 +818,10 @@ export default function PosPage() {
                       <span className="text-xs text-muted">
                         {p.codigo ?? "—"} · {p.unidadMedidaClave} ·{" "}
                         {p.categoriaNombre}
+                        {p.factorEscaneo != null && p.factorEscaneo !== 1 && (
+                          <> · ×{p.factorEscaneo} por escaneo</>
+                        )}
+                        <CodigosBarras codigos={p.codigosBarras} />
                       </span>
                     </span>
                     <span className="shrink-0 text-sm font-semibold text-primary">
@@ -1269,6 +1276,7 @@ export default function PosPage() {
                                   {l.codigo}
                                 </span>
                               )}
+                              <CodigosBarras codigos={l.codigosBarras} max={1} />
                               {!l.aplicaIva && (
                                 <Badge tone="info" className="ml-2">
                                   Sin IVA
