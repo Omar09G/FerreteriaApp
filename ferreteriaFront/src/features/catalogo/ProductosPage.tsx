@@ -54,7 +54,7 @@ function campoNumero(valor: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function ProductoForm({
+export function ProductoForm({
   producto,
   categorias,
   marcas,
@@ -75,14 +75,52 @@ function ProductoForm({
   const [tipo, setTipo] = useState<string>(producto?.tipo ?? "PRODUCTO");
   const [nombre, setNombre] = useState(producto?.nombre ?? "");
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
-  const [categoriaId, setCategoriaId] = useState<number | "">(
-    producto?.categoriaId ?? "",
-  );
+  const [categoriaId, setCategoriaId] = useState<number | "">(() => {
+    if (producto?.categoriaId) return producto.categoriaId;
+
+    if (producto?.categoriaNombre) {
+      const termino = producto.categoriaNombre.toLowerCase();
+
+      const buscarCategoria = (lista: Categoria[]): Categoria | undefined => {
+        for (const cat of lista) {
+          if (cat.nombre.toLowerCase().includes(termino)) {
+            return cat;
+          }
+          if (cat.hijos && cat.hijos.length > 0) {
+            const encontradoEnHijos = buscarCategoria(cat.hijos);
+            if (encontradoEnHijos) return encontradoEnHijos;
+          }
+        }
+        return undefined;
+      };
+
+      const categoriaEncontrada = buscarCategoria(categorias);
+      if (categoriaEncontrada) return categoriaEncontrada.categoriaId;
+    }
+    return "";
+  });
   const [marcaId, setMarcaId] = useState<string>(
-    producto?.marcaId ? String(producto.marcaId) : "",
+    producto?.marcaId != null
+      ? String(producto.marcaId)
+      : marcas.find(
+            (m) =>
+              m.nombre.toLowerCase() === producto?.marcaNombre?.toLowerCase(),
+          )?.marcaId != null
+        ? String(
+            marcas.find(
+              (m) =>
+                m.nombre.toLowerCase() === producto?.marcaNombre?.toLowerCase(),
+            )!.marcaId,
+          )
+        : "",
   );
   const [unidadId, setUnidadId] = useState<number | "">(
-    producto?.unidadMedidaId ?? "",
+    producto?.unidadMedidaId ??
+      unidades.find(
+        (u) =>
+          u.clave.toLowerCase() === producto?.unidadMedidaClave?.toLowerCase(),
+      )?.unidadId ??
+      "",
   );
   const [costo, setCosto] = useState(
     producto ? String(producto.costoActual) : "",
@@ -117,7 +155,7 @@ function ProductoForm({
   const enviar = (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setIntento(true);
-    if (invalido) return;
+    if (invalido || barrasDuplicadas || factorInvalido) return;
     onGuardar({
       codigo: codigo.trim() || undefined,
       tipo: tipo as ProductoRequest["tipo"],
@@ -130,6 +168,12 @@ function ProductoForm({
       precioMenudeo: campoNumero(menudeo),
       precioMayoreo: campoNumero(mayoreo),
       aplicaIva,
+      codigosBarras: barras
+        .map((b) => ({
+          codigo: b.codigo.trim(),
+          factor: b.factor.trim() === "" ? null : Number(b.factor),
+        }))
+        .filter((b) => b.codigo !== ""),
     });
   };
 
@@ -375,6 +419,11 @@ function ProductoForm({
           Completa nombre, categoría y unidad de medida.
         </p>
       )}
+      {intento && !invalido && (barrasDuplicadas || factorInvalido) && (
+        <p className="text-xs text-red-600 sm:col-span-2">
+          Corrige los códigos de barras antes de guardar.
+        </p>
+      )}
       <div className="flex justify-end gap-2 sm:col-span-2">
         <Button type="button" variant="ghost" hotkey="Esc" onClick={onClose}>
           Cancelar
@@ -502,7 +551,7 @@ export default function ProductosPage() {
     },
     {
       key: "cb",
-      header: "Códigos",
+      header: "Cod de barras",
       render: (v) => (
         <CodigosBarras codigos={v.codigosBarras} variante="compacto" />
       ),
