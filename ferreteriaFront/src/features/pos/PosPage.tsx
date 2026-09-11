@@ -1029,7 +1029,7 @@ export default function PosPage() {
                             Ahorro estimado {ahorro} sobre {totalFmt}. En el
                             ticket verás el descuento al confirmar.
                           </p>
-                          <p className="mt-1 break-words text-xs opacity-80">
+                          <p className="mt-1 warp-break-words text-xs opacity-80">
                             {mejor.motivo}
                           </p>
                         </div>
@@ -1048,7 +1048,7 @@ export default function PosPage() {
                           Ninguna promoción aplica sobre {totalFmt}
                         </p>
                         {foco && (
-                          <p className="mt-0.5 break-words text-xs">
+                          <p className="mt-0.5 warp-break-words text-xs">
                             Ej. “{foco.nombre}” (#{foco.promocionId} {foco.tipo}
                             ): {foco.motivo}
                           </p>
@@ -1130,7 +1130,7 @@ export default function PosPage() {
                                 : ""}
                             </span>
                           </p>
-                          <p className="mt-1 break-words text-xs leading-relaxed text-muted">
+                          <p className="mt-1 warp-break-words text-xs leading-relaxed text-muted">
                             {p.motivo}{" "}
                             {p.beneficioEstimado > 0 && (
                               <span className="font-semibold text-ink">
@@ -1319,7 +1319,10 @@ export default function PosPage() {
                                   {l.codigo}
                                 </span>
                               )}
-                              <CodigosBarras codigos={l.codigosBarras} max={1} />
+                              <CodigosBarras
+                                codigos={l.codigosBarras}
+                                max={1}
+                              />
                               {!l.aplicaIva && (
                                 <Badge tone="info" className="ml-2">
                                   Sin IVA
@@ -1431,7 +1434,7 @@ export default function PosPage() {
                         <Info className="h-3.5 w-3.5" /> Sin promoción aplicable
                         — revisar condiciones
                       </p>
-                      <p className="mt-1 break-words font-mono text-[11px]">
+                      <p className="mt-1 warp-break-words font-mono text-[11px]">
                         {promoEval.data
                           .slice(0, 2)
                           .map(

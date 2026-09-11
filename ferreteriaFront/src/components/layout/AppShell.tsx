@@ -552,10 +552,10 @@ export function AppShell() {
       )}
 
       <main className="min-w-0 flex-1 px-4 pb-10 pt-16 lg:ml-60 lg:pt-3">
-        <div className="mx-auto mb-3 flex max-w-[1400px] items-center justify-end">
+        <div className="mx-auto mb-3 flex max-w-350 items-center justify-end">
           <Preferencias />
         </div>
-        <div className="mx-auto max-w-[1400px]">
+        <div className="mx-auto max-w-350">
           <Suspense fallback={spinners.full}>
             <Outlet />
           </Suspense>
