@@ -7,7 +7,7 @@ import { esApiError } from "@/lib/api/client";
 import { apiClientes } from "@/lib/api/catalogo";
 import { apiCuentasCobrar, apiPagoCliente } from "@/lib/api/venta";
 import type { CuentaCobrar, PagoClienteRequest } from "@/lib/api/types";
-import { FORMAS_PAGO } from "@/lib/api/types";
+import { ESTADO_COBRANZA, FORMAS_PAGO } from "@/lib/api/types";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
 import type { RangoFechas } from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
@@ -377,9 +377,11 @@ export default function CobranzaPage() {
             }}
             className="w-48"
           >
-            <option value="">Todos</option>
-            <option value="VIGENTE">Vigentes</option>
-            <option value="PARCIAL">Parciales</option>
+            {ESTADO_COBRANZA.map((e) => (
+              <option key={e.clave} value={e.clave}>
+                {e.nombre}
+              </option>
+            ))}
           </Select>
           <Select
             label="Cliente"

@@ -1467,3 +1467,14 @@ export interface CatalogoDescriptor {
 }
 
 export type FilaCatalogo = Record<string, unknown> & { __pk: string | number };
+
+export const ESTADO_COBRANZA: {
+  clave: string;
+  nombre: string;
+}[] = [
+  { clave: "", nombre: "Todos" },
+  { clave: "VIGENTE", nombre: "Vigente" },
+  { clave: "PARCIAL", nombre: "Parcial" },
+  { clave: "LIQUIDADA", nombre: "Liquidada" },
+  { clave: "CANCELADO", nombre: "Cancelado" },
+];

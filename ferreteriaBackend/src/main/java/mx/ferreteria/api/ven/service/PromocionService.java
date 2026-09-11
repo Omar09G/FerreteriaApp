@@ -19,8 +19,10 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,6 +101,11 @@ public class PromocionService {
         if (hasta != null) {
             spec = spec.and((root, q, cb) -> cb.lessThanOrEqualTo(root.get("vigenciaDesde"), hasta));
         }
+        // Pageable order by en todos los casos por fecha desde desc
+        pageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "vigenciaDesde"));
 
         Page<Promocion> page = repo.findAll(spec, pageable);
         if (page.isEmpty() || page.getContent().size() == 1) {
@@ -306,7 +313,8 @@ public class PromocionService {
     @Transactional(readOnly = true)
     public List<PromocionEvaluacionResponse> evaluar(PromocionEvaluarRequest req) {
         List<Promocion> todas = repo.findAll();
-        if (todas.isEmpty()) return List.of();
+        if (todas.isEmpty())
+            return List.of();
 
         // Batch de relaciones
         List<Long> pids = todas.stream().map(Promocion::getPromocionId).toList();
@@ -372,7 +380,8 @@ public class PromocionService {
                 LocalTime hasta = p.getHoraHasta() != null ? p.getHoraHasta() : LocalTime.of(23, 59, 59);
                 boolean enHora = !horaActual.isBefore(desde) && !horaActual.isAfter(hasta);
                 if (!enHora) {
-                    fallos.add("Fuera de horario (" + desde + "–" + hasta + ", ahora " + horaActual.withSecond(0).withNano(0) + ")");
+                    fallos.add("Fuera de horario (" + desde + "–" + hasta + ", ahora "
+                            + horaActual.withSecond(0).withNano(0) + ")");
                     aplica = false;
                 }
             }
@@ -395,23 +404,29 @@ public class PromocionService {
                 }
             }
             if (p.getCompraMinTotal() != null && total.compareTo(p.getCompraMinTotal()) < 0) {
-                fallos.add("Compra mínima $" + p.getCompraMinTotal() + " no alcanzada (actual $" + total.setScale(2, RoundingMode.HALF_UP) + ")");
+                fallos.add("Compra mínima $" + p.getCompraMinTotal() + " no alcanzada (actual $"
+                        + total.setScale(2, RoundingMode.HALF_UP) + ")");
                 aplica = false;
             }
             if (p.getCompraMinCantidad() != null && totalCantidad.compareTo(p.getCompraMinCantidad()) < 0) {
-                fallos.add("Cantidad mínima " + p.getCompraMinCantidad() + " no alcanzada (actual " + totalCantidad.stripTrailingZeros().toPlainString() + ")");
+                fallos.add("Cantidad mínima " + p.getCompraMinCantidad() + " no alcanzada (actual "
+                        + totalCantidad.stripTrailingZeros().toPlainString() + ")");
                 aplica = false;
             }
-            // Filtro producto/categoría: si listas vacías, considerar que aplica a todo solo para DESCUENTO_TOTAL_VENTA
+            // Filtro producto/categoría: si listas vacías, considerar que aplica a todo
+            // solo para DESCUENTO_TOTAL_VENTA
             boolean requiereProducto = !prods.isEmpty() || !cats.isEmpty();
             boolean hayMatch = false;
             if (!requiereProducto) {
-                // Vacío = aplica a todos solo si es total venta; para tipos de producto consideramos que falta configuración
+                // Vacío = aplica a todos solo si es total venta; para tipos de producto
+                // consideramos que falta configuración
                 if ("DESCUENTO_TOTAL_VENTA".equals(p.getTipo())) {
                     hayMatch = true;
                 } else {
-                    // Para tipos de producto sin productos/categorías, no puede aplicar (no hay matching explícito)
-                    // No marcamos fallo duro, pero el beneficio será 0 si no hay líneas que califiquen
+                    // Para tipos de producto sin productos/categorías, no puede aplicar (no hay
+                    // matching explícito)
+                    // No marcamos fallo duro, pero el beneficio será 0 si no hay líneas que
+                    // califiquen
                     hayMatch = !req.items().isEmpty();
                 }
             } else {
@@ -424,7 +439,8 @@ public class PromocionService {
                     }
                 }
                 if (!hayMatch) {
-                    fallos.add("Ningún producto/categoría del ticket coincide (requiere prod " + prods + " o cat " + cats + ")");
+                    fallos.add("Ningún producto/categoría del ticket coincide (requiere prod " + prods + " o cat "
+                            + cats + ")");
                     aplica = false;
                 }
             }
@@ -455,13 +471,13 @@ public class PromocionService {
                     p.getVigenciaDesde(), p.getVigenciaHasta(),
                     p.getDiasSemana(), p.getHoraDesde(), p.getHoraHasta(),
                     p.getSoloMayoristas(),
-                    prods, cats
-            ));
+                    prods, cats));
         }
         // Orden: las que aplican primero, luego por beneficio desc
         out.sort((a, b) -> {
             int cmp = Boolean.compare(b.aplica(), a.aplica());
-            if (cmp != 0) return cmp;
+            if (cmp != 0)
+                return cmp;
             return b.beneficioEstimado().compareTo(a.beneficioEstimado());
         });
         return out;
@@ -469,20 +485,24 @@ public class PromocionService {
 
     private long contarUsosCliente(Long promocionId, Long clienteId) {
         try {
-            Object res = em.createNativeQuery("SELECT COUNT(*) FROM ven.promocion_usos WHERE promocion_id = :pid AND cliente_id = :cid")
+            Object res = em
+                    .createNativeQuery(
+                            "SELECT COUNT(*) FROM ven.promocion_usos WHERE promocion_id = :pid AND cliente_id = :cid")
                     .setParameter("pid", promocionId)
                     .setParameter("cid", clienteId)
                     .getSingleResult();
-            if (res instanceof Number n) return n.longValue();
+            if (res instanceof Number n)
+                return n.longValue();
             return 0;
         } catch (Exception e) {
             return 0;
         }
     }
 
-    private BigDecimal calcularBeneficio(Promocion p, List<mx.ferreteria.api.ven.dto.VenDtos.PromocionEvaluarItem> items,
-                                         Map<Long, Integer> catPorProd, BigDecimal total, BigDecimal totalCant,
-                                         List<Long> prods, List<Integer> cats) {
+    private BigDecimal calcularBeneficio(Promocion p,
+            List<mx.ferreteria.api.ven.dto.VenDtos.PromocionEvaluarItem> items,
+            Map<Long, Integer> catPorProd, BigDecimal total, BigDecimal totalCant,
+            List<Long> prods, List<Integer> cats) {
         return switch (p.getTipo()) {
             case "DESCUENTO_TOTAL_VENTA" -> {
                 BigDecimal base = total;
@@ -505,25 +525,31 @@ public class PromocionService {
                 BigDecimal sum = BigDecimal.ZERO;
                 for (var it : items) {
                     boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
-                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty()))
+                        continue;
                     BigDecimal lineaTotal = it.precioUnitario().multiply(it.cantidad());
                     BigDecimal b = p.getValorPct() != null
-                            ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                            ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2,
+                                    RoundingMode.HALF_UP)
                             : (p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO);
                     sum = sum.add(b);
                 }
                 yield sum;
             }
             case "POR_CANTIDAD" -> {
-                boolean cumpleCant = p.getCompraMinCantidad() == null || totalCant.compareTo(p.getCompraMinCantidad()) >= 0;
-                if (!cumpleCant) yield BigDecimal.ZERO;
+                boolean cumpleCant = p.getCompraMinCantidad() == null
+                        || totalCant.compareTo(p.getCompraMinCantidad()) >= 0;
+                if (!cumpleCant)
+                    yield BigDecimal.ZERO;
                 BigDecimal sum = BigDecimal.ZERO;
                 for (var it : items) {
                     boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
-                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty()))
+                        continue;
                     BigDecimal lineaTotal = it.precioUnitario().multiply(it.cantidad());
                     BigDecimal b = p.getValorPct() != null
-                            ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+                            ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2,
+                                    RoundingMode.HALF_UP)
                             : (p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO);
                     sum = sum.add(b);
                 }
@@ -534,9 +560,11 @@ public class PromocionService {
                 BigDecimal precioEsp = p.getPrecioEspecial() != null ? p.getPrecioEspecial() : BigDecimal.ZERO;
                 for (var it : items) {
                     boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
-                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty()))
+                        continue;
                     BigDecimal ahorroUnit = it.precioUnitario().subtract(precioEsp);
-                    if (ahorroUnit.compareTo(BigDecimal.ZERO) < 0) ahorroUnit = BigDecimal.ZERO;
+                    if (ahorroUnit.compareTo(BigDecimal.ZERO) < 0)
+                        ahorroUnit = BigDecimal.ZERO;
                     sum = sum.add(ahorroUnit.multiply(it.cantidad()));
                 }
                 yield sum;
@@ -545,12 +573,15 @@ public class PromocionService {
                 BigDecimal sum = BigDecimal.ZERO;
                 BigDecimal lleva = p.getLleva();
                 BigDecimal paga = p.getPaga();
-                if (lleva == null || paga == null || lleva.compareTo(BigDecimal.ZERO) <= 0) yield BigDecimal.ZERO;
+                if (lleva == null || paga == null || lleva.compareTo(BigDecimal.ZERO) <= 0)
+                    yield BigDecimal.ZERO;
                 for (var it : items) {
                     boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
-                    if (!match && (!prods.isEmpty() || !cats.isEmpty())) continue;
+                    if (!match && (!prods.isEmpty() || !cats.isEmpty()))
+                        continue;
                     long veces = it.cantidad().divide(lleva, 0, RoundingMode.FLOOR).longValue();
-                    if (veces <= 0) continue;
+                    if (veces <= 0)
+                        continue;
                     BigDecimal gratis = lleva.subtract(paga);
                     sum = sum.add(gratis.multiply(BigDecimal.valueOf(veces)).multiply(it.precioUnitario()));
                 }
