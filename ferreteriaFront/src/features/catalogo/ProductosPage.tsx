@@ -6,13 +6,13 @@ import { PackagePlus, Pencil, Search, Trash2 } from "lucide-react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
 import {
-	apiActualizarProducto,
-	apiCategoriasArbol,
-	apiCrearProducto,
-	apiEliminarProducto,
-	apiMarcas,
-	apiProductos,
-	apiUnidadesMedida,
+  apiActualizarProducto,
+  apiCategoriasArbol,
+  apiCrearProducto,
+  apiEliminarProducto,
+  apiMarcas,
+  apiProductos,
+  apiUnidadesMedida,
 } from "@/lib/api/catalogo";
 import type { Categoria, Producto, ProductoRequest } from "@/lib/api/types";
 import { TIPOS_PRODUCTO } from "@/lib/api/types";
@@ -30,616 +30,658 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 
 function TipoBadge({ tipo }: { tipo: string }) {
-	if (tipo === "HERRAMIENTA_RENTA") return <Badge tone="warning">Renta</Badge>;
-	if (tipo === "SERVICIO") return <Badge tone="info">Servicio</Badge>;
-	return <Badge>Producto</Badge>;
+  if (tipo === "HERRAMIENTA_RENTA") return <Badge tone="warning">Renta</Badge>;
+  if (tipo === "SERVICIO") return <Badge tone="info">Servicio</Badge>;
+  return <Badge>Producto</Badge>;
 }
 
 function aplanarCategorias(
-	cats: Categoria[],
-	prefijo = "",
+  cats: Categoria[],
+  prefijo = "",
 ): { id: number; label: string }[] {
-	return cats.flatMap((c) => [
-		{ id: c.categoriaId, label: `${prefijo}${c.nombre}` },
-		...(c.hijos?.length
-			? aplanarCategorias(c.hijos, `${prefijo}${c.nombre} · `)
-			: []),
-	]);
+  return cats.flatMap((c) => [
+    { id: c.categoriaId, label: `${prefijo}${c.nombre}` },
+    ...(c.hijos?.length
+      ? aplanarCategorias(c.hijos, `${prefijo}${c.nombre} · `)
+      : []),
+  ]);
 }
 
 function campoNumero(valor: string): number | null {
-	const limpio = valor.trim();
-	if (!limpio) return null;
-	const n = Number(limpio);
-	return Number.isFinite(n) ? n : null;
+  const limpio = valor.trim();
+  if (!limpio) return null;
+  const n = Number(limpio);
+  return Number.isFinite(n) ? n : null;
 }
 
 function ProductoForm({
-	producto,
-	categorias,
-	marcas,
-	unidades,
-	guardando,
-	onGuardar,
-	onClose,
+  producto,
+  categorias,
+  marcas,
+  unidades,
+  guardando,
+  onGuardar,
+  onClose,
 }: {
-	producto: Producto | null;
-	categorias: Categoria[];
-	marcas: { marcaId: number; nombre: string }[];
-	unidades: { unidadId: number; clave: string; nombre: string }[];
-	guardando: boolean;
-	onGuardar: (payload: ProductoRequest) => void;
-	onClose: () => void;
+  producto: Producto | null;
+  categorias: Categoria[];
+  marcas: { marcaId: number; nombre: string }[];
+  unidades: { unidadId: number; clave: string; nombre: string }[];
+  guardando: boolean;
+  onGuardar: (payload: ProductoRequest) => void;
+  onClose: () => void;
 }) {
-	const [codigo, setCodigo] = useState(producto?.codigo ?? "");
-	const [tipo, setTipo] = useState<string>(producto?.tipo ?? "PRODUCTO");
-	const [nombre, setNombre] = useState(producto?.nombre ?? "");
-	const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
-	const [categoriaId, setCategoriaId] = useState<number | "">(
-		producto?.categoriaId ?? "",
-	);
-	const [marcaId, setMarcaId] = useState<string>(
-		producto?.marcaId ? String(producto.marcaId) : "",
-	);
-	const [unidadId, setUnidadId] = useState<number | "">(
-		producto?.unidadMedidaId ?? "",
-	);
-	const [costo, setCosto] = useState(
-		producto ? String(producto.costoActual) : "",
-	);
-	const [menudeo, setMenudeo] = useState(
-		producto ? String(producto.precioMenudeo) : "",
-	);
-	const [mayoreo, setMayoreo] = useState(
-		producto?.precioMayoreo != null ? String(producto.precioMayoreo) : "",
-	);
-	const [aplicaIva, setAplicaIva] = useState(producto?.aplicaIva ?? true);
-	const [intento, setIntento] = useState(false);
-	// Códigos de barras (inv.producto_codigos_barras). Estado local listo;
-	// aún NO se envía: el backend lo rechaza como propiedad desconocida
-	// (500). Se activará con PLAN_CODIGO_BARRAS §4.
-	const [barras, setBarras] = useState<{ codigo: string; factor: string }[]>(
-		() => (producto?.codigosBarras ?? []).map((c) => ({ codigo: c, factor: "1" })),
-	);
+  const [codigo, setCodigo] = useState(producto?.codigo ?? "");
+  const [tipo, setTipo] = useState<string>(producto?.tipo ?? "PRODUCTO");
+  const [nombre, setNombre] = useState(producto?.nombre ?? "");
+  const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
+  const [categoriaId, setCategoriaId] = useState<number | "">(
+    producto?.categoriaId ?? "",
+  );
+  const [marcaId, setMarcaId] = useState<string>(
+    producto?.marcaId ? String(producto.marcaId) : "",
+  );
+  const [unidadId, setUnidadId] = useState<number | "">(
+    producto?.unidadMedidaId ?? "",
+  );
+  const [costo, setCosto] = useState(
+    producto ? String(producto.costoActual) : "",
+  );
+  const [menudeo, setMenudeo] = useState(
+    producto ? String(producto.precioMenudeo) : "",
+  );
+  const [mayoreo, setMayoreo] = useState(
+    producto?.precioMayoreo != null ? String(producto.precioMayoreo) : "",
+  );
+  const [aplicaIva, setAplicaIva] = useState(producto?.aplicaIva ?? true);
+  const [intento, setIntento] = useState(false);
+  // Códigos de barras (inv.producto_codigos_barras). Estado local listo;
+  // aún NO se envía: el backend lo rechaza como propiedad desconocida
+  // (500). Se activará con PLAN_CODIGO_BARRAS §4.
+  const [barras, setBarras] = useState<{ codigo: string; factor: string }[]>(
+    () =>
+      (producto?.codigosBarras ?? []).map((c) => ({ codigo: c, factor: "1" })),
+  );
 
-	const invalido =
-		nombre.trim() === "" || categoriaId === "" || unidadId === "";
+  const invalido =
+    nombre.trim() === "" || categoriaId === "" || unidadId === "";
 
-	const codigosLimpios = barras.map((b) => b.codigo.trim()).filter(Boolean);
-	const barrasDuplicadas =
-		new Set(codigosLimpios.map((c) => c.toLowerCase())).size !==
-		codigosLimpios.length;
-	const factorInvalido = barras.some(
-		(b) => b.factor.trim() !== "" && !(Number(b.factor) > 0),
-	);
+  const codigosLimpios = barras.map((b) => b.codigo.trim()).filter(Boolean);
+  const barrasDuplicadas =
+    new Set(codigosLimpios.map((c) => c.toLowerCase())).size !==
+    codigosLimpios.length;
+  const factorInvalido = barras.some(
+    (b) => b.factor.trim() !== "" && !(Number(b.factor) > 0),
+  );
 
-	const enviar = (e: { preventDefault: () => void }) => {
-		e.preventDefault();
-		setIntento(true);
-		if (invalido) return;
-		onGuardar({
-			codigo: codigo.trim() || undefined,
-			tipo: tipo as ProductoRequest["tipo"],
-			nombre: nombre.trim(),
-			descripcion: descripcion.trim() || undefined,
-			categoriaId: Number(categoriaId),
-			marcaId: marcaId ? Number(marcaId) : null,
-			unidadMedidaId: Number(unidadId),
-			costoActual: campoNumero(costo),
-			precioMenudeo: campoNumero(menudeo),
-			precioMayoreo: campoNumero(mayoreo),
-			aplicaIva,
-		});
-	};
+  const enviar = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    setIntento(true);
+    if (invalido) return;
+    onGuardar({
+      codigo: codigo.trim() || undefined,
+      tipo: tipo as ProductoRequest["tipo"],
+      nombre: nombre.trim(),
+      descripcion: descripcion.trim() || undefined,
+      categoriaId: Number(categoriaId),
+      marcaId: marcaId ? Number(marcaId) : null,
+      unidadMedidaId: Number(unidadId),
+      costoActual: campoNumero(costo),
+      precioMenudeo: campoNumero(menudeo),
+      precioMayoreo: campoNumero(mayoreo),
+      aplicaIva,
+    });
+  };
 
-	return (
-		<form
-			onSubmit={enviar}
-			className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-			noValidate
-		>
-			<div className="sm:col-span-2">
-				<Input
-					label="Nombre"
-					required
-					value={nombre}
-					onChange={(e) => setNombre(e.target.value)}
-					placeholder="Ej. Taladro percutor 1/2 650W"
-				/>
-			</div>
-			<Input
-				label="Código"
-				value={codigo}
-				onChange={(e) => setCodigo(e.target.value)}
-				placeholder="Ej. TAL-005"
-				hint="Opcional; si lo omites se asigna automáticamente"
-			/>
-			<Select
-				label="Tipo"
-				required
-				value={tipo}
-				onChange={(e) => setTipo(e.target.value)}
-			>
-				{TIPOS_PRODUCTO.map((t) => (
-					<option key={t} value={t}>
-						{t === "PRODUCTO"
-							? "Producto"
-							: t === "SERVICIO"
-								? "Servicio"
-								: "Herramienta en renta"}
-					</option>
-				))}
-			</Select>
-			<Select
-				label="Categoría"
-				required
-				value={categoriaId}
-				onChange={(e) =>
-					setCategoriaId(e.target.value ? Number(e.target.value) : "")
-				}
-			>
-				<option value="">Selecciona…</option>
-				{aplanarCategorias(categorias).map((c) => (
-					<option key={c.id} value={c.id}>
-						{c.label}
-					</option>
-				))}
-			</Select>
-			<Select
-				label="Marca"
-				value={marcaId}
-				onChange={(e) => setMarcaId(e.target.value)}
-			>
-				<option value="">— Sin marca —</option>
-				{marcas.map((m) => (
-					<option key={m.marcaId} value={m.marcaId}>
-						{m.nombre}
-					</option>
-				))}
-			</Select>
-			<Select
-				label="Unidad de medida"
-				required
-				value={unidadId}
-				onChange={(e) =>
-					setUnidadId(e.target.value ? Number(e.target.value) : "")
-				}
-			>
-				<option value="">Selecciona…</option>
-				{unidades.map((u) => (
-					<option key={u.unidadId} value={u.unidadId}>
-						{u.nombre} ({u.clave})
-					</option>
-				))}
-			</Select>
-			<div className="sm:col-span-2">
-				<Input
-					label="Descripción"
-					value={descripcion}
-					onChange={(e) => setDescripcion(e.target.value)}
-				/>
-			</div>
-			<div className="rounded-md border border-line p-3 sm:col-span-2">
-				<div className="mb-2 flex items-center justify-between">
-					<span className="text-sm font-medium text-ink">
-						Códigos de barras
-					</span>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						onClick={() =>
-							setBarras((prev) => [...prev, { codigo: "", factor: "1" }])
-						}
-					>
-						Agregar
-					</Button>
-				</div>
-				{barras.length === 0 && (
-					<p className="text-xs text-muted">
-						Sin códigos. Agrega el EAN/UPC de la etiqueta del producto.
-					</p>
-				)}
-				{barras.map((b, i) => (
-					<div
-						key={i}
-						className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_96px_auto] sm:items-end"
-					>
-						<Input
-							label={i === 0 ? "Código" : undefined}
-							value={b.codigo}
-							onChange={(e) =>
-								setBarras((prev) =>
-									prev.map((x, j) =>
-										j === i ? { ...x, codigo: e.target.value } : x,
-									),
-								)
-							}
-							placeholder="Ej. 7501234567001"
-							inputMode="numeric"
-							className="w-full"
-						/>
-						<Input
-							label={i === 0 ? "Factor" : undefined}
-							type="number"
-							inputMode="decimal"
-							step="0.001"
-							min="0"
-							value={b.factor}
-							onChange={(e) =>
-								setBarras((prev) =>
-									prev.map((x, j) =>
-										j === i ? { ...x, factor: e.target.value } : x,
-									),
-								)
-							}
-							hint={i === 0 ? "Uds. por escaneo" : undefined}
-							className="w-full"
-						/>
-						<button
-							type="button"
-							aria-label={`Quitar código ${i + 1}`}
-							className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 justify-self-start sm:justify-self-auto"
-							onClick={() =>
-								setBarras((prev) => prev.filter((_, j) => j !== i))
-							}
-						>
-							<Trash2 className="h-4 w-4" />
-						</button>
-					</div>
-				))}
-				{(barrasDuplicadas || factorInvalido) && (
-					<p className="text-xs text-red-600">
-						Revisa códigos duplicados o factores inválidos (deben ser &gt; 0).
-					</p>
-				)}
-				<p className="mt-1 text-xs text-muted">
-					Pendiente de backend: se guardarán cuando el API lo soporte
-					(PLAN_CODIGO_BARRAS §4).
-				</p>
-			</div>
-			<Input
-				label="Costo actual"
-				type="number"
-				inputMode="decimal"
-				step="0.01"
-				min="0"
-				value={costo}
-				onChange={(e) => setCosto(e.target.value)}
-			/>
-			<Input
-				label="Precio menudeo"
-				type="number"
-				inputMode="decimal"
-				step="0.01"
-				min="0"
-				value={menudeo}
-				onChange={(e) => setMenudeo(e.target.value)}
-			/>
-			<Input
-				label="Precio mayoreo"
-				type="number"
-				inputMode="decimal"
-				step="0.01"
-				min="0"
-				value={mayoreo}
-				onChange={(e) => setMayoreo(e.target.value)}
-			/>
-			<label className="flex items-center gap-2 text-sm pt-2">
-				<input
-					type="checkbox"
-					checked={aplicaIva}
-					onChange={(e) => setAplicaIva(e.target.checked)}
-					className="h-4 w-4 accent-primary"
-				/>
-				<span className="font-medium text-ink">Aplica IVA</span>
-			</label>
-			{intento && invalido && (
-				<p className="text-xs text-red-600 sm:col-span-2">
-					Completa nombre, categoría y unidad de medida.
-				</p>
-			)}
-			<div className="flex justify-end gap-2 sm:col-span-2">
-				<Button type="button" variant="ghost" hotkey="Esc" onClick={onClose}>
-					Cancelar
-				</Button>
-				<Button type="submit" hotkey="Ctrl+Enter" disabled={guardando}>
-					{guardando ? "Guardando…" : "Guardar"}
-				</Button>
-			</div>
-		</form>
-	);
+  return (
+    <form
+      onSubmit={enviar}
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      noValidate
+    >
+      <div className="sm:col-span-2">
+        <Input
+          label="Nombre"
+          required
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Ej. Taladro percutor 1/2 650W"
+        />
+      </div>
+      <Input
+        label="Código"
+        value={codigo}
+        onChange={(e) => setCodigo(e.target.value)}
+        placeholder="Ej. TAL-005"
+        hint="Opcional; si lo omites se asigna automáticamente"
+      />
+      <Select
+        label="Tipo"
+        required
+        value={tipo}
+        onChange={(e) => setTipo(e.target.value)}
+      >
+        {TIPOS_PRODUCTO.map((t) => (
+          <option key={t} value={t}>
+            {t === "PRODUCTO"
+              ? "Producto"
+              : t === "SERVICIO"
+                ? "Servicio"
+                : "Herramienta en renta"}
+          </option>
+        ))}
+      </Select>
+      <Select
+        label="Categoría"
+        required
+        value={categoriaId}
+        onChange={(e) =>
+          setCategoriaId(e.target.value ? Number(e.target.value) : "")
+        }
+      >
+        <option value="">Selecciona…</option>
+        {aplanarCategorias(categorias).map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.label}
+          </option>
+        ))}
+      </Select>
+      <Select
+        label="Marca"
+        value={marcaId}
+        onChange={(e) => setMarcaId(e.target.value)}
+      >
+        <option value="">— Sin marca —</option>
+        {marcas.map((m) => (
+          <option key={m.marcaId} value={m.marcaId}>
+            {m.nombre}
+          </option>
+        ))}
+      </Select>
+      <Select
+        label="Unidad de medida"
+        required
+        value={unidadId}
+        onChange={(e) =>
+          setUnidadId(e.target.value ? Number(e.target.value) : "")
+        }
+      >
+        <option value="">Selecciona…</option>
+        {unidades.map((u) => (
+          <option key={u.unidadId} value={u.unidadId}>
+            {u.nombre} ({u.clave})
+          </option>
+        ))}
+      </Select>
+      <div className="sm:col-span-2">
+        <Input
+          label="Descripción"
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+        />
+      </div>
+      <div className="rounded-md border border-line p-3 sm:col-span-2">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-medium text-ink">
+            Códigos de barras
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setBarras((prev) => [...prev, { codigo: "", factor: "1" }])
+            }
+          >
+            Agregar
+          </Button>
+        </div>
+        {barras.length === 0 && (
+          <p className="text-xs text-muted">
+            Sin códigos. Agrega el EAN/UPC de la etiqueta del producto.
+          </p>
+        )}
+        {barras.map((b, i) => (
+          <div
+            key={i}
+            className="group relative grid grid-cols-1 gap-3 border-b border-muted/20 pb-4 last:border-0 last:pb-0 sm:grid-cols-[1fr_120px_auto] sm:items-end sm:gap-4 sm:border-0 sm:pb-0"
+          >
+            {/* Campo: Código */}
+            <div className="w-full">
+              {/* Vinculado mediante htmlFor */}
+              <label
+                htmlFor={`codigo-${i}`}
+                className={`mb-1.5 text-xs font-medium text-muted-foreground sm:block ${i === 0 ? "block" : "block sm:hidden"}`}
+              >
+                Código
+              </label>
+              <Input
+                id={`codigo-${i}`} // ID único asociado
+                value={b.codigo}
+                onChange={(e) =>
+                  setBarras((prev) =>
+                    prev.map((x, j) =>
+                      j === i ? { ...x, codigo: e.target.value } : x,
+                    ),
+                  )
+                }
+                placeholder="Ej. 7501234567001"
+                inputMode="numeric"
+                className="w-full"
+              />
+            </div>
+
+            {/* Campo: Factor */}
+            <div className="w-full">
+              <div
+                className={`mb-1.5 flex items-center justify-between sm:block ${i === 0 ? "flex" : "flex sm:hidden"}`}
+              >
+                <label
+                  htmlFor={`factor-${i}`} // Vinculado mediante htmlFor
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Factor
+                </label>
+                <span className="text-[10px] text-muted-foreground/70 sm:hidden">
+                  Uds. por escaneo
+                </span>
+              </div>
+              <Input
+                id={`factor-${i}`} // ID único asociado
+                type="number"
+                inputMode="decimal"
+                step="0.001"
+                min="0"
+                value={b.factor}
+                onChange={(e) =>
+                  setBarras((prev) =>
+                    prev.map((x, j) =>
+                      j === i ? { ...x, factor: e.target.value } : x,
+                    ),
+                  )
+                }
+                className="w-full"
+              />
+              {/* Hint/Subtexto exclusivo para pantallas grandes en la primera fila */}
+              {i === 0 && (
+                <span className="absolute -bottom-5 left-[calc(100%-120px-auto)] hidden text-[11px] text-muted-foreground sm:block">
+                  Uds. por escaneo
+                </span>
+              )}
+            </div>
+
+            {/* Botón de Eliminar */}
+            <div className="flex items-center justify-end sm:h-10 sm:justify-start">
+              <button
+                type="button"
+                aria-label={`Quitar código ${i + 1}`}
+                className="inline-flex items-center gap-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive max-sm:w-full max-sm:justify-center max-sm:border max-sm:border-input"
+                onClick={() =>
+                  setBarras((prev) => prev.filter((_, j) => j !== i))
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="text-sm font-medium sm:hidden">
+                  Eliminar código
+                </span>
+              </button>
+            </div>
+          </div>
+        ))}
+        {(barrasDuplicadas || factorInvalido) && (
+          <p className="text-xs text-red-600">
+            Revisa códigos duplicados o factores inválidos (deben ser &gt; 0).
+          </p>
+        )}
+      </div>
+      <Input
+        label="Costo actual"
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        min="0"
+        value={costo}
+        onChange={(e) => setCosto(e.target.value)}
+      />
+      <Input
+        label="Precio menudeo"
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        min="0"
+        value={menudeo}
+        onChange={(e) => setMenudeo(e.target.value)}
+      />
+      <Input
+        label="Precio mayoreo"
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        min="0"
+        value={mayoreo}
+        onChange={(e) => setMayoreo(e.target.value)}
+      />
+      <label className="flex items-center gap-2 text-sm pt-2">
+        <input
+          type="checkbox"
+          checked={aplicaIva}
+          onChange={(e) => setAplicaIva(e.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        <span className="font-medium text-ink">Aplica IVA</span>
+      </label>
+      {intento && invalido && (
+        <p className="text-xs text-red-600 sm:col-span-2">
+          Completa nombre, categoría y unidad de medida.
+        </p>
+      )}
+      <div className="flex justify-end gap-2 sm:col-span-2">
+        <Button type="button" variant="ghost" hotkey="Esc" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button type="submit" hotkey="Ctrl+Enter" disabled={guardando}>
+          {guardando ? "Guardando…" : "Guardar"}
+        </Button>
+      </div>
+    </form>
+  );
 }
 
 export default function ProductosPage() {
-	useDocumentTitle("Productos");
-	const { error: mostrarError, success: mostrarExito } = useToast();
-	const queryClient = useQueryClient();
+  useDocumentTitle("Productos");
+  const { error: mostrarError, success: mostrarExito } = useToast();
+  const queryClient = useQueryClient();
 
-	const [busqueda, setBusqueda] = useState("");
-	const [filtroQ, setFiltroQ] = useState("");
-	const [filtroTipo, setFiltroTipo] = useState("");
-	const [page, setPage] = useState(0);
-	const [dialogoAbierto, setDialogoAbierto] = useState(false);
-	const [editando, setEditando] = useState<Producto | null>(null);
-	const [eliminarConfirmacion, setEliminarConfirmacion] =
-		useState<Producto | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroQ, setFiltroQ] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("");
+  const [page, setPage] = useState(0);
+  const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [editando, setEditando] = useState<Producto | null>(null);
+  const [eliminarConfirmacion, setEliminarConfirmacion] =
+    useState<Producto | null>(null);
 
-	const aplicarBusqueda = () => {
-		setFiltroTipo("");
-		setFiltroQ(busqueda.trim());
-		setPage(0);
-	};
-	const aplicarTipo = (tipo: string) => {
-		setBusqueda("");
-		setFiltroQ("");
-		setFiltroTipo(tipo);
-		setPage(0);
-	};
+  const aplicarBusqueda = () => {
+    setFiltroTipo("");
+    setFiltroQ(busqueda.trim());
+    setPage(0);
+  };
+  const aplicarTipo = (tipo: string) => {
+    setBusqueda("");
+    setFiltroQ("");
+    setFiltroTipo(tipo);
+    setPage(0);
+  };
 
-	const busquedaRef = useRef<HTMLInputElement>(null);
-	const abrirNuevo = useCallback(() => {
-		setEditando(null);
-		setDialogoAbierto(true);
-	}, []);
-	const buscarCb = useCallback(() => {
-		setFiltroTipo("");
-		setFiltroQ(busqueda.trim());
-		setPage(0);
-	}, [busqueda]);
+  const busquedaRef = useRef<HTMLInputElement>(null);
+  const abrirNuevo = useCallback(() => {
+    setEditando(null);
+    setDialogoAbierto(true);
+  }, []);
+  const buscarCb = useCallback(() => {
+    setFiltroTipo("");
+    setFiltroQ(busqueda.trim());
+    setPage(0);
+  }, [busqueda]);
 
-	useHotkey("F4", abrirNuevo, { enabled: !dialogoAbierto && !eliminarConfirmacion });
-	useHotkey("F3", buscarCb, { enabled: !dialogoAbierto && !eliminarConfirmacion });
+  useHotkey("F4", abrirNuevo, {
+    enabled: !dialogoAbierto && !eliminarConfirmacion,
+  });
+  useHotkey("F3", buscarCb, {
+    enabled: !dialogoAbierto && !eliminarConfirmacion,
+  });
 
-	const { data, isLoading, error, isFetching } = useQuery({
-		queryKey: ["productos", filtroQ, filtroTipo, page],
-		queryFn: () =>
-			apiProductos({
-				q: filtroQ || undefined,
-				tipo: filtroTipo || undefined,
-				page,
-				size: 20,
-			}),
-	});
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ["productos", filtroQ, filtroTipo, page],
+    queryFn: () =>
+      apiProductos({
+        q: filtroQ || undefined,
+        tipo: filtroTipo || undefined,
+        page,
+        size: 20,
+      }),
+  });
 
-	const categorias = useQuery({
-		queryKey: ["categorias-arbol"],
-		queryFn: apiCategoriasArbol,
-	});
-	const marcas = useQuery({ queryKey: ["marcas"], queryFn: apiMarcas });
-	const unidades = useQuery({
-		queryKey: ["unidades-medida"],
-		queryFn: apiUnidadesMedida,
-	});
+  const categorias = useQuery({
+    queryKey: ["categorias-arbol"],
+    queryFn: apiCategoriasArbol,
+  });
+  const marcas = useQuery({ queryKey: ["marcas"], queryFn: apiMarcas });
+  const unidades = useQuery({
+    queryKey: ["unidades-medida"],
+    queryFn: apiUnidadesMedida,
+  });
 
-	useEffect(() => {
-		if (error)
-			mostrarError(
-				esApiError(error) ? error.mensajeParaUsuario() : String(error),
-			);
-	}, [error, mostrarError]);
+  useEffect(() => {
+    if (error)
+      mostrarError(
+        esApiError(error) ? error.mensajeParaUsuario() : String(error),
+      );
+  }, [error, mostrarError]);
 
-	const invalidar = () =>
-		queryClient.invalidateQueries({ queryKey: ["productos"] });
+  const invalidar = () =>
+    queryClient.invalidateQueries({ queryKey: ["productos"] });
 
-	const mutation = useMutation({
-		mutationFn: (payload: { id: number | null; body: ProductoRequest }) =>
-			payload.id == null
-				? apiCrearProducto(payload.body)
-				: apiActualizarProducto(payload.id, payload.body),
-		onSuccess: (_, vars) => {
-			mostrarExito(
-				vars.id == null ? "Producto creado." : "Producto actualizado.",
-			);
-			setDialogoAbierto(false);
-			setEditando(null);
-			invalidar();
-		},
-		onError: (err) => {
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err));
-		},
-	});
+  const mutation = useMutation({
+    mutationFn: (payload: { id: number | null; body: ProductoRequest }) =>
+      payload.id == null
+        ? apiCrearProducto(payload.body)
+        : apiActualizarProducto(payload.id, payload.body),
+    onSuccess: (_, vars) => {
+      mostrarExito(
+        vars.id == null ? "Producto creado." : "Producto actualizado.",
+      );
+      setDialogoAbierto(false);
+      setEditando(null);
+      invalidar();
+    },
+    onError: (err) => {
+      mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err));
+    },
+  });
 
-	const eliminar = useMutation({
-		mutationFn: (id: number) => apiEliminarProducto(id),
-		onSuccess: () => {
-			mostrarExito("Producto desactivado.");
-			setEliminarConfirmacion(null);
-			invalidar();
-		},
-		onError: (err) => {
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err));
-		},
-	});
+  const eliminar = useMutation({
+    mutationFn: (id: number) => apiEliminarProducto(id),
+    onSuccess: () => {
+      mostrarExito("Producto desactivado.");
+      setEliminarConfirmacion(null);
+      invalidar();
+    },
+    onError: (err) => {
+      mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err));
+    },
+  });
 
-	const columnas: Columna<Producto>[] = [
-		{
-			key: "c",
-			header: "Código",
-			render: (v) => (
-				<span className="font-mono text-xs text-muted">{v.codigo ?? "—"}</span>
-			),
-		},
-		{
-			key: "cb",
-			header: "Códigos",
-			render: (v) => <CodigosBarras codigos={v.codigosBarras} variante="compacto" />,
-		},
-		{
-			key: "n",
-			header: "Nombre",
-			render: (v) => <span className="font-medium text-ink">{v.nombre}</span>,
-		},
-		{ key: "t", header: "Tipo", render: (v) => <TipoBadge tipo={v.tipo} /> },
-		{ key: "cat", header: "Categoría", render: (v) => v.categoriaNombre },
-		{ key: "m", header: "Marca", render: (v) => v.marcaNombre ?? "—" },
-		{ key: "u", header: "U.M.", render: (v) => v.unidadMedidaClave },
-		{
-			key: "costo",
-			header: "Costo",
-			align: "right",
-			render: (v) => formatoMoneda(v.costoActual),
-		},
-		{
-			key: "precio",
-			header: "Menudeo",
-			align: "right",
-			render: (v) => formatoMoneda(v.precioMenudeo),
-		},
-		{
-			key: "acc",
-			header: "Acciones",
-			align: "right",
-			render: (v) => (
-				<div className="flex justify-end gap-1">
-					<button
-						type="button"
-						aria-label={`Editar ${v.nombre}`}
-						className="rounded p-1.5 text-muted hover:bg-primary-50 hover:text-primary"
-						onClick={() => {
-							setEditando(v);
-							setDialogoAbierto(true);
-						}}
-					>
-						<Pencil className="h-4 w-4" />
-					</button>
-					<button
-						type="button"
-						aria-label={`Desactivar ${v.nombre}`}
-						className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
-						onClick={() => setEliminarConfirmacion(v)}
-					>
-						<Trash2 className="h-4 w-4" />
-					</button>
-				</div>
-			),
-		},
-	];
+  const columnas: Columna<Producto>[] = [
+    {
+      key: "c",
+      header: "Código",
+      render: (v) => (
+        <span className="font-mono text-xs text-muted">{v.codigo ?? "—"}</span>
+      ),
+    },
+    {
+      key: "cb",
+      header: "Códigos",
+      render: (v) => (
+        <CodigosBarras codigos={v.codigosBarras} variante="compacto" />
+      ),
+    },
+    {
+      key: "n",
+      header: "Nombre",
+      render: (v) => <span className="font-medium text-ink">{v.nombre}</span>,
+    },
+    { key: "t", header: "Tipo", render: (v) => <TipoBadge tipo={v.tipo} /> },
+    { key: "cat", header: "Categoría", render: (v) => v.categoriaNombre },
+    { key: "m", header: "Marca", render: (v) => v.marcaNombre ?? "—" },
+    { key: "u", header: "U.M.", render: (v) => v.unidadMedidaClave },
+    {
+      key: "costo",
+      header: "Costo",
+      align: "right",
+      render: (v) => formatoMoneda(v.costoActual),
+    },
+    {
+      key: "precio",
+      header: "Menudeo",
+      align: "right",
+      render: (v) => formatoMoneda(v.precioMenudeo),
+    },
+    {
+      key: "acc",
+      header: "Acciones",
+      align: "right",
+      render: (v) => (
+        <div className="flex justify-end gap-1">
+          <button
+            type="button"
+            aria-label={`Editar ${v.nombre}`}
+            className="rounded p-1.5 text-muted hover:bg-primary-50 hover:text-primary"
+            onClick={() => {
+              setEditando(v);
+              setDialogoAbierto(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Desactivar ${v.nombre}`}
+            className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
+            onClick={() => setEliminarConfirmacion(v)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
-	const guardar = (payload: ProductoRequest) => {
-		mutation.mutate({ id: editando?.productoId ?? null, body: payload });
-	};
+  const guardar = (payload: ProductoRequest) => {
+    mutation.mutate({ id: editando?.productoId ?? null, body: payload });
+  };
 
-	return (
-		<div className="space-y-4">
-			<header className="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<h1 className="text-xl font-bold text-ink">Productos</h1>
-					<p className="text-sm text-muted">
-						Catálogo de artículos en venta, servicios y herramientas en renta.
-					</p>
-				</div>
-				<Button
-					hotkey="F4"
-					onClick={() => {
-						setEditando(null);
-						setDialogoAbierto(true);
-					}}
-				>
-					<PackagePlus className="h-4 w-4" /> Nuevo producto
-				</Button>
-			</header>
+  return (
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Productos</h1>
+          <p className="text-sm text-muted">
+            Catálogo de artículos en venta, servicios y herramientas en renta.
+          </p>
+        </div>
+        <Button
+          hotkey="F4"
+          onClick={() => {
+            setEditando(null);
+            setDialogoAbierto(true);
+          }}
+        >
+          <PackagePlus className="h-4 w-4" /> Nuevo producto
+        </Button>
+      </header>
 
-			<Card>
-				<div className="flex flex-wrap items-end gap-2">
-					<Input
-						label="Buscar"
-						hotkey="F3"
-						value={busqueda}
-						ref={busquedaRef}
-						onChange={(e) => setBusqueda(e.target.value)}
-						onKeyDown={(e) => e.key === "Enter" && aplicarBusqueda()}
-						placeholder="Nombre del producto"
-						className="w-64"
-					/>
-					<Button
-						hotkey="F3"
-						onClick={aplicarBusqueda}
-						disabled={isFetching || busqueda === filtroQ}
-					>
-						<Search className="h-4 w-4" /> Buscar
-					</Button>
-					<Select
-						label="Tipo"
-						value={filtroTipo}
-						onChange={(e) => aplicarTipo(e.target.value)}
-						className="w-44"
-					>
-						<option value="">Todos</option>
-						<option value="PRODUCTO">Producto</option>
-						<option value="SERVICIO">Servicio</option>
-						<option value="HERRAMIENTA_RENTA">Herramienta en renta</option>
-					</Select>
-					{(filtroQ || filtroTipo) && (
-						<Button
-							variant="ghost"
-							onClick={() => {
-								setBusqueda("");
-								setFiltroQ("");
-								setFiltroTipo("");
-								setPage(0);
-							}}
-						>
-							Limpiar
-						</Button>
-					)}
-				</div>
-			</Card>
+      <Card>
+        <div className="flex flex-wrap items-end gap-2">
+          <Input
+            label="Buscar"
+            hotkey="F3"
+            value={busqueda}
+            ref={busquedaRef}
+            onChange={(e) => setBusqueda(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && aplicarBusqueda()}
+            placeholder="Nombre del producto"
+            className="w-64"
+          />
+          <Button
+            hotkey="F3"
+            onClick={aplicarBusqueda}
+            disabled={isFetching || busqueda === filtroQ}
+          >
+            <Search className="h-4 w-4" /> Buscar
+          </Button>
+          <Select
+            label="Tipo"
+            value={filtroTipo}
+            onChange={(e) => aplicarTipo(e.target.value)}
+            className="w-44"
+          >
+            <option value="">Todos</option>
+            <option value="PRODUCTO">Producto</option>
+            <option value="SERVICIO">Servicio</option>
+            <option value="HERRAMIENTA_RENTA">Herramienta en renta</option>
+          </Select>
+          {(filtroQ || filtroTipo) && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setBusqueda("");
+                setFiltroQ("");
+                setFiltroTipo("");
+                setPage(0);
+              }}
+            >
+              Limpiar
+            </Button>
+          )}
+        </div>
+      </Card>
 
-			{(isLoading || (isFetching && !data)) && <Spinner />}
-			{data && (
-				<Card titulo={`Resultados (${data.meta.totalElements})`}>
-					<DataTable
-						columnas={columnas}
-						items={data.data}
-						rowKey={(v) => v.productoId}
-						loading={isFetching}
-					/>
-					<Pagination meta={data.meta} onPage={setPage} />
-				</Card>
-			)}
+      {(isLoading || (isFetching && !data)) && <Spinner />}
+      {data && (
+        <Card titulo={`Resultados (${data.meta.totalElements})`}>
+          <DataTable
+            columnas={columnas}
+            items={data.data}
+            rowKey={(v) => v.productoId}
+            loading={isFetching}
+          />
+          <Pagination meta={data.meta} onPage={setPage} />
+        </Card>
+      )}
 
-			<Dialog
-				open={dialogoAbierto}
-				onClose={() => !mutation.isPending && setDialogoAbierto(false)}
-				title={editando ? `Editar: ${editando.nombre}` : "Nuevo producto"}
-				width="max-w-2xl"
-			>
-				{categorias.isLoading || marcas.isLoading || unidades.isLoading ? (
-					<Spinner />
-				) : (
-					<ProductoForm
-						producto={editando}
-						categorias={categorias.data ?? []}
-						marcas={marcas.data ?? []}
-						unidades={unidades.data ?? []}
-						guardando={mutation.isPending}
-						onGuardar={guardar}
-						onClose={() => setDialogoAbierto(false)}
-					/>
-				)}
-			</Dialog>
+      <Dialog
+        open={dialogoAbierto}
+        onClose={() => !mutation.isPending && setDialogoAbierto(false)}
+        title={editando ? `Editar: ${editando.nombre}` : "Nuevo producto"}
+        width="max-w-2xl"
+      >
+        {categorias.isLoading || marcas.isLoading || unidades.isLoading ? (
+          <Spinner />
+        ) : (
+          <ProductoForm
+            producto={editando}
+            categorias={categorias.data ?? []}
+            marcas={marcas.data ?? []}
+            unidades={unidades.data ?? []}
+            guardando={mutation.isPending}
+            onGuardar={guardar}
+            onClose={() => setDialogoAbierto(false)}
+          />
+        )}
+      </Dialog>
 
-			<ConfirmDialog
-				open={eliminarConfirmacion !== null}
-				title="Confirmar desactivación"
-				confirmLabel="Sí, desactivar"
-				busy={eliminar.isPending}
-				onCancel={() => setEliminarConfirmacion(null)}
-				onConfirm={() =>
-					eliminarConfirmacion &&
-					eliminar.mutate(eliminarConfirmacion.productoId)
-				}
-			>
-				<p className="text-sm text-ink">
-					¿Desactivar el producto{" "}
-					<span className="font-semibold">
-						&quot;{eliminarConfirmacion?.nombre}&quot;
-					</span>
-					? Dejará de estar disponible en la venta, pero se conserva su
-					historial.
-				</p>
-			</ConfirmDialog>
-		</div>
-	);
+      <ConfirmDialog
+        open={eliminarConfirmacion !== null}
+        title="Confirmar desactivación"
+        confirmLabel="Sí, desactivar"
+        busy={eliminar.isPending}
+        onCancel={() => setEliminarConfirmacion(null)}
+        onConfirm={() =>
+          eliminarConfirmacion &&
+          eliminar.mutate(eliminarConfirmacion.productoId)
+        }
+      >
+        <p className="text-sm text-ink">
+          ¿Desactivar el producto{" "}
+          <span className="font-semibold">
+            &quot;{eliminarConfirmacion?.nombre}&quot;
+          </span>
+          ? Dejará de estar disponible en la venta, pero se conserva su
+          historial.
+        </p>
+      </ConfirmDialog>
+    </div>
+  );
 }
