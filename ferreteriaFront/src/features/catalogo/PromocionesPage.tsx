@@ -97,12 +97,21 @@ function aplanarCategorias(arbol: Categoria[]): Categoria[] {
   return out;
 }
 
-/** Convierte "yyyy-MM-ddTHH:mm" del input datetime-local a ISO con timezone. */
+/** Convierte "yyyy-MM-ddTHH:mm" del input datetime-local (hora local) a ISO UTC para el backend (Instant). */
 function datetimeLocalAiso(s: string | undefined | null): string | undefined {
   if (!s) return undefined;
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return undefined;
   return d.toISOString();
+}
+
+/** Convierte ISO UTC del backend (2026-09-01T22:50:00Z) a valor local para input datetime-local (yyyy-MM-ddTHH:mm). Homologa la hora mostrada en CARD (formatoFechaHora) con la del input. */
+function isoAInputLocal(iso: string | undefined | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function vacioARequest(): PromocionRequest {
@@ -176,10 +185,10 @@ function PromocionForm({
     return vacioARequest();
   });
   const [vigenciaDesdeStr, setVigenciaDesdeStr] = useState<string>(
-    () => (inicial?.vigenciaDesde ?? body.vigenciaDesde)?.slice(0, 16) ?? "",
+    () => isoAInputLocal(inicial?.vigenciaDesde ?? body.vigenciaDesde),
   );
   const [vigenciaHastaStr, setVigenciaHastaStr] = useState<string>(
-    () => (inicial?.vigenciaHasta ?? body.vigenciaHasta)?.slice(0, 16) ?? "",
+    () => isoAInputLocal(inicial?.vigenciaHasta ?? body.vigenciaHasta),
   );
   const [intento, setIntento] = useState(false);
 
@@ -255,8 +264,7 @@ function PromocionForm({
   const quitarProducto = (id: number) =>
     setBody((b) => ({ ...b, productos: b.productos.filter((x) => x !== id) }));
 
-  const quitarTodosProductos = () =>
-    setBody((b) => ({ ...b, productos: [] }));
+  const quitarTodosProductos = () => setBody((b) => ({ ...b, productos: [] }));
 
   const invalido = body.nombre.trim() === "" || body.diasSemana.length === 0;
 
@@ -605,7 +613,9 @@ function PromocionForm({
                 <span className="text-xs font-medium text-muted">
                   Disponibles
                 </span>
-                {productos.data?.data.filter((p) => !body.productos.includes(p.productoId)).length ? (
+                {productos.data?.data.filter(
+                  (p) => !body.productos.includes(p.productoId),
+                ).length ? (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -630,7 +640,8 @@ function PromocionForm({
                     onClick={() => agregarProducto(p.productoId)}
                     className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-primary-50"
                   >
-                    <span className="font-mono text-muted">{p.codigo}</span><CodigosBarras codigos={p.codigosBarras} max={1} /> ·{" "}
+                    <span className="font-mono text-muted">{p.codigo}</span>
+                    <CodigosBarras codigos={p.codigosBarras} max={1} /> ·{" "}
                     {p.nombre}
                   </button>
                 ))}
@@ -663,8 +674,9 @@ function PromocionForm({
                   onClick={() => quitarProducto(p.productoId)}
                   className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-red-50"
                 >
-<span className="font-mono text-muted">{p.codigo}</span><CodigosBarras codigos={p.codigosBarras} max={1} /> ·{" "}
-                    {p.nombre}
+                  <span className="font-mono text-muted">{p.codigo}</span>
+                  <CodigosBarras codigos={p.codigosBarras} max={1} /> ·{" "}
+                  {p.nombre}
                   <span className="ml-2 text-red-600">
                     {t("catalogo.promociones.campos.quitar")}
                   </span>
