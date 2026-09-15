@@ -1,10 +1,12 @@
 package mx.ferreteria.api.inv.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -49,8 +51,8 @@ public class ConteoFisicoService {
     private final ProductoRepository productoRepo;
     private final SegAdminGateway usuarios;
 
-    private static final java.time.Instant DESDE_MIN = java.time.Instant.parse("1970-01-01T00:00:00Z");
-    private static final java.time.Instant HASTA_MAX = java.time.Instant.parse("2999-12-31T00:00:00Z");
+    private static final Instant DESDE_MIN = Instant.parse("1970-01-01T00:00:00Z");
+    private static final Instant HASTA_MAX = Instant.parse("2999-12-31T00:00:00Z");
 
     @Transactional(readOnly = true)
     public Page<ConteoFisicoResponse> list(Integer almacenId, String estado, Long productoId,
@@ -58,8 +60,8 @@ public class ConteoFisicoService {
         if (desde != null && hasta != null && hasta.isBefore(desde)) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
         }
-        java.time.Instant desdeI = inicioDelDia(desde);
-        java.time.Instant hastaI = inicioDelDiaSiguiente(hasta);
+        Instant desdeI = inicioDelDia(desde);
+        Instant hastaI = inicioDelDiaSiguiente(hasta);
         Page<ConteoFisico> page = (productoId != null)
                 ? repo.filtrarPorProducto(
                         normalizarAlmacen(almacenId), normalizarEstado(estado), productoId,
@@ -123,7 +125,7 @@ public class ConteoFisicoService {
         return toResponse(savedConteo, cargarContexto(List.of(savedConteo)));
     }
 
-    // ── Carga batch (evita N+1 en listados) ──────────────────────────
+    // ── Carga batch (evita N+1 en listados) ──────────────────—───────
 
     private record Contexto(
             Map<Long, List<ConteoFisicoDetalle>> detallesPorConteo,
@@ -190,7 +192,7 @@ public class ConteoFisicoService {
                 .toList();
         BigDecimal diferenciaTotal = detalleResponses.stream()
                 .map(ConteoFisicoDetalleResponse::diferencia)
-                .filter(d -> d != null)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new ConteoFisicoResponse(
                 c.getConteoId(),
@@ -214,11 +216,11 @@ public class ConteoFisicoService {
         return (estado == null || estado.isBlank()) ? null : estado.trim().toUpperCase();
     }
 
-    private java.time.Instant inicioDelDia(LocalDate fecha) {
+    private Instant inicioDelDia(LocalDate fecha) {
         return fecha == null ? DESDE_MIN : fecha.atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
-    private java.time.Instant inicioDelDiaSiguiente(LocalDate fecha) {
+    private Instant inicioDelDiaSiguiente(LocalDate fecha) {
         return fecha == null ? HASTA_MAX : fecha.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 }
