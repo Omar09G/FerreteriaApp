@@ -90,10 +90,13 @@ public final class InvDtos {
     ) {}
     public record ConteoFisicoResponse(
         Long conteoId, Integer almacenId, String almacenNombre,
-        String estado, Integer usuarioId, String observaciones
+        Instant fecha, String estado,
+        Integer usuarioId, String usuarioNombre, String observaciones,
+        Integer totalPartidas, BigDecimal diferenciaTotal,
+        List<ConteoFisicoDetalleResponse> detalles
     ) {}
     public record ConteoFisicoDetalleResponse(
-        Long productoId, String productoNombre,
+        Long productoId, String productoCodigo, String productoNombre,
         BigDecimal cantidadSistema, BigDecimal cantidadFisica,
         BigDecimal diferencia
     ) {}

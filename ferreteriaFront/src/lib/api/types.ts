@@ -1155,13 +1155,27 @@ export interface TrasladoRequest {
   detalles: { productoId: number; cantidad: number }[];
 }
 
+export interface ConteoFisicoDetalle {
+  productoId: number;
+  productoCodigo: string | null;
+  productoNombre: string | null;
+  cantidadSistema: number;
+  cantidadFisica: number;
+  diferencia: number;
+}
+
 export interface ConteoFisico {
   conteoId: number;
   almacenId: number;
-  almacenNombre: string;
+  almacenNombre: string | null;
+  fecha: string | null;
   estado: string;
   usuarioId: number;
+  usuarioNombre: string | null;
   observaciones: string | null;
+  totalPartidas: number;
+  diferenciaTotal: number;
+  detalles: ConteoFisicoDetalle[];
 }
 
 export interface ConteoFisicoRequest {

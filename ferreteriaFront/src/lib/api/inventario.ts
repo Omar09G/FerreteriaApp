@@ -34,14 +34,28 @@ export async function apiCrearTraslado(
 }
 
 export async function apiConteos(p: {
-	page: number;
-	size: number;
+  almacenId?: number;
+  estado?: string;
+  productoId?: number;
+  fechaInicio?: string;
+  fechaFin?: string;
+  page: number;
+  size: number;
 }): Promise<PageEnvelope<ConteoFisico>> {
-	const { data } = await http.get<PageEnvelope<ConteoFisico>>(
-		"/conteos-fisicos",
-		{ params: { page: p.page, size: p.size } },
-	);
-	return data;
+  const params: Record<string, string | number> = {
+    page: p.page,
+    size: p.size,
+  };
+  if (p.almacenId) params.almacenId = p.almacenId;
+  if (p.estado) params.estado = p.estado;
+  if (p.productoId) params.productoId = p.productoId;
+  if (p.fechaInicio) params.fechaInicio = p.fechaInicio;
+  if (p.fechaFin) params.fechaFin = p.fechaFin;
+  const { data } = await http.get<PageEnvelope<ConteoFisico>>(
+    "/conteos-fisicos",
+    { params },
+  );
+  return data;
 }
 
 export async function apiCrearConteo(

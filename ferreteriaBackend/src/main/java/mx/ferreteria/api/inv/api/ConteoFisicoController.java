@@ -1,6 +1,9 @@
 package mx.ferreteria.api.inv.api;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,9 +36,15 @@ public class ConteoFisicoController {
     @GetMapping
     public Page<ConteoFisicoResponse> list(
             @RequestParam(name = "almacenId", required = false) Integer almacenId,
+            @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "productoId", required = false) Long productoId,
+            @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false) Integer size) {
-        return service.list(almacenId, PageQuery.of(page, size, null).toPageable());
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort) {
+        return service.list(almacenId, estado, productoId, fechaInicio, fechaFin,
+                PageQuery.of(page, size, sort).toPageable());
     }
 
     @GetMapping("/{id}")

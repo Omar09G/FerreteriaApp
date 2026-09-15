@@ -9,4 +9,6 @@ import mx.ferreteria.api.inv.entity.ConteoFisicoDetalleId;
 
 public interface ConteoFisicoDetalleRepository extends JpaRepository<ConteoFisicoDetalle, ConteoFisicoDetalleId> {
     List<ConteoFisicoDetalle> findByConteoId(Long conteoId);
+
+    List<ConteoFisicoDetalle> findByConteoIdIn(List<Long> conteoIds);
 }

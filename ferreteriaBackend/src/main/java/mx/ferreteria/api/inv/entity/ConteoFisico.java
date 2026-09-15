@@ -3,6 +3,8 @@ package mx.ferreteria.api.inv.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "conteos_fisicos", schema = "inv")
 @Getter
@@ -18,6 +20,10 @@ public class ConteoFisico {
 
     @Column(nullable = false)
     private Integer almacenId;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Instant fecha = Instant.now();
 
     @Column(nullable = false, length = 12)
     @Builder.Default
