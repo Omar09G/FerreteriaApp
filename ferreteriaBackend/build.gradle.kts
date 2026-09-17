@@ -131,6 +131,32 @@ tasks.register("generateMigrations") {
 
 tasks.processResources { dependsOn("generateMigrations") }
 
+// ---------------------------------------------------------------------------
+// bootRun local: carga .env del proyecto (dev) sin pasos manuales.
+// - Solo si existe el archivo; el entorno real siempre gana.
+// - No afecta a test/build ni a la imagen Docker (que usa env del deploy).
+// ---------------------------------------------------------------------------
+tasks.named<JavaExec>("bootRun") {
+    val dotenv = projectDir.resolve(".env")
+    if (dotenv.exists()) {
+        dotenv.forEachLine { raw ->
+            var line = raw.trim()
+            if (line.isEmpty() || line.startsWith("#")) return@forEachLine
+            if (line.startsWith("export ")) line = line.removePrefix("export ").trim()
+            val eq = line.indexOf('=')
+            if (eq <= 0) return@forEachLine
+            val key = line.substring(0, eq).trim()
+            var value = line.substring(eq + 1).trim()
+            // comentario trailing " #..." (con espacio previo) + comillas externas
+            value = value.replace(Regex("\\s+#.*$"), "").trim()
+                .removeSurrounding("\"").removeSurrounding("'")
+            if (key.isNotEmpty() && System.getenv(key) == null) {
+                environment(key, value)
+            }
+        }
+    }
+}
+
 jacoco { toolVersion = "0.8.12" }
 
 // DTOs/config/bootstrap quedan fuera del cálculo de cobertura

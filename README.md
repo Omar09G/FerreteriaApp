@@ -30,7 +30,7 @@ cd ferreteriaDB/deploy && cp .env.example .env && podman compose up -d
 
 # 2) Backend (aplica migraciones al arrancar)
 cd ../../ferreteriaBackend
-export PG_HOST=localhost PG_PORT=6432 PG_USER=ferreteria_app PG_PASSWORD=<ver deploy/.env>
+set -a; source .env; set +a # Spring no lee .env solo: hay que exportarlo (incluye JWT_SECRET, obligatorio sin default)
 ./gradlew bootRun
 
 # 3) Frontend
