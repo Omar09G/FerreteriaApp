@@ -46,6 +46,7 @@ public class SegAdminController {
     private final SegAdminService service;
 
     @GetMapping("/usuarios")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<UsuarioResponse> listUsuarios(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -54,22 +55,26 @@ public class SegAdminController {
     }
 
     @GetMapping("/usuarios/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public UsuarioResponse getUsuario(@PathVariable int id) {
         return service.getUsuario(id);
     }
 
     @PostMapping("/usuarios")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public UsuarioResponse createUsuario(@Valid @RequestBody UsuarioCreateRequest req) {
         return service.createUsuario(req);
     }
 
     @PatchMapping("/usuarios/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public UsuarioResponse updateUsuario(@PathVariable int id,
             @Valid @RequestBody UsuarioUpdateRequest req) {
         return service.updateUsuario(id, req);
     }
 
     @PatchMapping("/usuarios/{id}/password")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public UsuarioResponse resetPassword(@PathVariable int id,
             @Valid @RequestBody UsuarioPasswordRequest req) {
         service.resetPassword(id, req);
@@ -77,18 +82,21 @@ public class SegAdminController {
     }
 
     @PutMapping("/usuarios/{id}/roles")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public UsuarioResponse setRoles(@PathVariable int id,
             @Valid @RequestBody UsuarioRolesRequest req) {
         return service.setRoles(id, req);
     }
 
     @DeleteMapping("/usuarios/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public OperacionOk deleteUsuario(@PathVariable int id) {
         service.deleteUsuario(id);
         return new OperacionOk(true);
     }
 
     @GetMapping("/roles")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<RolResponse> listRoles(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -97,39 +105,46 @@ public class SegAdminController {
     }
 
     @GetMapping("/roles/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public RolResponse getRol(@PathVariable int id) {
         return service.getRol(id);
     }
 
     @PostMapping("/roles")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RolResponse createRol(@Valid @RequestBody RolRequest req) {
         return service.createRol(req);
     }
 
     @PatchMapping("/roles/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RolResponse updateRol(@PathVariable int id,
             @Valid @RequestBody RolUpdateRequest req) {
         return service.updateRol(id, req);
     }
 
     @DeleteMapping("/roles/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public OperacionOk deleteRol(@PathVariable int id) {
         service.deleteRol(id);
         return new OperacionOk(true);
     }
 
     @GetMapping("/roles/{id}/permisos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public java.util.List<String> getPermisos(@PathVariable int id) {
         return service.getPermisosDe(id);
     }
 
     @PutMapping("/roles/{id}/permisos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public java.util.List<String> setPermisos(@PathVariable int id,
             @Valid @RequestBody PermisosRequest req) {
         return service.setPermisos(id, req);
     }
 
     @GetMapping("/permisos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<PermisoResponse> listPermisos(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -139,22 +154,26 @@ public class SegAdminController {
     }
 
     @GetMapping("/permisos/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public PermisoResponse getPermiso(@PathVariable int id) {
         return service.getPermiso(id);
     }
 
     @PostMapping("/permisos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public PermisoResponse createPermiso(@Valid @RequestBody PermisoRequest req) {
         return service.createPermiso(req);
     }
 
     @PutMapping("/permisos/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public PermisoResponse updatePermiso(@PathVariable int id,
             @Valid @RequestBody PermisoRequest req) {
         return service.updatePermiso(id, req);
     }
 
     @DeleteMapping("/permisos/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public OperacionOk deletePermiso(@PathVariable int id) {
         service.deletePermiso(id);
         return new OperacionOk(true);

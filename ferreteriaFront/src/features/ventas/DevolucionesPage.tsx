@@ -173,7 +173,7 @@ function DevolucionForm({
 										Number(e.target.value),
 									)
 								}
-								disabled={!d.marcada}
+								disabled
 								className="w-24 rounded border border-line px-1 py-0.5 text-right text-sm disabled:bg-warmbg"
 								aria-label={`Precio unitario de ${d.productoNombre}`}
 							/>

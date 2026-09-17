@@ -38,6 +38,7 @@ public class EmpleadoController {
     private final EmpleadoService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<EmpleadoResponse> list(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -46,22 +47,26 @@ public class EmpleadoController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public EmpleadoResponse get(@PathVariable int id) {
         return service.get(id);
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public EmpleadoResponse create(@Valid @RequestBody EmpleadoCreateRequest req) {
         return service.create(req);
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public EmpleadoResponse update(@PathVariable int id,
             @Valid @RequestBody EmpleadoUpdateRequest req) {
         return service.update(id, req);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public EmpleadoOk baja(@PathVariable int id) {
         service.baja(id);
         return new EmpleadoOk(true);

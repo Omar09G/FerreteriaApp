@@ -25,6 +25,7 @@ public class FacturaController {
     private final FacturaFisService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<FisDtos.FacturaFisResponse> list(
             @RequestParam(name = "tipo", required = false) String tipo,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant desde,
@@ -36,17 +37,20 @@ public class FacturaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public FisDtos.FacturaFisResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
     @GetMapping("/{id}/xml")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public FisDtos.FacturaXmlResponse getXml(@PathVariable Long id) {
         return service.getXml(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public FisDtos.FacturaFisResponse create(@Valid @RequestBody FisDtos.FacturaFisRequest req) {
         return service.create(req);
     }

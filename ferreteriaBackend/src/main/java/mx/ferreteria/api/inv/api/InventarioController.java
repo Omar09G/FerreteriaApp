@@ -3,6 +3,7 @@ package mx.ferreteria.api.inv.api;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,7 @@ public class InventarioController {
     private final InventarioService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<InventarioResponse> list(
             @RequestParam(name = "almacenId", required = false) Integer almacenId,
             @RequestParam(name = "soloBajoStock", required = false) Boolean soloBajoStock,
@@ -44,6 +46,7 @@ public class InventarioController {
     }
 
     @GetMapping("/producto/{productoId}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<InventarioResponse> getStockByProducto(@PathVariable Long productoId) {
         return service.getStockByProducto(productoId);
     }

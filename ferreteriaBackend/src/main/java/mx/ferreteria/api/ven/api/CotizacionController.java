@@ -24,6 +24,7 @@ public class CotizacionController {
     private final CotizacionService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<VenDtos.CotizacionResponse> list(
             @RequestParam(name = "estado", required = false) String estado,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -35,11 +36,12 @@ public class CotizacionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public VenDtos.CotizacionResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.CotizacionResponse create(@Valid @RequestBody VenDtos.CotizacionRequest req) {

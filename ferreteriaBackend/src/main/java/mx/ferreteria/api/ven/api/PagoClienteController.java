@@ -18,7 +18,7 @@ public class PagoClienteController {
 
     private final PagoService service;
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.PagoResponse create(@Valid @RequestBody VenDtos.PagoClienteRequest req) {

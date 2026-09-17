@@ -36,6 +36,7 @@ public class AlmacenController {
     private final AlmacenService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<AlmacenResponse> list(
             @RequestParam(name = "q", required = false) String q,
             @RequestParam(name = "todos", required = false) Boolean todos,
@@ -46,31 +47,32 @@ public class AlmacenController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public AlmacenResponse getById(@PathVariable Integer id) {
         return service.getById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public AlmacenResponse create(@Valid @RequestBody AlmacenRequest req) {
         return service.create(req);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public AlmacenResponse update(@PathVariable Integer id, @Valid @RequestBody AlmacenRequest req) {
         return service.update(id, req);
     }
 
     @PutMapping("/{id}/estado")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public AlmacenResponse actualizarEstado(@PathVariable Integer id, @Valid @RequestBody AlmacenEstadoRequest req) {
         return service.actualizarEstado(id, req.activo());
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'GERENTE')")
     public ResponseEntity<Void> deactivate(@PathVariable Integer id) {
         service.deactivate(id);
         return ResponseEntity.noContent().build();

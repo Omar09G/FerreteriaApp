@@ -34,6 +34,7 @@ public class MovimientoController {
     private final MovimientoService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<MovimientoInventarioResponse> list(
             @RequestParam(name = "productoId", required = false) Long productoId,
             @RequestParam(name = "almacenId", required = false) Integer almacenId,
@@ -52,10 +53,10 @@ public class MovimientoController {
         }
         return service.list(rango.inicio(), rango.fin(), pageable);
     }
-
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','ALMACENISTA')")
+    
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','ALMACENISTA')")
     public MovimientoInventarioResponse create(@Valid @RequestBody MovimientoInventarioRequest req) {
         return service.create(req);
     }

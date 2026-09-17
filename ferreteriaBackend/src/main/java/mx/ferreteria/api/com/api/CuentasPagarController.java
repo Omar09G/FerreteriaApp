@@ -23,28 +23,33 @@ public class CuentasPagarController {
     private final CompraService service;
 
     @GetMapping("/cuentas-pagar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<ComDtos.CuentasPagarResponse> cuentasPagar(
             @RequestParam(name = "estado", required = false) String estado) {
         return service.cuentasPagar(estado);
     }
 
     @GetMapping("/reportes/facturas-vencidas")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<ComDtos.FacturaVencidaResponse> facturasVencidas() {
         return service.facturasVencidas();
     }
 
     @GetMapping("/reportes/facturas-pendientes")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<ComDtos.FacturaPendienteResponse> facturasPendientes() {
         return service.facturasPendientes();
     }
 
     @GetMapping("/facturas-proveedor/{proveedorId}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<ComDtos.FacturaProveedorResponse> facturasProveedor(
             @PathVariable Integer proveedorId) {
         return service.facturasProveedor(proveedorId);
     }
 
     @PostMapping("/cuentas-pagar/{cuentaPagarId}/abonos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public ResponseEntity<ComDtos.PagoProveedorResponse> abonar(
             @PathVariable Long cuentaPagarId,
             @Valid @RequestBody ComDtos.PagoProveedorRequest body) {

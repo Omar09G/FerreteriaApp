@@ -28,19 +28,20 @@ public class CajaController {
     private final CajaService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<FinDtos.CajaResponse> list() {
         return service.listCajas();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public FinDtos.CajaResponse crearCaja(@Valid @RequestBody FinDtos.CajaRequest req) {
         return service.crearCaja(req);
     }
 
     @PutMapping("/{cajaId}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public FinDtos.CajaResponse actualizarCaja(
             @PathVariable Integer cajaId,
             @Valid @RequestBody FinDtos.CajaRequest req) {
@@ -48,7 +49,7 @@ public class CajaController {
     }
 
     @PutMapping("/estado/{cajaId}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public FinDtos.CajaResponse actualizarCajaEstado(
             @PathVariable Integer cajaId,
             @Valid @RequestBody FinDtos.CajaRequest req) {
@@ -56,6 +57,7 @@ public class CajaController {
     }
 
     @GetMapping("/{cajaId}/turnos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<FinDtos.TurnoCajaResponse> listTurnos(
             @PathVariable Integer cajaId,
             @RequestParam(name = "page", required = false) Integer page,
@@ -65,12 +67,14 @@ public class CajaController {
     }
 
     @GetMapping("/{cajaId}/turno-actual")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public FinDtos.TurnoCajaResponse turnoActual(@PathVariable Integer cajaId) {
         return service.getTurnoActual(cajaId);
     }
 
     @PostMapping("/{cajaId}/turnos")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public FinDtos.TurnoCajaResponse abrirTurno(
             @PathVariable Integer cajaId,
             @Valid @RequestBody FinDtos.TurnoAperturaRequest req) {
@@ -80,24 +84,30 @@ public class CajaController {
 
     @PostMapping("/{cajaId}/turnos/{turnoId}/movimientos")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public FinDtos.MovimientoCajaResponse registrarMovimiento(
+            @PathVariable Integer cajaId,
             @PathVariable Long turnoId,
             @Valid @RequestBody FinDtos.MovimientoCajaRequest req) {
         return service.registrarMovimiento(turnoId, req);
     }
 
     @GetMapping("/{cajaId}/turnos/{turnoId}/movimientos")
-    public List<FinDtos.MovimientoCajaResponse> listMovimientos(@PathVariable Long turnoId) {
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
+    public List<FinDtos.MovimientoCajaResponse> listMovimientos(@PathVariable Integer cajaId,@PathVariable Long turnoId) {
         return service.listMovimientos(turnoId);
     }
 
     @GetMapping("/{cajaId}/turnos/{turnoId}/esperado")
-    public FinDtos.EsperadoCajaResponse obtenerEsperado(@PathVariable Long turnoId) {
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
+    public FinDtos.EsperadoCajaResponse obtenerEsperado(@PathVariable Integer cajaId, @PathVariable Long turnoId) {
         return service.obtenerEsperado(turnoId);
     }
 
     @PostMapping("/{cajaId}/turnos/{turnoId}/corte")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public FinDtos.CorteCajaResponse cerrarTurno(
+            @PathVariable Integer cajaId,
             @PathVariable Long turnoId,
             @Valid @RequestBody FinDtos.CorteRequest req) {
         return service.cerrarTurno(turnoId, req);

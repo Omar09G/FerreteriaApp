@@ -17,6 +17,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import mx.ferreteria.api.common.i18n.ErrorCode;
@@ -147,6 +149,16 @@ class ExceptionsAndHandlerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(500);
         assertThat(response.getBody().get("codigo")).isEqualTo("ERROR_INTERNO");
         assertThat(response.getBody().get("errorMessage").toString()).doesNotContain("secreto-interno");
+    }
+
+    @Test
+    @DisplayName("handleDenied: @PreAuthorize denegado -> 403 ACCESO_DENEGADO (no 500)")
+    void handleDenied_returnsForbidden() {
+        var ex = new AuthorizationDeniedException("Access Denied", new AuthorizationDecision(false));
+        var response = handler.handleDenied(ex, request);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().get("codigo")).isEqualTo("ACCESO_DENEGADO");
+        assertThat(response.getBody().get("success")).isEqualTo(false);
     }
 
     @Test

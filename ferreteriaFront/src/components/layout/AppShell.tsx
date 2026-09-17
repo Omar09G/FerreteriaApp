@@ -42,6 +42,12 @@ import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
 
+interface Usuario {
+  username: string;
+  empleado?: { nombreCompleto?: string };
+  roles?: string[];
+}
+
 interface Item {
   clave: string;
   a: string;
@@ -413,6 +419,30 @@ function Preferencias() {
   );
 }
 
+
+
+// Componente auxiliar reutilizable para renderizar los datos del usuario de forma segura
+function UsuarioPerfil({ usuario }: { usuario: Usuario }) {
+  const nombre = usuario.empleado?.nombreCompleto ?? usuario.username;
+  const inicial = nombre.charAt(0) ?? "?";
+  const roles = usuario.roles?.length ? usuario.roles.join(", ") : "Sin rol";
+
+  return (
+      <div className="flex items-center gap-2 text-sm text-orange-100">
+      <span
+          className="flex h-8 w-8 select-none items-center justify-center rounded-full bg-orange-900/60 font-semibold uppercase"
+          aria-hidden="true"
+      >
+        {inicial}
+      </span>
+        <div className="min-w-0 leading-tight">
+          <p className="truncate font-medium text-white">{nombre}</p>
+          <p className="truncate text-[11px] text-orange-200">{roles}</p>
+        </div>
+      </div>
+  );
+}
+
 export function AppShell() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [passwordAbierto, setPasswordAbierto] = useState(false);
@@ -420,7 +450,7 @@ export function AppShell() {
   const usuario = useAuthStore((s) => s.usuario);
   const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
-
+  const appVersion = import.meta.env.VITE_APP_VERSION ?? "1.0.0";
   // Logout automático por inactividad.
   useInactivityTimeout();
 
@@ -437,135 +467,145 @@ export function AppShell() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar escritorio */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col bg-primary lg:flex">
-        <div className="flex h-14 items-center gap-2 border-b border-orange-900/40 px-4">
+      <div className="flex min-h-screen">
+        {/* Sidebar escritorio */}
+        <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col bg-primary lg:flex">
+          {/* Cabecera Sidebar */}
+          <div className="flex h-14 items-center gap-2 border-b border-orange-900/40 px-4">
           <span
-            className="flex h-7 w-7 items-center justify-center rounded bg-white text-lg font-black text-primary"
-            aria-hidden
+              className="flex h-7 w-7 select-none items-center justify-center rounded bg-white text-lg font-black text-primary"
+              aria-hidden="true"
           >
             T
           </span>
-          <div className="leading-tight">
-            <p className="text-sm font-semibold text-white">
-              {t("appshell.marca")}
-              {import.meta.env.VITE_APP_VERSION ?? "0.0.0"}
-            </p>
-            <p className="text-[11px] text-orange-200">
-              {t("appshell.subtitulo")}
-            </p>
-          </div>
-        </div>
-        <SidebarNav />
-        <div className="border-t border-orange-900/40 p-3">
-          <div className="flex items-center gap-2 text-sm text-orange-100">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-900/60 font-semibold uppercase"
-              aria-hidden
-            >
-              {usuario?.empleado?.nombreCompleto?.charAt(0) ??
-                usuario?.username.charAt(0) ??
-                "?"}
-            </span>
-            <div className="min-w-0 leading-tight">
-              <p className="truncate font-medium text-white">
-                {usuario?.empleado?.nombreCompleto ?? usuario?.username}
-              </p>
-              <p className="truncate text-[11px] text-orange-200">
-                {usuario?.roles.join(", ")}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={cerrarSesion}
-            className="mt-2 w-full text-orange-100 hover:bg-orange-900/40"
-          >
-            <LogOut className="h-4 w-4" /> {t("appshell.cerrarSesion")}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setPasswordAbierto(true)}
-            className="mt-1 w-full text-orange-100 hover:bg-orange-900/40"
-            aria-label="Cambiar contraseña"
-          >
-            <KeyRound className="h-4 w-4" /> Cambiar contraseña
-          </Button>
-        </div>
-      </aside>
-
-      {/* Topbar móvil */}
-      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-primary px-3 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setMenuAbierto(true)}
-          aria-label={t("appshell.abrirMenu")}
-          className="rounded p-1 text-white"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
-        <p className="text-sm font-semibold text-white">
-          {t("appshell.marca")}
-        </p>
-        <button
-          type="button"
-          onClick={cerrarSesion}
-          aria-label={t("appshell.cerrarSesion")}
-          className="rounded p-1 text-orange-100"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
-      </header>
-
-      {/* Drawer móvil */}
-      {menuAbierto && (
-        <div
-          className="fixed inset-0 z-50 flex lg:hidden"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="flex-1 bg-black/40"
-            onClick={() => setMenuAbierto(false)}
-            aria-hidden
-          />
-          <aside className="flex w-72 flex-col bg-primary">
-            <div className="flex h-14 items-center justify-between border-b border-orange-900/40 px-4">
+            <div className="leading-tight">
               <p className="text-sm font-semibold text-white">
-                {t("appshell.menu")}
+                {t("appshell.marca")} - {appVersion}
               </p>
-              <button
-                type="button"
-                onClick={() => setMenuAbierto(false)}
-                aria-label={t("appshell.cerrarMenu")}
-                className="rounded p-1 text-orange-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <p className="text-[11px] text-orange-200">
+                {t("appshell.subtitulo")}
+              </p>
             </div>
-            <SidebarNav />
-          </aside>
-        </div>
-      )}
+          </div>
 
-      <main className="min-w-0 flex-1 px-4 pb-10 pt-16 lg:ml-60 lg:pt-3">
-        <div className="mx-auto mb-3 flex max-w-350 items-center justify-end">
-          <Preferencias />
-        </div>
-        <div className="mx-auto max-w-350">
-          <Suspense fallback={spinners.full}>
-            <Outlet />
-          </Suspense>
-        </div>
-      </main>
+          {/* Navegación */}
+          <SidebarNav />
 
-      <CambiarPasswordDialog
-        open={passwordAbierto}
-        onClose={() => setPasswordAbierto(false)}
-      />
-    </div>
+          {/* Footer Sidebar (Fijo abajo con mt-auto) */}
+          <div className="mt-auto border-t border-orange-900/40 p-3">
+            {usuario && <UsuarioPerfil usuario={usuario} />}
+
+            <div className="mt-2 flex flex-col gap-1">
+              <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={cerrarSesion}
+                  className="w-full justify-start text-white hover:bg-orange-900/40"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {t("appshell.cerrarSesion")}
+              </Button>
+              <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPasswordAbierto(true)}
+                  className="w-full justify-start text-white hover:bg-orange-900/40"
+                  aria-label="Cambiar contraseña"
+              >
+                <KeyRound className="mr-2 h-4 w-4" />
+                Cambiar contraseña
+              </Button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Topbar móvil */}
+        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-primary px-3 lg:hidden">
+          <button
+              type="button"
+              onClick={() => setMenuAbierto(true)}
+              aria-label={t("appshell.abrirMenu")}
+              className="rounded p-1 text-white hover:bg-orange-900/40 transition-colors"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <p className="text-sm font-semibold text-white">
+            {t("appshell.marca")}
+          </p>
+          <button
+              type="button"
+              onClick={cerrarSesion}
+              aria-label={t("appshell.cerrarSesion")}
+              className="rounded p-1 text-white hover:bg-orange-900/40 transition-colors"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
+        </header>
+
+        {/* Drawer móvil */}
+        {menuAbierto && (
+            <div
+                className="fixed inset-0 z-50 flex lg:hidden"
+                role="dialog"
+                aria-modal="true"
+            >
+              {/* Backdrop de fondo */}
+              <div
+                  className="flex-1 bg-black/40 backdrop-blur-xs"
+                  onClick={() => setMenuAbierto(false)}
+                  aria-hidden="true"
+              />
+              <aside className="flex w-72 flex-col bg-primary shadow-xl">
+                <div className="flex h-14 items-center justify-between border-b border-orange-900/40 px-4">
+                  <p className="text-sm font-semibold text-white">
+                    {t("appshell.menu")}
+                  </p>
+                  <button
+                      type="button"
+                      onClick={() => setMenuAbierto(false)}
+                      aria-label={t("appshell.cerrarMenu")}
+                      className="rounded p-1 text-orange-100 hover:bg-orange-900/40 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Navegación y Perfil en móvil si lo deseas clonar */}
+                <div className="flex-1 overflow-y-auto">
+                  <SidebarNav />
+                </div>
+
+                {/* Perfil opcional en la parte baja del móvil */}
+                {usuario && (
+                    <div className="border-t border-orange-900/40 p-4">
+                      <UsuarioPerfil usuario={usuario} />
+                    </div>
+                )}
+              </aside>
+            </div>
+        )}
+
+        {/* Contenedor Principal */}
+        <main className="min-w-0 flex-1 px-4 pb-10 pt-16 lg:ml-60 lg:pt-3">
+          <div className="mx-auto mb-3 flex max-w-350 items-center justify-end">
+            <Preferencias />
+          </div>
+          <div className="mx-auto max-w-350">
+            <Suspense fallback={spinners.full}>
+              <Outlet />
+            </Suspense>
+          </div>
+        </main>
+
+        {/* Modales */}
+        <CambiarPasswordDialog
+            open={passwordAbierto}
+            onClose={() => setPasswordAbierto(false)}
+        />
+      </div>
   );
 }
+
+
+
+

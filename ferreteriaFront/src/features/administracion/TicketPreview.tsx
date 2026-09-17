@@ -221,8 +221,8 @@ export function printTicketById(id: string = "ticket-preview") {
 
   // Intento iframe oculto: no bloquea la ventana principal y no requiere popup.
   // Si el navegador bloquea iframe print, fallback a window.open con cierre seguro.
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Ticket</title><style>
-    @page { size: 80mm auto; margin: 2mm; }
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ticket</title><style>
+    @page { size: 80mm; margin: 2mm; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: #000; background:#fff; }
     table { width: 100%; border-collapse: collapse; }
@@ -288,8 +288,8 @@ export function printTicketById(id: string = "ticket-preview") {
 
   const w = window.open("", "_blank", "width=400,height=700");
   if (!w) return;
-  w.document.write(`<html><head><meta charset="utf-8"><title>Ticket</title><style>
-    @page { size: 80mm auto; margin: 2mm; }
+  w.document.write(`<html lang="es"><head><meta charset="utf-8"><title>Ticket</title><style>
+    @page { size: 80mm; margin: 2mm; }
     body { margin: 0; font-family: ui-monospace, monospace; }
     table { width: 100%; border-collapse: collapse; }
   </style></head><body>${el.outerHTML}<script>
@@ -297,6 +297,6 @@ export function printTicketById(id: string = "ticket-preview") {
     window.onafterprint = done;
     window.onload = function(){ window.print(); setTimeout(done, 1000); };
     setTimeout(done, 3000);
-  <\/script></body></html>`);
+  </script></body></html>`);
   w.document.close();
 }

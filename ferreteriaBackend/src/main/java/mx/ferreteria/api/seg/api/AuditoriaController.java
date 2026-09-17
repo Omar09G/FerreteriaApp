@@ -34,6 +34,7 @@ public class AuditoriaController {
     private final AuditoriaService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<AuditoriaResponse> listar(
             @RequestParam(name = "esquema", required = false) String esquema,
             @RequestParam(name = "tabla", required = false) String tabla,
@@ -52,6 +53,7 @@ public class AuditoriaController {
     }
 
     @GetMapping("/tablas")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<TablaAuditoriaResponse> tablas() {
         return service.tablas();
     }

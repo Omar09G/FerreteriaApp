@@ -38,6 +38,7 @@ public class CategoriaController {
     private final CategoriaService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<CategoriaResponse> list(
             @RequestParam(name = "q", required = false) String q,
             @RequestParam(name = "page", required = false) Integer page,
@@ -47,6 +48,7 @@ public class CategoriaController {
     }
 
     @GetMapping("/arbol")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public List<CategoriaResponse> listTree() {
         return service.listTree();
     }

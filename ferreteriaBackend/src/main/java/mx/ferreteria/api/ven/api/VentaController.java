@@ -30,7 +30,7 @@ public class VentaController {
      * generada en BD con TZ America/Mexico_City) para evitar desfases de zona.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public Page<VenDtos.VentaResponse> list(
             @RequestParam(name = "almacenId", required = false) Integer almacenId,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -42,20 +42,20 @@ public class VentaController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public VenDtos.VentaResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public VenDtos.VentaResponse checkout(@Valid @RequestBody VenDtos.VentaRequest req) {
         return service.checkout(req);
     }
 
     @PatchMapping("/{id}/cancelar")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','ENCARGADO_CAJA')")
     public VenDtos.VentaResponse cancel(
             @PathVariable Long id,
             @Valid @RequestBody VenDtos.VentaCancelRequest req) {

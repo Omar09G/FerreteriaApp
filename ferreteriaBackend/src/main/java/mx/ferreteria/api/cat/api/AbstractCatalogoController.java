@@ -32,6 +32,7 @@ public abstract class AbstractCatalogoController<T, ID, REQ, RES> {
     protected abstract AbstractCatalogoService<T, ID, REQ, RES> service();
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<RES> list(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
@@ -40,6 +41,7 @@ public abstract class AbstractCatalogoController<T, ID, REQ, RES> {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public RES getById(@PathVariable ID id) {
         return service().findById(id);
     }

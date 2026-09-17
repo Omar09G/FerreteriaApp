@@ -22,13 +22,13 @@ public class TicketConfigController {
     private final TicketConfigService service;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public TicketConfigResponse get(@RequestParam(name = "almacenId", required = false) Integer almacenId) {
         return service.get(almacenId);
     }
 
     @PutMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public TicketConfigResponse upsert(@Valid @RequestBody TicketConfigRequest req) {
         return service.upsert(req);
     }

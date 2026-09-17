@@ -24,6 +24,7 @@ public class CompraController {
     private final CompraService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<ComDtos.CompraResponse> list(
             @RequestParam(name = "almacenId", required = false) Integer almacenId,
             @RequestParam(name = "proveedorId", required = false) Integer proveedorId,
@@ -37,6 +38,7 @@ public class CompraController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public ComDtos.CompraResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }

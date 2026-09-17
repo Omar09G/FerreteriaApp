@@ -34,6 +34,7 @@ public class ConteoFisicoController {
     private final ConteoFisicoService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<ConteoFisicoResponse> list(
             @RequestParam(name = "almacenId", required = false) Integer almacenId,
             @RequestParam(name = "estado", required = false) String estado,
@@ -48,13 +49,15 @@ public class ConteoFisicoController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public ConteoFisicoResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','ALMACENISTA')")
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public ConteoFisicoResponse create(@Valid @RequestBody ConteoFisicoRequest req) {
         return service.create(req);
     }

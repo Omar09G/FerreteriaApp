@@ -24,6 +24,7 @@ public class RentaController {
     private final RentaService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<VenDtos.RentaResponse> list(
             @RequestParam(name = "estado", required = false) String estado,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -39,14 +40,14 @@ public class RentaController {
         return service.getById(id);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.RentaResponse create(@Valid @RequestBody VenDtos.RentaRequest req) {
         return service.create(req);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR,'ENCARGADO_CAJA'')")
     @PostMapping("/{id}/devolucion")
     public VenDtos.RentaResponse devolver(
             @PathVariable Long id,
@@ -54,7 +55,7 @@ public class RentaController {
         return service.devolver(id, req);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR,'ENCARGADO_CAJA'')")
     @PostMapping("/{id}/cancelar")
     public VenDtos.RentaResponse cancelar(@PathVariable Long id) {
         return service.cancelar(id);

@@ -24,6 +24,7 @@ public class GastoController {
     private final GastoService service;
 
     @GetMapping("/gastos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<FinDtos.GastoResponse> listGastos(
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
@@ -35,24 +36,26 @@ public class GastoController {
 
     @PostMapping("/gastos")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public FinDtos.GastoResponse createGasto(@Valid @RequestBody FinDtos.GastoRequest req) {
         return service.createGasto(req);
     }
 
     @PutMapping("/gastos/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public FinDtos.GastoResponse updateGasto(@PathVariable Long id,
             @Valid @RequestBody FinDtos.GastoRequest req) {
         return service.updateGasto(id, req);
     }
 
     @DeleteMapping("/gastos/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public void deleteGasto(@PathVariable Long id) {
         service.deleteGasto(id);
     }
 
     @GetMapping("/ingresos-otros")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<FinDtos.IngresoOtroResponse> listIngresos(
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
@@ -63,20 +66,21 @@ public class GastoController {
     }
 
     @PostMapping("/ingresos-otros")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public FinDtos.IngresoOtroResponse createIngreso(@Valid @RequestBody FinDtos.IngresoOtroRequest req) {
         return service.createIngreso(req);
     }
 
     @PutMapping("/ingresos-otros/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public FinDtos.IngresoOtroResponse updateIngreso(@PathVariable Long id,
             @Valid @RequestBody FinDtos.IngresoOtroRequest req) {
         return service.updateIngreso(id, req);
     }
 
     @DeleteMapping("/ingresos-otros/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public void deleteIngreso(@PathVariable Long id) {
         service.deleteIngreso(id);
     }

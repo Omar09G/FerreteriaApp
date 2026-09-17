@@ -62,13 +62,13 @@ public class PromocionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public PromocionResponse crear(@Valid @RequestBody PromocionRequest req) {
         return service.crear(req);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public PromocionResponse actualizar(@PathVariable long id, @Valid @RequestBody PromocionRequest req) {
         return service.actualizar(id, req);
     }
@@ -80,6 +80,7 @@ public class PromocionController {
     }
 
     @PostMapping("/evaluar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public List<PromocionEvaluacionResponse> evaluar(@Valid @RequestBody PromocionEvaluarRequest req) {
         return service.evaluar(req);
     }

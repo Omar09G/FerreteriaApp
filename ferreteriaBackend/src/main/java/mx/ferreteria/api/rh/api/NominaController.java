@@ -26,6 +26,7 @@ public class NominaController {
     private final NominaService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<RhDtos.NominaResponse> list(
             @RequestParam(name = "estado", required = false) String estado,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -37,32 +38,38 @@ public class NominaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public RhDtos.NominaResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     @ResponseStatus(HttpStatus.CREATED)
     public RhDtos.NominaResponse create(@Valid @RequestBody RhDtos.NominaRequest req) {
         return service.create(req);
     }
 
     @PostMapping("/{id}/pagar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RhDtos.NominaResponse pagar(@PathVariable Long id) {
         return service.marcarPagada(id);
     }
 
     @PostMapping("/{id}/cancelar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RhDtos.NominaResponse cancelar(@PathVariable Long id) {
         return service.cancelar(id);
     }
 
     @PostMapping("/generar-quincena")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RhDtos.GenerarQuincenaResponse generarQuincena(@Valid @RequestBody RhDtos.GenerarQuincenaRequest req) {
         return service.generarQuincena(req);
     }
 
     @PostMapping("/pagar-lote")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public RhDtos.PagarLoteResponse pagarLote(@Valid @RequestBody RhDtos.PagarLoteRequest req) {
         return service.pagarLote(req);
     }

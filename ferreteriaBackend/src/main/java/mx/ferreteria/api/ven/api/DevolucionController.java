@@ -21,6 +21,7 @@ public class DevolucionController {
     private final DevolucionService service;
 
     @GetMapping("/venta/{ventaId}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public Page<VenDtos.DevolucionResponse> listByVenta(
             @PathVariable Long ventaId,
             @RequestParam(name = "page", required = false) Integer page,
@@ -30,11 +31,12 @@ public class DevolucionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
     public VenDtos.DevolucionResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public VenDtos.DevolucionResponse create(@Valid @RequestBody VenDtos.DevolucionRequest req) {

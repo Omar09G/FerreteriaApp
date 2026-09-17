@@ -16,6 +16,7 @@ import mx.ferreteria.api.common.web.LocaleResolver;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,7 +30,7 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 
 /**
  * Único handler global (PLAN §4.6). Errores como Map con envelope
- * {success:false, errorCode, codigo, errorMessage, requestId, instance?, details?}.
+ * {success:false, errorCode, código, errorMessage, requestId, instance?, details?}.
  * EnvelopeAdvice no re-envuelve Mapas que ya tienen "success".
  */
 @Slf4j
@@ -51,16 +52,12 @@ public class GlobalExceptionHandler {
                                                                HttpServletRequest req) {
         return dbTranslator.translate(ex)
                 .map(code -> {
-                    log.warn("DB error traducido a codigo de negocio: {} path={}", code, req.getRequestURI());
+                    log.warn("DB error traducido a código de negocio: {} path={}", code, req.getRequestURI());
                     return ResponseEntity.status(code.http())
                             .<Map<String, Object>>body(errorBody(code, new Object[0], currentLocale(req), req));
                 })
                 .orElseGet(() -> {
                     // BACK-SEC-012: el mensaje crudo de PostgreSQL puede incluir esquema,
-                    // columna y valor (ej. "duplicate key value violates unique constraint
-                    // '...' DETAIL: Key (email)=(...) already exists"). No logueamos
-                    // getMostSpecificCause().getMessage() para no filtrar PHI/PII; el
-                    // stack trace queda en logs a nivel ERROR (solo accesible a operadores).
                     log.error("DataAccessException sin contrato path={}", req.getRequestURI(), ex);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(req), req));
@@ -86,12 +83,26 @@ public class GlobalExceptionHandler {
      * Ruta no definida (p. ej. GET /): Spring lanza NoResourceFoundException
      * (o NoHandlerFoundException según configuración). Antes caía en
      * handleUnexpected → 500 ERROR_INTERNO + log ERROR con stack por cada
-     * probeo. Contrato: 403 ACCESO_DENEGADO + log WARN sin stack (causa cliente,
+     * probe. Contrato: 403 ACCESO_DENEGADO + log WARN sin stack (causa cliente,
      * no falla interna).
      */
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
     public ResponseEntity<Map<String, Object>> handleNoHandler(Exception ex, HttpServletRequest req) {
         log.warn("Ruta no definida path={} metodo={}", req.getRequestURI(), req.getMethod());
+        return ResponseEntity.status(ErrorCode.ACCESO_DENEGADO.http())
+                .body(errorBody(ErrorCode.ACCESO_DENEGADO, new Object[0], currentLocale(req), req));
+    }
+
+    /**
+     * @PreAuthorize denegado (Spring Security 6: AuthorizationDeniedException).
+     * Antes caía en handleUnexpected → 500 ERROR_INTERNO + log ERROR con stack.
+     * Contrato: 403 ACCESO_DENEGADO + log WARN sin stack (causa cliente: rol
+     * insuficiente, no falla interna).
+     */
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleDenied(AuthorizationDeniedException ex,
+                                                            HttpServletRequest req) {
+        log.warn("Acceso denegado por rol path={} metodo={}", req.getRequestURI(), req.getMethod());
         return ResponseEntity.status(ErrorCode.ACCESO_DENEGADO.http())
                 .body(errorBody(ErrorCode.ACCESO_DENEGADO, new Object[0], currentLocale(req), req));
     }
@@ -118,6 +129,7 @@ public class GlobalExceptionHandler {
         if (req != null && req.getRequestURI() != null) {
             body.put("instance", req.getRequestURI());
         }
+        log.warn("Error response: {} path={}", body, req != null ? req.getRequestURI() : "N/A");
         return body;
     }
 
