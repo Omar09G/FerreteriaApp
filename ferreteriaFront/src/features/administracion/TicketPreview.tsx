@@ -67,6 +67,14 @@ export function TicketPreview({ config, venta, vendedorNombre, cajaNombre, clien
   const entregado = montoEntregado != null ? montoEntregado : (v.pagos?.[0]?.monto ?? v.total);
   const cambio = esEfectivo ? Math.max(0, entregado - v.total) : 0;
 
+  // Allowlist de esquema: el logotipo viene de la API; solo https: y
+  // data:image/ para que un valor malicioso (javascript:, file:) no se
+  // convierta en sink activo si el render cambia a window.open/externo.
+  const logotipoSeguro =
+    config.logotipoUrl != null && /^(https:|data:image\/)/i.test(config.logotipoUrl.trim())
+      ? config.logotipoUrl
+      : null;
+
   return (
     <div
       id="ticket-preview"
@@ -74,9 +82,9 @@ export function TicketPreview({ config, venta, vendedorNombre, cajaNombre, clien
       className="mx-auto bg-white font-mono text-[11px] leading-tight text-black shadow-md print:shadow-none"
     >
       <div className="p-3">
-        {config.mostrarLogotipo && config.logotipoUrl && (
+        {config.mostrarLogotipo && logotipoSeguro && (
           <div className="mb-2 flex justify-center">
-            <img src={config.logotipoUrl} alt="Logotipo" className="max-h-16 max-w-[120px] object-contain" />
+            <img src={logotipoSeguro} alt="Logotipo" className="max-h-16 max-w-[120px] object-contain" />
           </div>
         )}
         <div className="text-center">

@@ -1298,6 +1298,15 @@ DROP TRIGGER IF EXISTS trg_kardex_no_upd ON inv.movimientos_inventario;
 CREATE TRIGGER trg_kardex_no_upd BEFORE UPDATE OR DELETE ON inv.movimientos_inventario
 FOR EACH ROW EXECUTE FUNCTION inv.fn_kardex_solo_insert();
 
+-- S4 auditoría append-only: ni UPDATE ni DELETE sobre seg.auditoria.
+CREATE OR REPLACE FUNCTION seg.fn_auditoria_solo_insert()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'seg.auditoria es append-only' USING ERRCODE = 'P0999'; END $$;
+
+DROP TRIGGER IF EXISTS trg_auditoria_no_upd_del ON seg.auditoria;
+CREATE TRIGGER trg_auditoria_no_upd_del BEFORE UPDATE OR DELETE ON seg.auditoria
+FOR EACH ROW EXECUTE FUNCTION seg.fn_auditoria_solo_insert();
+
 -- ---------- Ventas: validación de stock y salida al kardex ----------
 CREATE OR REPLACE FUNCTION ven.fn_detalle_valida_stock()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -1959,8 +1968,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
 ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
     GRANT USAGE, SELECT ON SEQUENCES TO ferreteria_app;
 
--- Endurecimiento: ledger append-only y auditoría sin borrado
+-- Endurecimiento: ledger append-only y auditoría sin borrado ni modificación
 REVOKE DELETE ON inv.movimientos_inventario, fin.movimientos_caja, seg.auditoria
     FROM ferreteria_app;
+REVOKE UPDATE ON seg.auditoria FROM ferreteria_app;
 
 SELECT 'PASO 2 COMPLETO: tablas, triggers y permisos creados.' AS resultado;

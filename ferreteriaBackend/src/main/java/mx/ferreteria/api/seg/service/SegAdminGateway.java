@@ -35,6 +35,12 @@ public interface SegAdminGateway {
 
     void borrarUsuario(int usuarioId);
 
+    /**
+     * Invalida credenciales al borrar o resetear: revoca refresh tokens y cierra
+     * sesiones abiertas en la misma transacción del borrado/cambio.
+     */
+    void revocarCredenciales(int usuarioId);
+
     Set<String> rolClavesActivas();
 
     void reemplazarRoles(int usuarioId, Set<String> claves);
@@ -66,6 +72,9 @@ public interface SegAdminGateway {
     void updatePermiso(int permisoId, String clave, String descripcion);
 
     void deletePermiso(int permisoId);
+
+    /** Roles que tienen asignado el permiso (para bloquear borrado en uso). */
+    long countRolesConPermiso(int permisoId);
 
     List<String> permisosDe(int rolId);
 

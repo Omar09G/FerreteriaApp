@@ -252,6 +252,50 @@ class SegAdminServiceTest {
     }
 
     @Test
+    @DisplayName("deleteUsuario revoca refresh y cierra sesiones en la misma transacción")
+    void deleteUsuario_revocaCredenciales() {
+        setUp();
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
+        service.deleteUsuario(11);
+        verify(gateway).borrarUsuario(11);
+        verify(gateway).revocarCredenciales(11);
+    }
+
+    @Test
+    @DisplayName("resetPassword revoca refresh y cierra sesiones además de guardar hash")
+    void resetPassword_revocaCredenciales() {
+        setUp();
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
+        service.resetPassword(11, new UsuarioPasswordRequest("NuevaClave99"));
+        verify(gateway).actualizarPassword(eq(11), anyString());
+        verify(gateway).revocarCredenciales(11);
+    }
+
+    @Test
+    @DisplayName("deletePermiso en uso: 409 sin borrar (sin cascada silenciosa)")
+    void deletePermiso_enUso_rechaza() {
+        setUp();
+        var p = new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas");
+        when(gateway.findPermisoById(1)).thenReturn(Optional.of(p));
+        when(gateway.countRolesConPermiso(1)).thenReturn(2L);
+        assertThatThrownBy(() -> service.deletePermiso(1))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REGISTRO_EN_USO));
+        verify(gateway, never()).deletePermiso(1);
+    }
+
+    @Test
+    @DisplayName("deletePermiso sin uso: borra")
+    void deletePermiso_sinUso_borra() {
+        setUp();
+        var p = new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas");
+        when(gateway.findPermisoById(1)).thenReturn(Optional.of(p));
+        when(gateway.countRolesConPermiso(1)).thenReturn(0L);
+        service.deletePermiso(1);
+        verify(gateway).deletePermiso(1);
+    }
+
+    @Test
     @DisplayName("listPermisos/getPermiso: pagina y 404 cuando no existe")
     void permisosListAndGet() {
         setUp();

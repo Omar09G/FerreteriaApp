@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
@@ -16,6 +18,7 @@ import mx.ferreteria.api.rh.service.NominaService;
 
 @RestController
 @RequestMapping("/api/v1/nomina")
+@PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
 @RequiredArgsConstructor
 @Validated
 public class NominaController {

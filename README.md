@@ -42,3 +42,7 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
 ## Scripts de soporte
 
 - `collector/` — colección de requests HTTP de apoyo (collections para probar la API).
+
+
+DoD global: `./gradlew build` (JaCoCo ≥80%), `npm run test` en verde, validadores en
+PASS y cada historia con test que falla antes y pasa después + replay en staging.

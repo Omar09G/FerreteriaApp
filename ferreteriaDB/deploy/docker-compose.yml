@@ -342,7 +342,9 @@ services:
       - ../scripts/vistas_core.sql:/docker-entrypoint-initdb.d/vistas_core.sql:ro
       - ../scripts/03_parametria.sql:/docker-entrypoint-initdb.d/12_03_parametria.sql:ro
       - ../scripts/04_admin.sql:/docker-entrypoint-initdb.d/13_04_admin.sql:ro
-      - ../scripts/05_dummy.sql:/docker-entrypoint-initdb.d/14_05_dummy.sql:ro
+      # 05_dummy.sql NO se monta: los datos demo solo entran vía backend con
+      # perfil `demo` (DemoDataRunner). Así initdb nunca deja credenciales demo
+      # en un despliegue que parezca productivo.
       - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     ports:
@@ -400,7 +402,7 @@ services:
   # PgBOUNCER — pooling transaccional (la app SIEMPRE va aquí)
   # =================================================================
   pgbouncer:
-    image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:latest}
+    image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:1.23.1@sha256:b233da853939e49ffccd8fb6560a5c72aaca4ad29ec7fa7a07893bda7a6feca9}
     container_name: ferreteria-pgbouncer
     restart: unless-stopped
     depends_on:

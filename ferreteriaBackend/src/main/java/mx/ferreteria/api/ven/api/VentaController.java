@@ -30,6 +30,7 @@ public class VentaController {
      * generada en BD con TZ America/Mexico_City) para evitar desfases de zona.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     public Page<VenDtos.VentaResponse> list(
             @RequestParam(name = "almacenId", required = false) Integer almacenId,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -41,6 +42,7 @@ public class VentaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     public VenDtos.VentaResponse getById(@PathVariable Long id) {
         return service.getById(id);
     }

@@ -64,6 +64,14 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("secret ausente (env sin inyectar) rechaza el arranque: sin default operativo")
+    void missingSecret_failsFast() {
+        assertThatThrownBy(() -> new JwtService(new JwtProperties("", null /*previousSecret*/, 15, 8)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT_SECRET");
+    }
+
+    @Test
     @DisplayName("refresh: typ=ref; parseAccess lo rechaza y sha256Base64 es determinista")
     void refresh_typ_and_hash() {
         var s = svc(15);

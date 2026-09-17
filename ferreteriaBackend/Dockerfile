@@ -52,8 +52,11 @@ WORKDIR /app
 # R2DBC, Kafka, etc. Configurado vía env vars OTEL_* (ver docker-compose).
 # Si OTEL_SDK_DISABLED=true el agent no hace nada (ahorra CPU en dev local).
 ARG OTEL_AGENT_VERSION=2.10.0
+# Pin verificado 2026-09-17 contra el release upstream (sha256 del jar).
+ARG OTEL_AGENT_SHA256=d05f6e36fac8db629263a6aaec2841cc934d064d7b19bfe38425b604b8b54926
 RUN curl -fsSL -o /opt/opentelemetry-javaagent.jar \
     "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar" \
+ && echo "${OTEL_AGENT_SHA256}  /opt/opentelemetry-javaagent.jar" | sha256sum -c - \
  && chmod 644 /opt/opentelemetry-javaagent.jar
 
 COPY --from=build /home/gradle/project/build/libs/*.jar app.jar

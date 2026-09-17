@@ -25,4 +25,23 @@ class VentaControllerSecurityTest {
         assertThat(ann).isNotNull();
         assertThat(ann.value()).contains("GERENTE").contains("ADMINISTRADOR");
     }
+
+    @Test
+    @DisplayName("list requiere VENDEDOR/GERENTE/ADMINISTRADOR (no solo authenticated)")
+    void listRequiereRol() throws Exception {
+        var m = VentaController.class.getMethod("list", Integer.class, java.time.LocalDate.class,
+                java.time.LocalDate.class, Integer.class, Integer.class, String.class);
+        PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).contains("VENDEDOR").contains("GERENTE").contains("ADMINISTRADOR");
+    }
+
+    @Test
+    @DisplayName("getById requiere VENDEDOR/GERENTE/ADMINISTRADOR (no solo authenticated)")
+    void getByIdRequiereRol() throws Exception {
+        var m = VentaController.class.getMethod("getById", Long.class);
+        PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).contains("VENDEDOR").contains("GERENTE").contains("ADMINISTRADOR");
+    }
 }

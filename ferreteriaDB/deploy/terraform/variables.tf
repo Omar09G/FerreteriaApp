@@ -26,7 +26,7 @@ variable "pg_image" {
 
 variable "pgbouncer_image" {
   type    = string
-  default = "pgbouncer/pgbouncer:1.23.1"
+  default = "pgbouncer/pgbouncer:1.23.1@sha256:b233da853939e49ffccd8fb6560a5c72aaca4ad29ec7fa7a07893bda7a6feca9"
 }
 
 variable "db_name" {

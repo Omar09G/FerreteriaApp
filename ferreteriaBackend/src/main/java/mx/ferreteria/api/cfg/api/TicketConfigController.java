@@ -22,6 +22,7 @@ public class TicketConfigController {
     private final TicketConfigService service;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR')")
     public TicketConfigResponse get(@RequestParam(name = "almacenId", required = false) Integer almacenId) {
         return service.get(almacenId);
     }

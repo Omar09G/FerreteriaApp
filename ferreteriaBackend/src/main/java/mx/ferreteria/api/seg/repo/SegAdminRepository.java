@@ -102,6 +102,19 @@ public class SegAdminRepository implements SegAdminGateway {
     }
 
     @Override
+    @Transactional
+    public void revocarCredenciales(int usuarioId) {
+        jdbc.sql("UPDATE seg.refresh_tokens SET revoked_at = now() "
+                        + "WHERE usuario_id = :id AND revoked_at IS NULL")
+                .param("id", usuarioId)
+                .update();
+        jdbc.sql("UPDATE seg.sesiones SET fin = now(), cerrada_por_logout = true "
+                        + "WHERE usuario_id = :id AND fin IS NULL")
+                .param("id", usuarioId)
+                .update();
+    }
+
+    @Override
     public Set<String> rolClavesActivas() {
         return new LinkedHashSet<>(jdbc.sql(
                 "SELECT clave FROM seg.roles WHERE activo ORDER BY rol_id")
@@ -248,6 +261,15 @@ public class SegAdminRepository implements SegAdminGateway {
         jdbc.sql("DELETE FROM seg.permisos WHERE permiso_id = :id")
                 .param("id", permisoId)
                 .update();
+    }
+
+    @Override
+    public long countRolesConPermiso(int permisoId) {
+        Long n = jdbc.sql("SELECT count(*) FROM seg.rol_permisos WHERE permiso_id = :id")
+                .param("id", permisoId)
+                .query(Long.class)
+                .single();
+        return n == null ? 0 : n;
     }
 
     @Override

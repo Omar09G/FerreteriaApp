@@ -4,13 +4,14 @@
 set -e
 
 echo ">> [init] Creando rol de replicación..."
-psql -v ON_ERROR_STOP=1 -U postgres <<-EOSQL
+# :'var' cita como literal SQL: passwords con comillas no rompen el DO block.
+psql -v ON_ERROR_STOP=1 -U postgres -v repl_pass="$REPLICATION_PASSWORD" <<-EOSQL
     DO \$\$
     BEGIN
         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'replicator') THEN
-            CREATE ROLE replicator LOGIN REPLICATION PASSWORD '${REPLICATION_PASSWORD}';
+            CREATE ROLE replicator LOGIN REPLICATION PASSWORD :'repl_pass';
         ELSE
-            ALTER ROLE replicator WITH LOGIN REPLICATION PASSWORD '${REPLICATION_PASSWORD}';
+            ALTER ROLE replicator WITH LOGIN REPLICATION PASSWORD :'repl_pass';
         END IF;
     END
     \$\$;

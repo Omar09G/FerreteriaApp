@@ -115,6 +115,7 @@ public class SegAdminService implements UsuarioAltaGateway {
     public void resetPassword(int usuarioId, UsuarioPasswordRequest req) {
         exigirUsuario(usuarioId);
         gateway.actualizarPassword(usuarioId, passwordEncoder.encode(req.nuevaPassword()));
+        gateway.revocarCredenciales(usuarioId);
     }
 
     @Transactional
@@ -128,6 +129,7 @@ public class SegAdminService implements UsuarioAltaGateway {
     public void deleteUsuario(int usuarioId) {
         exigirUsuario(usuarioId);
         gateway.borrarUsuario(usuarioId);
+        gateway.revocarCredenciales(usuarioId);
     }
 
     public Page<RolResponse> listRoles(Pageable pageable) {
@@ -216,7 +218,10 @@ public class SegAdminService implements UsuarioAltaGateway {
 
     @Transactional
     public void deletePermiso(int permisoId) {
-        exigirPermiso(permisoId);
+        var permiso = exigirPermiso(permisoId);
+        if (gateway.countRolesConPermiso(permisoId) > 0) {
+            throw new ReglaNegocioException(ErrorCode.REGISTRO_EN_USO, permiso.clave());
+        }
         gateway.deletePermiso(permisoId);
     }
 

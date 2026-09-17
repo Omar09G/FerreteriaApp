@@ -22,10 +22,23 @@ spec:
         app: pgbouncer
         tier: db-proxy
     spec:
+      # La imagen corre como 70:70 con entrypoint propio que renderiza
+      # /etc/pgbouncer/*.ini al arrancar: por eso NO lleva
+      # readOnlyRootFilesystem (lo rompería). Verificado contra registry.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: pgbouncer
-          image: pgbouncer/pgbouncer:1.23.1
+          image: pgbouncer/pgbouncer:1.23.1@sha256:b233da853939e49ffccd8fb6560a5c72aaca4ad29ec7fa7a07893bda7a6feca9
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: DB_HOST
               value: postgres-rw.ferreteria.svc.cluster.local
@@ -36,6 +49,19 @@ spec:
             - name: DB_USER
               value: ferreteria_app
             - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: ferreteria-db-secret, key: POSTGRES_APP_PASSWORD }
+            # El entrypoint de la imagen exige DATABASES_* (DB_* solo lo usa
+            # el render compose). Sin estas, el pod termina en CrashLoop.
+            - name: DATABASES_HOST
+              value: postgres-rw.ferreteria.svc.cluster.local
+            - name: DATABASES_PORT
+              value: "5432"
+            - name: DATABASES_DBNAME
+              value: ferreteria
+            - name: DATABASES_USER
+              value: ferreteria_app
+            - name: DATABASES_PASSWORD
               valueFrom:
                 secretKeyRef: { name: ferreteria-db-secret, key: POSTGRES_APP_PASSWORD }
             - name: AUTH_TYPE

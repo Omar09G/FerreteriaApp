@@ -1,6 +1,8 @@
 # ============================================================================
-# 40-migration-job.yaml — Job que ejecuta los scripts SQL 01..05 (esquema,
-# tablas, parametría, admin, demo) contra el primario.
+# 40-migration-job.yaml — Job que ejecuta los scripts SQL de esquema
+# (01 base, 02 tablas, vistas, 03 parametría, 04 admin) contra el primario.
+# Lista explícita: 05_dummy/06/07 NUNCA entran a prod por construcción
+# (demo solo vía backend con perfil `demo`; 06/07 los aplica Flyway V12/V13).
 #
 # PRERREQUISITO: crear el ConfigMap con los scripts del proyecto:
 #   kubectl -n ferreteria create configmap ferreteria-sql \
@@ -40,7 +42,9 @@ spec:
                 echo "Esperando a PostgreSQL..."; sleep 3;
               done
               cd /sql   # \ir de vistas_core.sql resuelve relativo al archivo incluido
-              for f in /sql/0*.sql; do
+              # Lista explícita anti-demo: aunque el ConfigMap traiga 05_dummy,
+              # 06 o 07, el job solo aplica esquema productivo.
+              for f in /sql/01_base_esquemas.sql /sql/02_tablas.sql /sql/vistas_core.sql /sql/03_parametria.sql /sql/04_admin.sql; do
                 echo ">>> Ejecutando $$f";
                 psql -h postgres-rw.ferreteria.svc.cluster.local \
                      -U postgres -d ferreteria \

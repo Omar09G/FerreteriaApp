@@ -86,7 +86,14 @@ Salidas: DSN JDBC vía PgBouncer listo para Spring Boot.
 
 - [ ] Cambiar TODAS las credenciales de `.env` / secrets (usar Vault/SealedSecrets)
 - [ ] Fijar versiones de imagen por digest (`PGBOUNCER_IMAGE@sha256:…`)
-- [ ] `load_demo_data=false` / omitir `05_dummy.sql`
+- [ ] Demo fuera de prod por construcción: compose no monta `05_dummy.sql` y el job
+  `40-migration-job.yaml` usa lista explícita 01–04+vistas (demo solo vía backend
+  perfil `demo`); aun así verificar ausencia de usuarios demo tras init
+- [ ] Migraciones: owner declarado; backend con Flyway `enabled:false` en prod →
+  esquema vía job `40-migration-job.yaml`, deltas vía migraciones V*. Registrar
+  `SHOW wal_level/archive_mode` y drill de restore en staging
+- [ ] Red: CNI con enforcement de NetworkPolicy (Calico/Cilium); probar
+  denegado pod→postgres:5432 y permitido pgbouncer→postgres
 - [ ] Backups: pgBackRest/WAL-G sobre el volumen + prueba de restauración
 - [ ] Monitoreo: `postgres_exporter` + alertas sobre `pg_stat_statements`, replicación y autovacuum
 - [ ] Réplicas de lectura para reportes si el POS crece a varias sucursales

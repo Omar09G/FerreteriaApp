@@ -280,10 +280,26 @@ resource "kubernetes_deployment_v1" "pgbouncer" {
       }
 
       spec {
+        security_context {
+          run_as_non_root = true
+          run_as_user     = 70
+          run_as_group    = 70
+          seccomp_profile {
+            type = "RuntimeDefault"
+          }
+        }
+
         container {
           name              = "pgbouncer"
           image             = var.pgbouncer_image
           image_pull_policy = "IfNotPresent"
+
+          security_context {
+            allow_privilege_escalation = false
+            capabilities {
+              drop = ["ALL"]
+            }
+          }
 
           env {
             name  = "DB_HOST"
@@ -294,6 +310,21 @@ resource "kubernetes_deployment_v1" "pgbouncer" {
           env { name = "DB_USER";  value = var.app_user }
           env {
             name = "DB_PASSWORD"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret_v1.db.metadata[0].name
+                key  = "POSTGRES_APP_PASSWORD"
+              }
+            }
+          }
+          # El entrypoint de la imagen exige DATABASES_* (DB_* solo lo usa
+          # el render compose). Sin estas, el pod termina en CrashLoop.
+          env { name = "DATABASES_HOST";   value = "${kubernetes_service_v1.rw.metadata[0].name}.${kubernetes_namespace_v1.this.metadata[0].name}.svc.cluster.local" }
+          env { name = "DATABASES_PORT";   value = "5432" }
+          env { name = "DATABASES_DBNAME"; value = var.db_name }
+          env { name = "DATABASES_USER";   value = var.app_user }
+          env {
+            name = "DATABASES_PASSWORD"
             value_from {
               secret_key_ref {
                 name = kubernetes_secret_v1.db.metadata[0].name

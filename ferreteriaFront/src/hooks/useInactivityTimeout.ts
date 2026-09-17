@@ -4,6 +4,7 @@ import { useAutenticado, useAuthStore } from "@/store/auth";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/i18n";
 import { env } from "@/config/env";
+import { apiLogout } from "@/lib/api/endpoints";
 
 /**
  * Cierra la sesión cuando el usuario pasa `env.sessionTimeoutMs` sin
@@ -22,6 +23,7 @@ export function useInactivityTimeout() {
 	const toast = useToast();
 	const t = useT();
 	const yaAvisadoRef = useRef(false);
+	const sesionCerradaRef = useRef(false);
 	const tickRef = useRef<number | null>(null);
 
 	// Refs para acceder a valores actuales dentro de listeners efímeros.
@@ -31,6 +33,9 @@ export function useInactivityTimeout() {
 	const tRef = useRef(t);
 	useEffect(() => {
 		autenticadoRef.current = autenticado;
+		if (autenticado) {
+			sesionCerradaRef.current = false;
+		}
 	}, [autenticado]);
 	useEffect(() => {
 		lastRef.current = lastActivityAt;
@@ -68,10 +73,13 @@ export function useInactivityTimeout() {
 		);
 
 		const check = () => {
-			if (!autenticadoRef.current) return;
+			if (!autenticadoRef.current || sesionCerradaRef.current) return;
 			const elapsed = Date.now() - lastRef.current;
 			if (elapsed >= timeout) {
-				clearSession();
+				sesionCerradaRef.current = true;
+				// El refresh vive en cookie HttpOnly: revocarlo en backend igual
+				// que el cierre manual (AppShell.cerrarSesion). Best-effort.
+				apiLogout().catch(() => {}).finally(() => clearSession());
 				toastRef.current.warning(tRef.current("auth.sesionExpiradaInactividad"));
 				return;
 			}
