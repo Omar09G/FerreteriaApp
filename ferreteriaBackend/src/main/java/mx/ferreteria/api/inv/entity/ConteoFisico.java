@@ -27,7 +27,7 @@ public class ConteoFisico {
 
     @Column(nullable = false, length = 12)
     @Builder.Default
-    private String estado = "EN_PROCESO";
+    private String estado = "APLICADO";
 
     @Column(nullable = false)
     private Integer usuarioId;

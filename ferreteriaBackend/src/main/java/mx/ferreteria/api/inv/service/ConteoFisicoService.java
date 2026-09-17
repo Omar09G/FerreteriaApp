@@ -93,7 +93,7 @@ public class ConteoFisicoService {
         if (req.detalles() == null || req.detalles().isEmpty()) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
         }
-        // Validar productos en una sola query (vs N findById).
+        // Validar productos en una sola query (vs. N findById).
         Set<Long> productoIds = req.detalles().stream()
                 .map(ConteoFisicoDetalleRequest::productoId).collect(Collectors.toSet());
         Set<Long> existentes = productoRepo.findAllById(productoIds).stream()
@@ -125,7 +125,7 @@ public class ConteoFisicoService {
         return toResponse(savedConteo, cargarContexto(List.of(savedConteo)));
     }
 
-    // ── Carga batch (evita N+1 en listados) ──────────────────—───────
+    // Carga batch (evita N+1 en listados)
 
     private record Contexto(
             Map<Long, List<ConteoFisicoDetalle>> detallesPorConteo,
