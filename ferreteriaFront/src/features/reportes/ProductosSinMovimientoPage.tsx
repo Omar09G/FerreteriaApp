@@ -7,6 +7,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatoMoneda, formatoNumero } from "@/lib/format";
 import { apiProductosSinMovimiento } from "@/lib/api/reportes";
@@ -31,26 +32,49 @@ export default function ProductosSinMovimientoPage() {
 	}, [error, mostrarError]);
 
 	const columnas: Columna<ProductosSinMovimiento>[] = [
-		{ key: "productoId", header: "ID", render: (v) => v.productoId },
-		{ key: "codigo", header: "Código", render: (v) => v.codigo },
-		{ key: "producto", header: "Producto", render: (v) => v.producto },
-		{ key: "categoria", header: "Categoría", render: (v) => v.categoria },
+		{
+			key: "productoId",
+			header: "ID",
+			exportar: (v) => v.productoId,
+			render: (v) => v.productoId,
+		},
+		{
+			key: "codigo",
+			header: "Código",
+			exportar: (v) => v.codigo,
+			render: (v) => v.codigo,
+		},
+		{
+			key: "producto",
+			header: "Producto",
+			exportar: (v) => v.producto,
+			render: (v) => v.producto,
+		},
+		{
+			key: "categoria",
+			header: "Categoría",
+			exportar: (v) => v.categoria,
+			render: (v) => v.categoria,
+		},
 		{
 			key: "stock",
 			header: "Stock",
 			align: "right",
+			exportar: (v) => formatoNumero(v.stock),
 			render: (v) => <Badge tone="default">{formatoNumero(v.stock)}</Badge>,
 		},
 		{
 			key: "costoActual",
 			header: "Costo actual",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.costoActual),
 			render: (v) => formatoMoneda(v.costoActual),
 		},
 		{
 			key: "dineroDetenidoEnEstante",
 			header: "Dinero en estante",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.dineroDetenidoEnEstante),
 			render: (v) => (
 				<Badge tone="info">{formatoMoneda(v.dineroDetenidoEnEstante)}</Badge>
 			),
@@ -58,12 +82,14 @@ export default function ProductosSinMovimientoPage() {
 		{
 			key: "ultimaVenta",
 			header: "Última venta",
+			exportar: (v) => v.ultimaVenta,
 			render: (v) => v.ultimaVenta,
 		},
 		{
 			key: "diasSinVender",
 			header: "Días sin vender",
 			align: "right",
+			exportar: (v) => formatoNumero(v.diasSinVender),
 			render: (v) => (
 				<Badge tone="warning">{formatoNumero(v.diasSinVender)}</Badge>
 			),
@@ -71,6 +97,7 @@ export default function ProductosSinMovimientoPage() {
 		{
 			key: "prioridadPromocion",
 			header: "Prioridad promoción",
+			exportar: (v) => v.prioridadPromocion,
 			render: (v) => <Badge tone="danger">{v.prioridadPromocion}</Badge>,
 		},
 	];
@@ -83,7 +110,12 @@ export default function ProductosSinMovimientoPage() {
 			/>
 			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
-				<Card titulo="Productos sin movimiento">
+				<Card
+					titulo="Productos sin movimiento"
+					actions={
+						<ExportarExcel columnas={columnas} items={data} archivo="sin-movimiento" />
+					}
+				>
 					<DataTable
 						columnas={columnas}
 						items={data}

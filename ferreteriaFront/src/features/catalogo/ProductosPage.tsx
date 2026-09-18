@@ -23,6 +23,7 @@ import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -547,6 +548,7 @@ export default function ProductosPage() {
     {
       key: "c",
       header: "Código",
+      exportar: (v) => v.codigo ?? "—",
       render: (v) => (
         <span className="font-mono text-xs text-muted">{v.codigo ?? "—"}</span>
       ),
@@ -554,6 +556,7 @@ export default function ProductosPage() {
     {
       key: "cb",
       header: "Cod de barras",
+      exportar: (v) => (v.codigosBarras ?? []).join("; "),
       render: (v) => (
         <CodigosBarras codigos={v.codigosBarras} variante="compacto" />
       ),
@@ -561,22 +564,25 @@ export default function ProductosPage() {
     {
       key: "n",
       header: "Nombre",
+      exportar: (v) => v.nombre,
       render: (v) => <span className="font-medium text-ink">{v.nombre}</span>,
     },
-    { key: "t", header: "Tipo", render: (v) => <TipoBadge tipo={v.tipo} /> },
-    { key: "cat", header: "Categoría", render: (v) => v.categoriaNombre },
-    { key: "m", header: "Marca", render: (v) => v.marcaNombre ?? "—" },
-    { key: "u", header: "U.M.", render: (v) => v.unidadMedidaClave },
+    { key: "t", header: "Tipo", exportar: (v) => v.tipo, render: (v) => <TipoBadge tipo={v.tipo} /> },
+    { key: "cat", header: "Categoría", exportar: (v) => v.categoriaNombre, render: (v) => v.categoriaNombre },
+    { key: "m", header: "Marca", exportar: (v) => v.marcaNombre ?? "—", render: (v) => v.marcaNombre ?? "—" },
+    { key: "u", header: "U.M.", exportar: (v) => v.unidadMedidaClave, render: (v) => v.unidadMedidaClave },
     {
       key: "costo",
       header: "Costo",
       align: "right",
+      exportar: (v) => formatoMoneda(v.costoActual),
       render: (v) => formatoMoneda(v.costoActual),
     },
     {
       key: "precio",
       header: "Menudeo",
       align: "right",
+      exportar: (v) => formatoMoneda(v.precioMenudeo),
       render: (v) => formatoMoneda(v.precioMenudeo),
     },
     {
@@ -687,7 +693,12 @@ export default function ProductosPage() {
 
       {(isLoading || (isFetching && !data)) && <Spinner />}
       {data && (
-        <Card titulo={`Resultados (${data.meta.totalElements})`}>
+        <Card
+          titulo={`Resultados (${data.meta.totalElements})`}
+          actions={
+            <ExportarExcel columnas={columnas} items={data.data} archivo="productos" />
+          }
+        >
           <DataTable
             columnas={columnas}
             items={data.data}

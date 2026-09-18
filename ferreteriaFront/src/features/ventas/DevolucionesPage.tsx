@@ -17,6 +17,7 @@ import { EstadoBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -420,16 +421,19 @@ export default function DevolucionesPage() {
 		{
 			key: "fol",
 			header: "Folio",
+			exportar: (v) => v.folio,
 			render: (v) => <span className="font-medium text-ink">{v.folio}</span>,
 		},
 		{
 			key: "c",
 			header: "Cliente",
+			exportar: (v) => v.clienteNombre ?? "Cliente general",
 			render: (v) => v.clienteNombre ?? "Cliente general",
 		},
 		{
 			key: "fecha",
 			header: "Fecha",
+			exportar: (v) => formatoFechaHora(v.fecha),
 			render: (v) => (
 				<span className="whitespace-nowrap">{formatoFechaHora(v.fecha)}</span>
 			),
@@ -438,6 +442,7 @@ export default function DevolucionesPage() {
 			key: "total",
 			header: "Total",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.total),
 			render: (v) => (
 				<span className="tabular-nums font-medium">
 					{formatoMoneda(v.total)}
@@ -447,6 +452,7 @@ export default function DevolucionesPage() {
 		{
 			key: "estado",
 			header: "Estado",
+			exportar: (v) => v.estado,
 			render: (v) => <EstadoBadge estado={v.estado} />,
 		},
 		{
@@ -490,7 +496,12 @@ export default function DevolucionesPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Ventas (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Ventas (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="devoluciones" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

@@ -10,6 +10,7 @@ import { esApiError } from "@/lib/api/client";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -41,36 +42,56 @@ export default function TopProductosPage() {
 		);
 
 	const columnas: Columna<TopProducto>[] = [
-		{ key: "p", header: "Posición", render: (v) => posicion(v.rankingMes) },
-		{ key: "c", header: "Código", render: (v) => v.codigo ?? "—" },
+		{
+			key: "p",
+			header: "Posición",
+			exportar: (v) => v.rankingMes,
+			render: (v) => posicion(v.rankingMes),
+		},
+		{
+			key: "c",
+			header: "Código",
+			exportar: (v) => v.codigo ?? "—",
+			render: (v) => v.codigo ?? "—",
+		},
 		{
 			key: "n",
 			header: "Producto",
+			exportar: (v) => v.producto,
 			render: (v) => <span className="font-medium text-ink">{v.producto}</span>,
 		},
-		{ key: "cat", header: "Categoría", render: (v) => v.categoria },
+		{
+			key: "cat",
+			header: "Categoría",
+			exportar: (v) => v.categoria,
+			render: (v) => v.categoria,
+		},
 		{
 			key: "u",
 			header: "Unidades",
 			align: "right",
+			exportar: (v) => formatoNumero(v.unidadesVendidas),
 			render: (v) => formatoNumero(v.unidadesVendidas),
 		},
 		{
 			key: "i",
 			header: "Ingreso",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.ingresoTotal),
 			render: (v) => formatoMoneda(v.ingresoTotal),
 		},
 		{
 			key: "c2",
 			header: "Costo",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.costoTotal),
 			render: (v) => formatoMoneda(v.costoTotal),
 		},
 		{
 			key: "ut",
 			header: "Utilidad",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.utilidad),
 			render: (v) => formatoMoneda(v.utilidad),
 		},
 	];
@@ -85,7 +106,12 @@ export default function TopProductosPage() {
 			/>
 			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
-				<Card titulo="Ranking del periodo">
+				<Card
+					titulo="Ranking del periodo"
+					actions={
+						<ExportarExcel columnas={columnas} items={data} archivo="top-productos" />
+					}
+				>
 					<DataTable
 						columnas={columnas}
 						items={data}

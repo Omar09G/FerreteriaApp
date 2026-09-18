@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
@@ -310,6 +311,7 @@ export default function VentasPage() {
 		{
 			key: "f",
 			header: "Folio",
+			exportar: (v) => v.folio,
 			render: (v) => (
 				<span className="font-mono text-xs font-medium text-ink">
 					{v.folio}
@@ -319,6 +321,7 @@ export default function VentasPage() {
 		{
 			key: "fe",
 			header: "Fecha",
+			exportar: (v) => formatoFechaHora(v.fecha),
 			render: (v) => (
 				<span className="whitespace-nowrap tabular-nums">
 					{formatoFechaHora(v.fecha)}
@@ -328,15 +331,30 @@ export default function VentasPage() {
 		{
 			key: "c",
 			header: "Cliente",
+			exportar: (v) => v.clienteNombre ?? "Consumidor final",
 			render: (v) =>
 				v.clienteNombre ?? <span className="text-muted">Consumidor final</span>,
 		},
-		{ key: "a", header: "Almacén", render: (v) => v.almacenNombre },
-		{ key: "p", header: "Forma", render: (v) => v.formaPagoNombre },
+		{
+			key: "a",
+			header: "Almacén",
+			exportar: (v) => v.almacenNombre,
+			render: (v) => v.almacenNombre,
+		},
+		{
+			key: "p",
+			header: "Forma",
+			exportar: (v) => v.formaPagoNombre,
+			render: (v) => v.formaPagoNombre,
+		},
 		{
 			key: "d",
 			header: "Descuento",
 			align: "right",
+			exportar: (v) =>
+				Number(v.descuentoTotal) > 0
+					? `−${formatoMoneda(v.descuentoTotal)}`
+					: "—",
 			render: (v) =>
 				Number(v.descuentoTotal) > 0 ? (
 					<span className="font-medium tabular-nums text-green-700">−{formatoMoneda(v.descuentoTotal)}</span>
@@ -348,6 +366,7 @@ export default function VentasPage() {
 			key: "t",
 			header: "Total",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.total),
 			render: (v) => (
 				<span className="font-semibold tabular-nums">
 					{formatoMoneda(v.total)}
@@ -357,6 +376,16 @@ export default function VentasPage() {
 		{
 			key: "e",
 			header: "Estado",
+			exportar: (v) =>
+				v.estado === "COMPLETADA"
+					? "Completada"
+					: v.estado === "CANCELADA"
+						? "Cancelada"
+						: v.estado === "DEVUELTA_PARCIAL"
+							? "Devuelta parcial"
+							: v.estado === "DEVUELTA_TOTAL"
+								? "Devuelta total"
+								: v.estado,
 			render: (v) => <EstadoVenta estado={v.estado} />,
 		},
 		{
@@ -430,7 +459,12 @@ export default function VentasPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Ventas (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Ventas (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="ventas" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

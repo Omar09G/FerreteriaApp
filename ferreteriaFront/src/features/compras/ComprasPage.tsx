@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -538,15 +539,17 @@ export default function ComprasPage() {
     {
       key: "fol",
       header: "Folio",
+      exportar: (v) => v.folio,
       render: (v) => <span className="font-medium text-ink">{v.folio}</span>,
     },
-    { key: "p", header: "Proveedor", render: (v) => v.proveedor },
-    { key: "f", header: "Factura", render: (v) => v.facturaProveedor ?? "—" },
-    { key: "alm", header: "Almacén", render: (v) => v.almacen },
-    { key: "tipo", header: "Pago", render: (v) => v.formaPago },
+    { key: "p", header: "Proveedor", exportar: (v) => v.proveedor, render: (v) => v.proveedor },
+    { key: "f", header: "Factura", exportar: (v) => v.facturaProveedor ?? "—", render: (v) => v.facturaProveedor ?? "—" },
+    { key: "alm", header: "Almacén", exportar: (v) => v.almacen, render: (v) => v.almacen },
+    { key: "tipo", header: "Pago", exportar: (v) => v.formaPago, render: (v) => v.formaPago },
     {
       key: "fecha",
       header: "Fecha",
+      exportar: (v) => formatoFechaHora(v.fecha),
       render: (v) => (
         <span className="whitespace-nowrap">{formatoFechaHora(v.fecha)}</span>
       ),
@@ -554,6 +557,7 @@ export default function ComprasPage() {
     {
       key: "estado",
       header: "Estado",
+      exportar: (v) => v.estado,
       render: (v) => (
         <Badge tone={v.estado === "RECIBIDA" ? "success" : "info"}>
           {v.estado}
@@ -564,6 +568,7 @@ export default function ComprasPage() {
       key: "total",
       header: "Total",
       align: "right",
+      exportar: (v) => formatoMoneda(v.total),
       render: (v) => (
         <span className="tabular-nums font-medium">
           {formatoMoneda(v.total)}
@@ -645,7 +650,16 @@ export default function ComprasPage() {
 
       {(isLoading || (isFetching && !data)) && <Spinner />}
       {data && (
-        <Card titulo={`Compras (${data.meta.totalElements})`}>
+        <Card
+          titulo={`Compras (${data.meta.totalElements})`}
+          actions={
+            <ExportarExcel
+              columnas={columnas}
+              items={data.data}
+              archivo="compras"
+            />
+          }
+        >
           <DataTable
             columnas={columnas}
             items={data.data}

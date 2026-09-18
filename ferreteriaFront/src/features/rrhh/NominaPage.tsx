@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -308,11 +309,14 @@ export default function NominaPage() {
 		{
 			key: "emp",
 			header: "Empleado",
+			exportar: (v) => v.empleado,
 			render: (v) => <span className="font-medium text-ink">{v.empleado}</span>,
 		},
 		{
 			key: "per",
 			header: "Periodo",
+			exportar: (v) =>
+				`${formatoFecha(v.periodoIni)} al ${formatoFecha(v.periodoFin)}`,
 			render: (v) => (
 				<span className="tabular-nums">
 					{formatoFecha(v.periodoIni)} al {formatoFecha(v.periodoFin)}
@@ -322,12 +326,14 @@ export default function NominaPage() {
 		{
 			key: "dias",
 			header: "Días",
+			exportar: (v) => v.diasPagados,
 			render: (v) => <span className="tabular-nums">{v.diasPagados}</span>,
 		},
 		{
 			key: "percep",
 			header: "Percepciones",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.percepciones),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.percepciones)}</span>
 			),
@@ -336,6 +342,7 @@ export default function NominaPage() {
 			key: "ded",
 			header: "Deducciones",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.deducciones),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.deducciones)}</span>
 			),
@@ -344,6 +351,7 @@ export default function NominaPage() {
 			key: "neto",
 			header: "Neto a pagar",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.netoPagar),
 			render: (v) => (
 				<span className="font-medium tabular-nums">
 					{formatoMoneda(v.netoPagar)}
@@ -353,11 +361,13 @@ export default function NominaPage() {
 		{
 			key: "est",
 			header: "Estado",
+			exportar: (v) => v.estado,
 			render: (v) => <EstadoBadge estado={v.estado} />,
 		},
 		{
 			key: "fpago",
 			header: "Fecha de pago",
+			exportar: (v) => (v.fechaPago ? formatoFecha(v.fechaPago) : "—"),
 			render: (v) =>
 				v.fechaPago ? (
 					<span className="tabular-nums">{formatoFecha(v.fechaPago)}</span>
@@ -445,7 +455,16 @@ export default function NominaPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Nómina (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Nómina (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel
+						columnas={columnas}
+						items={isPlaceholderData ? undefined : data.data}
+						archivo="nomina"
+					/>
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={isPlaceholderData ? undefined : data.data}

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -253,18 +254,37 @@ export default function EmpleadosPage() {
 		{
 			key: "n",
 			header: "Empleado",
+			exportar: (v) =>
+				`${v.apellidoPaterno} ${v.apellidoMaterno ?? ""} ${v.nombre}`.trim(),
 			render: (v) => (
 				<span className="font-medium text-ink">
 					{v.apellidoPaterno} {v.apellidoMaterno ?? ""} {v.nombre}
 				</span>
 			),
 		},
-		{ key: "p", header: "Puesto", render: (v) => v.puestoNombre },
-		{ key: "e", header: "Correo", render: (v) => v.email ?? "—" },
-		{ key: "t", header: "Teléfono", render: (v) => v.telefono ?? "—" },
+		{
+			key: "p",
+			header: "Puesto",
+			exportar: (v) => v.puestoNombre,
+			render: (v) => v.puestoNombre,
+		},
+		{
+			key: "e",
+			header: "Correo",
+			exportar: (v) => v.email ?? "—",
+			render: (v) => v.email ?? "—",
+		},
+		{
+			key: "t",
+			header: "Teléfono",
+			exportar: (v) => v.telefono ?? "—",
+			render: (v) => v.telefono ?? "—",
+		},
 		{
 			key: "ing",
 			header: "Ingreso",
+			exportar: (v) =>
+				v.fechaIngreso ? formatoFecha(v.fechaIngreso) : "—",
 			render: (v) =>
 				v.fechaIngreso ? (
 					<span className="tabular-nums">{formatoFecha(v.fechaIngreso)}</span>
@@ -276,6 +296,7 @@ export default function EmpleadosPage() {
 			key: "s",
 			header: "Sueldo",
 			align: "right",
+			exportar: (v) => `${formatoMoneda(v.sueldoDiario)}/M.N.`,
 			render: (v) => (
 				<span className="tabular-nums">
 					{formatoMoneda(v.sueldoDiario)}/M.N.
@@ -285,6 +306,7 @@ export default function EmpleadosPage() {
 		{
 			key: "est",
 			header: "Estado",
+			exportar: (v) => (v.activo ? "Activo" : "Baja"),
 			render: (v) =>
 				v.activo ? (
 					<Badge tone="success">Activo</Badge>
@@ -327,7 +349,12 @@ export default function EmpleadosPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Empleados (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Empleados (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="empleados" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

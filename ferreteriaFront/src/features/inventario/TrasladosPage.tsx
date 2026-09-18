@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -272,21 +273,25 @@ export default function TrasladosPage() {
     {
       key: "folio",
       header: "Folio",
+      exportar: (v) => v.folio,
       render: (v) => <span className="font-medium text-ink">{v.folio}</span>,
     },
     {
       key: "origen",
       header: "Almacén origen",
+      exportar: (v) => v.almacenOrigenNombre,
       render: (v) => v.almacenOrigenNombre,
     },
     {
       key: "destino",
       header: "Almacén destino",
+      exportar: (v) => v.almacenDestinoNombre,
       render: (v) => v.almacenDestinoNombre,
     },
     {
       key: "estado",
       header: "Estado",
+      exportar: (v) => v.estado,
       render: (v) => (
         <Badge
           tone={
@@ -304,6 +309,7 @@ export default function TrasladosPage() {
     {
       key: "creado",
       header: "Creado",
+      exportar: (v) => formatoFechaHora(v.creadoEn),
       render: (v) => (
         <span className="whitespace-nowrap">
           {formatoFechaHora(v.creadoEn)}
@@ -362,7 +368,16 @@ export default function TrasladosPage() {
 
       {(isLoading || (isFetching && !data)) && <Spinner />}
       {data && (
-        <Card titulo={`Traslados (${data.meta.totalElements})`}>
+        <Card
+          titulo={`Traslados (${data.meta.totalElements})`}
+          actions={
+            <ExportarExcel
+              columnas={columnas}
+              items={data.data}
+              archivo="traslados"
+            />
+          }
+        >
           <DataTable
             columnas={columnas}
             items={data.data}

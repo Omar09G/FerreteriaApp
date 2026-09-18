@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -251,15 +252,17 @@ export default function CuentasPagarPage() {
 		{
 			key: "c",
 			header: "Compra",
+			exportar: (v) => v.compraFolio,
 			render: (v) => (
 				<span className="font-medium text-ink">{v.compraFolio}</span>
 			),
 		},
-		{ key: "p", header: "Proveedor", render: (v) => v.proveedor },
+		{ key: "p", header: "Proveedor", exportar: (v) => v.proveedor, render: (v) => v.proveedor },
 		{
 			key: "tot",
 			header: "Total",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.montoTotal),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.montoTotal)}</span>
 			),
@@ -268,6 +271,7 @@ export default function CuentasPagarPage() {
 			key: "pag",
 			header: "Pagado",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.montoPagado),
 			render: (v) => (
 				<span className="tabular-nums text-muted">
 					{formatoMoneda(v.montoPagado)}
@@ -278,6 +282,7 @@ export default function CuentasPagarPage() {
 			key: "sal",
 			header: "Saldo",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.saldo),
 			render: (v) => (
 				<span className="font-medium tabular-nums">
 					{formatoMoneda(v.saldo)}
@@ -287,13 +292,14 @@ export default function CuentasPagarPage() {
 		{
 			key: "vto",
 			header: "Vence",
+			exportar: (v) => formatoFecha(v.fechaVencimiento),
 			render: (v) => (
 				<span className="whitespace-nowrap tabular-nums">
 					{formatoFecha(v.fechaVencimiento)}
 				</span>
 			),
 		},
-		{ key: "est", header: "Estado", render: estadoAbono },
+		{ key: "est", header: "Estado", exportar: (v) => v.estado, render: estadoAbono },
 		{
 			key: "acc",
 			header: "",
@@ -428,6 +434,21 @@ export default function CuentasPagarPage() {
 				cuentas.data && (
 					<Card
 						titulo={`Cuentas (${cuentas.data.length}) · ${pendientesAbonables.length} abonable(s)`}
+						actions={
+							<ExportarExcel
+								columnas={columnas}
+								items={
+									tab === "todas"
+										? cuentas.data
+										: tab === "pendientes"
+											? cuentas.data.filter(
+													(c) => c.estado !== "LIQUIDADA" && c.diasVencido <= 0,
+												)
+											: cuentas.data.filter((c) => c.diasVencido > 0)
+								}
+								archivo="cuentas-pagar"
+							/>
+						}
 					>
 						<DataTable
 							columnas={columnas}

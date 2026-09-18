@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -469,16 +470,19 @@ export default function CotizacionesPage() {
 		{
 			key: "folio",
 			header: "Folio",
+			exportar: (v) => v.folio,
 			render: (v) => <span className="font-medium text-ink">{v.folio}</span>,
 		},
 		{
 			key: "cliente",
 			header: "Cliente",
+			exportar: (v) => v.clienteNombre ?? "Público general",
 			render: (v) => v.clienteNombre ?? "Público general",
 		},
 		{
 			key: "fecha",
 			header: "Fecha",
+			exportar: (v) => formatoFechaHora(v.fecha),
 			render: (v) => (
 				<span className="whitespace-nowrap">{formatoFechaHora(v.fecha)}</span>
 			),
@@ -486,6 +490,7 @@ export default function CotizacionesPage() {
 		{
 			key: "vig",
 			header: "Vigencia",
+			exportar: (v) => formatoFecha(v.vigenciaHasta),
 			render: (v) => (
 				<span className="tabular-nums">{formatoFecha(v.vigenciaHasta)}</span>
 			),
@@ -494,6 +499,7 @@ export default function CotizacionesPage() {
 			key: "sub",
 			header: "Subtotal",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.subtotal),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.subtotal)}</span>
 			),
@@ -502,6 +508,7 @@ export default function CotizacionesPage() {
 			key: "iva",
 			header: "IVA",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.iva),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.iva)}</span>
 			),
@@ -510,6 +517,7 @@ export default function CotizacionesPage() {
 			key: "tot",
 			header: "Total",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.total),
 			render: (v) => (
 				<span className="tabular-nums font-medium">
 					{formatoMoneda(v.total)}
@@ -519,6 +527,7 @@ export default function CotizacionesPage() {
 		{
 			key: "est",
 			header: "Estado",
+			exportar: (v) => v.estado,
 			render: (v) => <Badge tone={toneCotizacion(v.estado)}>{v.estado}</Badge>,
 		},
 		{
@@ -611,7 +620,12 @@ export default function CotizacionesPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Cotizaciones (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Cotizaciones (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="cotizaciones" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

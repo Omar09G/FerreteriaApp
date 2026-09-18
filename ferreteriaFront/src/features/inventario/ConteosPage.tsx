@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -300,6 +301,7 @@ export default function ConteosPage() {
 		{
 			key: "fecha",
 			header: "Fecha",
+			exportar: (v) => formatoFechaHora(v.fecha),
 			render: (v) => (
 				<span className="whitespace-nowrap">
 					{formatoFechaHora(v.fecha)}
@@ -309,6 +311,7 @@ export default function ConteosPage() {
 		{
 			key: "alm",
 			header: "Almacén",
+			exportar: (v) => v.almacenNombre ?? "—",
 			render: (v) => (
 				<span className="font-medium text-ink">{v.almacenNombre ?? "—"}</span>
 			),
@@ -316,18 +319,21 @@ export default function ConteosPage() {
 		{
 			key: "usr",
 			header: "Contó",
+			exportar: (v) => v.usuarioNombre ?? `#${v.usuarioId}`,
 			render: (v) => v.usuarioNombre ?? `#${v.usuarioId}`,
 		},
 		{
 			key: "part",
 			header: "Partidas",
 			align: "right",
+			exportar: (v) => formatoNumero(v.totalPartidas),
 			render: (v) => formatoNumero(v.totalPartidas),
 		},
 		{
 			key: "dif",
 			header: "Diferencia",
 			align: "right",
+			exportar: (v) => formatoNumero(v.diferenciaTotal),
 			render: (v) => (
 				<Badge tone={tonoDiferencia(v.diferenciaTotal)}>
 					{formatoNumero(v.diferenciaTotal)}
@@ -337,6 +343,7 @@ export default function ConteosPage() {
 		{
 			key: "estado",
 			header: "Estado",
+			exportar: (v) => v.estado,
 			render: (v) => (
 				<Badge tone={TONO_ESTADO[v.estado] ?? "default"}>{v.estado}</Badge>
 			),
@@ -344,6 +351,7 @@ export default function ConteosPage() {
 		{
 			key: "obs",
 			header: "Observaciones",
+			exportar: (v) => v.observaciones ?? "—",
 			render: (v) => (
 				<span className="block max-w-56 truncate" title={v.observaciones ?? ""}>
 					{v.observaciones ?? "—"}
@@ -423,7 +431,16 @@ export default function ConteosPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Conteos físicos (${data.meta.totalElements})`}>
+				<Card
+					titulo={`Conteos físicos (${data.meta.totalElements})`}
+					actions={
+						<ExportarExcel
+							columnas={columnas}
+							items={data.data}
+							archivo="conteos"
+						/>
+					}
+				>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -265,13 +266,25 @@ export default function RolesPage() {
 		{
 			key: "clave",
 			header: "Clave",
+			exportar: (v) => v.clave,
 			render: (v) => <span className="font-medium text-ink">{v.clave}</span>,
 		},
-		{ key: "nombre", header: "Nombre", render: (v) => v.nombre },
-		{ key: "desc", header: "Descripción", render: (v) => v.descripcion ?? "—" },
+		{
+			key: "nombre",
+			header: "Nombre",
+			exportar: (v) => v.nombre,
+			render: (v) => v.nombre,
+		},
+		{
+			key: "desc",
+			header: "Descripción",
+			exportar: (v) => v.descripcion ?? "—",
+			render: (v) => v.descripcion ?? "—",
+		},
 		{
 			key: "act",
 			header: "Activo",
+			exportar: (v) => (v.activo ? "Activo" : "Inactivo"),
 			render: (v) =>
 				v.activo ? (
 					<Badge tone="success">Activo</Badge>
@@ -282,6 +295,7 @@ export default function RolesPage() {
 		{
 			key: "permisos",
 			header: "Permisos",
+			exportar: (v) => v.permisos.length,
 			render: (v) => <span className="tabular-nums">{v.permisos.length}</span>,
 		},
 		{
@@ -335,7 +349,12 @@ export default function RolesPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Roles (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Roles (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="roles" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

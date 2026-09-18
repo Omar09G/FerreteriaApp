@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -224,99 +225,122 @@ export default function CobranzaPage() {
       mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
   });
 
-  const columnas: Columna<CuentaCobrar>[] = [
-    {
-      key: "f",
-      header: "Venta",
-      render: (v) => (
-        <span className="font-medium text-ink">{v.ventaFolio}</span>
-      ),
-    },
-    { key: "c", header: "Cliente", render: (v) => v.clienteNombre },
-    {
-      key: "tot",
-      header: "Total",
-      align: "right",
-      render: (v) => (
-        <Badge
-          tone={validaDeuda(v.montoTotal, v.montoPagado) ? "info" : "default"}
-        >
-          <span className="tabular-nums">{formatoMoneda(v.montoTotal)}</span>
-        </Badge>
-      ),
-    },
-    {
-      key: "pag",
-      header: "Pagado",
-      align: "right",
-      render: (v) => (
-        <Badge
-          tone={
-            validaDeuda(v.montoTotal, v.montoPagado) ? "warning" : "default"
-          }
-        >
-          <span className="tabular-nums text-muted">
-            {formatoMoneda(v.montoPagado)}
-          </span>
-        </Badge>
-      ),
-    },
-    {
-      key: "sal",
-      header: "Saldo",
-      align: "right",
-      render: (v) => {
-        return v.saldo > 0 ? (
-          <Badge tone="danger">
-            <span className="font-medium tabular-nums">
-              {formatoMoneda(v.saldo)}
-            </span>
-          </Badge>
-        ) : (
-          <span className="font-medium tabular-nums">
-            {formatoMoneda(v.saldo)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "vto",
-      header: "Vencimiento",
-      render: (v) => {
-        const dias = diasVencido(v.fechaVencimiento);
-        const isDeuda = validaDeuda(v.montoTotal, v.montoPagado);
+	const columnas: Columna<CuentaCobrar>[] = [
+		{
+			key: "f",
+			header: "Venta",
+			exportar: (v) => v.ventaFolio,
+			render: (v) => (
+				<span className="font-medium text-ink">{v.ventaFolio}</span>
+			),
+		},
+		{
+			key: "c",
+			header: "Cliente",
+			exportar: (v) => v.clienteNombre,
+			render: (v) => v.clienteNombre,
+		},
+		{
+			key: "tot",
+			header: "Total",
+			align: "right",
+			exportar: (v) => formatoMoneda(v.montoTotal),
+			render: (v) => (
+				<Badge
+					tone={validaDeuda(v.montoTotal, v.montoPagado) ? "info" : "default"}
+				>
+					<span className="tabular-nums">{formatoMoneda(v.montoTotal)}</span>
+				</Badge>
+			),
+		},
+		{
+			key: "pag",
+			header: "Pagado",
+			align: "right",
+			exportar: (v) => formatoMoneda(v.montoPagado),
+			render: (v) => (
+				<Badge
+					tone={
+						validaDeuda(v.montoTotal, v.montoPagado) ? "warning" : "default"
+					}
+				>
+					<span className="tabular-nums text-muted">
+						{formatoMoneda(v.montoPagado)}
+					</span>
+				</Badge>
+			),
+		},
+		{
+			key: "sal",
+			header: "Saldo",
+			align: "right",
+			exportar: (v) => formatoMoneda(v.saldo),
+			render: (v) => {
+				return v.saldo > 0 ? (
+					<Badge tone="danger">
+						<span className="font-medium tabular-nums">
+							{formatoMoneda(v.saldo)}
+						</span>
+					</Badge>
+				) : (
+					<span className="font-medium tabular-nums">
+						{formatoMoneda(v.saldo)}
+					</span>
+				);
+			},
+		},
+		{
+			key: "vto",
+			header: "Vencimiento",
+			exportar: (v) => {
+				const dias = diasVencido(v.fechaVencimiento);
+				const isDeuda = validaDeuda(v.montoTotal, v.montoPagado);
+				return dias > 0 && isDeuda
+					? `Vencida ${dias}d · ${formatoFecha(v.fechaVencimiento)}`
+					: formatoFecha(v.fechaVencimiento);
+			},
+			render: (v) => {
+				const dias = diasVencido(v.fechaVencimiento);
+				const isDeuda = validaDeuda(v.montoTotal, v.montoPagado);
 
-        return dias > 0 && isDeuda ? (
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            <Badge tone="danger">Vencida {dias}d</Badge>
-            <span className="text-xs tabular-nums text-muted">
-              {formatoFecha(v.fechaVencimiento)}
-            </span>
-          </span>
-        ) : (
-          <span className="tabular-nums">
-            {formatoFecha(v.fechaVencimiento)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "est",
-      header: "Estado",
-      render: (v) => {
-        const d = diasVencido(v.fechaVencimiento);
-        const isDeuda = validaDeuda(v.montoTotal, v.montoPagado);
-        return v.estado === "PARCIAL" ? (
-          <Badge tone="warning">Parcial</Badge>
-        ) : d > 0 && isDeuda ? (
-          <Badge tone="danger">Vigente vencida</Badge>
-        ) : v.estado === "VIGENTE" ? (
-          <Badge tone="success">{v.estado}</Badge>
-        ) : (
-          <Badge tone="info">{v.estado}</Badge>
-        );
-      },
-    },
+				return dias > 0 && isDeuda ? (
+					<span className="flex items-center gap-1.5 whitespace-nowrap">
+						<Badge tone="danger">Vencida {dias}d</Badge>
+						<span className="text-xs tabular-nums text-muted">
+							{formatoFecha(v.fechaVencimiento)}
+						</span>
+					</span>
+				) : (
+					<span className="tabular-nums">
+						{formatoFecha(v.fechaVencimiento)}
+					</span>
+				);
+			},
+		},
+		{
+			key: "est",
+			header: "Estado",
+			exportar: (v) => {
+				const d = diasVencido(v.fechaVencimiento);
+				const isDeuda = validaDeuda(v.montoTotal, v.montoPagado);
+				if (v.estado === "PARCIAL") return "Parcial";
+				if (d > 0 && isDeuda) return "Vigente vencida";
+				return v.estado;
+			},
+			render: (v) => {
+				const d = diasVencido(v.fechaVencimiento);
+				const isDeuda = validaDeuda(v.montoTotal, v.montoPagado);
+				return v.estado === "PARCIAL" ? (
+					<Badge tone="warning">Parcial</Badge>
+				) : d > 0 && isDeuda ? (
+					<Badge tone="danger">Vigente vencida</Badge>
+				) : v.estado === "VIGENTE" ? (
+					<Badge tone="success">{v.estado}</Badge>
+				) : (
+					<Badge tone="info">{v.estado}</Badge>
+				);
+			},
+		},
     {
       key: "acc",
       header: "Acciones",
@@ -416,7 +440,12 @@ export default function CobranzaPage() {
 
       {(isLoading || (isFetching && !data)) && <Spinner />}
       {data && (
-        <Card titulo={`Cuentas por cobrar (${data.meta.totalElements})`}>
+		<Card
+			titulo={`Cuentas por cobrar (${data.meta.totalElements})`}
+			actions={
+				<ExportarExcel columnas={columnas} items={data.data} archivo="cobranza" />
+			}
+		>
           <DataTable
             columnas={columnas}
             items={data.data}

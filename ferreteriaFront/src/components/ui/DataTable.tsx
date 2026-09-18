@@ -9,6 +9,13 @@ export interface Columna<T> {
 	render: (item: T) => ReactNode;
 	align?: "left" | "right";
 	className?: string;
+	/**
+	 * Texto para exportación Excel (se muestra lo mismo que en pantalla).
+	 * Si se omite, la columna se excluye del archivo (ej. acciones).
+	 */
+	exportar?: (item: T) => string | number | null | undefined;
+	/** Encabezado del Excel cuando `header` no es texto plano. */
+	tituloExportar?: string;
 }
 
 interface DataTableProps<T> {

@@ -144,3 +144,11 @@ export function getFechaActualLocalWithTime(): string {
   const s = String(ahora.getSeconds()).padStart(2, "0");
   return `${y}-${m}-${d}T${h}:${min}:${s}`;
 }
+
+export function getFechaActualLocal(): string {
+  const ahora = new Date();
+  const y = ahora.getFullYear();
+  const m = String(ahora.getMonth() + 1).padStart(2, "0");
+  const d = String(ahora.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}

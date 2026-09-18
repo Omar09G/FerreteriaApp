@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -210,6 +211,7 @@ export default function ProveedoresPage() {
 		{
 			key: "r",
 			header: "Razón social",
+			exportar: (v) => v.razonSocial,
 			render: (v) => (
 				<span className="font-medium text-ink">{v.razonSocial}</span>
 			),
@@ -217,6 +219,7 @@ export default function ProveedoresPage() {
 		{
 			key: "rfc",
 			header: "RFC",
+			exportar: (v) => v.rfc ?? "—",
 			render: (v) => (
 				<span className="font-mono text-xs text-muted">{v.rfc ?? "—"}</span>
 			),
@@ -224,20 +227,34 @@ export default function ProveedoresPage() {
 		{
 			key: "rf",
 			header: "Régimen fiscal",
+			exportar: (v) => v.regimenFiscal ?? "—",
 			render: (v) => v.regimenFiscal ?? "—",
 		},
-		{ key: "email", header: "Email", render: (v) => v.email ?? "—" },
-		{ key: "tel", header: "Teléfono", render: (v) => v.telefono ?? "—" },
+		{
+			key: "email",
+			header: "Email",
+			exportar: (v) => v.email ?? "—",
+			render: (v) => v.email ?? "—",
+		},
+		{
+			key: "tel",
+			header: "Teléfono",
+			exportar: (v) => v.telefono ?? "—",
+			render: (v) => v.telefono ?? "—",
+		},
 		{
 			key: "dias",
 			header: "Días crédito",
 			align: "right",
+			exportar: (v) => v.diasCredito ?? "—",
 			render: (v) => (v.diasCredito != null ? v.diasCredito : "—"),
 		},
 		{
 			key: "lim",
 			header: "Límite crédito",
 			align: "right",
+			exportar: (v) =>
+				v.limiteCredito != null ? formatoMoneda(v.limiteCredito) : "—",
 			render: (v) =>
 				v.limiteCredito != null ? (
 					<span className="tabular-nums">{formatoMoneda(v.limiteCredito)}</span>
@@ -335,7 +352,12 @@ export default function ProveedoresPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Resultados (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Resultados (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="proveedores" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

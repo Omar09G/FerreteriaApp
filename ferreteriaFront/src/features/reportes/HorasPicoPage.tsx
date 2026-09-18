@@ -17,6 +17,7 @@ import { apiHorasPico } from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -41,24 +42,28 @@ export default function HorasPicoPage() {
 		{
 			key: "h",
 			header: "Hora",
+			exportar: (v) => `${String(v.hora).padStart(2, "0")}:00`,
 			render: (v) => `${String(v.hora).padStart(2, "0")}:00`,
 		},
 		{
 			key: "n",
 			header: "Ventas",
 			align: "right",
+			exportar: (v) => formatoNumero(v.numVentas),
 			render: (v) => formatoNumero(v.numVentas),
 		},
 		{
 			key: "t",
 			header: "Total acumulado",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.totalAcumulado),
 			render: (v) => formatoMoneda(v.totalAcumulado),
 		},
 		{
 			key: "p",
 			header: "Ticket promedio",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.ticketPromedio),
 			render: (v) => formatoMoneda(v.ticketPromedio),
 		},
 	];
@@ -96,7 +101,12 @@ export default function HorasPicoPage() {
 							</BarChart>
 						</ResponsiveContainer>
 					</Card>
-					<Card titulo="Detalle">
+					<Card
+						titulo="Detalle"
+						actions={
+							<ExportarExcel columnas={columnas} items={data} archivo="horas-pico" />
+						}
+					>
 						<DataTable
 							columnas={columnas}
 							items={data}

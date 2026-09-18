@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -295,6 +296,12 @@ export default function CatalogoCrudPage() {
 			.map((c) => ({
 				key: c.nombre,
 				header: c.etiqueta,
+				exportar: (item) =>
+					c.tipo === "BOOLEAN"
+						? item[c.nombre]
+							? "Sí"
+							: "No"
+						: textoCelda(item[c.nombre]),
 				render: (item) =>
 					c.tipo === "BOOLEAN" ? (
 						item[c.nombre] ? (
@@ -365,7 +372,12 @@ export default function CatalogoCrudPage() {
 				</Button>
 			</div>
 
-			<Card className="space-y-4">
+			<Card
+			className="space-y-4"
+			actions={
+				<ExportarExcel columnas={columnas} items={data?.data} archivo="catalogos" />
+			}
+		>
 				<form
 					className="flex items-center gap-2"
 					onSubmit={(e) => {

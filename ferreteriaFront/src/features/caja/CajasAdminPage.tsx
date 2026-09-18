@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -181,9 +182,10 @@ export default function CajasAdminPage() {
 		{
 			key: "nombre",
 			header: "Caja",
+			exportar: (c) => c.nombre,
 			render: (c) => <span className="font-medium text-ink">{c.nombre}</span>,
 		},
-		{ key: "almacen", header: "Almacén", render: (c) => c.almacenNombre },
+		{ key: "almacen", header: "Almacén", exportar: (c) => c.almacenNombre, render: (c) => c.almacenNombre },
 		{
 			key: "activa",
 			header: "Activa",
@@ -246,7 +248,9 @@ export default function CajasAdminPage() {
 				</Button>
 			</header>
 
-			<Card>
+			<Card
+			actions={<ExportarExcel columnas={columnas} items={ver} archivo="cajas" />}
+		>
 				{cajas.isLoading ? (
 					<Spinner />
 				) : (

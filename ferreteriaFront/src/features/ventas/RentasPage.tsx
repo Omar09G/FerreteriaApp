@@ -32,6 +32,7 @@ import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -572,13 +573,25 @@ export default function RentasPage() {
 		{
 			key: "fol",
 			header: "Folio",
+			exportar: (v) => v.folio,
 			render: (v) => <span className="font-medium text-ink">{v.folio}</span>,
 		},
-		{ key: "cli", header: "Cliente", render: (v) => v.clienteNombre },
-		{ key: "alm", header: "Almacén", render: (v) => v.almacenNombre },
+		{
+			key: "cli",
+			header: "Cliente",
+			exportar: (v) => v.clienteNombre,
+			render: (v) => v.clienteNombre,
+		},
+		{
+			key: "alm",
+			header: "Almacén",
+			exportar: (v) => v.almacenNombre,
+			render: (v) => v.almacenNombre,
+		},
 		{
 			key: "fecha",
 			header: "Fecha renta",
+			exportar: (v) => formatoFechaHora(v.fechaRenta),
 			render: (v) => (
 				<span className="whitespace-nowrap">
 					{formatoFechaHora(v.fechaRenta)}
@@ -588,6 +601,7 @@ export default function RentasPage() {
 		{
 			key: "esp",
 			header: "Devolución esperada",
+			exportar: (v) => formatoFecha(v.fechaDevEsperada),
 			render: (v) => (
 				<span className="whitespace-nowrap">
 					{formatoFecha(v.fechaDevEsperada)}
@@ -598,6 +612,7 @@ export default function RentasPage() {
 			key: "dep",
 			header: "Depósito",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.deposito),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.deposito)}</span>
 			),
@@ -606,6 +621,7 @@ export default function RentasPage() {
 			key: "costo",
 			header: "Costo total",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.costoTotal),
 			render: (v) => (
 				<span className="tabular-nums font-medium">
 					{formatoMoneda(v.costoTotal)}
@@ -615,6 +631,7 @@ export default function RentasPage() {
 		{
 			key: "estado",
 			header: "Estado",
+			exportar: (v) => v.estado,
 			render: (v) => (
 				<Badge tone={TONO_RENTA[v.estado] ?? "default"}>{v.estado}</Badge>
 			),
@@ -719,7 +736,12 @@ export default function RentasPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Rentas (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Rentas (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="rentas" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

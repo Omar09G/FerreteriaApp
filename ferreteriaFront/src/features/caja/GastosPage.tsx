@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -473,6 +474,7 @@ export default function GastosPage() {
 		{
 			key: "t",
 			header: "Tipo",
+			exportar: (v) => tipoGastoDe(v.tipoGastoId),
 			render: (v) => (
 				<span className="font-medium text-ink">
 					{tipoGastoDe(v.tipoGastoId)}
@@ -482,6 +484,7 @@ export default function GastosPage() {
 		{
 			key: "d",
 			header: "Descripción",
+			exportar: (v) => v.descripcion,
 			render: (v) => (
 				<span className="max-w-[24rem] truncate">{v.descripcion}</span>
 			),
@@ -489,12 +492,14 @@ export default function GastosPage() {
 		{
 			key: "p",
 			header: "Proveedor",
+			exportar: (v) => (v.proveedorId ? `#${v.proveedorId}` : "—"),
 			render: (v) => (v.proveedorId ? `#${v.proveedorId}` : "—"),
 		},
-		{ key: "f", header: "Forma", render: (v) => formaDe(v.formaPagoId) },
+		{ key: "f", header: "Forma", exportar: (v) => formaDe(v.formaPagoId), render: (v) => formaDe(v.formaPagoId) },
 		{
 			key: "fc",
 			header: "Fecha",
+			exportar: (v) => formatoFecha(v.fechaGasto),
 			render: (v) => (
 				<span className="tabular-nums">{formatoFecha(v.fechaGasto)}</span>
 			),
@@ -502,6 +507,7 @@ export default function GastosPage() {
 		{
 			key: "c",
 			header: "Registrado",
+			exportar: (v) => formatoFechaHora(v.creadoEn),
 			render: (v) => (
 				<span className="text-xs tabular-nums text-muted">
 					{formatoFechaHora(v.creadoEn)}
@@ -512,6 +518,7 @@ export default function GastosPage() {
 			key: "m",
 			header: "Monto",
 			align: "right",
+			exportar: (v) => `−${formatoMoneda(v.monto)}`,
 			render: (v) => (
 				<span className="font-medium tabular-nums text-red-700">
 					−{formatoMoneda(v.monto)}
@@ -531,12 +538,14 @@ export default function GastosPage() {
 		{
 			key: "c",
 			header: "Concepto",
+			exportar: (v) => v.concepto,
 			render: (v) => <span className="font-medium text-ink">{v.concepto}</span>,
 		},
-		{ key: "f", header: "Forma", render: (v) => formaDe(v.formaPagoId) },
+		{ key: "f", header: "Forma", exportar: (v) => formaDe(v.formaPagoId), render: (v) => formaDe(v.formaPagoId) },
 		{
 			key: "fc",
 			header: "Fecha",
+			exportar: (v) => formatoFecha(v.fecha),
 			render: (v) => (
 				<span className="tabular-nums">{formatoFecha(v.fecha)}</span>
 			),
@@ -544,6 +553,7 @@ export default function GastosPage() {
 		{
 			key: "c2",
 			header: "Registrado",
+			exportar: (v) => formatoFechaHora(v.creadoEn),
 			render: (v) => (
 				<span className="text-xs tabular-nums text-muted">
 					{formatoFechaHora(v.creadoEn)}
@@ -554,6 +564,7 @@ export default function GastosPage() {
 			key: "m",
 			header: "Monto",
 			align: "right",
+			exportar: (v) => `+${formatoMoneda(v.monto)}`,
 			render: (v) => (
 				<span className="font-medium tabular-nums text-green-700">
 					+{formatoMoneda(v.monto)}
@@ -625,7 +636,16 @@ export default function GastosPage() {
 						<Spinner />
 					) : (
 						gastos.data && (
-							<Card titulo={`Gastos (${gastos.data.meta.totalElements})`}>
+							<Card
+								titulo={`Gastos (${gastos.data.meta.totalElements})`}
+								actions={
+									<ExportarExcel
+										columnas={colGastos}
+										items={gastos.data.data}
+										archivo="gastos"
+									/>
+								}
+							>
 								<DataTable
 									columnas={colGastos}
 									items={gastos.data.data}
@@ -645,7 +665,16 @@ export default function GastosPage() {
 						<Spinner />
 					) : (
 						ingresos.data && (
-							<Card titulo={`Ingresos (${ingresos.data.meta.totalElements})`}>
+							<Card
+								titulo={`Ingresos (${ingresos.data.meta.totalElements})`}
+								actions={
+									<ExportarExcel
+										columnas={colIngresos}
+										items={ingresos.data.data}
+										archivo="ingresos"
+									/>
+								}
+							>
 								<DataTable
 									columnas={colIngresos}
 									items={ingresos.data.data}

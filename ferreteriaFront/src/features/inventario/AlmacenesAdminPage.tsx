@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -178,17 +179,20 @@ export default function AlmacenesAdminPage() {
 		{
 			key: "nombre",
 			header: "Almacén",
+			exportar: (a) => a.nombre,
 			render: (a) => <span className="font-medium text-ink">{a.nombre}</span>,
 		},
 		{
 			key: "direccion",
 			header: "Dirección",
+			exportar: (a) => a.direccion ?? "—",
 			render: (a) => a.direccion ?? "—",
 		},
-		{ key: "telefono", header: "Teléfono", render: (a) => a.telefono ?? "—" },
+		{ key: "telefono", header: "Teléfono", exportar: (a) => a.telefono ?? "—", render: (a) => a.telefono ?? "—" },
 		{
 			key: "esPuntoVenta",
 			header: "Punto de venta",
+			exportar: (a) => (a.esPuntoVenta ? "Sí" : "No"),
 			render: (a) => (a.esPuntoVenta ? "Sí" : "No"),
 		},
 		{
@@ -253,7 +257,9 @@ export default function AlmacenesAdminPage() {
 				</Button>
 			</header>
 
-			<Card>
+			<Card
+			actions={<ExportarExcel columnas={columnas} items={ver} archivo="almacenes" />}
+		>
 				{almacenes.isLoading ? (
 					<Spinner />
 				) : (

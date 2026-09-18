@@ -8,6 +8,7 @@ import { apiMejoresVendedores } from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -33,31 +34,41 @@ export default function MejoresVendedoresPage() {
 		{
 			key: "r",
 			header: "Ranking",
+			exportar: (v) => v.rankingMes,
 			render: (v) => <span className="font-medium">{v.rankingMes}°</span>,
 		},
-		{ key: "n", header: "Vendedor", render: (v) => v.vendedor },
+		{
+			key: "n",
+			header: "Vendedor",
+			exportar: (v) => v.vendedor,
+			render: (v) => v.vendedor,
+		},
 		{
 			key: "c",
 			header: "Ventas",
 			align: "right",
+			exportar: (v) => formatoNumero(v.numVentas),
 			render: (v) => formatoNumero(v.numVentas),
 		},
 		{
 			key: "t",
 			header: "Total vendido",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.totalVendido),
 			render: (v) => formatoMoneda(v.totalVendido),
 		},
 		{
 			key: "p",
 			header: "Ticket promedio",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.ticketPromedio),
 			render: (v) => formatoMoneda(v.ticketPromedio),
 		},
 		{
 			key: "u",
 			header: "Utilidad",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.utilidadGenerada),
 			render: (v) => formatoMoneda(v.utilidadGenerada),
 		},
 	];
@@ -72,7 +83,12 @@ export default function MejoresVendedoresPage() {
 			/>
 			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
-				<Card titulo="Ranking del periodo">
+				<Card
+					titulo="Ranking del periodo"
+					actions={
+						<ExportarExcel columnas={columnas} items={data} archivo="mejores-vendedores" />
+					}
+				>
 					<DataTable
 						columnas={columnas}
 						items={data}

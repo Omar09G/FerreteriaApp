@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -68,6 +69,7 @@ export default function AuditoriaPage() {
 		{
 			key: "cuando",
 			header: t("seguridad.auditoria.columnas.fecha"),
+			exportar: (v) => formatoFechaHora(v.creadoEn),
 			render: (v) => (
 				<span className="tabular-nums">{formatoFechaHora(v.creadoEn)}</span>
 			),
@@ -75,6 +77,7 @@ export default function AuditoriaPage() {
 		{
 			key: "usuario",
 			header: t("seguridad.auditoria.columnas.usuario"),
+			exportar: (v) => v.usuario ?? "—",
 			render: (v) =>
 				v.usuario ? (
 					<span className="font-medium">{v.usuario}</span>
@@ -85,6 +88,7 @@ export default function AuditoriaPage() {
 		{
 			key: "esquema",
 			header: t("seguridad.auditoria.columnas.origen"),
+			exportar: (v) => `${v.esquema}.${v.tabla} · #${v.registroId}`,
 			render: (v) => (
 				<span className="text-xs">
 					<span className="text-muted">{v.esquema}.</span>
@@ -96,11 +100,14 @@ export default function AuditoriaPage() {
 		{
 			key: "accion",
 			header: t("seguridad.auditoria.columnas.accion"),
+			exportar: (v) => v.accion,
 			render: (v) => <Badge tone={accionTone(v.accion)}>{v.accion}</Badge>,
 		},
 		{
 			key: "cambios",
 			header: t("seguridad.auditoria.columnas.cambios"),
+			exportar: (v) =>
+				`Anterior: ${v.datosAnteriores ?? "—"} | Nuevo: ${v.datosNuevos ?? "—"}`,
 			render: (v) => <DetalleCambios a={v} t={t} />,
 		},
 	];
@@ -237,6 +244,16 @@ export default function AuditoriaPage() {
 				</div>
 			</Card>
 
+		<Card
+			titulo={t("seguridad.auditoria.titulo")}
+			actions={
+				<ExportarExcel
+					columnas={columnas}
+					items={lista.data?.data}
+					archivo="auditoria"
+				/>
+			}
+		>
 			<DataTable
 				columnas={columnas}
 				items={lista.data?.data}
@@ -252,6 +269,7 @@ export default function AuditoriaPage() {
 					onPage={(p) => setFiltros((f) => ({ ...f, page: p }))}
 				/>
 			)}
+		</Card>
 		</div>
 	);
 }

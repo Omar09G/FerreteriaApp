@@ -15,6 +15,7 @@ import { esApiError } from "@/lib/api/client";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -36,46 +37,58 @@ export default function CierreDiarioPage() {
 	}, [error, mostrarError]);
 
 	const columnas: Columna<CierreDiario>[] = [
-		{ key: "f", header: "Fecha", render: (v) => formatoFecha(v.fecha) },
+		{
+			key: "f",
+			header: "Fecha",
+			exportar: (v) => formatoFecha(v.fecha),
+			render: (v) => formatoFecha(v.fecha),
+		},
 		{
 			key: "nc",
 			header: "Cortes",
 			align: "right",
+			exportar: (v) => formatoNumero(v.numCortes),
 			render: (v) => formatoNumero(v.numCortes),
 		},
 		{
 			key: "t",
 			header: "Tickets",
 			align: "right",
+			exportar: (v) => formatoNumero(v.tickets),
 			render: (v) => formatoNumero(v.tickets),
 		},
 		{
 			key: "tv",
 			header: "Total vendido",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.totalVendido),
 			render: (v) => formatoMoneda(v.totalVendido),
 		},
 		{
 			key: "ub",
 			header: "Utilidad bruta",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.utilidadBruta),
 			render: (v) => formatoMoneda(v.utilidadBruta),
 		},
 		{
 			key: "margen",
 			header: "Margen",
 			align: "right",
+			exportar: (v) => formatoPorcentaje(v.margenPctPromedio),
 			render: (v) => formatoPorcentaje(v.margenPctPromedio),
 		},
 		{
 			key: "ee",
 			header: "Entradas efectivo",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.entradasEfectivo),
 			render: (v) => formatoMoneda(v.entradasEfectivo),
 		},
 		{
 			key: "estado",
 			header: "Cuadratura",
+			exportar: (v) => (v.todoCuadrado ? "Cuadrado" : "Diferencia"),
 			render: (v) =>
 				v.todoCuadrado ? (
 					<Badge tone="success">Cuadrado</Badge>
@@ -95,7 +108,12 @@ export default function CierreDiarioPage() {
 			/>
 			{isLoading && <ChartSkeleton />}
 			{data && data.length > 0 && (
-				<Card titulo="Cortes del periodo">
+				<Card
+				titulo="Cortes del periodo"
+				actions={
+					<ExportarExcel columnas={columnas} items={data} archivo="cierre-diario" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data}

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
@@ -81,6 +82,7 @@ export default function MovimientosPage() {
 		{
 			key: "f",
 			header: "Fecha",
+			exportar: (v) => formatoFechaHora(v.creadoEn),
 			render: (v) => (
 				<span className="whitespace-nowrap">
 					{formatoFechaHora(v.creadoEn)}
@@ -90,14 +92,16 @@ export default function MovimientosPage() {
 		{
 			key: "p",
 			header: "Producto",
+			exportar: (v) => v.productoNombre,
 			render: (v) => (
 				<span className="font-medium text-ink">{v.productoNombre}</span>
 			),
 		},
-		{ key: "a", header: "Almacén", render: (v) => v.almacenNombre },
+		{ key: "a", header: "Almacén", exportar: (v) => v.almacenNombre, render: (v) => v.almacenNombre },
 		{
 			key: "t",
 			header: "Tipo",
+			exportar: (v) => v.tipo,
 			render: (v) =>
 				v.tipo === "ENTRADA" ? (
 					<Badge tone="success">Entrada</Badge>
@@ -109,18 +113,21 @@ export default function MovimientosPage() {
 			key: "c",
 			header: "Cantidad",
 			align: "right",
+			exportar: (v) => formatoNumero(v.cantidad),
 			render: (v) => formatoNumero(v.cantidad),
 		},
 		{
 			key: "cu",
 			header: "Costo unit.",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.costoUnitario),
 			render: (v) => formatoMoneda(v.costoUnitario),
 		},
-		{ key: "m", header: "Motivo", render: (v) => v.motivoNombre ?? "—" },
+		{ key: "m", header: "Motivo", exportar: (v) => v.motivoNombre ?? "—", render: (v) => v.motivoNombre ?? "—" },
 		{
 			key: "r",
 			header: "Referencia",
+			exportar: (v) => (v.refTabla ? `${v.refTabla}#${v.refId}` : "—"),
 			render: (v) => (v.refTabla ? `${v.refTabla}#${v.refId}` : "—"),
 		},
 	];
@@ -178,7 +185,16 @@ export default function MovimientosPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Movimientos (${data.meta.totalElements})`}>
+				<Card
+					titulo={`Movimientos (${data.meta.totalElements})`}
+					actions={
+						<ExportarExcel
+							columnas={columnas}
+							items={data.data}
+							archivo="movimientos"
+						/>
+					}
+				>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

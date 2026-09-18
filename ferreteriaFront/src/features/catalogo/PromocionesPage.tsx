@@ -30,6 +30,7 @@ import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -771,10 +772,17 @@ export default function PromocionesPage() {
 
   const columnas: Columna<Promocion>[] = useMemo(
     () => [
-      { key: "nombre", header: t("comun.nombre"), render: (v) => v.nombre },
+      {
+        key: "nombre",
+        header: t("comun.nombre"),
+        exportar: (v) => v.nombre,
+        render: (v) => v.nombre,
+      },
       {
         key: "tipo",
         header: t("comun.tipo"),
+        exportar: (v) =>
+          t(`catalogo.promociones.tipos.${v.tipo}` as never),
         render: (v) => (
           <Badge tone="default">
             {t(`catalogo.promociones.tipos.${v.tipo}` as never)}
@@ -784,6 +792,18 @@ export default function PromocionesPage() {
       {
         key: "valor",
         header: t("catalogo.promociones.campos.valor"),
+        exportar: (v) => {
+          if (v.tipo === "PRECIO_ESPECIAL")
+            return `$${(v.precioEspecial ?? 0).toFixed(2)}`;
+          if (v.tipo === "NXM")
+            return t("catalogo.promociones.campos.llevaPagaLabel", {
+              lleva: v.lleva ?? 0,
+              paga: v.paga ?? 0,
+            });
+          if (v.valorPct) return `${v.valorPct}%`;
+          if (v.valorMonto) return `$${v.valorMonto.toFixed(2)}`;
+          return "—";
+        },
         render: (v) => {
           let contenido;
           if (v.tipo === "PRECIO_ESPECIAL")
@@ -802,17 +822,21 @@ export default function PromocionesPage() {
       {
         key: "vigencia",
         header: t("catalogo.promociones.campos.vigencia"),
+        exportar: (v) =>
+          `${formatoFechaHora(v.vigenciaDesde)}${v.vigenciaHasta ? ` → ${formatoFechaHora(v.vigenciaHasta)}` : ""}`,
         render: (v) =>
           `${formatoFechaHora(v.vigenciaDesde)}${v.vigenciaHasta ? ` → ${formatoFechaHora(v.vigenciaHasta)}` : ""}`,
       },
       {
         key: "estado",
         header: t("comun.estado"),
+        exportar: (v) => v.estado,
         render: (v) => <Badge tone={estadoTone(v.estado)}>{v.estado}</Badge>,
       },
       {
         key: "alcance",
         header: t("catalogo.promociones.campos.alcance"),
+        exportar: (v) => `${v.productos.length} prod · ${v.categorias.length} cat`,
         render: (v) => (
           <span className="text-xs text-muted">
             {v.productos.length} prod · {v.categorias.length} cat
@@ -822,6 +846,13 @@ export default function PromocionesPage() {
       {
         key: "usos",
         header: t("catalogo.promociones.campos.usos"),
+        exportar: (v) =>
+          v.maxUsosTotal
+            ? t("catalogo.promociones.campos.usosDe", {
+                actual: v.usosActual,
+                max: v.maxUsosTotal,
+              })
+            : `${v.usosActual}`,
         render: (v) => (
           <Badge tone="default">
             {v.maxUsosTotal
@@ -954,21 +985,31 @@ export default function PromocionesPage() {
         </div>
       </Card>
 
-      <DataTable
-        columnas={columnas}
-        items={lista.data?.data}
-        loading={lista.isLoading}
-        rowKey={(v) => v.promocionId}
-        emptyTitle={t("catalogo.promociones.sinResultados")}
-        emptyDescripcion={t("catalogo.promociones.sinResultadosDesc")}
-      />
-
-      {lista.data && (
-        <Pagination
-          meta={lista.data.meta}
-          onPage={(p) => setFiltros((f) => ({ ...f, page: p }))}
+      <Card
+        actions={
+          <ExportarExcel
+            columnas={columnas}
+            items={lista.data?.data}
+            archivo="promociones"
+          />
+        }
+      >
+        <DataTable
+          columnas={columnas}
+          items={lista.data?.data}
+          loading={lista.isLoading}
+          rowKey={(v) => v.promocionId}
+          emptyTitle={t("catalogo.promociones.sinResultados")}
+          emptyDescripcion={t("catalogo.promociones.sinResultadosDesc")}
         />
-      )}
+
+        {lista.data && (
+          <Pagination
+            meta={lista.data.meta}
+            onPage={(p) => setFiltros((f) => ({ ...f, page: p }))}
+          />
+        )}
+      </Card>
 
       <Dialog
         open={dialogo !== null}

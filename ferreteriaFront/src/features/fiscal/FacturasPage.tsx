@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -181,6 +182,7 @@ export default function FacturasPage() {
 		{
 			key: "tipo",
 			header: "Tipo",
+			exportar: (v) => v.tipo,
 			render: (v) =>
 				v.tipo === "EMITIDA" ? (
 					<Badge tone="success">EMITIDA</Badge>
@@ -191,12 +193,14 @@ export default function FacturasPage() {
 		{
 			key: "folio",
 			header: "Folio",
+			exportar: (v) => v.folio,
 			render: (v) => <span className="font-medium text-ink">{v.folio}</span>,
 		},
-		{ key: "serie", header: "Serie", render: (v) => v.serie ?? "—" },
+		{ key: "serie", header: "Serie", exportar: (v) => v.serie ?? "—", render: (v) => v.serie ?? "—" },
 		{
 			key: "uuid",
 			header: "UUID",
+			exportar: (v) => (v.uuid ? truncarUuid(v.uuid) : "—"),
 			render: (v) =>
 				v.uuid ? (
 					<span className="text-muted" title={v.uuid}>
@@ -206,12 +210,13 @@ export default function FacturasPage() {
 					"—"
 				),
 		},
-		{ key: "emisor", header: "RFC emisor", render: (v) => v.emisorRfc },
-		{ key: "receptor", header: "RFC receptor", render: (v) => v.receptorRfc },
+		{ key: "emisor", header: "RFC emisor", exportar: (v) => v.emisorRfc, render: (v) => v.emisorRfc },
+		{ key: "receptor", header: "RFC receptor", exportar: (v) => v.receptorRfc, render: (v) => v.receptorRfc },
 		{
 			key: "subtotal",
 			header: "Subtotal",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.subtotal),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.subtotal)}</span>
 			),
@@ -220,6 +225,7 @@ export default function FacturasPage() {
 			key: "iva",
 			header: "IVA",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.iva),
 			render: (v) => (
 				<span className="tabular-nums">{formatoMoneda(v.iva)}</span>
 			),
@@ -228,6 +234,7 @@ export default function FacturasPage() {
 			key: "total",
 			header: "Total",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.total),
 			render: (v) => (
 				<span className="font-medium tabular-nums">
 					{formatoMoneda(v.total)}
@@ -237,6 +244,7 @@ export default function FacturasPage() {
 		{
 			key: "fecha",
 			header: "Fecha timbrado",
+			exportar: (v) => formatoFechaHora(v.fechaTimbrado),
 			render: (v) => (
 				<span className="whitespace-nowrap tabular-nums">
 					{formatoFechaHora(v.fechaTimbrado)}
@@ -246,6 +254,7 @@ export default function FacturasPage() {
 		{
 			key: "estado",
 			header: "Estado",
+			exportar: (v) => v.estado,
 			render: (v) => (
 				<Badge
 					tone={
@@ -325,7 +334,16 @@ export default function FacturasPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Facturas (${data.meta.totalElements})`}>
+				<Card
+					titulo={`Facturas (${data.meta.totalElements})`}
+					actions={
+						<ExportarExcel
+							columnas={columnas}
+							items={data.data}
+							archivo="facturas"
+						/>
+					}
+				>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

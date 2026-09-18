@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -314,6 +315,7 @@ export default function StockPage() {
 		{
 			key: "c",
 			header: "Código",
+			exportar: (v) => v.productoCodigo ?? "—",
 			render: (v) => (
 				<span className="font-mono text-xs text-muted">
 					{v.productoCodigo ?? "—"}
@@ -323,6 +325,7 @@ export default function StockPage() {
 		{
 			key: "p",
 			header: "Producto",
+			exportar: (v) => v.productoNombre,
 			render: (v) => (
 				<span className="font-medium text-ink">{v.productoNombre}</span>
 			),
@@ -330,6 +333,7 @@ export default function StockPage() {
 		{
 			key: "a",
 			header: "Almacén",
+			exportar: (v) => v.almacenNombre,
 			render: (v) => (
 				<span className="inline-flex items-center gap-1 text-sm">
 					<Warehouse className="h-3.5 w-3.5 text-muted" />
@@ -341,6 +345,7 @@ export default function StockPage() {
 			key: "stock",
 			header: "Existencia",
 			align: "right",
+			exportar: (v) => formatoNumero(v.stock),
 			render: (v) => (
 				<span
 					className={
@@ -357,6 +362,7 @@ export default function StockPage() {
 			key: "min",
 			header: "Stock mín.",
 			align: "right",
+			exportar: (v) => formatoNumero(v.stockMinimo),
 			render: (v) => (
 				<span className="tabular-nums text-muted">
 					{formatoNumero(v.stockMinimo)}
@@ -367,6 +373,7 @@ export default function StockPage() {
 			key: "res",
 			header: "Reservado",
 			align: "right",
+			exportar: (v) => (v.reservado ? formatoNumero(v.reservado) : "—"),
 			render: (v) =>
 				v.reservado ? (
 					<span className="tabular-nums">{formatoNumero(v.reservado)}</span>
@@ -377,6 +384,8 @@ export default function StockPage() {
 		{
 			key: "estado",
 			header: "Estado",
+			exportar: (v) =>
+				v.stock <= 0 ? "Agotado" : v.stock <= v.stockMinimo ? "Bajo stock" : "Disponible",
 			render: (v) =>
 				v.stock <= 0 ? (
 					<Badge tone="danger">Agotado</Badge>
@@ -486,7 +495,16 @@ export default function StockPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Filas (${data.meta.totalElements})`}>
+				<Card
+					titulo={`Filas (${data.meta.totalElements})`}
+					actions={
+						<ExportarExcel
+							columnas={columnas}
+							items={data.data}
+							archivo="inventario-stock"
+						/>
+					}
+				>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

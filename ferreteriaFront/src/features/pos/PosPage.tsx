@@ -50,6 +50,7 @@ import { CodigosBarras } from "@/components/ui/CodigosBarras";
 import { ScannerCamara } from "@/components/ScannerCamara";
 import { camaraDisponible } from "@/lib/camara";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -577,6 +578,7 @@ export default function PosPage() {
     {
       key: "f",
       header: "Folio",
+      exportar: (v) => v.folio,
       render: (v) => (
         <span className="font-mono text-xs font-medium text-ink">
           {v.folio}
@@ -586,6 +588,7 @@ export default function PosPage() {
     {
       key: "fe",
       header: "Hora",
+      exportar: (v) => formatoFechaHora(v.fecha),
       render: (v) => (
         <span className="whitespace-nowrap tabular-nums">
           {formatoFechaHora(v.fecha)}
@@ -595,14 +598,24 @@ export default function PosPage() {
     {
       key: "c",
       header: "Cliente",
+      exportar: (v) => v.clienteNombre ?? "Consumidor final",
       render: (v) =>
         v.clienteNombre ?? <span className="text-muted">Consumidor final</span>,
     },
-    { key: "p", header: "Pago", render: (v) => v.formaPagoNombre },
+    {
+      key: "p",
+      header: "Pago",
+      exportar: (v) => v.formaPagoNombre,
+      render: (v) => v.formaPagoNombre,
+    },
     {
       key: "d",
       header: "Desc.",
       align: "right",
+      exportar: (v) =>
+        Number(v.descuentoTotal) > 0
+          ? `−${formatoMoneda(v.descuentoTotal)}`
+          : "—",
       render: (v) =>
         Number(v.descuentoTotal) > 0 ? (
           <span className="tabular-nums text-green-700">
@@ -616,6 +629,7 @@ export default function PosPage() {
       key: "t",
       header: "Total",
       align: "right",
+      exportar: (v) => formatoMoneda(v.total),
       render: (v) => (
         <span className="font-semibold tabular-nums">
           {formatoMoneda(v.total)}
@@ -625,6 +639,12 @@ export default function PosPage() {
     {
       key: "e",
       header: "Estado",
+      exportar: (v) =>
+        v.estado === "CANCELADA"
+          ? "Cancelada"
+          : v.estado === "COMPLETADA"
+            ? "Completada"
+            : v.estado,
       render: (v) =>
         v.estado === "CANCELADA" ? (
           <Badge tone="danger">Cancelada</Badge>
@@ -1713,12 +1733,22 @@ export default function PosPage() {
                   Aún no hay ventas hoy.
                 </p>
               ) : (
-                <DataTable<Venta>
-                  columnas={columnasVentasHoy}
-                  items={ventasHoy.data.data}
-                  rowKey={(v) => v.ventaId}
-                  loading={ventasHoy.isFetching}
-                />
+                <Card
+                  actions={
+                    <ExportarExcel
+                      columnas={columnasVentasHoy}
+                      items={ventasHoy.data.data}
+                      archivo="pos-venta"
+                    />
+                  }
+                >
+                  <DataTable<Venta>
+                    columnas={columnasVentasHoy}
+                    items={ventasHoy.data.data}
+                    rowKey={(v) => v.ventaId}
+                    loading={ventasHoy.isFetching}
+                  />
+                </Card>
               )}
             </>
           )}

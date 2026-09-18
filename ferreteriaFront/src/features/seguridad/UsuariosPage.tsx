@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -208,17 +209,25 @@ export default function UsuariosPage() {
 		{
 			key: "u",
 			header: "Usuario",
+			exportar: (v) => v.username,
 			render: (v) => <span className="font-medium text-ink">{v.username}</span>,
 		},
-		{ key: "e", header: "Correo", render: (v) => v.email },
+		{
+			key: "e",
+			header: "Correo",
+			exportar: (v) => v.email,
+			render: (v) => v.email,
+		},
 		{
 			key: "emp",
 			header: "Empleado",
+			exportar: (v) => v.empleado?.nombreCompleto ?? "—",
 			render: (v) => v.empleado?.nombreCompleto ?? "—",
 		},
 		{
 			key: "ro",
 			header: "Roles",
+			exportar: (v) => v.roles.join("; "),
 			render: (v) => (
 				<div className="flex flex-wrap gap-1">
 					{v.roles.map((r) => (
@@ -230,6 +239,7 @@ export default function UsuariosPage() {
 		{
 			key: "act",
 			header: "Estado",
+			exportar: (v) => (v.activo ? "Activo" : "Inactivo"),
 			render: (v) =>
 				v.activo ? (
 					<Badge tone="success">Activo</Badge>
@@ -240,6 +250,7 @@ export default function UsuariosPage() {
 		{
 			key: "login",
 			header: "Último login",
+			exportar: (v) => (v.ultimoLogin ? formatoFechaHora(v.ultimoLogin) : "—"),
 			render: (v) =>
 				v.ultimoLogin ? (
 					<span className="tabular-nums">
@@ -307,7 +318,12 @@ export default function UsuariosPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Usuarios (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Usuarios (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="usuarios" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}

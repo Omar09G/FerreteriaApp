@@ -17,6 +17,7 @@ import { apiVentasTotales } from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ChartSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -39,47 +40,59 @@ export default function VentasTotalesPage() {
 	}, [error, mostrarError]);
 
 	const columnas: Columna<VentaTotal>[] = [
-		{ key: "f", header: "Fecha", render: (v) => formatoFecha(v.fecha) },
+		{
+			key: "f",
+			header: "Fecha",
+			exportar: (v) => formatoFecha(v.fecha),
+			render: (v) => formatoFecha(v.fecha),
+		},
 		{
 			key: "n",
 			header: "Ventas",
 			align: "right",
+			exportar: (v) => formatoNumero(v.numVentas),
 			render: (v) => formatoNumero(v.numVentas),
 		},
 		{
 			key: "s",
 			header: "Subtotal",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.subtotal),
 			render: (v) => formatoMoneda(v.subtotal),
 		},
 		{
 			key: "iv",
 			header: "IVA",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.iva),
 			render: (v) => formatoMoneda(v.iva),
 		},
 		{
 			key: "d",
 			header: "Desc.",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.descuentos),
 			render: (v) => formatoMoneda(v.descuentos),
 		},
 		{
 			key: "t",
 			header: "Total",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.totalVendido),
 			render: (v) => formatoMoneda(v.totalVendido),
 		},
 		{
 			key: "c",
 			header: "Costo",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.costoVentas),
 			render: (v) => formatoMoneda(v.costoVentas),
 		},
 		{
 			key: "u",
 			header: "Utilidad",
 			align: "right",
+			exportar: (v) => formatoMoneda(v.utilidadBruta),
 			render: (v) => formatoMoneda(v.utilidadBruta),
 		},
 	];
@@ -141,7 +154,12 @@ export default function VentasTotalesPage() {
 							</AreaChart>
 						</ResponsiveContainer>
 					</Card>
-					<Card titulo="Detalle diario">
+					<Card
+						titulo="Detalle diario"
+						actions={
+							<ExportarExcel columnas={columnas} items={data} archivo="ventas-totales" />
+						}
+					>
 						<DataTable
 							columnas={columnas}
 							items={data}

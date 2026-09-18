@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/Toast";
 import { apiMejoresCategorias } from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Card } from "@/components/ui/Card";
 import { ChartSkeleton } from "@/components/ui/Skeleton";
 import type { MejoresCategorias } from "@/lib/api/types";
@@ -36,14 +37,26 @@ export default function MejoresCategoriasPage() {
     {
       key: "rankingMes",
       header: "Ranking del mes",
+      exportar: (v) => formatoNumero(v.rankingMes),
       render: (v) => formatoNumero(v.rankingMes),
     },
-    { key: "mes", header: "Mes", render: (v) => formatoFecha(v.mes) },
-    { key: "categoria", header: "Categoría", render: (v) => v.categoria },
+    {
+      key: "mes",
+      header: "Mes",
+      exportar: (v) => formatoFecha(v.mes),
+      render: (v) => formatoFecha(v.mes),
+    },
+    {
+      key: "categoria",
+      header: "Categoría",
+      exportar: (v) => v.categoria,
+      render: (v) => v.categoria,
+    },
     {
       key: "unidadesVendidas",
       header: "Unidades vendidas",
       align: "right",
+      exportar: (v) => formatoNumero(v.unidadesVendidas),
       render: (v) => (
         <Badge tone="danger">{formatoNumero(v.unidadesVendidas)}</Badge>
       ),
@@ -52,12 +65,14 @@ export default function MejoresCategoriasPage() {
       key: "ingreso",
       header: "Ingreso total",
       align: "right",
+      exportar: (v) => formatoMoneda(v.ingreso),
       render: (v) => formatoMoneda(v.ingreso),
     },
     {
       key: "utilidad",
       header: "Utilidad total",
       align: "right",
+      exportar: (v) => formatoMoneda(v.utilidad),
       render: (v) =>
         //Case utilizada > 500 ? Badge verde, entre 100 y 500 ? Badge amarillo, < 100 ? Badge rojo
         v.utilidad > 499 ? (
@@ -80,7 +95,16 @@ export default function MejoresCategoriasPage() {
       />
       {isLoading && <ChartSkeleton />}
       {data && data.length > 0 && (
-        <Card titulo="Ranking de mejor categoría vendida por mes">
+        <Card
+          titulo="Ranking de mejor categoría vendida por mes"
+          actions={
+            <ExportarExcel
+              columnas={columnas}
+              items={data}
+              archivo="mejores-categorias"
+            />
+          }
+        >
           <DataTable
             columnas={columnas}
             items={data}

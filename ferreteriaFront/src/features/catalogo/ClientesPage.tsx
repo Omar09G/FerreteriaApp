@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
+import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -234,6 +235,7 @@ export default function ClientesPage() {
 		{
 			key: "r",
 			header: "Razón social",
+			exportar: (v) => v.razonSocial,
 			render: (v) => (
 				<span className="font-medium text-ink">{v.razonSocial}</span>
 			),
@@ -241,11 +243,13 @@ export default function ClientesPage() {
 		{
 			key: "c",
 			header: "Nombre comercial",
+			exportar: (v) => v.nombreComercial ?? "—",
 			render: (v) => v.nombreComercial ?? "—",
 		},
 		{
 			key: "t",
 			header: "Persona",
+			exportar: (v) => (v.tipoPersona === "MORAL" ? "Moral" : "Física"),
 			render: (v) =>
 				v.tipoPersona === "MORAL" ? (
 					<Badge tone="info">Moral</Badge>
@@ -256,14 +260,21 @@ export default function ClientesPage() {
 		{
 			key: "rfc",
 			header: "RFC",
+			exportar: (v) => v.rfc ?? "—",
 			render: (v) => (
 				<span className="font-mono text-xs text-muted">{v.rfc ?? "—"}</span>
 			),
 		},
-		{ key: "tel", header: "Teléfono", render: (v) => v.telefono ?? "—" },
+		{
+			key: "tel",
+			header: "Teléfono",
+			exportar: (v) => v.telefono ?? "—",
+			render: (v) => v.telefono ?? "—",
+		},
 		{
 			key: "may",
 			header: "Mayorista",
+			exportar: (v) => (v.esMayorista ? "Sí" : "No"),
 			render: (v) =>
 				v.esMayorista ? (
 					<Badge tone="success">Sí</Badge>
@@ -275,6 +286,10 @@ export default function ClientesPage() {
 			key: "cred",
 			header: "Límite / días",
 			align: "right",
+			exportar: (v) =>
+				v.limiteCredito != null
+					? `${formatoMoneda(v.limiteCredito)} / ${v.diasCredito ?? 0}d`
+					: "—",
 			render: (v) =>
 				v.limiteCredito != null
 					? `${formatoMoneda(v.limiteCredito)} / ${v.diasCredito ?? 0}d`
@@ -370,7 +385,12 @@ export default function ClientesPage() {
 
 			{(isLoading || (isFetching && !data)) && <Spinner />}
 			{data && (
-				<Card titulo={`Resultados (${data.meta.totalElements})`}>
+				<Card
+				titulo={`Resultados (${data.meta.totalElements})`}
+				actions={
+					<ExportarExcel columnas={columnas} items={data.data} archivo="clientes" />
+				}
+			>
 					<DataTable
 						columnas={columnas}
 						items={data.data}
