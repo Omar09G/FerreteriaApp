@@ -16,7 +16,11 @@ export default defineConfig(({ mode }) => {
 	return {
 		plugins: [
 			react(),
-			babel({ presets: [reactCompilerPreset()] }),
+			// Mantenemos el compilador de React pero con filtros para acelerar un poco el build
+			babel({
+				presets: [reactCompilerPreset()],
+				include: /\.(jsx|tsx)$/, // Evita que Babel procese archivos JS puros, CSS o librerías
+			}),
 			tailwindcss(),
 		],
 		resolve: {
@@ -27,12 +31,26 @@ export default defineConfig(({ mode }) => {
 		build: {
 			target: "es2022",
 			chunkSizeWarningLimit: 600,
+			// Aumentamos el límite para que absorba automáticamente assets de menos de 4kB dentro del JS principal
+			assetsInlineLimit: 4096,
 			rollupOptions: {
 				output: {
 					manualChunks(id) {
+						// 1. Agrupar librerías pesadas (Ya lo tenías)
 						if (id.includes("recharts")) return "recharts";
 						if (id.includes("@opentelemetry")) return "otel";
 						if (id.includes("sweetalert2")) return "swal";
+
+						// 2. SOLUCIÓN A LOS ICONOS SUELTOS: Agrupa lucide y otros iconos en un solo paquete
+						if (id.includes("node_modules/lucide-react") || id.includes("node_modules/@lucide")) {
+							return "lucide-icons";
+						}
+
+						// 3. SOLUCIÓN A LOS HOOKS SUELTOS: Agrupa tus utilidades y custom hooks comunes
+						if (id.includes("src/hooks/")) {
+							return "custom-hooks";
+						}
+
 						return undefined;
 					},
 				},
@@ -47,11 +65,11 @@ export default defineConfig(({ mode }) => {
 			proxy: sinProxyDev
 				? undefined
 				: {
-						"/api": {
-							target: env.VITE_API_PROXY || "http://localhost:8080",
-							changeOrigin: true,
-						},
+					"/api": {
+						target: env.VITE_API_PROXY || "http://localhost:8080",
+						changeOrigin: true,
 					},
+				},
 		},
 	};
 });
