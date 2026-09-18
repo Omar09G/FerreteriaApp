@@ -46,6 +46,24 @@ function DevolucionForm({
 }) {
 	const [motivo, setMotivo] = useState("");
 	const [formaDevolucionId, setFormaDevolucionId] = useState(1);
+	// Devoluciones previas de la venta (misma query cacheada del historial):
+	// lo ya devuelto se resta del disponible por línea.
+	const { data: previas } = useQuery({
+		queryKey: ["devolucion", venta.ventaId],
+		queryFn: () => apiDevolucionesDeVenta(venta.ventaId),
+	});
+	const devueltoPorLinea = new Map<number, number>();
+	(previas ?? []).forEach((d) =>
+		d.detalles.forEach((dd) => {
+			if (dd.ventaDetalleId == null) return;
+			devueltoPorLinea.set(
+				dd.ventaDetalleId,
+				(devueltoPorLinea.get(dd.ventaDetalleId) ?? 0) + dd.cantidad,
+			);
+		}),
+	);
+	const restanteDe = (detalle: VentaDetalle) =>
+		detalle.cantidad - (devueltoPorLinea.get(detalle.ventaDetalleId) ?? 0);
 	const [partidas, setPartidas] = useState<Partida[]>(
 		venta.detalles.map((d) => ({
 			ventaDetalleId: d.ventaDetalleId,
@@ -60,9 +78,19 @@ function DevolucionForm({
 
 	const marcar = (ventaDetalleId: number, marcada: boolean) =>
 		setPartidas((prev) =>
-			prev.map((p) =>
-				p.ventaDetalleId === ventaDetalleId ? { ...p, marcada } : p,
-			),
+			prev.map((p) => {
+				if (p.ventaDetalleId !== ventaDetalleId) return p;
+				if (!marcada) return { ...p, marcada };
+				// Al marcar, partir del remanente (nunca más de lo disponible).
+				const detalle = venta.detalles.find(
+					(x) => x.ventaDetalleId === ventaDetalleId,
+				);
+				const maximo = detalle
+					? Math.max(0, Math.floor(restanteDe(detalle)))
+					: 0;
+				if (maximo < 1) return p;
+				return { ...p, marcada, cantidad: Math.min(p.cantidad < 1 ? 1 : p.cantidad, maximo) };
+			}),
 		);
 
 	const editar = (
@@ -81,10 +109,16 @@ function DevolucionForm({
 		(acc, p) => acc + p.cantidad * p.precioUnitario,
 		0,
 	);
+	const maximoDe = (ventaDetalleId: number) => {
+		const detalle = venta.detalles.find(
+			(x) => x.ventaDetalleId === ventaDetalleId,
+		);
+		return detalle ? Math.max(0, Math.floor(restanteDe(detalle))) : 0;
+	};
 	const invalido =
 		motivo.trim() === "" ||
 		seleccionadas.length === 0 ||
-		seleccionadas.some((p) => p.cantidad < 1);
+		seleccionadas.some((p) => p.cantidad < 1 || p.cantidad > maximoDe(p.ventaDetalleId));
 
 	const enviar = (e: { preventDefault: () => void }) => {
 		e.preventDefault();
@@ -131,6 +165,9 @@ function DevolucionForm({
 					const detalle = venta.detalles.find(
 						(x) => x.ventaDetalleId === d.ventaDetalleId,
 					) as VentaDetalle;
+					const restante = restanteDe(detalle);
+					const maximo = Math.max(0, Math.floor(restante));
+					const agotada = maximo < 1;
 					return (
 						<div
 							key={d.ventaDetalleId}
@@ -139,24 +176,35 @@ function DevolucionForm({
 							<input
 								type="checkbox"
 								checked={d.marcada}
+								disabled={agotada}
 								onChange={(e) => marcar(d.ventaDetalleId, e.target.checked)}
 								aria-label={`Devolver ${d.productoNombre}`}
-								className="h-4 w-4 rounded border-line accent-orange-600"
+								title={agotada ? "Ya devuelto por completo" : undefined}
+								className="h-4 w-4 rounded border-line accent-orange-600 disabled:opacity-40"
 							/>
 							<span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
 								{d.productoNombre}
+								<span className="ml-1 text-xs font-normal text-muted">
+									{agotada
+										? "· Devuelto"
+										: `· Restan ${restante} de ${detalle.cantidad}`}
+								</span>
 							</span>
 							<input
 								type="number"
 								inputMode="numeric"
 								min={1}
-								max={detalle.cantidad}
+								max={maximo}
 								step="1"
 								value={d.cantidad}
 								onChange={(e) =>
-									editar(d.ventaDetalleId, "cantidad", Number(e.target.value))
+									editar(
+										d.ventaDetalleId,
+										"cantidad",
+										Math.min(Math.max(1, Number(e.target.value)), Math.max(1, maximo)),
+									)
 								}
-								disabled={!d.marcada}
+								disabled={!d.marcada || agotada}
 								className="w-16 rounded border border-line px-1 py-0.5 text-right text-sm disabled:bg-warmbg"
 								aria-label={`Cantidad de ${d.productoNombre}`}
 							/>
