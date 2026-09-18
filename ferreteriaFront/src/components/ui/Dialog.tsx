@@ -87,8 +87,14 @@ export function Dialog({
 	return (
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+			role="button"
+			tabIndex={-1}
+			aria-label={t("comun.cerrar")}
 			onMouseDown={(e) => {
 				if (e.target === e.currentTarget) onClose();
+			}}
+			onKeyDown={(e) => {
+				if (e.key === "Escape") onClose();
 			}}
 		>
 			<section

@@ -26,7 +26,7 @@ export function getSilentEnabled(): boolean {
   try { return localStorage.getItem(STORAGE_KEY) === "1"; } catch { return false; }
 }
 export function setSilentEnabled(v: boolean): void {
-  try { localStorage.setItem(STORAGE_KEY, v ? "1" : "0"); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, v ? "1" : "0"); } catch { return; }
 }
 
 let cachedPort: SerialPort | null = null;
@@ -89,7 +89,7 @@ export async function printViaSerial(data: Uint8Array): Promise<void> {
 
 export async function disconnect(): Promise<void> {
   if (cachedPort) {
-    try { await cachedPort.close(); } catch {}
+    try { await cachedPort.close(); } catch { cachedPort = null; }
     cachedPort = null;
   }
 }

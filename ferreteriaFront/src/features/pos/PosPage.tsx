@@ -57,8 +57,8 @@ import { useToast } from "@/components/ui/Toast";
 import { apiGetTicketConfig } from "@/lib/api/ticketConfig";
 import {
   TicketPreview,
-  printTicketById,
 } from "@/features/administracion/TicketPreview";
+import { printTicketById } from "@/lib/print/ticket";
 import { buildEscPosTicket } from "@/lib/print/escpos";
 import { getSilentEnabled, printViaSerial } from "@/lib/print/serial";
 

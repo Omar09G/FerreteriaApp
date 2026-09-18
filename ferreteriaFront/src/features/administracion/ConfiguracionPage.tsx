@@ -12,7 +12,8 @@ import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthStore } from "@/store/auth";
-import { TicketPreview, printTicketById } from "./TicketPreview";
+import { TicketPreview } from "./TicketPreview";
+import { printTicketById } from "@/lib/print/ticket";
 import { buildEscPosTicket } from "@/lib/print/escpos";
 import {
   disconnect,
@@ -45,13 +46,16 @@ export default function ConfiguracionPage() {
   });
 
   const [form, setForm] = useState<TicketConfig | null>(null);
+  // Sincroniza el formulario cuando llega (o cambia) el config del servidor,
+  // sin setState en efecto: ajuste durante el render (patrón recomendado).
+  const [formBase, setFormBase] = useState<typeof data>(data);
+  if (data !== formBase) {
+    setFormBase(data);
+    setForm(data ?? null);
+  }
   const [silentEnabled, setSilentLocal] = useState(() => getSilentEnabled());
   const [serialConnected, setSerialConnected] = useState(false);
   const [serialBusy, setSerialBusy] = useState(false);
-
-  useEffect(() => {
-    if (data) setForm(data);
-  }, [data]);
 
   useEffect(() => {
     // Restaurar estado de conexión silenciosa al cargar (si ya había permiso)
