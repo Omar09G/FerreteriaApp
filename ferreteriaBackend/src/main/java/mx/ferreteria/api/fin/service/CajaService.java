@@ -189,6 +189,16 @@ public class CajaService {
         }
 
         /**
+         * ¿Sigue ABIERTO el turno? Para ligar devoluciones al turno de la venta
+         * sin bloquearlas cuando ya cerró (el reembolso queda manual).
+         */
+        @Transactional(readOnly = true)
+        public boolean turnoAbierto(Long turnoId) {
+                return turnoId != null && turnoRepo.findById(turnoId)
+                                .map(t -> "ABIERTO".equals(t.getEstado())).orElse(false);
+        }
+
+        /**
          * Resuelve el turno ABIERTO de una caja para ligar una operación (venta/renta).
          * Devuelve {@code null} si {@code cajaId} es {@code null} (la operación queda
          * fuera de caja). Lanza {@link ErrorCode#CAJA_ALMACEN_INCOMPATIBLE} si la caja

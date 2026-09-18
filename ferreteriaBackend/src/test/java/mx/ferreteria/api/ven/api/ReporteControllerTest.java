@@ -99,7 +99,8 @@ class ReporteControllerTest {
         ResumenDashboardResponse r1 = new ResumenDashboardResponse(
                 new BigDecimal("15000.00"), 25L, new BigDecimal("800.00"),
                 new BigDecimal("40000.00"), new BigDecimal("5000.00"),
-                new BigDecimal("1800000.00"), 3L, 2L, 1L);
+                new BigDecimal("1800000.00"), 3L, 2L, 1L, 2L,
+                new BigDecimal("150.00"));
         when(service.resumenDashboard(any(), any())).thenReturn(r1);
 
         mvc.perform(get("/api/v1/reportes/dashboard"))

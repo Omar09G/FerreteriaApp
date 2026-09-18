@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
@@ -22,12 +23,16 @@ import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
+import mx.ferreteria.api.fin.dto.FinDtos;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.DevolucionDetalle;
 import mx.ferreteria.api.ven.entity.DevolucionVenta;
 import mx.ferreteria.api.ven.entity.Venta;
+import mx.ferreteria.api.ven.entity.VentaDetalle;
 import mx.ferreteria.api.ven.repo.DevolucionDetalleRepository;
 import mx.ferreteria.api.ven.repo.DevolucionVentaRepository;
+import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
 
 @Service
@@ -38,8 +43,12 @@ public class DevolucionService {
     private final DevolucionVentaRepository repo;
     private final DevolucionDetalleRepository detalleRepo;
     private final VentaRepository ventaRepo;
+    private final VentaDetalleRepository ventaDetalleRepo;
     private final ProductoRepository productoRepo;
     private final FormaPagoRepository formaPagoRepo;
+    private final CajaService cajaService;
+    // EntityManager contenedor-gestionado (refresh de totales/folio por trigger).
+    private final EntityManager em;
 
     @Transactional(readOnly = true)
     public Page<VenDtos.DevolucionResponse> listByVenta(Long ventaId, Pageable pageable) {
@@ -99,8 +108,34 @@ public class DevolucionService {
     public VenDtos.DevolucionResponse create(VenDtos.DevolucionRequest req) {
         Venta venta = ventaRepo.findById(req.ventaId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-        if ("CANCELADA".equals(venta.getEstado())) {
-            throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
+        if ("CANCELADA".equals(venta.getEstado()) || "DEVUELTA_TOTAL".equals(venta.getEstado())) {
+            throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO, venta.getEstado());
+        }
+        // Vendido por línea y acumulado ya devuelto: ninguna partida puede
+        // exceder su remanente (devolución completa o parcial, nunca de más).
+        Map<Long, BigDecimal> vendido = ventaDetalleRepo.findByVentaId(venta.getVentaId()).stream()
+                .collect(Collectors.toMap(VentaDetalle::getVentaDetalleId, VentaDetalle::getCantidad));
+        if (vendido.isEmpty()) {
+            throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO, "venta sin líneas");
+        }
+        List<Long> devIds = repo.findByVentaId(venta.getVentaId()).stream()
+                .map(DevolucionVenta::getDevolucionId).toList();
+        Map<Long, BigDecimal> devuelto = devIds.isEmpty() ? Map.of()
+                : detalleRepo.findByDevolucionIdIn(devIds).stream()
+                        .filter(d -> d.getVentaDetalleId() != null)
+                        .collect(Collectors.groupingBy(DevolucionDetalle::getVentaDetalleId,
+                                Collectors.mapping(DevolucionDetalle::getCantidad,
+                                        Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))));
+        for (VenDtos.DevolucionDetalleRequest d : req.detalles()) {
+            BigDecimal linea = vendido.get(d.ventaDetalleId());
+            if (linea == null) {
+                throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO, "línea " + d.ventaDetalleId());
+            }
+            BigDecimal remanente = linea.subtract(devuelto.getOrDefault(d.ventaDetalleId(), BigDecimal.ZERO));
+            if (d.cantidad().compareTo(remanente) > 0) {
+                throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO,
+                        d.cantidad() + " > remanente " + remanente);
+            }
         }
         DevolucionVenta dev = DevolucionVenta.builder()
                 .ventaId(req.ventaId())
@@ -123,8 +158,31 @@ public class DevolucionService {
         }
 
         repo.flush();
-        DevolucionVenta refreshed = repo.findById(saved.getDevolucionId()).orElse(saved);
-        return toResponse(refreshed);
+        // Los triggers calculan folio (BEFORE INSERT) y total (AFTER INSERT
+        // en detalles): recargar para no responder con los ceros iniciales.
+        em.refresh(saved);
+        // Estado por cobertura acumulada (incluye esta devolución).
+        Map<Long, BigDecimal> cubierto = new java.util.HashMap<>(devuelto);
+        for (VenDtos.DevolucionDetalleRequest d : req.detalles()) {
+            cubierto.merge(d.ventaDetalleId(), d.cantidad(), BigDecimal::add);
+        }
+        boolean total = vendido.entrySet().stream()
+                .allMatch(e -> cubierto.getOrDefault(e.getKey(), BigDecimal.ZERO).compareTo(e.getValue()) >= 0);
+        venta.setEstado(total ? "DEVUELTA_TOTAL" : "DEVUELTA_PARCIAL");
+        ventaRepo.save(venta);
+
+        // Reembolso en caja solo si el turno de la venta sigue ABIERTO y el
+        // total es positivo; si ya cerró, la devolución queda sin turno
+        // (reembolso manual) pero el estado/stock sí avanzan.
+        if (saved.getTotal() != null && saved.getTotal().signum() > 0
+                && cajaService.turnoAbierto(venta.getTurnoCajaId())) {
+            cajaService.registrarMovimiento(venta.getTurnoCajaId(),
+                    new FinDtos.MovimientoCajaRequest("SALIDA", "DEVOLUCION_CLIENTE",
+                            saved.getTotal(), req.formaDevolucionId(),
+                            "ven.devoluciones_venta", saved.getDevolucionId()));
+            saved.setTurnoCajaId(venta.getTurnoCajaId());
+        }
+        return toResponse(saved);
     }
 
     private VenDtos.DevolucionResponse toResponse(DevolucionVenta d) {

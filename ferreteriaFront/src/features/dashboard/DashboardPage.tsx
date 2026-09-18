@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Store,
   TrendingUp,
+  Undo2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -102,6 +103,12 @@ export default function DashboardPage() {
               icono={<ReceiptText className="h-5 w-5" />}
               label="Tickets"
               valor={String(data.ticketsEnRango)}
+            />
+            <KPI
+              icono={<Undo2 className="h-5 w-5" />}
+              label="Devoluciones"
+              valor={`${data.devolucionesEnRango} · ${formatoMoneda(data.totalDevueltoEnRango)}`}
+              alerta={data.devolucionesEnRango > 0 ? "warn" : undefined}
             />
             <KPI
               icono={<ShoppingBag className="h-5 w-5" />}

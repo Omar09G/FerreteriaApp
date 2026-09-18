@@ -327,7 +327,13 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                     AND CURRENT_DATE BETWEEN vigencia_desde
                    AND COALESCE(vigencia_hasta, 'infinity'::timestamptz))    AS promocionesActivas,
                    (SELECT COUNT(*) FROM fin.turnos_caja WHERE estado = 'ABIERTO')
-                                                                              AS cajasAbiertas
+                                                                              AS cajasAbiertas,
+                   (SELECT COUNT(*) FROM ven.devoluciones_venta d
+                    WHERE (d.fecha AT TIME ZONE 'America/Mexico_City')::date
+                    BETWEEN :inicio AND :fin)                                 AS devolucionesEnRango,
+                   (SELECT COALESCE(SUM(d.total), 0) FROM ven.devoluciones_venta d
+                    WHERE (d.fecha AT TIME ZONE 'America/Mexico_City')::date
+                    BETWEEN :inicio AND :fin)                                 AS totalDevueltoEnRango
             """, nativeQuery = true)
     Object[] findResumenDashboardRaw(
             @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
@@ -340,7 +346,8 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
             return new ReportDtos.ResumenDashboardResponse(
                     java.math.BigDecimal.ZERO, 0L, java.math.BigDecimal.ZERO,
                     java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO,
-                    java.math.BigDecimal.ZERO, 0L, 0L, 0L);
+                    java.math.BigDecimal.ZERO, 0L, 0L, 0L, 0L,
+                    java.math.BigDecimal.ZERO);
         }
         Object[] row = (Object[]) result[0];
         java.math.BigDecimal ventas = row[0] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[0];
@@ -352,9 +359,11 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
         Long agotados = row[6] == null ? 0L : ((Number) row[6]).longValue();
         Long promos = row[7] == null ? 0L : ((Number) row[7]).longValue();
         Long cajas = row[8] == null ? 0L : ((Number) row[8]).longValue();
+        Long devoluciones = row[9] == null ? 0L : ((Number) row[9]).longValue();
+        java.math.BigDecimal totalDevuelto = row[10] == null ? java.math.BigDecimal.ZERO : (java.math.BigDecimal) row[10];
         return new ReportDtos.ResumenDashboardResponse(
                 ventas, tickets, ticketPromedio, saldo, cobranza, valorInv,
-                agotados, promos, cajas);
+                agotados, promos, cajas, devoluciones, totalDevuelto);
     }
 
     /**

@@ -46,7 +46,8 @@ public final class ReportDtos {
                         BigDecimal ticketPromedioEnRango,
                         BigDecimal saldoPorCobrar, BigDecimal cobranzaVencida,
                         BigDecimal valorInventario, Long productosAgotados,
-                        Long promocionesActivas, Long cajasAbiertas) {
+                        Long promocionesActivas, Long cajasAbiertas,
+                        Long devolucionesEnRango, BigDecimal totalDevueltoEnRango) {
         }
 
         public record CierreDiarioResponse(

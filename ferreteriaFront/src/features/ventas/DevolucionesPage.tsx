@@ -411,10 +411,11 @@ export default function DevolucionesPage() {
 						type="button"
 						aria-label={`Devoluciones de ${v.folio}`}
 						title="Ver venta / Devoluciones"
-						className="rounded p-1.5 text-primary hover:bg-primary-50"
+						className="rounded p-1.5 text-primary hover:bg-primary-50 disabled:text-gray-400 disabled:hover:bg-transparent"
 						onClick={() => setVentaSeleccionada(v)}
+						disabled={v.estado !== "DEVUELTA_PARCIAL" && v.estado !== "COMPLETADA"}
 					>
-						<PackageOpen className="h-4 w-4" />
+						<PackageOpen className="h-4 w-4"/>
 					</button>
 				</div>
 			),

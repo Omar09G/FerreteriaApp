@@ -24,6 +24,9 @@ import { useToast } from "@/components/ui/Toast";
 function EstadoVenta({ estado }: { estado: string }) {
 	if (estado === "COMPLETADA") return <Badge tone="success">Completada</Badge>;
 	if (estado === "CANCELADA") return <Badge tone="danger">Cancelada</Badge>;
+	if (estado === "DEVUELTA_PARCIAL")
+		return <Badge tone="warning">Devuelta parcial</Badge>;
+	if (estado === "DEVUELTA_TOTAL") return <Badge>Devuelta total</Badge>;
 	return <Badge>{estado}</Badge>;
 }
 

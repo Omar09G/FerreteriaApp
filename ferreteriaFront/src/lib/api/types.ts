@@ -170,6 +170,8 @@ export interface ResumenDashboard {
   productosAgotados: number;
   promocionesActivas: number;
   cajasAbiertas: number;
+  devolucionesEnRango: number;
+  totalDevueltoEnRango: number;
 }
 
 export interface CierreDiario {

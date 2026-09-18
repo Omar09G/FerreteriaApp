@@ -51,6 +51,8 @@ const SEMAFORO_ESTADOS: Record<string, Tone> = {
 	CANCELADA: "danger",
 	VENCIDA: "danger",
 	EXPIRADA: "danger",
+	DEVUELTA_PARCIAL: "warning",
+	DEVUELTA_TOTAL: "default",
 	APLICADO: "success",
 	CONVERTIDA: "success",
 	FINALIZADA: "default",

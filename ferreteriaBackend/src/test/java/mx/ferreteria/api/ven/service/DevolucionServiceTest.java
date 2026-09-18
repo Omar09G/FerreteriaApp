@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,13 +18,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.junit.jupiter.MockitoExtension;import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import jakarta.persistence.EntityManager;
 import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
 import mx.ferreteria.api.cat.repo.FormaPagoRepository;
@@ -34,8 +35,11 @@ import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.DevolucionDetalle;
 import mx.ferreteria.api.ven.entity.DevolucionVenta;
 import mx.ferreteria.api.ven.entity.Venta;
+import mx.ferreteria.api.ven.entity.VentaDetalle;
+import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.ven.repo.DevolucionDetalleRepository;
 import mx.ferreteria.api.ven.repo.DevolucionVentaRepository;
+import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,8 +49,11 @@ class DevolucionServiceTest {
     @Mock DevolucionVentaRepository repo;
     @Mock DevolucionDetalleRepository detalleRepo;
     @Mock VentaRepository ventaRepo;
+    @Mock VentaDetalleRepository ventaDetalleRepo;
     @Mock ProductoRepository productoRepo;
     @Mock FormaPagoRepository formaPagoRepo;
+    @Mock CajaService cajaService;
+    @Mock EntityManager em;
 
     @InjectMocks
     DevolucionService service;
@@ -128,6 +135,8 @@ class DevolucionServiceTest {
     @DisplayName("create ok: venta activa, guarda devolucion y detalles")
     void create_ok() {
         when(ventaRepo.findById(1L)).thenReturn(Optional.of(sampleVenta("COMPLETADA")));
+        when(ventaDetalleRepo.findByVentaId(1L)).thenReturn(List.of(lineaVendida(1L, "1.000")));
+        when(repo.findByVentaId(1L)).thenReturn(List.of());
         DevolucionVenta saved = sampleDevolucion(10L);
         when(repo.save(any(DevolucionVenta.class))).thenReturn(saved);
         when(repo.findById(10L)).thenReturn(Optional.of(saved));
@@ -165,6 +174,84 @@ class DevolucionServiceTest {
         VenDtos.DevolucionRequest req = new VenDtos.DevolucionRequest(
                 1L, "Motivo", 1,
                 List.of(new VenDtos.DevolucionDetalleRequest(1L, null, new BigDecimal("1.000"), new BigDecimal("50.00"))));
+
+        assertThatThrownBy(() -> service.create(req))
+                .isInstanceOf(ReglaNegocioException.class);
+    }
+
+    private VentaDetalle lineaVendida(Long detalleId, String cantidad) {
+        return VentaDetalle.builder().ventaDetalleId(detalleId).ventaId(1L)
+                .productoId(1L).cantidad(new BigDecimal(cantidad))
+                .precioUnitario(new BigDecimal("50.00")).build();
+    }
+
+    private VenDtos.DevolucionRequest devRequest(String cantidad) {
+        return new VenDtos.DevolucionRequest(
+                1L, "Defecto", 1,
+                List.of(new VenDtos.DevolucionDetalleRequest(1L, 1L,
+                        new BigDecimal(cantidad), new BigDecimal("50.00"))));
+    }
+
+    private void stubVentaConLinea(String vendido) {
+        stubToResponse();
+        Venta v = sampleVenta("COMPLETADA");
+        v.setTurnoCajaId(17L);
+        when(ventaRepo.findById(1L)).thenReturn(Optional.of(v));
+        when(ventaDetalleRepo.findByVentaId(1L)).thenReturn(List.of(lineaVendida(1L, vendido)));
+        when(repo.findByVentaId(1L)).thenReturn(List.of());
+        DevolucionVenta saved = sampleDevolucion(10L);
+        when(repo.save(any(DevolucionVenta.class))).thenReturn(saved);
+        when(repo.findById(10L)).thenReturn(Optional.of(saved));
+    }
+
+    @Test
+    @DisplayName("create total: línea cubierta al 100% -> venta DEVUELTA_TOTAL")
+    void create_total_marcaDevueltaTotal() {
+        stubVentaConLinea("1.000");
+
+        service.create(devRequest("1.000"));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(Venta.class);
+        verify(ventaRepo).save(captor.capture());
+        assertThat(captor.getValue().getEstado()).isEqualTo("DEVUELTA_TOTAL");
+    }
+
+    @Test
+    @DisplayName("create parcial: línea cubierta al 50% -> venta DEVUELTA_PARCIAL + salida en caja")
+    void create_parcial_marcaParcialYRegistraCaja() {
+        stubVentaConLinea("1.000");
+        when(cajaService.turnoAbierto(17L)).thenReturn(true);
+        // em.refresh es no-op en mock: el save ya trae el total del trigger.
+        DevolucionVenta conTotal = sampleDevolucion(10L);
+        conTotal.setTotal(new BigDecimal("25.00"));
+        when(repo.save(any(DevolucionVenta.class))).thenReturn(conTotal);
+
+        service.create(devRequest("0.500"));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(Venta.class);
+        verify(ventaRepo).save(captor.capture());
+        assertThat(captor.getValue().getEstado()).isEqualTo("DEVUELTA_PARCIAL");
+        verify(cajaService).registrarMovimiento(eq(17L), any());
+    }
+
+    @Test
+    @DisplayName("create exceso: cantidad mayor al remanente -> ReglaNegocioException sin guardar")
+    void create_exceso_rechaza() {
+        stubVentaConLinea("1.000");
+
+        assertThatThrownBy(() -> service.create(devRequest("1.500")))
+                .isInstanceOf(ReglaNegocioException.class);
+        verify(detalleRepo, org.mockito.Mockito.never()).save(any(DevolucionDetalle.class));
+    }
+
+    @Test
+    @DisplayName("create línea ajena: ventaDetalleId de otra venta -> ReglaNegocioException")
+    void create_lineaAjena_rechaza() {
+        stubVentaConLinea("1.000");
+        VenDtos.DevolucionRequest req = new VenDtos.DevolucionRequest(
+                1L, "Defecto", 1,
+                List.of(new VenDtos.DevolucionDetalleRequest(1L, 999L,
+                        new BigDecimal("1.000"), new BigDecimal("50.00"))));
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(ReglaNegocioException.class);
