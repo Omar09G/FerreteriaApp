@@ -18,7 +18,7 @@ import {
 	type Producto,
 } from "@/lib/api/types";
 import {formatoFecha, formatoFechaHora, formatoMoneda, formatoNumero} from "@/lib/format";
-import type { RangoFechas } from "@/lib/rango";
+import {rangoFechas, type RangoFechas} from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -411,7 +411,7 @@ export default function CotizacionesPage() {
 	const queryClient = useQueryClient();
 
 	const [estado, setEstado] = useState<string>("");
-	const [rango, setRango] = useState<RangoFechas | null>(null);
+	const [rango, setRango] = useState<RangoFechas | null>(() => rangoFechas());
 	const [page, setPage] = useState(0);
 	const [nuevaAbierta, setNuevaAbierta] = useState(false);
 	const [aConvertir, setAConvertir] = useState<Cotizacion | null>(null);

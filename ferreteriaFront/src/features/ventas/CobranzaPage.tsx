@@ -9,7 +9,7 @@ import { apiCuentasCobrar, apiPagoCliente } from "@/lib/api/venta";
 import type { CuentaCobrar, PagoClienteRequest } from "@/lib/api/types";
 import { ESTADO_COBRANZA, FORMAS_PAGO } from "@/lib/api/types";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
-import type { RangoFechas } from "@/lib/rango";
+import {rangoFechas, type RangoFechas} from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -175,7 +175,7 @@ export default function CobranzaPage() {
 
   const [estado, setEstado] = useState<string>("");
   const [clienteId, setClienteId] = useState<number | "">("");
-  const [rango, setRango] = useState<RangoFechas | null>(null);
+  const [rango, setRango] = useState<RangoFechas | null>(() => rangoFechas());
   const [page, setPage] = useState(0);
   const [abonando, setAbonando] = useState<CuentaCobrar | null>(null);
   const [historial, setHistorial] = useState<CuentaCobrar | null>(null);

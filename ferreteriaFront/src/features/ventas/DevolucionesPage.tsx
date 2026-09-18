@@ -12,7 +12,7 @@ import {
 import type { DevolucionRequest, Venta, VentaDetalle } from "@/lib/api/types";
 import { FORMAS_PAGO } from "@/lib/api/types";
 import { formatoFechaHora, formatoMoneda } from "@/lib/format";
-import type { RangoFechas } from "@/lib/rango";
+import {rangoFechas, type RangoFechas} from "@/lib/rango";
 import { EstadoBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -379,7 +379,7 @@ export default function DevolucionesPage() {
 	const queryClient = useQueryClient();
 
 	const [page, setPage] = useState(0);
-	const [rango, setRango] = useState<RangoFechas | null>(null);
+	const [rango, setRango] = useState<RangoFechas | null>(() => rangoFechas());
 	const [ventaSeleccionada, setVentaSeleccionada] = useState<Venta | null>(
 		null,
 	);

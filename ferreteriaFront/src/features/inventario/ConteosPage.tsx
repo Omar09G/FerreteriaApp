@@ -12,7 +12,7 @@ import type {
 	Producto,
 } from "@/lib/api/types";
 import { formatoFechaHora, formatoNumero } from "@/lib/format";
-import type { RangoFechas } from "@/lib/rango";
+import {rangoFechas, type RangoFechas} from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -243,7 +243,7 @@ export default function ConteosPage() {
 	const [page, setPage] = useState(0);
 	const [dialogoAbierto, setDialogoAbierto] = useState(false);
 	const [vistaDetalle, setVistaDetalle] = useState<ConteoFisico | null>(null);
-	const [rango, setRango] = useState<RangoFechas | null>(null);
+	const [rango, setRango] = useState<RangoFechas | null>(() => rangoFechas());
 	const [almacenId, setAlmacenId] = useState("");
 	const [estado, setEstado] = useState("");
 

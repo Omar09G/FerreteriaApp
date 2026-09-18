@@ -24,7 +24,7 @@ import type {
 } from "@/lib/api/types";
 import { FORMAS_PAGO, TIPOS_GASTO } from "@/lib/api/types";
 import { formatoFecha, formatoFechaHora, formatoMoneda } from "@/lib/format";
-import type { RangoFechas } from "@/lib/rango";
+import {rangoFechas, type RangoFechas} from "@/lib/rango";
 import { useTieneRol } from "@/store/auth";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -294,7 +294,7 @@ export default function GastosPage() {
 		: "gastos";
 
 	const [tab, setTab] = useState<"gastos" | "ingresos">(tabInicial);
-	const [rango, setRango] = useState<RangoFechas | null>(null);
+	const [rango, setRango] = useState<RangoFechas | null>(() => rangoFechas());
 	const [page, setPage] = useState(0);
 	const [dialogo, setDialogo] = useState<"gasto" | "ingreso" | null>(null);
 	const [editandoGasto, setEditandoGasto] = useState<Gasto | null>(null);

@@ -30,6 +30,7 @@ export async function apiVentas(p: {
 	if (p.almacenId) params.almacenId = p.almacenId;
 	if (p.desde) params.desde = p.desde;
 	if (p.hasta) params.hasta = p.hasta;
+
 	const { data } = await http.get<PageEnvelope<Venta>>("/ventas", { params });
 	return data;
 }
