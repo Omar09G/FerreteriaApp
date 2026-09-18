@@ -2,6 +2,7 @@ package mx.ferreteria.api.cat.service;
 
 import java.math.BigDecimal;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import lombok.RequiredArgsConstructor;
+import mx.ferreteria.api.cat.dto.CatDtos.CargaMasivaFilaError;
+import mx.ferreteria.api.cat.dto.CatDtos.CargaMasivaProductoResponse;
 import mx.ferreteria.api.cat.dto.CatDtos.CodigoBarrasRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoResponse;
@@ -192,6 +195,44 @@ public class ProductoService {
         Producto saved = repo.save(entity);
         guardarBarras(saved, req.codigosBarras());
         return toResponse(saved);
+    }
+
+    /**
+     * Carga masiva con éxito parcial: cada fila se procesa con la misma
+     * lógica de {@link #create} y los fallos se devuelven por fila sin
+     * abortar el lote. Los duplicados de código se pre-chequean en lote
+     * (dentro del archivo y contra BD) para que ningún 23505 envenene la tx.
+     */
+    public CargaMasivaProductoResponse cargaMasiva(List<ProductoRequest> items) {
+        Set<String> codigosArchivo = items.stream()
+                .map(ProductoRequest::codigo)
+                .filter(c -> c != null && !c.isBlank())
+                .map(String::trim)
+                .collect(Collectors.toSet());
+        Set<String> existentes = codigosArchivo.isEmpty() ? Set.of()
+                : repo.findByCodigoIn(codigosArchivo).stream()
+                        .map(p -> p.getCodigo().trim().toLowerCase())
+                        .collect(Collectors.toSet());
+        List<ProductoResponse> creados = new ArrayList<>();
+        List<CargaMasivaFilaError> errores = new ArrayList<>();
+        Set<String> vistos = new HashSet<>();
+        for (int i = 0; i < items.size(); i++) {
+            ProductoRequest req = items.get(i);
+            int fila = i + 1;
+            try {
+                if (req.codigo() != null && !req.codigo().isBlank()) {
+                    String clave = req.codigo().trim().toLowerCase();
+                    if (!vistos.add(clave) || existentes.contains(clave)) {
+                        throw new ReglaNegocioException(ErrorCode.VALOR_DUPLICADO, req.codigo());
+                    }
+                }
+                creados.add(create(req));
+            } catch (mx.ferreteria.api.common.error.ApiException e) {
+                errores.add(new CargaMasivaFilaError(fila, e.errorCode().name(),
+                        e.errorCode().name()));
+            }
+        }
+        return new CargaMasivaProductoResponse(creados, errores);
     }
 
     public ProductoResponse update(Long id, ProductoRequest req) {

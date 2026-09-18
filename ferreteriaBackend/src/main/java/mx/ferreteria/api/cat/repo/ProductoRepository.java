@@ -1,6 +1,8 @@
 package mx.ferreteria.api.cat.repo;
 
 import mx.ferreteria.api.cat.entity.Producto;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +21,8 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     Page<Producto> findByCodigoContainingIgnoreCase(String codigo, Pageable pageable);
 
     Page<Producto> findByActivoTrueAndCodigoIgnoreCase(String codigo, Pageable pageable);
+
+    List<Producto> findByCodigoIn(Collection<String> codigos);
 
     /* -------- Proyecciones BACK-REND-027 (interface-based) -------- */
 

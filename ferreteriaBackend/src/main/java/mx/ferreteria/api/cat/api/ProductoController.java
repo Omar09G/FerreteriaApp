@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 
+import mx.ferreteria.api.cat.dto.CatDtos.CargaMasivaProductoRequest;
+import mx.ferreteria.api.cat.dto.CatDtos.CargaMasivaProductoResponse;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoRequest;
 import mx.ferreteria.api.cat.dto.CatDtos.ProductoResponse;
 import mx.ferreteria.api.cat.service.ProductoService;
@@ -58,6 +60,13 @@ public class ProductoController {
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
     public ProductoResponse create(@Valid @RequestBody ProductoRequest req) {
         return service.create(req);
+    }
+
+    @PostMapping("/carga-masiva")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
+    public CargaMasivaProductoResponse cargaMasiva(
+            @Valid @RequestBody CargaMasivaProductoRequest req) {
+        return service.cargaMasiva(req.items());
     }
 
     @PutMapping("/{id}")

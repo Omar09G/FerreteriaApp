@@ -372,10 +372,22 @@ export interface ProductoRequest {
   precioMayoreo?: number | null;
   aplicaIva?: boolean;
   /**
-   * Pendiente de backend (PLAN_CODIGO_BARRAS §4): el API aún no lo acepta
-   * (propiedad desconocida → 500). No incluir en el payload hasta entonces.
+   * Códigos de barras del producto (factor 1 por defecto). El backend los
+   * acepta en create/update y carga masiva (duplicado contra otro producto
+   * → 409 VALOR_DUPLICADO).
    */
   codigosBarras?: CodigoBarrasRequest[];
+}
+
+export interface CargaMasivaFilaError {
+  fila: number;
+  codigo: string;
+  mensaje: string;
+}
+
+export interface CargaMasivaResultado {
+  creados: Producto[];
+  errores: CargaMasivaFilaError[];
 }
 
 export interface Categoria {

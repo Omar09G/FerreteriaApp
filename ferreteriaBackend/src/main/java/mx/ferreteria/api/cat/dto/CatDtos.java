@@ -185,4 +185,21 @@ public final class CatDtos {
                                         codigosBarras, factorEscaneo);
                 }
         }
+
+        // ── Carga masiva ───────────────────────────────────────────────
+
+        public record CargaMasivaProductoRequest(
+                        @NotNull @Size(min = 1, max = 500) List<@Valid ProductoRequest> items) {
+        }
+
+        public record CargaMasivaFilaError(
+                        int fila,
+                        String codigo,
+                        String mensaje) {
+        }
+
+        public record CargaMasivaProductoResponse(
+                        List<ProductoResponse> creados,
+                        List<CargaMasivaFilaError> errores) {
+        }
 }

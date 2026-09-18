@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useHotkey } from "@/hooks/useHotkey";
-import { PackagePlus, Pencil, Search, Trash2 } from "lucide-react";
+import { PackagePlus, Pencil, Search, Trash2, Upload } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
@@ -28,6 +28,7 @@ import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
+import CargaMasivaDialog from "./CargaMasivaDialog";
 
 function TipoBadge({ tipo }: { tipo: string }) {
   if (tipo === "HERRAMIENTA_RENTA") return <Badge tone="warning">Renta</Badge>;
@@ -446,6 +447,7 @@ export default function ProductosPage() {
   const [filtroTipo, setFiltroTipo] = useState("");
   const [page, setPage] = useState(0);
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [dialogoMasivoAbierto, setDialogoMasivoAbierto] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [eliminarConfirmacion, setEliminarConfirmacion] =
     useState<Producto | null>(null);
@@ -621,6 +623,12 @@ export default function ProductosPage() {
           </p>
         </div>
         <Button
+          variant="ghost"
+          onClick={() => setDialogoMasivoAbierto(true)}
+        >
+          <Upload className="h-4 w-4" /> Carga masiva
+        </Button>
+        <Button
           hotkey="F4"
           onClick={() => {
             setEditando(null);
@@ -731,6 +739,11 @@ export default function ProductosPage() {
           historial.
         </p>
       </ConfirmDialog>
+
+      <CargaMasivaDialog
+        open={dialogoMasivoAbierto}
+        onClose={() => setDialogoMasivoAbierto(false)}
+      />
     </div>
   );
 }

@@ -487,4 +487,71 @@ class ProductoServiceTest {
         assertThatThrownBy(() -> service.deactivate(999L))
                 .isInstanceOf(RecursoNoEncontradoException.class);
     }
+
+    // ── cargaMasiva ─────────────────────────────────────────────────
+
+    private ProductoRequest filaProducto(String codigo, Integer categoriaId) {
+        return new ProductoRequest(
+                codigo, "PRODUCTO", "Item " + codigo, null, categoriaId, null, 1,
+                new BigDecimal("10"), new BigDecimal("20"), null, true, null);
+    }
+
+    @Test
+    @DisplayName("cargaMasiva: éxito parcial con errores por fila sin abortar lote")
+    void cargaMasiva_exitoParcial() {
+        when(categoriaRepo.findById(1)).thenReturn(Optional.of(sampleCategoria()));
+        when(unidadMedidaRepo.findById(1)).thenReturn(Optional.of(sampleUM()));
+        when(repo.save(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
+        Producto enBase = sampleProducto();
+        enBase.setCodigo("P200");
+        when(repo.findByCodigoIn(any())).thenReturn(List.of(enBase));
+
+        var resp = service.cargaMasiva(List.of(
+                filaProducto("P100", 1),
+                filaProducto("P200", 1),
+                filaProducto("P100", 1),
+                filaProducto("P300", 999)));
+
+        assertThat(resp.creados()).hasSize(1);
+        assertThat(resp.errores()).hasSize(3);
+        assertThat(resp.errores().stream().map(e -> e.fila()).toList())
+                .containsExactly(2, 3, 4);
+        assertThat(resp.errores().get(1).codigo()).isEqualTo("VALOR_DUPLICADO");
+    }
+
+    @Test
+    @DisplayName("cargaMasiva: lote limpio crea todo sin errores")
+    void cargaMasiva_loteLimpio() {
+        when(categoriaRepo.findById(1)).thenReturn(Optional.of(sampleCategoria()));
+        when(unidadMedidaRepo.findById(1)).thenReturn(Optional.of(sampleUM()));
+        when(repo.save(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repo.findByCodigoIn(any())).thenReturn(List.of());
+
+        var resp = service.cargaMasiva(List.of(
+                filaProducto("A1", 1), filaProducto("A2", 1)));
+
+        assertThat(resp.creados()).hasSize(2);
+        assertThat(resp.errores()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("cargaMasiva: propaga codigosBarras al create por fila")
+    void cargaMasiva_conBarras() {
+        when(categoriaRepo.findById(1)).thenReturn(Optional.of(sampleCategoria()));
+        when(unidadMedidaRepo.findById(1)).thenReturn(Optional.of(sampleUM()));
+        when(repo.save(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repo.findByCodigoIn(any())).thenReturn(List.of());
+        when(barrasRepo.findByCodigoBarras("750100")).thenReturn(Optional.empty());
+
+        var req = new mx.ferreteria.api.cat.dto.CatDtos.ProductoRequest(
+                "B1", "PRODUCTO", "Con barras", null, 1, null, 1,
+                null, null, null, null,
+                List.of(new mx.ferreteria.api.cat.dto.CatDtos.CodigoBarrasRequest("750100", null)));
+
+        var resp = service.cargaMasiva(List.of(req));
+
+        assertThat(resp.creados()).hasSize(1);
+        assertThat(resp.errores()).isEmpty();
+        verify(barrasRepo).saveAll(any());
+    }
 }

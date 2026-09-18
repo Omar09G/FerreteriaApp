@@ -2,6 +2,7 @@ import http from "./client";
 import type {
   Almacen,
   AlmacenRequest,
+  CargaMasivaResultado,
   Categoria,
   Cliente,
   ClienteRequest,
@@ -56,6 +57,16 @@ export async function apiActualizarProducto(
 
 export async function apiEliminarProducto(id: number): Promise<void> {
   await http.delete(`/productos/${id}`);
+}
+
+export async function apiCargaMasivaProductos(
+  items: ProductoRequest[],
+): Promise<CargaMasivaResultado> {
+  const { data } = await http.post<Envelope<CargaMasivaResultado>>(
+    "/productos/carga-masiva",
+    { items },
+  );
+  return data.data;
 }
 
 export async function apiCategoriasArbol(): Promise<Categoria[]> {

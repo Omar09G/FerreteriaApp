@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.lang.reflect.Method;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -64,5 +65,15 @@ class CatalogoEscrituraSecurityTest {
         assertThat(deactivate).isNotNull();
         assertThat(deactivate.getAnnotation(PreAuthorize.class)).isNotNull();
         assertThat(deactivate.getAnnotation(PreAuthorize.class).value()).contains("ADMINISTRADOR");
+    }
+
+    @Test
+    @DisplayName("cargaMasiva exige ADMINISTRADOR/GERENTE")
+    void cargaMasivaRequiereRol() throws Exception {
+        var m = ProductoController.class.getMethod("cargaMasiva",
+                mx.ferreteria.api.cat.dto.CatDtos.CargaMasivaProductoRequest.class);
+        PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).contains("GERENTE").contains("ADMINISTRADOR");
     }
 }
