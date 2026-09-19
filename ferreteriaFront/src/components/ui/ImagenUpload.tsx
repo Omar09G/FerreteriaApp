@@ -7,6 +7,7 @@ import {
   IMAGEN_MIME_ACEPTADOS,
 } from "@/lib/api/archivos";
 import { esApiError } from "@/lib/api/client";
+import { X } from "lucide-react";
 
 interface ImagenUploadProps {
   label?: string;
@@ -149,49 +150,105 @@ export function ImagenUpload({
   return (
     <CampoWidget label={label} hint={hint} error={error ?? undefined}>
       <div className="flex items-center gap-3">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-warmbg">
+        {/* 
+        Regresamos a 'div' para evitar que 'disabled' bloquee los botones internos.
+        Se añade 'role="button"' y 'tabIndex' para que sea accesible con el teclado solo si no hay imagen.
+      */}
+        <div
+          role={!preview ? "button" : undefined}
+          tabIndex={!preview && !disabled && !subiendo ? 0 : undefined}
+          onClick={() => !preview && !subiendo && inputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (!preview && !subiendo && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          aria-label={
+            preview ? "Vista previa de la imagen" : "Elegir e insertar imagen"
+          }
+          className={`relative group h-24 w-24 shrink-0 flex items-center justify-center overflow-hidden rounded-xl border border-line bg-warmbg transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
+          ${!preview && !disabled && !subiendo ? "cursor-pointer hover:border-indigo-500" : "cursor-default"}
+        `}
+        >
           {preview ? (
-            <img
-              src={preview}
-              alt="Vista previa"
-              className="h-full w-full object-cover"
-            />
+            <>
+              {/* Imagen real */}
+              <img
+                src={preview}
+                alt="Vista previa"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+
+              {/* Capa Hover: Los botones internos ahora sí responderán perfectamente */}
+              {!disabled && !subiendo && (
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                  {/* Botón Cambiar */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      inputRef.current?.click();
+                    }}
+                    className="p-1.5 bg-white text-slate-900 rounded-md shadow-md text-xs font-medium hover:bg-slate-100 transition-transform transform scale-90 group-hover:scale-100 hover:scale-105 duration-150 cursor-pointer"
+                    title="Cambiar imagen"
+                  >
+                    Editar
+                  </button>
+
+                  {/* Botón Quitar (X) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      quitar();
+                    }}
+                    className="p-1.5 bg-red-600 text-white rounded-md shadow-md text-xs font-bold hover:bg-red-700 transition-transform transform scale-90 group-hover:scale-100 hover:scale-105 duration-150 cursor-pointer"
+                    title="Quitar imagen"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
-            <span className="px-1 text-center text-[10px] text-muted">
-              Sin imagen
+            /* Estado sin imagen */
+            <span className="px-1 text-center text-xs text-muted font-medium select-none">
+              {subiendo ? "..." : "Sin imagen"}
             </span>
           )}
+
+          {/* Spinner de carga superpuesto si está subiendo */}
+          {subiendo && (
+            <div className="absolute inset-0 bg-warmbg/70 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-1.5">
-          <div className="flex gap-2">
+
+        {/* Sección lateral: Solo muestra el botón principal si NO hay imagen */}
+        {!preview && (
+          <div className="flex flex-col gap-1.5">
             <button
               type="button"
               disabled={disabled || subiendo}
               onClick={() => inputRef.current?.click()}
-              className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-ink hover:bg-warmbg disabled:opacity-50"
+              className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-ink hover:bg-warmbg disabled:opacity-50 transition-colors"
             >
-              {subiendo ? "Subiendo…" : preview ? "Cambiar" : "Elegir imagen"}
+              {subiendo ? "Subiendo…" : "Elegir imagen"}
             </button>
-            {preview && !subiendo && (
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={quitar}
-                className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-red-600 hover:bg-warmbg disabled:opacity-50"
-              >
-                Quitar
-              </button>
-            )}
           </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept={IMAGEN_MIME_ACEPTADOS.join(",")}
-            className="hidden"
-            disabled={disabled || subiendo}
-            onChange={(e) => void manejarArchivo(e.target.files?.[0])}
-          />
-        </div>
+        )}
+
+        {/* Input oculto */}
+        <input
+          ref={inputRef}
+          type="file"
+          accept={IMAGEN_MIME_ACEPTADOS.join(",")}
+          className="hidden"
+          disabled={disabled || subiendo}
+          onChange={(e) => void manejarArchivo(e.target.files?.[0])}
+        />
       </div>
     </CampoWidget>
   );

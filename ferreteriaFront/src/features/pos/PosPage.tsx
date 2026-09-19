@@ -56,12 +56,11 @@ import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { apiGetTicketConfig } from "@/lib/api/ticketConfig";
-import {
-  TicketPreview,
-} from "@/features/administracion/TicketPreview";
+import { TicketPreview } from "@/features/administracion/TicketPreview";
 import { printTicketById } from "@/lib/print/ticket";
 import { buildEscPosTicket } from "@/lib/print/escpos";
 import { getSilentEnabled, printViaSerial } from "@/lib/print/serial";
+import { FotoMiniatura } from "@/components/ui/ImagenUpload";
 
 interface Linea {
   productoId: number;
@@ -875,6 +874,7 @@ export default function PosPage() {
                     className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2 text-left hover:bg-orange-50 focus:bg-orange-50 focus:outline-none"
                   >
                     <span className="min-w-0">
+                      <FotoMiniatura url={p.imagenUrl} alt={p.nombre} />
                       <span className="block truncate text-sm font-medium text-ink">
                         {p.nombre}
                       </span>
