@@ -724,8 +724,8 @@ CREATE TABLE IF NOT EXISTS ven.ventas (
     iva             NUMERIC(14,2) NOT NULL DEFAULT 0,
     descuento_total NUMERIC(14,2) NOT NULL DEFAULT 0,
     total           NUMERIC(14,2) NOT NULL DEFAULT 0,
-    estado          VARCHAR(12) NOT NULL DEFAULT 'COMPLETADA'
-                    CHECK (estado IN ('COMPLETADA','CANCELADA')),
+    estado          VARCHAR(16) NOT NULL DEFAULT 'COMPLETADA'
+                    CHECK (estado IN ('COMPLETADA','CANCELADA','DEVUELTA_PARCIAL','DEVUELTA_TOTAL')),
     usuario_id      INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     turno_caja_id   BIGINT,
     PRIMARY KEY (venta_id, fecha_local), -- PK compuesta requerida por PARTITION BY RANGE
@@ -1362,6 +1362,15 @@ DROP TRIGGER IF EXISTS trg_kardex_no_upd ON inv.movimientos_inventario;
 CREATE TRIGGER trg_kardex_no_upd BEFORE UPDATE OR DELETE ON inv.movimientos_inventario
 FOR EACH ROW EXECUTE FUNCTION inv.fn_kardex_solo_insert();
 
+-- S4 auditoría append-only: ni UPDATE ni DELETE sobre seg.auditoria.
+CREATE OR REPLACE FUNCTION seg.fn_auditoria_solo_insert()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'seg.auditoria es append-only' USING ERRCODE = 'P0999'; END $$;
+
+DROP TRIGGER IF EXISTS trg_auditoria_no_upd_del ON seg.auditoria;
+CREATE TRIGGER trg_auditoria_no_upd_del BEFORE UPDATE OR DELETE ON seg.auditoria
+FOR EACH ROW EXECUTE FUNCTION seg.fn_auditoria_solo_insert();
+
 -- ---------- Ventas: validación de stock y salida al kardex ----------
 CREATE OR REPLACE FUNCTION ven.fn_detalle_valida_stock()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -1573,6 +1582,23 @@ END $$;
 DROP TRIGGER IF EXISTS trg_devolucion_detalle ON ven.devolucion_detalles;
 CREATE TRIGGER trg_devolucion_detalle AFTER INSERT ON ven.devolucion_detalles
 FOR EACH ROW EXECUTE FUNCTION ven.fn_devolucion_detalle_post();
+
+-- Devolución: total recalculado desde detalles (espejo de fn_recalc_totales_venta).
+CREATE OR REPLACE FUNCTION ven.fn_recalc_total_devolucion()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE v_did BIGINT := COALESCE(NEW.devolucion_id, OLD.devolucion_id);
+BEGIN
+    UPDATE ven.devoluciones_venta
+       SET total = (SELECT COALESCE(SUM(importe_linea), 0)
+                      FROM ven.devolucion_detalles WHERE devolucion_id = v_did)
+     WHERE devolucion_id = v_did;
+    RETURN COALESCE(NEW, OLD);
+END $$;
+
+DROP TRIGGER IF EXISTS trg_devolucion_totales ON ven.devolucion_detalles;
+CREATE TRIGGER trg_devolucion_totales
+AFTER INSERT OR DELETE ON ven.devolucion_detalles
+FOR EACH ROW EXECUTE FUNCTION ven.fn_recalc_total_devolucion();
 
 -- ---------- Compras: entrada al kardex, costo promedio, totales ----------
 CREATE OR REPLACE FUNCTION com.fn_detalle_compra_entrada()
@@ -2574,8 +2600,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
 ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
     GRANT USAGE, SELECT ON SEQUENCES TO ferreteria_app;
 
--- Endurecimiento: ledger append-only y auditoría sin borrado
+-- Endurecimiento: ledger append-only y auditoría sin borrado ni modificación
 REVOKE DELETE ON inv.movimientos_inventario, fin.movimientos_caja, seg.auditoria
     FROM ferreteria_app;
+REVOKE UPDATE ON seg.auditoria FROM ferreteria_app;
 
 SELECT 'PASO 2 COMPLETO: tablas, triggers y permisos creados.' AS resultado;
