@@ -80,14 +80,16 @@ public interface CompraReportRepository extends JpaRepository<Compra, Long> {
         return vwCuentasPagarRaw().stream().map(r -> new CuentasPagarResponse(
                 toLong(r[0]), toString(r[1]), toString(r[2]),
                 toBigDecimal(r[3]), toBigDecimal(r[4]), toBigDecimal(r[5]),
-                toLocalDate(r[6]), toInteger(r[7]), toString(r[8]))).toList();
+                toLocalDate(r[6]), toInteger(r[7]), toString(r[8]),
+                toString(r[9]))).toList();
     }
 
     default List<CuentasPagarResponse> vwCuentasPagarPorEstado(String estado) {
         return vwCuentasPagarPorEstadoRaw(estado).stream().map(r -> new CuentasPagarResponse(
                 toLong(r[0]), toString(r[1]), toString(r[2]),
                 toBigDecimal(r[3]), toBigDecimal(r[4]), toBigDecimal(r[5]),
-                toLocalDate(r[6]), toInteger(r[7]), toString(r[8]))).toList();
+                toLocalDate(r[6]), toInteger(r[7]), toString(r[8]),
+                toString(r[9]))).toList();
     }
 
     default List<FacturaVencidaResponse> vwFacturasVencidas() {
@@ -95,7 +97,8 @@ public interface CompraReportRepository extends JpaRepository<Compra, Long> {
                 toLong(r[0]), toString(r[1]), toString(r[2]),
                 toInteger(r[3]), toString(r[4]), toString(r[5]),
                 toLocalDate(r[6]), toBigDecimal(r[7]), toBigDecimal(r[8]), toBigDecimal(r[9]),
-                toLocalDate(r[10]), toInteger(r[11]), toString(r[12]))).toList();
+                toLocalDate(r[10]), toInteger(r[11]), toString(r[12]),
+                toString(r[13]))).toList();
     }
 
     default List<FacturaPendienteResponse> vwFacturasPendientes() {
@@ -103,7 +106,8 @@ public interface CompraReportRepository extends JpaRepository<Compra, Long> {
                 toLong(r[0]), toString(r[1]), toString(r[2]),
                 toInteger(r[3]), toString(r[4]), toLocalDate(r[5]),
                 toBigDecimal(r[6]), toBigDecimal(r[7]), toBigDecimal(r[8]),
-                toString(r[9]), toLocalDate(r[10]), toInteger(r[11]), toString(r[12]))).toList();
+                toString(r[9]), toLocalDate(r[10]), toInteger(r[11]), toString(r[12]),
+                toString(r[13]))).toList();
     }
 
     default List<FacturaProveedorResponse> vwUltimasFacturasProveedor(Integer proveedorId) {
@@ -112,7 +116,8 @@ public interface CompraReportRepository extends JpaRepository<Compra, Long> {
                 toString(r[3]), toString(r[4]), toLocalDate(r[5]),
                 toBigDecimal(r[6]), toBigDecimal(r[7]), toBigDecimal(r[8]),
                 toBigDecimal(r[9]), toBigDecimal(r[10]), toBigDecimal(r[11]),
-                toString(r[12]), toLocalDate(r[13]))).toList();
+                toString(r[12]), toLocalDate(r[13]),
+                toString(r[14]))).toList();
     }
 
     @Modifying

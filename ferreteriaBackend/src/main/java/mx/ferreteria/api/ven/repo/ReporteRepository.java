@@ -429,7 +429,8 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                    dinero_detenido_en_estante AS dineroDetenidoEnEstante,
                    ultima_venta AS ultimaVenta,
                    dias_sin_vender AS diasSinVender,
-                   prioridad_promocion AS prioridadPromocion
+                   prioridad_promocion AS prioridadPromocion,
+                   imagen_url AS imagenUrl
             FROM inv.vw_productos_sin_movimiento
             ORDER BY dias_sin_vender DESC
             """, nativeQuery = true)
@@ -459,7 +460,8 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                             // diasSinVender
                             ((Number) tuple.get("diasSinVender")).longValue(),
                             // prioridadPromocion (Ajusta el tipo si usas un Enum o número)
-                            tuple.get("prioridadPromocion", String.class)
+                            tuple.get("prioridadPromocion", String.class),
+                            tuple.get("imagenUrl", String.class)
                     );
                 })
                 .collect(Collectors.toList());

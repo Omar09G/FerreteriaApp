@@ -47,7 +47,7 @@ public class RentaController {
         return service.create(req);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR,'ENCARGADO_CAJA'')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     @PostMapping("/{id}/devolucion")
     public VenDtos.RentaResponse devolver(
             @PathVariable Long id,
@@ -55,7 +55,7 @@ public class RentaController {
         return service.devolver(id, req);
     }
 
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR,'ENCARGADO_CAJA'')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     @PostMapping("/{id}/cancelar")
     public VenDtos.RentaResponse cancelar(@PathVariable Long id) {
         return service.cancelar(id);

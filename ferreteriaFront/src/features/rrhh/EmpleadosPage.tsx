@@ -20,6 +20,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
+import { FotoMiniatura, ImagenUpload } from "@/components/ui/ImagenUpload";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
@@ -47,6 +48,7 @@ function EmpleadoForm({
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [rolesSel, setRolesSel] = useState<string[]>([]);
+	const [fotoUrl, setFotoUrl] = useState<string | null>(null);
 	const [intento, setIntento] = useState(false);
 
 	const invalido =
@@ -74,6 +76,7 @@ function EmpleadoForm({
 			telefono: telefono.trim() || undefined,
 			email: email.trim() || undefined,
 			sueldoDiario: sueldo.trim() ? Number(sueldo) : undefined,
+			fotoUrl: fotoUrl ?? undefined,
 			...(username.trim()
 				? { username: username.trim(), password, roles: rolesSel }
 				: {}),
@@ -145,6 +148,14 @@ function EmpleadoForm({
 				value={email}
 				onChange={(e) => setEmail(e.target.value)}
 			/>
+			<div className="sm:col-span-2">
+				<ImagenUpload
+					label="Foto del empleado"
+					value={fotoUrl}
+					onChange={setFotoUrl}
+					disabled={guardando}
+				/>
+			</div>
 
 			<div className="border-t border-line pt-3 sm:col-span-2">
 				<p className="mb-1 text-sm font-semibold text-ink">
@@ -251,6 +262,17 @@ export default function EmpleadosPage() {
 	});
 
 	const columnas: Columna<Empleado>[] = [
+		{
+			key: "foto",
+			header: "Foto",
+			exportar: () => "",
+			render: (v) => (
+				<FotoMiniatura
+					url={v.fotoUrl}
+					alt={`${v.nombre} ${v.apellidoPaterno}`}
+				/>
+			),
+		},
 		{
 			key: "n",
 			header: "Empleado",

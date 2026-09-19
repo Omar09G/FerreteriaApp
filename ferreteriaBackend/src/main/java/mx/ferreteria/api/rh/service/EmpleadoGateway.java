@@ -20,7 +20,7 @@ public interface EmpleadoGateway {
                        String apellidoPaterno, String apellidoMaterno, String curp, String nss,
                        String telefono, String email, String calle, String colonia, Integer ciudadId,
                        String cp, LocalDate fechaIngreso, LocalDate fechaBaja,
-                       BigDecimal sueldoDiario, boolean activo) { }
+                       BigDecimal sueldoDiario, boolean activo, String fotoUrl) { }
 
     record EmpleadoSueldo(int empleadoId, BigDecimal sueldoDiario) { }
 
@@ -41,12 +41,13 @@ public interface EmpleadoGateway {
 
     int create(int puestoId, String nombre, String apellidoPaterno, String apellidoMaterno,
                String curp, String nss, String telefono, String email, String calle, String colonia,
-               Integer ciudadId, String cp, LocalDate fechaIngreso, BigDecimal sueldoDiario);
+               Integer ciudadId, String cp, LocalDate fechaIngreso, BigDecimal sueldoDiario,
+               String fotoUrl);
 
     void update(int empleadoId, Integer puestoId, String nombre, String apellidoPaterno,
                 String apellidoMaterno, String curp, String nss, String telefono, String email,
                 String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-                BigDecimal sueldoDiario, Boolean activo);
+                BigDecimal sueldoDiario, Boolean activo, String fotoUrl);
 
     void baja(int empleadoId);
 }

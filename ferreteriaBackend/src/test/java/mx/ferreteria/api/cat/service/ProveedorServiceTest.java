@@ -109,7 +109,7 @@ class ProveedorServiceTest {
     @DisplayName("create: save retorna entidad con id")
     void create_savesAndReturns() {
         ProveedorRequest req = new ProveedorRequest("Nuevo Proveedor", "NPC850101ABC",
-                "601", "nuevo@test.com", "55112233", 15, new BigDecimal("50000.00"));
+                "601", "nuevo@test.com", "55112233", 15, new BigDecimal("50000.00"), null);
         Proveedor saved = sampleProveedor(10, "Nuevo Proveedor");
         when(repo.save(any(Proveedor.class))).thenReturn(saved);
 
@@ -130,7 +130,7 @@ class ProveedorServiceTest {
         when(repo.save(any(Proveedor.class))).thenReturn(sampleProveedor(1, "Nuevo Nombre"));
 
         ProveedorResponse resp = service.update(1, new ProveedorRequest("Nuevo Nombre", null,
-                null, null, null, null, null));
+                null, null, null, null, null, null));
 
         assertThat(resp.razonSocial()).isEqualTo("Nuevo Nombre");
         verify(repo).save(existing);
@@ -142,7 +142,7 @@ class ProveedorServiceTest {
         when(repo.findById(999)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.update(999, new ProveedorRequest("X", null,
-                null, null, null, null, null)))
+                null, null, null, null, null, null)))
                 .isInstanceOf(RecursoNoEncontradoException.class);
     }
 

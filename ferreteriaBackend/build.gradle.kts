@@ -40,6 +40,12 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     runtimeOnly("org.postgresql:postgresql")
+    // Fotos de entidades: SDK S3-compatible para MinIO autohospedado.
+    implementation("io.minio:minio:8.5.13")
+    // Decodificador WebP en Java puro (el ImageIO del JDK no lee WebP).
+    // JPEG/PNG se decodifican con el ImageIO estándar; todo se normaliza
+    // a JPEG optimizado en OptimizadorImagen.
+    implementation("org.sejda.imageio:webp-imageio:0.1.6")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

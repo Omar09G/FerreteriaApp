@@ -19,6 +19,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
+import { FotoMiniatura, ImagenUpload } from "@/components/ui/ImagenUpload";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
@@ -59,6 +60,10 @@ function ClienteForm({
 		cliente?.diasCredito != null ? String(cliente.diasCredito) : "",
 	);
 	const [mayorista, setMayorista] = useState(cliente?.esMayorista ?? false);
+	const [fotoUrl, setFotoUrl] = useState<string | null>(
+		cliente?.fotoUrl ?? null,
+	);
+	const fotoInicial = cliente?.fotoUrl ?? null;
 	const [intento, setIntento] = useState(false);
 
 	const invalido = razonSocial.trim() === "";
@@ -77,6 +82,8 @@ function ClienteForm({
 			limiteCredito: numero(limite),
 			diasCredito: numero(dias),
 			esMayorista: mayorista,
+			// Sin cambio = undefined (el backend no toca); cambio a null = "" (limpia).
+			fotoUrl: fotoUrl === fotoInicial ? undefined : (fotoUrl ?? ""),
 		});
 	};
 
@@ -156,6 +163,14 @@ function ClienteForm({
 				/>
 				<span className="font-medium text-ink">Cliente mayorista</span>
 			</label>
+			<div className="sm:col-span-2">
+				<ImagenUpload
+					label="Foto del cliente"
+					value={fotoUrl}
+					onChange={setFotoUrl}
+					disabled={guardando}
+				/>
+			</div>
 			{intento && invalido && (
 				<p className="text-xs text-red-600 sm:col-span-2">
 					La razón social es obligatoria.
@@ -232,6 +247,14 @@ export default function ClientesPage() {
 	});
 
 	const columnas: Columna<Cliente>[] = [
+		{
+			key: "foto",
+			header: "Foto",
+			exportar: () => "",
+			render: (v) => (
+				<FotoMiniatura url={v.fotoUrl} alt={v.razonSocial} />
+			),
+		},
 		{
 			key: "r",
 			header: "Razón social",

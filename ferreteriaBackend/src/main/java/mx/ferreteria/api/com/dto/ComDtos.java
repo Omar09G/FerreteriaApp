@@ -53,7 +53,8 @@ public final class ComDtos {
     public record CuentasPagarResponse(
             Long cuentaPagarId, String compraFolio, String proveedor,
             BigDecimal montoTotal, BigDecimal montoPagado, BigDecimal saldo,
-            LocalDate fechaVencimiento, Integer diasVencido, String estado) {
+            LocalDate fechaVencimiento, Integer diasVencido, String estado,
+            String fotoUrl) {
     }
 
     // ─── Abono a cuenta por pagar (com.pagos_proveedor) ──────────────
@@ -83,7 +84,7 @@ public final class ComDtos {
             String compraFolio, String facturaProveedor, LocalDate fecha,
             BigDecimal subtotal, BigDecimal iva, BigDecimal total,
             BigDecimal montoTotal, BigDecimal montoPagado, BigDecimal saldo,
-            String estadoPago, LocalDate fechaVencimiento) {
+            String estadoPago, LocalDate fechaVencimiento, String fotoUrl) {
     }
 
     // ─── Vencidas (com.vw_facturas_vencidas) ────────────────────────
@@ -92,7 +93,7 @@ public final class ComDtos {
             Integer proveedorId, String proveedor, String contactoTelefono,
             LocalDate fechaCompra, BigDecimal montoTotal, BigDecimal montoPagado,
             BigDecimal saldo, LocalDate fechaVencimiento,
-            Integer diasVencido, String antiguedad) {
+            Integer diasVencido, String antiguedad, String fotoUrl) {
     }
 
     // ─── Pendientes (com.vw_facturas_pendientes) ────────────────────
@@ -101,6 +102,6 @@ public final class ComDtos {
             Integer proveedorId, String proveedor, LocalDate fechaCompra,
             BigDecimal montoTotal, BigDecimal montoPagado, BigDecimal saldo,
             String estadoPago, LocalDate fechaVencimiento,
-            Integer diasParaVencer, String alerta) {
+            Integer diasParaVencer, String alerta, String fotoUrl) {
     }
 }

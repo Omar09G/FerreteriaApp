@@ -67,11 +67,12 @@ export function TicketPreview({ config, venta, vendedorNombre, cajaNombre, clien
   const entregado = montoEntregado != null ? montoEntregado : (v.pagos?.[0]?.monto ?? v.total);
   const cambio = esEfectivo ? Math.max(0, entregado - v.total) : 0;
 
-  // Allowlist de esquema: el logotipo viene de la API; solo https: y
-  // data:image/ para que un valor malicioso (javascript:, file:) no se
-  // convierta en sink activo si el render cambia a window.open/externo.
+  // Allowlist de esquema: el logotipo viene de la API; solo http(s): y
+  // data:image/ (mismo criterio que el CHECK del backend y esUrlImagenSegura)
+  // para que un valor malicioso (javascript:, file:) no se convierta en sink
+  // activo si el render cambia a window.open/externo.
   const logotipoSeguro =
-    config.logotipoUrl != null && /^(https:|data:image\/)/i.test(config.logotipoUrl.trim())
+    config.logotipoUrl != null && /^(https?:|data:image\/)/i.test(config.logotipoUrl.trim())
       ? config.logotipoUrl
       : null;
 

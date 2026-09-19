@@ -62,7 +62,7 @@ class ProductoControllerTest {
                 return new ProductoResponse(1L, "P001", "PRODUCTO", "Taladro", "desc",
                                 1, "Herramientas", 1, "Acme", 1, "PZA",
                                 new BigDecimal("100.00"), new BigDecimal("150.00"), null, true, BigDecimal.ZERO,
-                                List.of("7501234567001"), null);
+                                List.of("7501234567001"), null, null);
         }
 
         // ── GET /api/v1/productos ───────────────────────────────────────

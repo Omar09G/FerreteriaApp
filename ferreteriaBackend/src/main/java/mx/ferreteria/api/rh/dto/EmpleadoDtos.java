@@ -7,6 +7,7 @@ import java.util.List;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -34,7 +35,8 @@ public final class EmpleadoDtos {
             @DecimalMin("0") BigDecimal sueldoDiario,
             @Size(max = 40) String username,
             @Size(min = 8, max = 100) String password,
-            List<String> roles) {
+            List<String> roles,
+            @Pattern(regexp = "^$|^(https?://|data:image/).*") @Size(max = 2000) String fotoUrl) {
 
         /** True si el alta además crea el usuario del sistema (seg.usuarios). */
         public boolean conUsuario() {
@@ -57,7 +59,8 @@ public final class EmpleadoDtos {
             @Size(max = 10) String cp,
             LocalDate fechaIngreso,
             @DecimalMin("0") BigDecimal sueldoDiario,
-            Boolean activo) { }
+            Boolean activo,
+            @Pattern(regexp = "^$|^(https?://|data:image/).*") @Size(max = 2000) String fotoUrl) { }
 
     public record EmpleadoResponse(
             int empleadoId,
@@ -77,7 +80,8 @@ public final class EmpleadoDtos {
             LocalDate fechaIngreso,
             LocalDate fechaBaja,
             BigDecimal sueldoDiario,
-            boolean activo) { }
+            boolean activo,
+            String fotoUrl) { }
 
     /** Información principal del empleado, para /me y respuestas de usuario. */
     public record EmpleadoResumen(
@@ -86,7 +90,8 @@ public final class EmpleadoDtos {
             String puestoNombre,
             String email,
             String telefono,
-            boolean activo) { }
+            boolean activo,
+            String fotoUrl) { }
 
     public record EmpleadoOk(boolean ok) { }
 }

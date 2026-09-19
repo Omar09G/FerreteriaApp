@@ -38,6 +38,42 @@ cd ../ferreteriaFront && npm install && npm run dev
 
 Detalles y comandos de pruebas/build en el README de cada proyecto.
 
+## Puertos y conexiones (dev local)
+
+La app corre con `bootRun` + `npm run dev` en el host; solo datos, storage y
+observabilidad van en contenedores (`ferreteriaDB/deploy`, red `db-net`/`app-net`/`obs-net`).
+
+| Servicio | Contenedor / proceso | Puerto host | URL / uso |
+|---|---|---|---|
+| Frontend Vite | host (`npm run dev`) | 5173 | http://localhost:5173 · proxy `/api → :8080` |
+| Backend API | host (`./gradlew bootRun`) | 8080 | http://localhost:8080/`api/v1` · `/actuator/health` |
+| PostgreSQL primario | `ferreteria-postgres-primary` | 5432 | admin directo (la app usa PgBouncer) |
+| PostgreSQL réplica | `ferreteria-postgres-replica` | 5433 | solo lectura |
+| PgBouncer | `ferreteria-pgbouncer` | 6432 | conexión de la app (`PG_HOST/PORT`) |
+| MinIO API (fotos) | `ferreteria-minio` | 9000 | S3 + URLs públicas `http://localhost:9000/ferreteria-fotos/…` |
+| MinIO consola | `ferreteria-minio` | 9001 | http://localhost:9001 (usuario `MINIO_ROOT_USER`) |
+| Backend contenerizado (opcional) | `ferreteria-backend` | 8081 | swagger/health directo; dentro de compose usa `MINIO_ENDPOINT=http://minio:9000` |
+| Frontend contenerizado (opcional) | `ferreteria-frontend` | 8080 | Nginx `:80`; solo prod/staging (choca con bootRun) |
+
+Notas:
+- `bootRun` en host usa `MINIO_ENDPOINT=http://localhost:9000` (el DNS `minio`
+  solo existe dentro de la red compose). `MINIO_PUBLIC_URL` debe ser alcanzable
+  desde el browser (dev: `http://localhost:9000`).
+- Fotos de entidades: `POST /api/v1/archivos/imagen` (multipart `archivo`,
+  jpeg/png/webp ≤5 MB) → URL pública → `fotoUrl`/`imagenUrl` en create/update.
+  La imagen de subida requiere imagen `quay.io/minio/minio` (Docker Hub
+  rechaza el pull del tag fijado en el compose).
+
+## Observabilidad (OTel + Prometheus)
+
+| Servicio | Contenedor | Puerto host | Uso |
+|---|---|---|---|
+| OTel Collector | `ferreteria-otel-collector` | 4317 gRPC / 4318 HTTP / 8889 prom | OTLP del backend (4317) y del browser (4318, con CORS); `VITE_OTEL_ENABLED=false` en dev local |
+| Tempo | `ferreteria-tempo` | 3200 | trazas (datasource de Grafana) |
+| Prometheus | `ferreteria-prometheus` | 9090 | métricas (scrapea collector :8889 y postgres-exporter :9187) |
+| Postgres exporter | `ferreteria-postgres-exporter` | 9187 | métricas de PG |
+| Grafana | `ferreteria-grafana` | 3000 | dashboards (Tempo + Prometheus) |
+
 ## Scripts de soporte
 
 - `collector/` — colección de requests HTTP de apoyo (collections para probar la API).

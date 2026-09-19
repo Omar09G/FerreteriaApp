@@ -55,6 +55,9 @@ public class Cliente {
     @Column(length = 120)
     private String email;
 
+    @Column(name = "foto_url", columnDefinition = "TEXT")
+    private String fotoUrl;
+
     @Column(length = 150)
     private String calle;
 

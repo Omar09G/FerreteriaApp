@@ -39,6 +39,9 @@ public class Proveedor {
     @Column(length = 120)
     private String email;
 
+    @Column(name = "foto_url", columnDefinition = "TEXT")
+    private String fotoUrl;
+
     @Column(length = 20)
     private String telefono;
 

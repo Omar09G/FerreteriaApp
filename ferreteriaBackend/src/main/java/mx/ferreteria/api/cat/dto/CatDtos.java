@@ -69,7 +69,8 @@ public final class CatDtos {
                         @Email @Size(max = 120) String email,
                         @Pattern(regexp = "^[0-9+()\\-\\s]{7,20}$") @Size(max = 20) String telefono,
                         @Min(0) Integer diasCredito,
-                        @DecimalMin(value = "0", inclusive = true) BigDecimal limiteCredito) {
+                        @DecimalMin(value = "0", inclusive = true) BigDecimal limiteCredito,
+                        @Pattern(regexp = "^$|^(https?://|data:image/).*") @Size(max = 2000) String fotoUrl) {
         }
 
         public record ProveedorResponse(
@@ -80,7 +81,8 @@ public final class CatDtos {
                         String email,
                         String telefono,
                         Integer diasCredito,
-                        BigDecimal limiteCredito) {
+                        BigDecimal limiteCredito,
+                        String fotoUrl) {
         }
 
         // ── Cliente ────────────────────────────────────────────────────
@@ -100,7 +102,8 @@ public final class CatDtos {
                         @Size(max = 10) String cp,
                         @DecimalMin(value = "0", inclusive = true) BigDecimal limiteCredito,
                         @Min(0) Integer diasCredito,
-                        Boolean esMayorista) {
+                        Boolean esMayorista,
+                        @Pattern(regexp = "^$|^(https?://|data:image/).*") @Size(max = 2000) String fotoUrl) {
         }
 
         public record ClienteResponse(
@@ -122,7 +125,8 @@ public final class CatDtos {
                         BigDecimal limiteCredito,
                         Integer diasCredito,
                         Boolean esMayorista,
-                        Boolean activo) {
+                        Boolean activo,
+                        String fotoUrl) {
         }
 
         // ── Producto ───────────────────────────────────────────────────
@@ -144,7 +148,8 @@ public final class CatDtos {
                         @DecimalMin(value = "0", inclusive = true) BigDecimal precioMenudeo,
                         @DecimalMin(value = "0", inclusive = true) BigDecimal precioMayoreo,
                         Boolean aplicaIva,
-                        List<@Valid CodigoBarrasRequest> codigosBarras) {
+                        List<@Valid CodigoBarrasRequest> codigosBarras,
+                        @Pattern(regexp = "^$|^(https?://|data:image/).*") @Size(max = 2000) String imagenUrl) {
         }
 
         public record ProductoResponse(
@@ -165,7 +170,8 @@ public final class CatDtos {
                         Boolean aplicaIva,
                         BigDecimal stockActual,
                         List<String> codigosBarras,
-                        BigDecimal factorEscaneo) {
+                        BigDecimal factorEscaneo,
+                        String imagenUrl) {
 
                 public ProductoResponse withStock(BigDecimal stockActual) {
                         return new ProductoResponse(
@@ -173,7 +179,7 @@ public final class CatDtos {
                                         categoriaId, categoriaNombre, marcaId, marcaNombre,
                                         unidadMedidaId, unidadMedidaClave, costoActual,
                                         precioMenudeo, precioMayoreo, aplicaIva, stockActual,
-                                        codigosBarras, factorEscaneo);
+                                        codigosBarras, factorEscaneo, imagenUrl);
                 }
 
                 public ProductoResponse withFactorEscaneo(BigDecimal factorEscaneo) {
@@ -182,7 +188,7 @@ public final class CatDtos {
                                         categoriaId, categoriaNombre, marcaId, marcaNombre,
                                         unidadMedidaId, unidadMedidaClave, costoActual,
                                         precioMenudeo, precioMayoreo, aplicaIva, stockActual,
-                                        codigosBarras, factorEscaneo);
+                                        codigosBarras, factorEscaneo, imagenUrl);
                 }
         }
 

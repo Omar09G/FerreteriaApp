@@ -18,6 +18,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
+import { FotoMiniatura, ImagenUpload } from "@/components/ui/ImagenUpload";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
@@ -54,6 +55,10 @@ function ProveedorForm({
 	const [limite, setLimite] = useState(
 		proveedor?.limiteCredito != null ? String(proveedor.limiteCredito) : "",
 	);
+	const [fotoUrl, setFotoUrl] = useState<string | null>(
+		proveedor?.fotoUrl ?? null,
+	);
+	const fotoInicial = proveedor?.fotoUrl ?? null;
 	const [intento, setIntento] = useState(false);
 
 	const invalido = razonSocial.trim() === "";
@@ -70,6 +75,8 @@ function ProveedorForm({
 			telefono: telefono.trim() || undefined,
 			diasCredito: numero(dias) ?? undefined,
 			limiteCredito: numero(limite) ?? undefined,
+			// Sin cambio = undefined (el backend no toca); cambio a null = "" (limpia).
+			fotoUrl: fotoUrl === fotoInicial ? undefined : (fotoUrl ?? ""),
 		});
 	};
 
@@ -131,6 +138,14 @@ function ProveedorForm({
 				value={limite}
 				onChange={(e) => setLimite(e.target.value)}
 			/>
+			<div className="sm:col-span-2">
+				<ImagenUpload
+					label="Foto del proveedor"
+					value={fotoUrl}
+					onChange={setFotoUrl}
+					disabled={guardando}
+				/>
+			</div>
 			{intento && invalido && (
 				<p className="text-xs text-red-600 sm:col-span-2">
 					La razón social es obligatoria.
@@ -208,6 +223,14 @@ export default function ProveedoresPage() {
 	});
 
 	const columnas: Columna<Proveedor>[] = [
+		{
+			key: "foto",
+			header: "Foto",
+			exportar: () => "",
+			render: (v) => (
+				<FotoMiniatura url={v.fotoUrl} alt={v.razonSocial} />
+			),
+		},
 		{
 			key: "r",
 			header: "Razón social",

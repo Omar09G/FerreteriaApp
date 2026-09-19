@@ -45,7 +45,7 @@ class NominaServiceTest {
     NominaService service;
 
     private static EmpleadoResumen resumen(int id, String nombre) {
-        return new EmpleadoResumen(id, nombre, "Puesto", "a@b.com", "555", true);
+        return new EmpleadoResumen(id, nombre, "Puesto", "a@b.com", "555", true, null);
     }
 
     private Nomina sampleNomina(Long id, String estado) {

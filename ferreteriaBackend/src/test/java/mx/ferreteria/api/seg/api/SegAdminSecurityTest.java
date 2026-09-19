@@ -13,9 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 
 /**
- * Regla de autorización del CRUD de seguridad (requisito: solo ADMINISTRADOR
- * actualiza ROLES/PERMISOS y crea usuarios). Se aplica a nivel de clase; un
- * método EXPLÍCITAMENTE con autorización menor rompería este test.
+ * Regla de autorización del CRUD de seguridad (requisito: ADMINISTRADOR como
+ * base; la escritura operativa admite GERENTE per convención create/update =
+ * GERENTE/ADMINISTRADOR). Se aplica a nivel de clase; un método EXPLÍCITAMENTE
+ * con autorización menor rompería este test.
  */
 class SegAdminSecurityTest {
 
@@ -33,7 +34,8 @@ class SegAdminSecurityTest {
                 if (metodo != null) {
                     assertThat(metodo.value())
                             .as("%s.%s", m.getDeclaringClass().getSimpleName(), m.getName())
-                            .startsWith("hasRole('ADMINISTRADOR')");
+                            .isIn("hasRole('ADMINISTRADOR')",
+                                    "hasAnyRole('ADMINISTRADOR','GERENTE')");
                 }
             }
         }

@@ -62,6 +62,7 @@ public class ClienteService {
                 .limiteCredito(req.limiteCredito() != null ? req.limiteCredito() : BigDecimal.ZERO)
                 .diasCredito(req.diasCredito() != null ? req.diasCredito() : 0)
                 .esMayorista(req.esMayorista() != null ? req.esMayorista() : false)
+                .fotoUrl(req.fotoUrl())
                 .build();
         Cliente saved = repo.save(entity);
         // Auto-creacion de linea de credito si hay limite>0 (independiente de
@@ -95,6 +96,9 @@ public class ClienteService {
         }
         if (req.esMayorista() != null) {
             entity.setEsMayorista(req.esMayorista());
+        }
+        if (req.fotoUrl() != null) {
+            entity.setFotoUrl(req.fotoUrl().isBlank() ? null : req.fotoUrl());
         }
         Cliente saved = repo.save(entity);
         autoCrearOActualizarLinea(saved);
@@ -153,6 +157,7 @@ public class ClienteService {
                 c.getNombreComercial(), c.getRfc(), c.getCurp(), c.getRegimenFiscal(),
                 c.getTelefono(), c.getWhatsapp(), c.getEmail(),
                 c.getCalle(), c.getColonia(), c.getCiudadId(), ciudadNombre, c.getCp(),
-                c.getLimiteCredito(), c.getDiasCredito(), c.getEsMayorista(), c.getActivo());
+                c.getLimiteCredito(), c.getDiasCredito(), c.getEsMayorista(), c.getActivo(),
+                c.getFotoUrl());
     }
 }

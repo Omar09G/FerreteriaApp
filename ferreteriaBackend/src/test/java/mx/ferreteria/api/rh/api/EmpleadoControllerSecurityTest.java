@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 
 /**
- * Regla: SOLO el rol ADMINISTRADOR crea/edita/baja empleados (base del alta de
- * usuarios). Guard a nivel de clase; un método con autorización menor rompería
- * este test.
+ * Regla: la escritura de empleados exige ADMINISTRADOR (guard de clase);
+ * create/update/baja además admiten GERENTE (convención create/update =
+ * GERENTE/ADMINISTRADOR). Un método con autorización menor rompería este test.
  */
 class EmpleadoControllerSecurityTest {
 
@@ -33,7 +33,8 @@ class EmpleadoControllerSecurityTest {
                 if (metodo != null) {
                     assertThat(metodo.value())
                             .as("%s.%s", m.getDeclaringClass().getSimpleName(), m.getName())
-                            .startsWith("hasRole('ADMINISTRADOR')");
+                            .isIn("hasRole('ADMINISTRADOR')",
+                                    "hasAnyRole('ADMINISTRADOR','GERENTE')");
                 }
             }
         }

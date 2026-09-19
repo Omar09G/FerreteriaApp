@@ -60,7 +60,7 @@ class SegAdminServiceTest {
                     Instant.parse("2026-01-01T12:00:00Z"), Instant.parse("2026-01-01T12:00:00Z"));
 
     private static final EmpleadoResumen EMPLEADO_ACTIVO = new EmpleadoResumen(
-            42, "Juan Pérez", "Vendedor", "cajero1@x.mx", "555", true);
+            42, "Juan Pérez", "Vendedor", "cajero1@x.mx", "555", true, null);
 
     void setUp() {
         service = new SegAdminService(gateway, auth, empleados, encoder);
@@ -376,7 +376,7 @@ class SegAdminServiceTest {
                 .isInstanceOfSatisfying(ReglaNegocioException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REFERENCIA_INVALIDA));
 
-        var inactivo = new EmpleadoResumen(42, "Juan", "Vendedor", null, null, false);
+        var inactivo = new EmpleadoResumen(42, "Juan", "Vendedor", null, null, false, null);
         when(empleados.resumenById(42)).thenReturn(Optional.of(inactivo));
         assertThatThrownBy(() -> service.createUsuario(new UsuarioCreateRequest(
                 "nuevo01", null, "Secreta123", 42, List.of())))

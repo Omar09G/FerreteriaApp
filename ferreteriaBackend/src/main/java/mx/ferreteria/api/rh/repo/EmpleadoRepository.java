@@ -31,7 +31,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
             e.empleado_id, e.puesto_id, p.nombre AS puesto_nombre, e.nombre,
             e.apellido_p, e.apellido_m, e.curp, e.nss, e.telefono, e.email,
             e.calle, e.colonia, e.ciudad_id, e.cp, e.fecha_ingreso, e.fecha_baja,
-            e.sueldo_diario, e.activo""";
+            e.sueldo_diario, e.activo, e.foto_url""";
 
     private final JdbcClient jdbc;
 
@@ -68,7 +68,8 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 SELECT e.empleado_id,
                        trim(concat(e.nombre, ' ', e.apellido_p, ' ', e.apellido_m))
                          AS nombre_completo,
-                       p.nombre AS puesto_nombre, e.email, e.telefono, e.activo
+                       p.nombre AS puesto_nombre, e.email, e.telefono, e.activo,
+                       e.foto_url
                 FROM rh.empleados e
                 JOIN cat.puestos p ON p.puesto_id = e.puesto_id
                 WHERE e.empleado_id = :id AND e.activo
@@ -76,7 +77,8 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 .param("id", empleadoId)
                 .query((rs, n) -> new EmpleadoResumen(rs.getInt("empleado_id"),
                         rs.getString("nombre_completo"), rs.getString("puesto_nombre"),
-                        rs.getString("email"), rs.getString("telefono"), rs.getBoolean("activo")))
+                        rs.getString("email"), rs.getString("telefono"), rs.getBoolean("activo"),
+                        rs.getString("foto_url")))
                 .optional();
     }
 
@@ -90,7 +92,8 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 SELECT e.empleado_id,
                        trim(concat(e.nombre, ' ', e.apellido_p, ' ', e.apellido_m))
                          AS nombre_completo,
-                       p.nombre AS puesto_nombre, e.email, e.telefono, e.activo
+                       p.nombre AS puesto_nombre, e.email, e.telefono, e.activo,
+                       e.foto_url
                 FROM rh.empleados e
                 JOIN cat.puestos p ON p.puesto_id = e.puesto_id
                 WHERE e.empleado_id IN (:ids) AND e.activo
@@ -98,7 +101,8 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 .param("ids", empleadoIds)
                 .query((rs, n) -> new EmpleadoResumen(rs.getInt("empleado_id"),
                         rs.getString("nombre_completo"), rs.getString("puesto_nombre"),
-                        rs.getString("email"), rs.getString("telefono"), rs.getBoolean("activo")))
+                        rs.getString("email"), rs.getString("telefono"), rs.getBoolean("activo"),
+                        rs.getString("foto_url")))
                 .list().forEach(r -> map.put(r.empleadoId(), r));
         return map;
     }
@@ -124,13 +128,13 @@ public class EmpleadoRepository implements EmpleadoGateway {
     public int create(int puestoId, String nombre, String apellidoPaterno, String apellidoMaterno,
             String curp, String nss, String telefono, String email, String calle,
             String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-            BigDecimal sueldoDiario) {
+            BigDecimal sueldoDiario, String fotoUrl) {
         return jdbc.sql("""
                 INSERT INTO rh.empleados (puesto_id, nombre, apellido_p, apellido_m,
                     curp, nss, telefono, email, calle, colonia, ciudad_id, cp,
-                    fecha_ingreso, sueldo_diario)
+                    fecha_ingreso, sueldo_diario, foto_url)
                 VALUES (:pto, :n, :ap, :am, :curp, :nss, :tel, :em, :calle, :col,
-                    :cd, :cp, :ingreso, :sueldo)
+                    :cd, :cp, :ingreso, :sueldo, :foto)
                 RETURNING empleado_id
                 """)
                 .param("pto", puestoId).param("n", nombre).param("ap", apellidoPaterno)
@@ -138,7 +142,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 .param("tel", telefono).param("em", email).param("calle", calle)
                 .param("col", colonia).param("cd", ciudadId).param("cp", cp)
                 .param("ingreso", fechaIngreso == null ? null : Date.valueOf(fechaIngreso))
-                .param("sueldo", sueldoDiario)
+                .param("sueldo", sueldoDiario).param("foto", fotoUrl)
                 .query(Integer.class)
                 .single();
     }
@@ -147,7 +151,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
     public void update(int empleadoId, Integer puestoId, String nombre, String apellidoPaterno,
             String apellidoMaterno, String curp, String nss, String telefono, String email,
             String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-            BigDecimal sueldoDiario, Boolean activo) {
+            BigDecimal sueldoDiario, Boolean activo, String fotoUrl) {
         jdbc.sql("""
                 UPDATE rh.empleados
                 SET puesto_id = COALESCE(:p, puesto_id),
@@ -164,7 +168,11 @@ public class EmpleadoRepository implements EmpleadoGateway {
                     cp = COALESCE(:cp, cp),
                     fecha_ingreso = COALESCE(:ingreso, fecha_ingreso),
                     sueldo_diario = COALESCE(:su, sueldo_diario),
-                    activo = COALESCE(:a, activo)
+                    activo = COALESCE(:a, activo),
+                    -- null = no tocar; '' = limpiar (NULL); otro valor = nueva URL
+                    foto_url = CASE WHEN :foto IS NULL THEN foto_url
+                                    WHEN :foto = '' THEN NULL
+                                    ELSE CAST(:foto AS TEXT) END
                 WHERE empleado_id = :id
                 """)
                 .param("id", empleadoId).param("p", puestoId).param("n", nombre)
@@ -173,7 +181,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 .param("em", email).param("calle", calle).param("col", colonia)
                 .param("cd", ciudadId).param("cp", cp)
                 .param("ingreso", fechaIngreso == null ? null : Date.valueOf(fechaIngreso))
-                .param("su", sueldoDiario).param("a", activo)
+                .param("su", sueldoDiario).param("a", activo).param("foto", fotoUrl)
                 .update();
     }
 
@@ -195,6 +203,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 rs.getString("email"), rs.getString("calle"), rs.getString("colonia"),
                 (Integer) rs.getObject("ciudad_id"), rs.getString("cp"),
                 ing == null ? null : ing.toLocalDate(), baja == null ? null : baja.toLocalDate(),
-                rs.getBigDecimal("sueldo_diario"), rs.getBoolean("activo"));
+                rs.getBigDecimal("sueldo_diario"), rs.getBoolean("activo"),
+                rs.getString("foto_url"));
     }
 }

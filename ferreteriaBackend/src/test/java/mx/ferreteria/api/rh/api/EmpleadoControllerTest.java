@@ -65,7 +65,7 @@ class EmpleadoControllerTest {
         private static final EmpleadoResponse E = new EmpleadoResponse(
                         1, 3, "Vendedor", "Juan", "Pérez", "López", "CURP123", "NSS123", "555",
                         "juan@x.mx", "Av 1", "Colonia", 1, "97000",
-                        LocalDate.of(2026, 1, 15), null, new BigDecimal("100.00"), true);
+                        LocalDate.of(2026, 1, 15), null, new BigDecimal("100.00"), true, null);
 
         @Test
         @DisplayName("GET /empleados -> 200 success:true, data arreglo + meta")

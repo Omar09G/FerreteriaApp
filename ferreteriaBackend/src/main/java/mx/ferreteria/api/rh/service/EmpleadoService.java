@@ -55,7 +55,8 @@ public class EmpleadoService {
                 req.apellidoMaterno(), req.curp(), req.nss(), req.telefono(), req.email(),
                 req.calle(), req.colonia(), req.ciudadId(), req.cp(),
                 req.fechaIngreso() == null ? java.time.LocalDate.now() : req.fechaIngreso(),
-                req.sueldoDiario() == null ? java.math.BigDecimal.ZERO : req.sueldoDiario());
+                req.sueldoDiario() == null ? java.math.BigDecimal.ZERO : req.sueldoDiario(),
+                req.fotoUrl());
         if (req.conUsuario()) {
             // email coherente usuario↔empleado: el empleado usa req.email (o null)
             usuarioAlta.crearUsuarioConRoles(req.username(), req.email(), req.password(), id,
@@ -70,7 +71,7 @@ public class EmpleadoService {
         gateway.update(empleadoId, req.puestoId(), req.nombre(), req.apellidoPaterno(),
                 req.apellidoMaterno(), req.curp(), req.nss(), req.telefono(), req.email(),
                 req.calle(), req.colonia(), req.ciudadId(), req.cp(), req.fechaIngreso(),
-                req.sueldoDiario(), req.activo());
+                req.sueldoDiario(), req.activo(), normalizarFoto(req.fotoUrl()));
         return get(empleadoId);
     }
 
@@ -88,6 +89,14 @@ public class EmpleadoService {
         return new EmpleadoResponse(r.empleadoId(), r.puestoId(), r.puestoNombre(),
                 r.nombre(), r.apellidoPaterno(), r.apellidoMaterno(), r.curp(), r.nss(),
                 r.telefono(), r.email(), r.calle(), r.colonia(), r.ciudadId(), r.cp(),
-                r.fechaIngreso(), r.fechaBaja(), r.sueldoDiario(), r.activo());
+                r.fechaIngreso(), r.fechaBaja(), r.sueldoDiario(), r.activo(), r.fotoUrl());
+    }
+
+    /** Cadena vacía = limpiar foto (null en BD); null = no tocar (COALESCE). */
+    private static String normalizarFoto(String fotoUrl) {
+        if (fotoUrl == null) {
+            return null;
+        }
+        return fotoUrl.isBlank() ? "" : fotoUrl;
     }
 }

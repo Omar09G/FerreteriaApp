@@ -19,12 +19,13 @@ SELECT date_trunc('month', v.fecha)::date                     AS mes,
        RANK() OVER (PARTITION BY date_trunc('month', v.fecha)
                     ORDER BY SUM(d.total_linea) DESC)         AS ranking_mes,
        RANK() OVER (PARTITION BY date_trunc('month', v.fecha)
-                    ORDER BY SUM(d.cantidad) DESC)            AS ranking_unidades
+                    ORDER BY SUM(d.cantidad) DESC)            AS ranking_unidades,
+       p.imagen_url                                           AS imagen_url
 FROM ven.venta_detalles d
 JOIN ven.ventas v    ON v.venta_id = d.venta_id AND v.estado = 'COMPLETADA'
 JOIN inv.productos p ON p.producto_id = d.producto_id
 LEFT JOIN cat.categorias c ON c.categoria_id = p.categoria_id
-GROUP BY date_trunc('month', v.fecha), p.producto_id, p.codigo, p.nombre, c.nombre;
+GROUP BY date_trunc('month', v.fecha), p.producto_id, p.codigo, p.nombre, p.imagen_url, c.nombre;
 
 -- ===== §16.2 Mejores clientes =====
 CREATE OR REPLACE VIEW ven.vw_mejores_clientes AS
@@ -36,11 +37,12 @@ SELECT date_trunc('month', v.fecha)::date                     AS mes,
        ROUND(AVG(v.total), 2)                                 AS ticket_promedio,
        RANK() OVER (PARTITION BY date_trunc('month', v.fecha)
                     ORDER BY SUM(v.total) DESC)               AS ranking_mes,
-       RANK() OVER (ORDER BY SUM(v.total) DESC)               AS ranking_historico
+       RANK() OVER (ORDER BY SUM(v.total) DESC)               AS ranking_historico,
+       cl.foto_url                                            AS foto_url
 FROM ven.ventas v
 JOIN ven.clientes cl ON cl.cliente_id = v.cliente_id
 WHERE v.estado = 'COMPLETADA'
-GROUP BY date_trunc('month', v.fecha), cl.cliente_id, cl.razon_social;
+GROUP BY date_trunc('month', v.fecha), cl.cliente_id, cl.razon_social, cl.foto_url;
 
 -- ===== §16.3 Stock bajo =====
 CREATE OR REPLACE VIEW inv.vw_stock_bajo AS
@@ -55,7 +57,8 @@ SELECT a.almacen_id,
        GREATEST(COALESCE(i.stock_maximo, i.stock_minimo * 2) - i.stock, 0)::numeric(12,3)
                                    AS cantidad_sugerida_comprar,
        pr.razon_social             AS proveedor_principal,
-       CASE WHEN i.stock <= 0 THEN 'AGOTADO' ELSE 'BAJO' END AS alerta
+       CASE WHEN i.stock <= 0 THEN 'AGOTADO' ELSE 'BAJO' END AS alerta,
+       p.imagen_url                AS imagen_url
 FROM inv.inventario i
 JOIN inv.productos p ON p.producto_id = i.producto_id AND p.tipo = 'PRODUCTO' AND p.activo
 JOIN inv.almacenes a ON a.almacen_id = i.almacen_id
@@ -168,7 +171,8 @@ SELECT cc.cuenta_cobrar_id,
        (cc.monto_total - cc.monto_pagado)          AS saldo,
        cc.fecha_vencimiento,
        CURRENT_DATE - cc.fecha_vencimiento          AS dias_vencido,
-       cc.estado
+       cc.estado,
+       cl.foto_url                  AS foto_url
 FROM ven.cuentas_cobrar cc
 JOIN ven.ventas v   ON v.venta_id = cc.venta_id
 LEFT JOIN ven.clientes cl ON cl.cliente_id = cc.cliente_id
@@ -185,7 +189,8 @@ SELECT cp.cuenta_pagar_id,
        (cp.monto_total - cp.monto_pagado) AS saldo,
        cp.fecha_vencimiento,
        CURRENT_DATE - cp.fecha_vencimiento AS dias_vencido,
-       cp.estado
+       cp.estado,
+       pv.foto_url                    AS foto_url
 FROM com.cuentas_pagar cp
 JOIN com.compras co     ON co.compra_id = cp.compra_id
 JOIN com.proveedores pv ON pv.proveedor_id = co.proveedor_id
@@ -208,7 +213,8 @@ SELECT m.producto_id,
            OVER (PARTITION BY m.producto_id, m.almacen_id
                  ORDER BY m.creado_en, m.movimiento_id)     AS stock_acumulado,
        m.ref_tabla,
-       m.ref_id
+       m.ref_id,
+       p.imagen_url                AS imagen_url
 FROM inv.movimientos_inventario m
 JOIN inv.productos p ON p.producto_id = m.producto_id
 JOIN inv.almacenes a ON a.almacen_id = m.almacen_id
@@ -229,14 +235,15 @@ SELECT date_trunc('month', v.fecha)::date                          AS mes,
        (SUM(v.subtotal) - COALESCE(SUM(c.costo), 0))::numeric(14,2) AS utilidad_generada,
        RANK() OVER (PARTITION BY date_trunc('month', v.fecha)
                     ORDER BY SUM(v.total) DESC)                    AS ranking_mes,
-       RANK() OVER (ORDER BY SUM(v.total) DESC)                    AS ranking_historico
+       RANK() OVER (ORDER BY SUM(v.total) DESC)                    AS ranking_historico,
+       e.foto_url                                                 AS foto_url
 FROM ven.ventas v
 JOIN seg.usuarios u ON u.usuario_id = v.usuario_id
 LEFT JOIN rh.empleados e ON e.empleado_id = u.empleado_id
 LEFT JOIN costo_venta c ON c.venta_id = v.venta_id
 WHERE v.estado = 'COMPLETADA'
 GROUP BY date_trunc('month', v.fecha), u.usuario_id,
-         (e.nombre || ' ' || e.apellido_p)
+         (e.nombre || ' ' || e.apellido_p), e.foto_url
 ORDER BY mes DESC, ranking_mes;
 
 -- ===== §21.2 Mejores días de venta =====
@@ -325,7 +332,8 @@ SELECT p.producto_id,
        CASE WHEN uv.ultima IS NULL                    THEN 'NUNCA_VENDIDO'
             WHEN now() - uv.ultima > interval '90 days' THEN 'CRITICO_MAYOR_90D'
             WHEN now() - uv.ultima > interval '60 days' THEN 'ALTO_MAYOR_60D'
-            ELSE 'MODERADO' END                              AS prioridad_promocion
+            ELSE 'MODERADO' END                              AS prioridad_promocion,
+       p.imagen_url                                          AS imagen_url
 FROM inv.inventario i
 JOIN inv.productos p  ON p.producto_id  = i.producto_id
                      AND p.tipo = 'PRODUCTO' AND p.activo
@@ -436,7 +444,9 @@ WITH facturas AS (
 SELECT rn                          AS numero_mas_reciente,
        proveedor_id, proveedor, compra_folio, factura_proveedor,
        fecha, subtotal, iva, total, monto_total, monto_pagado, saldo,
-       estado_pago, fecha_vencimiento
+       estado_pago, fecha_vencimiento,
+       (SELECT pv2.foto_url FROM com.proveedores pv2 WHERE pv2.proveedor_id = facturas.proveedor_id)
+                                        AS foto_url
 FROM facturas
 WHERE rn <= 15
 ORDER BY proveedor, rn;
@@ -458,7 +468,8 @@ SELECT cp.cuenta_pagar_id,
             WHEN CURRENT_DATE - cp.fecha_vencimiento <= 60 THEN 'MORA_31_60'
             WHEN CURRENT_DATE - cp.fecha_vencimiento <= 90 THEN 'MORA_61_90'
             ELSE 'MORA_MAS_90'
-       END                                               AS antiguedad
+       END                                               AS antiguedad,
+       pv.foto_url                                       AS foto_url
 FROM com.cuentas_pagar cp
 JOIN com.compras co      ON co.compra_id    = cp.compra_id AND co.estado <> 'CANCELADA'
 JOIN com.proveedores pv  ON pv.proveedor_id = co.proveedor_id
@@ -483,7 +494,8 @@ SELECT cp.cuenta_pagar_id,
             WHEN cp.fecha_vencimiento < CURRENT_DATE THEN 'VENCIDA'
             WHEN cp.fecha_vencimiento <= CURRENT_DATE + 5 THEN 'POR_VENCER'
             ELSE 'CORRIENTE'
-       END                                               AS alerta
+       END                                               AS alerta,
+       pv.foto_url                                       AS foto_url
 FROM com.cuentas_pagar cp
 JOIN com.compras co      ON co.compra_id    = cp.compra_id AND co.estado <> 'CANCELADA'
 JOIN com.proveedores pv  ON pv.proveedor_id = co.proveedor_id

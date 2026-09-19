@@ -84,6 +84,8 @@ services:
         condition: service_healthy
       postgres-primary:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       # BD vía PgBouncer
       PG_HOST: ${PG_HOST:-pgbouncer}
@@ -124,6 +126,13 @@ services:
       RATE_LIMIT_CATALOGO_REFILL: ${RATE_LIMIT_CATALOGO_REFILL:-40}
       # Request ID
       REQUEST_ID_MODE: ${REQUEST_ID_MODE:-GENERATE}
+      # MinIO (fotos de entidades). ENDPOINT es visto por el backend en la
+      # red interna; PUBLIC_URL es lo que se guarda en foto_url y ve el browser.
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ferreteria-fotos}
       # ─── OpenTelemetry (Java agent) ─────────────────────────────────
       OTEL_SERVICE_NAME: ferreteria-backend
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=docker,service.namespace=ferreteria"
@@ -458,6 +467,34 @@ services:
     networks:
       - db-net
 
+  # =================================================================
+  # MinIO — almacenamiento S3-compatible para fotos de entidades
+  # (clientes, proveedores, empleados, productos). El backend crea el
+  # bucket al arrancar si no existe y lo deja en lectura pública.
+  # Consola web: http://localhost:9001 (MINIO_ROOT_USER/PASSWORD).
+  # =================================================================
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    container_name: ferreteria-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env (mínimo 8 caracteres)}
+    ports:
+      - "${MINIO_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+    networks:
+      - app-net
+
 networks:
   # Red para DB: postgres + pgbouncer + replica. Aislada.
   db-net:
@@ -473,6 +510,7 @@ networks:
     driver: bridge
 
 volumes:
+  minio_data:
   pg_data_primary:
   pg_data_replica:
   # pgBackRest repo — PITR (DB-ESC-008). Descomentar cuando se habilite pgBackRest:

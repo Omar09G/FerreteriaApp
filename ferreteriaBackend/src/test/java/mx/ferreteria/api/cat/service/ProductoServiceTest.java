@@ -244,7 +244,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 "P001", "PRODUCTO", "Taladro", "desc", 1, 1, 1,
-                new BigDecimal("100"), new BigDecimal("150"), null, true, null);
+                new BigDecimal("100"), new BigDecimal("150"), null, true, null, null);
 
         ProductoResponse resp = service.create(req);
 
@@ -261,7 +261,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 999, null, 1,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -275,7 +275,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 1, null, 999,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -290,7 +290,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 1, 999, 1,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -308,7 +308,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         ProductoResponse resp = service.create(req);
 
@@ -330,7 +330,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 "P002", "SERVICIO", "NuevoNombre", "desc", 1, 1, 1,
-                new BigDecimal("200"), new BigDecimal("300"), null, false, null);
+                new BigDecimal("200"), new BigDecimal("300"), null, false, null, null);
 
         ProductoResponse resp = service.update(1L, req);
 
@@ -345,7 +345,7 @@ class ProductoServiceTest {
 
         ProductoRequest req = new ProductoRequest(
                 null, "PRODUCTO", "X", null, 1, null, 1,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.update(999L, req))
                 .isInstanceOf(RecursoNoEncontradoException.class);
@@ -409,7 +409,7 @@ class ProductoServiceTest {
         ProductoRequest req = new ProductoRequest(
                 "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
                 null, null, null, null,
-                List.of(new CodigoBarrasRequest("7501234567001", new BigDecimal("1"))));
+                List.of(new CodigoBarrasRequest("7501234567001", new BigDecimal("1"))), null);
 
         ProductoResponse resp = service.create(req);
 
@@ -436,7 +436,7 @@ class ProductoServiceTest {
         ProductoRequest req = new ProductoRequest(
                 "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
                 null, null, null, null,
-                List.of(new CodigoBarrasRequest("7501234567001", null)));
+                List.of(new CodigoBarrasRequest("7501234567001", null)), null);
 
         assertThatThrownBy(() -> service.create(req))
                 .isInstanceOf(ReglaNegocioException.class)
@@ -457,7 +457,7 @@ class ProductoServiceTest {
         ProductoRequest req = new ProductoRequest(
                 "P001", "PRODUCTO", "Taladro", null, 1, null, 1,
                 null, null, null, null,
-                List.of(new CodigoBarrasRequest("7501234567009", new BigDecimal("2"))));
+                List.of(new CodigoBarrasRequest("7501234567009", new BigDecimal("2"))), null);
 
         service.update(1L, req);
 
@@ -493,7 +493,7 @@ class ProductoServiceTest {
     private ProductoRequest filaProducto(String codigo, Integer categoriaId) {
         return new ProductoRequest(
                 codigo, "PRODUCTO", "Item " + codigo, null, categoriaId, null, 1,
-                new BigDecimal("10"), new BigDecimal("20"), null, true, null);
+                new BigDecimal("10"), new BigDecimal("20"), null, true, null, null);
     }
 
     @Test
@@ -546,7 +546,7 @@ class ProductoServiceTest {
         var req = new mx.ferreteria.api.cat.dto.CatDtos.ProductoRequest(
                 "B1", "PRODUCTO", "Con barras", null, 1, null, 1,
                 null, null, null, null,
-                List.of(new mx.ferreteria.api.cat.dto.CatDtos.CodigoBarrasRequest("750100", null)));
+                List.of(new mx.ferreteria.api.cat.dto.CatDtos.CodigoBarrasRequest("750100", null)), null);
 
         var resp = service.cargaMasiva(List.of(req));
 

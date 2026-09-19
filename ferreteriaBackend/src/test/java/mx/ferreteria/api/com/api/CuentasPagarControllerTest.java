@@ -57,7 +57,7 @@ class CuentasPagarControllerTest {
         when(service.cuentasPagar(null)).thenReturn(List.of(new CuentasPagarResponse(
                 1L, "COMPRA-0001", "Ferritas SA",
                 new BigDecimal("1160.00"), new BigDecimal("600.00"),
-                new BigDecimal("560.00"), LocalDate.now(), 5, "PENDIENTE")));
+                new BigDecimal("560.00"), LocalDate.now(), 5, "PENDIENTE", null)));
 
         mvc.perform(get("/api/v1/cuentas-pagar"))
                 .andExpect(status().isOk())
@@ -72,7 +72,7 @@ class CuentasPagarControllerTest {
                 1L, "COMPRA-0001", "F-0001", 1, "Ferritas SA", "555-0100",
                 LocalDate.now().minusDays(30), new BigDecimal("1160.00"),
                 new BigDecimal("1160.00"), BigDecimal.ZERO,
-                LocalDate.now().minusDays(10), 10, "10-20 dias")));
+                LocalDate.now().minusDays(10), 10, "10-20 dias", null)));
 
         mvc.perform(get("/api/v1/reportes/facturas-vencidas"))
                 .andExpect(status().isOk())
@@ -86,7 +86,7 @@ class CuentasPagarControllerTest {
                 1L, "COMPRA-0001", "F-0001", 1, "Ferritas SA", LocalDate.now().minusDays(30),
                 new BigDecimal("1160.00"), new BigDecimal("400.00"),
                 new BigDecimal("760.00"), "ABONADO",
-                LocalDate.now().plusDays(5), 5, "PROXIMA")));
+                LocalDate.now().plusDays(5), 5, "PROXIMA", null)));
 
         mvc.perform(get("/api/v1/reportes/facturas-pendientes"))
                 .andExpect(status().isOk())
@@ -101,7 +101,7 @@ class CuentasPagarControllerTest {
                 LocalDate.now().minusDays(5), new BigDecimal("1000.00"),
                 new BigDecimal("160.00"), new BigDecimal("1160.00"),
                 new BigDecimal("1160.00"), new BigDecimal("1160.00"),
-                BigDecimal.ZERO, "CONTADO", LocalDate.now().plusDays(55))));
+                BigDecimal.ZERO, "CONTADO", LocalDate.now().plusDays(55), null)));
 
         mvc.perform(get("/api/v1/facturas-proveedor/1"))
                 .andExpect(status().isOk())

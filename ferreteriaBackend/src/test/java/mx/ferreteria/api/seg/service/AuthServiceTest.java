@@ -228,7 +228,7 @@ class AuthServiceTest {
     @DisplayName("register: crea empleado + usuario ligado + UNICO rol ENCARGADO_CAJA")
     void register_createsEmpleadoUsuarioYRoleUnico() {
         when(empleados.create(anyInt(), anyString(), anyString(), any(), any(), any(),
-                any(), anyString(), any(), any(), any(), any(), any(), any()))
+                any(), anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(5);
         when(admin.createUsuario(eq("nuevo01"), eq("nuevo01@ejemplo.mx"), anyString(),
                 eq(5), anyBoolean())).thenReturn(11);
@@ -242,7 +242,7 @@ class AuthServiceTest {
         assertThat(r.username()).isEqualTo("nuevo01");
         // el único rol posible es ENCARGADO_CAJA, nunca ADMINISTRADOR
         verify(empleados).create(eq(3), eq("Juan"), eq("Pérez"), any(), any(), any(),
-                eq("555"), eq("nuevo01@ejemplo.mx"), any(), any(), any(), any(), any(), any());
+                eq("555"), eq("nuevo01@ejemplo.mx"), any(), any(), any(), any(), any(), any(), any());
         verify(admin).reemplazarRoles(11, Set.of(AuthService.ROL_REGISTRO));
         org.mockito.ArgumentCaptor<String> hash =
                 org.mockito.ArgumentCaptor.forClass(String.class);
@@ -295,7 +295,7 @@ class AuthServiceTest {
     @DisplayName("me: incluye la informacion principal del empleado cuando existe vínculo")
     void me_incluyeResumenEmpleado() {
         var resumen = new mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen(
-                42, "Juan Pérez", "Vendedor", "juan@x.mx", "555", true);
+                42, "Juan Pérez", "Vendedor", "juan@x.mx", "555", true, null);
         when(empleados.resumenById(42)).thenReturn(Optional.of(resumen));
 
         var me = service.me(new UserPrincipal(7, "cajero1", 42, List.of("VENDEDOR")));

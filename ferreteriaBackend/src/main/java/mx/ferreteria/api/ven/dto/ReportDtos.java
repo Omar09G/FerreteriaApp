@@ -63,7 +63,7 @@ public final class ReportDtos {
                         Long productoId, String codigo, String producto,
                         String categoria, Long stock, BigDecimal costoActual, BigDecimal dineroDetenidoEnEstante,
                         LocalDate ultimaVenta, Long diasSinVender,
-                        String prioridadPromocion) {
+                        String prioridadPromocion, String imagenUrl) {
         }
 
         public record MejoresCategoriasResponse(

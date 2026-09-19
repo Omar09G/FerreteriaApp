@@ -61,7 +61,7 @@ class ProveedorControllerTest {
 
     private ProveedorResponse sampleProveedor() {
         return new ProveedorResponse(1, "Proveedor SA", "PRO850101ABC", "601",
-                "contacto@proveedor.com", "55998877", 30, new BigDecimal("100000.00"));
+                "contacto@proveedor.com", "55998877", 30, new BigDecimal("100000.00"), null);
     }
 
     // ── GET /api/v1/proveedores ────────────────────────────────────
@@ -71,7 +71,7 @@ class ProveedorControllerTest {
     void list_returns200WithEnvelope() throws Exception {
         ProveedorResponse r1 = sampleProveedor();
         ProveedorResponse r2 = new ProveedorResponse(2, "Otro Proveedor", null, null,
-                null, null, 0, BigDecimal.ZERO);
+                null, null, 0, BigDecimal.ZERO, null);
         when(service.list(eq(null), any()))
                 .thenReturn(new PageImpl<>(List.of(r1, r2), PageRequest.of(0, 20), 2));
 
@@ -120,7 +120,7 @@ class ProveedorControllerTest {
     void create_valid() throws Exception {
         when(service.create(any(ProveedorRequest.class)))
                 .thenReturn(new ProveedorResponse(10, "Nuevo Proveedor", "NPC850101ABC", "601",
-                        "nuevo@test.com", "55112233", 15, new BigDecimal("50000.00")));
+                        "nuevo@test.com", "55112233", 15, new BigDecimal("50000.00"), null));
 
         mvc.perform(post("/api/v1/proveedores")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -138,7 +138,7 @@ class ProveedorControllerTest {
     void update_found() throws Exception {
         when(service.update(eq(1), any(ProveedorRequest.class)))
                 .thenReturn(new ProveedorResponse(1, "Proveedor Actualizado", "PRO850101ABC", "601",
-                        "contacto@test.com", "55998877", 30, new BigDecimal("100000.00")));
+                        "contacto@test.com", "55998877", 30, new BigDecimal("100000.00"), null));
 
         mvc.perform(put("/api/v1/proveedores/1")
                         .contentType(MediaType.APPLICATION_JSON)

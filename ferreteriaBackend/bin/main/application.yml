@@ -41,6 +41,10 @@ spring:
     #Solo para DESA enabled: false
     enabled: false 
 
+  servlet:
+    multipart:
+      max-file-size: ${MULTIPART_MAX_FILE:5MB}
+      max-request-size: ${MULTIPART_MAX_REQUEST:6MB}
   jackson:
     default-property-inclusion: non_null
 
@@ -50,6 +54,9 @@ server:
     enabled: true
 
 app:
+  # Ambiente de ejecución: dev | prod. En prod se exige URL pública HTTPS
+  # para las fotos (fail-fast al arrancar); en dev se permite HTTP (MinIO local).
+  ambiente: ${APP_AMBIENTE:dev}
   request-id:
     mode: ${REQUEST_ID_MODE:GENERATE}   # GENERATE | STRICT  (PLAN 4.5)
   jwt:
@@ -57,6 +64,16 @@ app:
     access-minutes: ${ACCESS_MINUTES:15}  # 15 min (antes 480 = 8h, ventana de exposición excesiva)
     refresh-hours: ${REFRESH_HOURS:8}     # 8h (antes 72h); refresh rotativo ya gestiona sesión larga
   zona: ${ZONA:America/Mexico_City}
+  # Fotos de entidades (clientes, proveedores, empleados, productos).
+  # ENDPOINT lo usa el backend en red interna; PUBLIC_URL es lo que se
+  # guarda en foto_url/imagen_url y resuelve el browser.
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    public-url: ${MINIO_PUBLIC_URL:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+    bucket: ${MINIO_BUCKET:ferreteria-fotos}
+    max-mb: ${MINIO_MAX_MB:5}
   # CORS restrictivo por origen configurado (PLAN M7)
   cors:
     # Default incluye Vite (5173) + Angular CLI (4200) + backend (8080).

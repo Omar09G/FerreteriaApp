@@ -343,6 +343,11 @@ export interface Producto {
   aplicaIva: boolean;
   stockActual?: number;
   /**
+   * URL pública de la foto (MinIO). Ausente/null cuando el producto no tiene.
+   * Se sube con POST /archivos/imagen y se guarda vía create/update.
+   */
+  imagenUrl?: string | null;
+  /**
    * Códigos de barras del producto (tabla inv.producto_codigos_barras).
    * Ausente hasta que el backend los incluya en la respuesta.
    */
@@ -377,6 +382,11 @@ export interface ProductoRequest {
    * → 409 VALOR_DUPLICADO).
    */
   codigosBarras?: CodigoBarrasRequest[];
+  /**
+   * URL pública de la foto (devuelta por POST /archivos/imagen).
+   * Solo https:// o data:image/ (el backend valida formato).
+   */
+  imagenUrl?: string | null;
 }
 
 export interface CargaMasivaFilaError {
@@ -431,6 +441,8 @@ export interface Cliente {
   diasCredito: number | null;
   esMayorista: boolean;
   activo?: boolean;
+  /** URL pública de la foto (MinIO). Null cuando el cliente no tiene. */
+  fotoUrl?: string | null;
 }
 
 export interface Proveedor {
@@ -442,6 +454,8 @@ export interface Proveedor {
   telefono: string | null;
   diasCredito: number | null;
   limiteCredito: number | null;
+  /** URL pública de la foto (MinIO). Null cuando el proveedor no tiene. */
+  fotoUrl?: string | null;
 }
 
 export interface ProveedorRequest {
@@ -452,6 +466,7 @@ export interface ProveedorRequest {
   telefono?: string;
   diasCredito?: number;
   limiteCredito?: number;
+  fotoUrl?: string | null;
 }
 
 export interface ClienteRequest {
@@ -464,6 +479,7 @@ export interface ClienteRequest {
   limiteCredito?: number | null;
   diasCredito?: number | null;
   esMayorista?: boolean;
+  fotoUrl?: string | null;
 }
 
 export interface Almacen {
@@ -896,6 +912,7 @@ export interface CuentasPagar {
   fechaVencimiento: string;
   diasVencido: number;
   estado: string;
+  fotoUrl?: string | null;
 }
 
 export interface AbonoProveedorRequest {
@@ -931,6 +948,7 @@ export interface FacturaPendiente {
   fechaVencimiento: string;
   diasParaVencer: number;
   alerta: string;
+  fotoUrl?: string | null;
 }
 
 export interface FacturaVencida extends Omit<
@@ -940,6 +958,7 @@ export interface FacturaVencida extends Omit<
   contactoTelefono: string | null;
   diasVencido: number;
   antiguedad: string;
+  fotoUrl?: string | null;
 }
 
 /* ── Empleados / usuarios ────────────────────────────────────────── */
@@ -963,6 +982,8 @@ export interface Empleado {
   fechaBaja: string | null;
   sueldoDiario: number;
   activo: boolean;
+  /** URL pública de la foto (MinIO). Null cuando el empleado no tiene. */
+  fotoUrl?: string | null;
 }
 
 export interface EmpleadoCreateRequest {
@@ -978,6 +999,7 @@ export interface EmpleadoCreateRequest {
   username?: string;
   password?: string;
   roles?: string[];
+  fotoUrl?: string | null;
 }
 
 export interface Usuario {
@@ -994,6 +1016,7 @@ export interface Usuario {
     email: string | null;
     telefono: string | null;
     activo: boolean;
+    fotoUrl?: string | null;
   } | null;
   ultimoLogin: string | null;
   creadoEn: string;
@@ -1409,6 +1432,7 @@ export interface ProductosSinMovimiento {
   ultimaVenta: string;
   diasSinVender: number;
   prioridadPromocion: string;
+  imagenUrl?: string | null;
 }
 
 /* ── Configuración de ticket ─────────────────────────────────────── */

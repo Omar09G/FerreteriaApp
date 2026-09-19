@@ -25,6 +25,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
+import { FotoMiniatura, ImagenUpload } from "@/components/ui/ImagenUpload";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
@@ -134,6 +135,10 @@ export function ProductoForm({
     producto?.precioMayoreo != null ? String(producto.precioMayoreo) : "",
   );
   const [aplicaIva, setAplicaIva] = useState(producto?.aplicaIva ?? true);
+  const [imagenUrl, setImagenUrl] = useState<string | null>(
+    producto?.imagenUrl ?? null,
+  );
+  const imagenInicial = producto?.imagenUrl ?? null;
   const [intento, setIntento] = useState(false);
   // Códigos de barras (inv.producto_codigos_barras). Estado local listo;
   // aún NO se envía: el backend lo rechaza como propiedad desconocida
@@ -170,6 +175,9 @@ export function ProductoForm({
       precioMenudeo: campoNumero(menudeo),
       precioMayoreo: campoNumero(mayoreo),
       aplicaIva,
+      // Sin cambio = undefined (el backend no toca); cambio a null = "" (limpia).
+      imagenUrl:
+        imagenUrl === imagenInicial ? undefined : (imagenUrl ?? ""),
       codigosBarras: barras
         .map((b) => ({
           codigo: b.codigo.trim(),
@@ -264,6 +272,14 @@ export function ProductoForm({
           label="Descripción"
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <ImagenUpload
+          label="Foto del producto"
+          value={imagenUrl}
+          onChange={setImagenUrl}
+          disabled={guardando}
         />
       </div>
       <div className="rounded-md border border-line p-3 sm:col-span-2">
@@ -545,6 +561,12 @@ export default function ProductosPage() {
   });
 
   const columnas: Columna<Producto>[] = [
+    {
+      key: "foto",
+      header: "Foto",
+      exportar: () => "",
+      render: (v) => <FotoMiniatura url={v.imagenUrl} alt={v.nombre} redonda={false} />,
+    },
     {
       key: "c",
       header: "Código",

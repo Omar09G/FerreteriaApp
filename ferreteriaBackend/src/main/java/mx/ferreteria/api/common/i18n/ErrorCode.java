@@ -37,6 +37,8 @@ public enum ErrorCode {
     KARDEX_APPEND_ONLY("error.negocio.kardex-append-only", HttpStatus.CONFLICT),
     REGISTRO_NO_MODIFICABLE("error.negocio.registro-no-modificable", HttpStatus.CONFLICT),
     REGISTRO_EN_USO("error.negocio.registro-en-uso", HttpStatus.CONFLICT),
+    ARCHIVO_TIPO_NO_PERMITIDO("error.negocio.archivo-tipo-no-permitido", HttpStatus.BAD_REQUEST),
+    ARCHIVO_MUY_GRANDE("error.negocio.archivo-muy-grande", HttpStatus.BAD_REQUEST),
 
     // genéricas / internas
     ERROR_INTERNO("error.interno.inesperado", HttpStatus.INTERNAL_SERVER_ERROR),

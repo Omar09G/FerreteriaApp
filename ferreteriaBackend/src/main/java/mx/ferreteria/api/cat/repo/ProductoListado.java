@@ -20,4 +20,5 @@ public interface ProductoListado {
     java.math.BigDecimal getPrecioMayoreo();
     Boolean getAplicaIva();
     Boolean getActivo();
+    String getImagenUrl();
 }

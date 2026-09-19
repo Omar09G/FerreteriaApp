@@ -60,7 +60,7 @@ class ClienteControllerTest {
                 return new ClienteResponse(1L, "FISICA", "Juan Perez", null,
                                 "PEPJ800101ABC", null, null, "5512345678", null, "juan@test.com",
                                 null, null, null, null, null,
-                                new BigDecimal("50000.00"), 30, false, true);
+                                new BigDecimal("50000.00"), 30, false, true, null);
         }
 
         // ── GET /api/v1/clientes ────────────────────────────────────────
@@ -72,7 +72,7 @@ class ClienteControllerTest {
                 ClienteResponse r2 = new ClienteResponse(2L, "MORAL", "Empresa SA", null,
                                 null, null, null, null, null, null,
                                 null, null, null, null, null,
-                                BigDecimal.ZERO, 0, true, true);
+                                BigDecimal.ZERO, 0, true, true, null);
                 when(service.list(eq(null), any()))
                                 .thenReturn(new PageImpl<>(List.of(r1, r2), PageRequest.of(0, 20), 2));
 

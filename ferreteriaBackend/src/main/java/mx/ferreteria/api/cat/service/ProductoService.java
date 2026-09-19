@@ -157,7 +157,8 @@ public class ProductoService {
                 p.getPrecioMayoreo(),
                 p.getAplicaIva() != null ? p.getAplicaIva() : true,
                 BigDecimal.ZERO, // stock se enriquece via inventarioRepo si almacenId != null
-                null, null); // barras/factor se adjuntan en lote en list()
+                null, null, // barras/factor se adjuntan en lote en list()
+                p.getImagenUrl());
     }
 
     @Transactional(readOnly = true)
@@ -191,6 +192,7 @@ public class ProductoService {
                 .precioMenudeo(req.precioMenudeo() != null ? req.precioMenudeo() : BigDecimal.ZERO)
                 .precioMayoreo(req.precioMayoreo())
                 .aplicaIva(req.aplicaIva() != null ? req.aplicaIva() : true)
+                .imagenUrl(req.imagenUrl())
                 .build();
         Producto saved = repo.save(entity);
         guardarBarras(saved, req.codigosBarras());
@@ -267,6 +269,9 @@ public class ProductoService {
         if (req.aplicaIva() != null) {
             entity.setAplicaIva(req.aplicaIva());
         }
+        if (req.imagenUrl() != null) {
+            entity.setImagenUrl(req.imagenUrl().isBlank() ? null : req.imagenUrl());
+        }
 
         Producto saved = repo.save(entity);
         guardarBarras(saved, req.codigosBarras());
@@ -296,7 +301,7 @@ public class ProductoService {
                 r.categoriaId(), r.categoriaNombre(), r.marcaId(), r.marcaNombre(),
                 r.unidadMedidaId(), r.unidadMedidaClave(), r.costoActual(),
                 r.precioMenudeo(), r.precioMayoreo(), r.aplicaIva(), r.stockActual(),
-                codigos, factor);
+                codigos, factor, r.imagenUrl());
     }
 
     private ProductoResponse baseResponse(Producto p) {
@@ -317,7 +322,7 @@ public class ProductoService {
                 p.getPrecioMayoreo(),
                 p.getAplicaIva(),
                 BigDecimal.ZERO,
-                null, null);
+                null, null, p.getImagenUrl());
     }
 
     /**

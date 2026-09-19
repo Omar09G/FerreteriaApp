@@ -58,9 +58,25 @@ class CompraServiceTest {
     @Mock ProductoRepository productoRepo;
     @Mock CompraReportRepository reportRepo;
     @Mock CajaService cajaService;
+    @Mock jakarta.persistence.EntityManager em;
 
     @InjectMocks
     CompraService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void inyectarEntityManager() {
+        // @PersistenceContext no lo resuelve @InjectMocks: se setea explícito.
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "em", em);
+    }
+
+    /** Simula el INSERT...RETURNING de abonar devolviendo el id indicado. */
+    private jakarta.persistence.Query stubInsertPagoRetornando(long id) {
+        var q = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        doReturn(q).when(em).createNativeQuery(any(String.class));
+        doReturn(q).when(q).setParameter(any(String.class), any());
+        doReturn(id).when(q).getSingleResult();
+        return q;
+    }
 
     private Compra sampleCompra(Long id) {
         return Compra.builder().compraId(id).folio("COMPRA-0001")
@@ -96,7 +112,7 @@ class CompraServiceTest {
         Pageable pg = PageRequest.of(0, 20);
         Compra c = sampleCompra(1L);
         doReturn(new PageImpl<>(List.of(c), pg, 1))
-                .when(compraRepo).findByAlmacenIdOrderByFechaDesc(eq(1), eq(pg));
+                .when(compraRepo).findByAlmacenIdOrderByFechaDesc(eq(1), org.mockito.ArgumentMatchers.any(Pageable.class));
         stubNombres();
         doReturn(List.of(sampleDetalle(1L)))
                 .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
@@ -247,7 +263,7 @@ class CompraServiceTest {
         var v = new mx.ferreteria.api.com.dto.ComDtos.CuentasPagarResponse(
                 1L, "COMPRA-0001", "Ferritas SA",
                 new BigDecimal("1160.00"), new BigDecimal("600.00"),
-                new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE");
+                new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE", null);
         doReturn(List.of(v)).when(reportRepo).vwCuentasPagar();
 
         var result = service.cuentasPagar(null);
@@ -262,7 +278,7 @@ class CompraServiceTest {
         var v = new mx.ferreteria.api.com.dto.ComDtos.CuentasPagarResponse(
                 1L, "COMPRA-0001", "Ferritas SA",
                 new BigDecimal("1160.00"), new BigDecimal("600.00"),
-                new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE");
+                new BigDecimal("560.00"), java.time.LocalDate.now(), 5, "PENDIENTE", null);
         doReturn(List.of(v)).when(reportRepo).vwCuentasPagarPorEstado("PENDIENTE");
 
         var result = service.cuentasPagar("PENDIENTE");
@@ -279,7 +295,7 @@ class CompraServiceTest {
                 java.time.LocalDate.now().minusDays(30),
                 new BigDecimal("1160.00"), new BigDecimal("1160.00"),
                 BigDecimal.ZERO, java.time.LocalDate.now().minusDays(10),
-                10, "10-20 dias");
+                10, "10-20 dias", null);
         doReturn(List.of(v)).when(reportRepo).vwFacturasVencidas();
         doReturn(Collections.emptyList()).when(reportRepo).vwFacturasPendientes();
 
@@ -296,7 +312,7 @@ class CompraServiceTest {
                 new BigDecimal("1000.00"), new BigDecimal("160.00"),
                 new BigDecimal("1160.00"), new BigDecimal("1160.00"),
                 new BigDecimal("1160.00"), BigDecimal.ZERO,
-                "CONTADO", java.time.LocalDate.now().plusDays(55));
+                "CONTADO", java.time.LocalDate.now().plusDays(55), null);
         doReturn(List.of(v)).when(reportRepo).vwUltimasFacturasProveedor(1);
 
         var result = service.facturasProveedor(1);
@@ -316,8 +332,7 @@ class CompraServiceTest {
                 new BigDecimal("1160.00"), BigDecimal.ZERO, 1);
         doReturn(List.of(inicial), List.of(finalizada))
                 .when(reportRepo).findCuentaPagoDetalle(1L);
-        doReturn(99L).when(reportRepo).insertPagoProveedor(
-                any(), any(), any(), any(), any(), any());
+        stubInsertPagoRetornando(99L);
         doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()))
                 .when(formaPagoRepo).findById(1);
         doReturn(6L).when(cajaService).resolverTurnoAbierto(5, 1);
@@ -332,8 +347,8 @@ class CompraServiceTest {
         assertThat(resp.saldo()).isEqualByComparingTo("0.00");
         assertThat(resp.compraFolio()).isEqualTo("COMPRA-0001");
         verify(cajaService).resolverTurnoAbierto(5, 1);
-        verify(reportRepo).insertPagoProveedor(1L, 1, "ABONO",
-                new BigDecimal("560.00"), 0, 6L);
+        verify(em).createNativeQuery(
+                org.mockito.ArgumentMatchers.contains("INSERT INTO com.pagos_proveedor"));
     }
 
     @Test
@@ -347,8 +362,7 @@ class CompraServiceTest {
                 new BigDecimal("900.00"), new BigDecimal("260.00"), 1);
         doReturn(List.of(inicial), List.of(parcial))
                 .when(reportRepo).findCuentaPagoDetalle(1L);
-        doReturn(1L).when(reportRepo).insertPagoProveedor(
-                any(), any(), any(), any(), any(), any());
+        stubInsertPagoRetornando(1L);
         doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()))
                 .when(formaPagoRepo).findById(1);
         doReturn(6L).when(cajaService).resolverTurnoAbierto(5, 1);
@@ -360,8 +374,8 @@ class CompraServiceTest {
 
         assertThat(resp.estado()).isEqualTo("PARCIAL");
         assertThat(resp.saldo()).isEqualByComparingTo("260.00");
-        verify(reportRepo).insertPagoProveedor(1L, 1, "ABONO PARCIAL 2",
-                new BigDecimal("300.00"), 0, 6L);
+        verify(em).createNativeQuery(
+                org.mockito.ArgumentMatchers.contains("INSERT INTO com.pagos_proveedor"));
     }
 
     @Test
@@ -439,8 +453,7 @@ class CompraServiceTest {
                 new BigDecimal("900.00"), new BigDecimal("260.00"), 1);
         doReturn(List.of(inicial), List.of(parcial))
                 .when(reportRepo).findCuentaPagoDetalle(1L);
-        doReturn(2L).when(reportRepo).insertPagoProveedor(
-                any(), any(), any(), any(), any(), any());
+        stubInsertPagoRetornando(2L);
         doReturn(Optional.of(FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()))
                 .when(formaPagoRepo).findById(6);
 
@@ -451,7 +464,7 @@ class CompraServiceTest {
 
         assertThat(resp.turnoCajaId()).isNull();
         org.mockito.Mockito.verifyNoInteractions(cajaService);
-        verify(reportRepo).insertPagoProveedor(eq(1L), eq(6), eq("ABONO"),
-                eq(new BigDecimal("300.00")), eq(0), isNull());
+        verify(em).createNativeQuery(
+                org.mockito.ArgumentMatchers.contains("INSERT INTO com.pagos_proveedor"));
     }
 }

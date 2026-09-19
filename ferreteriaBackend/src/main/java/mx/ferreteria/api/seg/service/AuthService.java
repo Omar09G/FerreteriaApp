@@ -65,7 +65,7 @@ public class AuthService {
     public RegisterResponse register(RegisterRequest req) {
         int empleadoId = empleados.create(req.puestoId(), req.nombre(), req.apellidoPaterno(),
                 req.apellidoMaterno(), null, null, req.telefono(), req.email(), null, null,
-                null, null, java.time.LocalDate.now(), java.math.BigDecimal.ZERO);
+                null, null, java.time.LocalDate.now(), java.math.BigDecimal.ZERO, null);
         int usuarioId = admin.createUsuario(req.username(), req.email(),
                 passwordEncoder.encode(req.password()), empleadoId, true);
         admin.reemplazarRoles(usuarioId, java.util.Set.of(ROL_REGISTRO));

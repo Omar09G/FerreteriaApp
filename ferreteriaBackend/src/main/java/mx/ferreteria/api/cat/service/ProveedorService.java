@@ -47,6 +47,7 @@ public class ProveedorService {
                 .telefono(req.telefono())
                 .diasCredito(req.diasCredito() != null ? req.diasCredito() : 0)
                 .limiteCredito(req.limiteCredito() != null ? req.limiteCredito() : BigDecimal.ZERO)
+                .fotoUrl(req.fotoUrl())
                 .build();
         return toResponse(repo.save(entity));
     }
@@ -65,6 +66,9 @@ public class ProveedorService {
         if (req.limiteCredito() != null) {
             entity.setLimiteCredito(req.limiteCredito());
         }
+        if (req.fotoUrl() != null) {
+            entity.setFotoUrl(req.fotoUrl().isBlank() ? null : req.fotoUrl());
+        }
         return toResponse(repo.save(entity));
     }
 
@@ -79,6 +83,6 @@ public class ProveedorService {
         return new ProveedorResponse(
                 p.getProveedorId(), p.getRazonSocial(), p.getRfc(),
                 p.getRegimenFiscal(), p.getEmail(), p.getTelefono(),
-                p.getDiasCredito(), p.getLimiteCredito());
+                p.getDiasCredito(), p.getLimiteCredito(), p.getFotoUrl());
     }
 }

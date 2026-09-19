@@ -86,4 +86,5 @@ ENTRYPOINT ["java", \
   "-Dspring.profiles.active=docker", \
   "-Djava.security.egd=file:/dev/./urandom", \
   "-Duser.timezone=America/Mexico_City", \
+  "-Djava.awt.headless=true", \
   "-jar", "/app/app.jar"]
