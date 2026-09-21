@@ -52,17 +52,30 @@ observabilidad van en contenedores (`ferreteriaDB/deploy`, red `db-net`/`app-net
 | PgBouncer | `ferreteria-pgbouncer` | 6432 | conexión de la app (`PG_HOST/PORT`) |
 | MinIO API (fotos) | `ferreteria-minio` | 9000 | S3 + URLs públicas `http://localhost:9000/ferreteria-fotos/…` |
 | MinIO consola | `ferreteria-minio` | 9001 | http://localhost:9001 (usuario `MINIO_ROOT_USER`) |
-| Floci S3 (fotos, alternativo) | `ferreteria-floci` | 4566 | S3 local; backend lo usa con `STORAGE_PROVEEDOR=floci` (default: minio). Consola desactivada |
+| Floci S3 (fotos) | `ferreteria-floci` | 4566 | S3 local; backend lo usa con `STORAGE_PROVEEDOR=floci` (default: `minio`) |
+| Floci consola web | sidecar `floci-ui` | 4500 | http://localhost:4500 (o vía http://localhost:4566/_floci/ui); requiere socket del motor (ver `PODMAN_SOCKET`) |
 | Backend contenerizado (opcional) | `ferreteria-backend` | 8081 | swagger/health directo; dentro de compose usa `MINIO_ENDPOINT=http://minio:9000` |
 | Frontend contenerizado (opcional) | `ferreteria-frontend` | 8080 | Nginx `:80`; solo prod/staging (choca con bootRun) |
 
 Notas:
+- Proveedor de fotos (`STORAGE_PROVEEDOR=minio|floci`, default `minio`):
+  MinIO (`minio:9000` interno, `MINIO_PUBLIC_URL` al browser) o Floci S3
+  (`floci:4566` interno, `FLOCI_PUBLIC_URL` al browser). En ambos hay dos
+  URLs distintas con propósito distinto: **ENDPOINT** = lo que usa el backend
+  en red interna para subir; **PUBLIC_URL** = base de la URL que se guarda en
+  `foto_url`/`imagen_url` y resuelve el browser (debe ser alcanzable desde
+  quien use la app, no necesariamente localhost).
 - `bootRun` en host usa `MINIO_ENDPOINT=http://localhost:9000` (el DNS `minio`
   solo existe dentro de la red compose). `MINIO_PUBLIC_URL` debe ser alcanzable
-  desde el browser (dev: `http://localhost:9000`).
-- Fotos de entidades: `POST /api/v1/archivos/imagen` (multipart `archivo`,
-  jpeg/png/webp ≤5 MB) → URL pública → `fotoUrl`/`imagenUrl` en create/update.
-  La imagen de subida requiere imagen `quay.io/minio/minio` (Docker Hub
+  desde el browser (dev: `http://localhost:9000`). Con Floci es igual:
+  `FLOCI_ENDPOINT=http://localhost:4566` en host, `http://floci:4566` en compose.
+- Subir fotos: `POST /api/v1/archivos/imagen` (multipart `archivo`,
+  jpeg/png/webp ≤5 MB, requiere rol operativo + header `X-XSRF-TOKEN`) →
+  `201 { data: { url } }` → esa URL pública va en `fotoUrl`/`imagenUrl` del
+  create/update. El backend optimiza a JPEG, renombra a UUID y crea el bucket
+  público solo si no existe. Con Floci la consola muestra los objetos en
+  http://localhost:4500.
+- La imagen de subida requiere imagen `quay.io/minio/minio` (Docker Hub
   rechaza el pull del tag fijado en el compose).
 
 ## Observabilidad (OTel + Prometheus)

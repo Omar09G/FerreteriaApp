@@ -133,6 +133,15 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-ferreteria-fotos}
+      # Proveedor de fotos: minio (default) o floci. Con floci, ENDPOINT es
+      # el DNS interno y PUBLIC_URL lo que ve el browser.
+      STORAGE_PROVEEDOR: ${STORAGE_PROVEEDOR:-minio}
+      FLOCI_ENDPOINT: ${FLOCI_ENDPOINT:-http://floci:4566}
+      FLOCI_PUBLIC_URL: ${FLOCI_PUBLIC_URL:-http://localhost:4566}
+      FLOCI_REGION: ${FLOCI_REGION:-us-east-1}
+      FLOCI_ACCESS_KEY: ${FLOCI_ACCESS_KEY:-test}
+      FLOCI_SECRET_KEY: ${FLOCI_SECRET_KEY:-test}
+      FLOCI_BUCKET: ${FLOCI_BUCKET:-ferreteria-fotos}
       # ─── OpenTelemetry (Java agent) ─────────────────────────────────
       OTEL_SERVICE_NAME: ferreteria-backend
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=docker,service.namespace=ferreteria"
@@ -511,11 +520,20 @@ services:
     environment:
       FLOCI_STORAGE_MODE: ${FLOCI_STORAGE_MODE:-hybrid}
       FLOCI_STORAGE_PERSISTENT_PATH: /app/data
-      FLOCI_SERVICES_UI_ENABLED: "false"
+      # Podman rootless: el socket de usuario es 600 del host UID y la
+      # imagen dropea a 1001 (que no lo puede abrir: crash del sidecar UI).
+      # Sin drop (sigue siendo el usuario host, no root real) abre el
+      # socket y persiste con dueño legible en el host. Solo dev local.
+      FLOCI_RUN_AS_ROOT: "true"
+      # Consola web (_floci/ui): la levanta como sidecar vía el socket del
+      # motor de contenedores. Con podman rootless se monta el socket de
+      # usuario (ver PODMAN_SOCKET); sin socket, poner "false".
+      FLOCI_SERVICES_UI_ENABLED: ${FLOCI_UI_ENABLED:-true}
     ports:
       - "${FLOCI_HOST_PORT:-4566}:4566"
     volumes:
       - floci_data:/app/data
+      - ${PODMAN_SOCKET:-/run/podman/podman.sock}:/var/run/docker.sock
     networks:
       - app-net
     # La imagen oficial trae su propio HEALTHCHECK (GET /_floci/health),
