@@ -315,10 +315,17 @@ export default function CargaMasivaDialog({
           <Button type="button" variant="ghost" onClick={descargarPlantilla}>
             <Download className="h-4 w-4" /> Descargar plantilla
           </Button>
-          <Button type="button" onClick={() => inputRef.current?.click()}>
+          {/* <label> abre el selector con activación nativa del browser;
+              el .click() programático lo bloquea Chrome ("File chooser
+              dialog can only be shown with a user activation"). */}
+          <label
+            htmlFor="carga-masiva-xlsx"
+            className="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-white hover:bg-primary-hover px-3.5 py-2 text-sm cursor-pointer"
+          >
             <Upload className="h-4 w-4" /> Elegir archivo .xlsx
-          </Button>
+          </label>
           <input
+            id="carga-masiva-xlsx"
             ref={inputRef}
             type="file"
             accept=".xlsx,.xls"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CampoWidget } from "@/components/ui/Input";
 import {
   apiSubirImagen,
@@ -93,10 +93,12 @@ export function ImagenUpload({
   disabled = false,
 }: ImagenUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Preview local del archivo recién elegido (antes/durante la subida). */
   const [previewLocal, setPreviewLocal] = useState<string | null>(null);
+  const inactivo = disabled || subiendo;
 
   useEffect(() => {
     return () => {
@@ -147,108 +149,110 @@ export function ImagenUpload({
     if (inputRef.current) inputRef.current.value = "";
   }
 
+  /**
+   * Los <label htmlFor> abren el selector con activación nativa del browser
+   * (el .click() programático pierde el gesto dentro del scheduling de React
+   * y Chrome lo bloquea: "File chooser dialog can only be shown with a user
+   * activation"). Sin handlers en los labels: con input deshabilitado el
+   * click es no-op nativo. El input es enfocable (sr-only, no display:none)
+   * así el teclado abre el diálogo nativo con Enter; la zona lo indica con
+   * peer-focus-visible.
+   */
+
+  const clasesZona = `relative group h-24 w-24 shrink-0 flex items-center justify-center overflow-hidden rounded-xl border border-line bg-warmbg transition-all duration-200
+          ${!preview && !inactivo ? "hover:border-indigo-500" : ""}
+        `;
+
   return (
     <CampoWidget label={label} hint={hint} error={error ?? undefined}>
       <div className="flex items-center gap-3">
-        {/* 
-        Regresamos a 'div' para evitar que 'disabled' bloquee los botones internos.
-        Se añade 'role="button"' y 'tabIndex' para que sea accesible con el teclado solo si no hay imagen.
-      */}
-        <div
-          role={!preview ? "button" : undefined}
-          tabIndex={!preview && !disabled && !subiendo ? 0 : undefined}
-          onClick={() => !preview && !subiendo && inputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (!preview && !subiendo && (e.key === "Enter" || e.key === " ")) {
-              e.preventDefault();
-              inputRef.current?.click();
-            }
-          }}
-          aria-label={
-            preview ? "Vista previa de la imagen" : "Elegir e insertar imagen"
-          }
-          className={`relative group h-24 w-24 shrink-0 flex items-center justify-center overflow-hidden rounded-xl border border-line bg-warmbg transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500
-          ${!preview && !disabled && !subiendo ? "cursor-pointer hover:border-indigo-500" : "cursor-default"}
-        `}
-        >
-          {preview ? (
-            <>
-              {/* Imagen real */}
-              <img
-                src={preview}
-                alt="Vista previa"
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-
-              {/* Capa Hover: Los botones internos ahora sí responderán perfectamente */}
-              {!disabled && !subiendo && (
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                  {/* Botón Cambiar */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      inputRef.current?.click();
-                    }}
-                    className="p-1.5 bg-white text-slate-900 rounded-md shadow-md text-xs font-medium hover:bg-slate-100 transition-transform transform scale-90 group-hover:scale-100 hover:scale-105 duration-150 cursor-pointer"
-                    title="Cambiar imagen"
-                  >
-                    Editar
-                  </button>
-
-                  {/* Botón Quitar (X) */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      quitar();
-                    }}
-                    className="p-1.5 bg-red-600 text-white rounded-md shadow-md text-xs font-bold hover:bg-red-700 transition-transform transform scale-90 group-hover:scale-100 hover:scale-105 duration-150 cursor-pointer"
-                    title="Quitar imagen"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            /* Estado sin imagen */
-            <span className="px-1 text-center text-xs text-muted font-medium select-none">
-              {subiendo ? "..." : "Sin imagen"}
-            </span>
-          )}
-
-          {/* Spinner de carga superpuesto si está subiendo */}
-          {subiendo && (
-            <div className="absolute inset-0 bg-warmbg/70 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
-        </div>
-
-        {/* Sección lateral: Solo muestra el botón principal si NO hay imagen */}
-        {!preview && (
-          <div className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              disabled={disabled || subiendo}
-              onClick={() => inputRef.current?.click()}
-              className="rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-ink hover:bg-warmbg disabled:opacity-50 transition-colors"
-            >
-              {subiendo ? "Subiendo…" : "Elegir imagen"}
-            </button>
-          </div>
-        )}
-
-        {/* Input oculto */}
+        {/* Input primero para que la zona use peer-focus-visible con teclado */}
         <input
+          id={inputId}
           ref={inputRef}
           type="file"
           accept={IMAGEN_MIME_ACEPTADOS.join(",")}
-          className="hidden"
-          disabled={disabled || subiendo}
+          className="peer sr-only"
+          disabled={inactivo}
           onChange={(e) => void manejarArchivo(e.target.files?.[0])}
         />
+        {/*
+        Sin imagen la zona es un <label> (apertura nativa); con imagen es un
+        <div> presentacional porque contiene los botones internos (un <label>
+        no puede anidar contenido interactivo).
+      */}
+        {!preview ? (
+          <label
+            htmlFor={inputId}
+            aria-label="Elegir e insertar imagen"
+            className={`${clasesZona} cursor-pointer hover:border-indigo-500 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-indigo-500 ${inactivo ? "opacity-60" : ""}`}
+          >
+            {/* Estado sin imagen */}
+            <span className="px-1 text-center text-xs text-muted font-medium select-none">
+              {subiendo ? "..." : "Sin imagen"}
+            </span>
+
+            {/* Spinner de carga superpuesto si está subiendo */}
+            {subiendo && (
+              <div className="absolute inset-0 bg-warmbg/70 flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </label>
+        ) : (
+          <div
+            aria-label="Vista previa de la imagen"
+            className={clasesZona}
+          >
+            {/* Imagen real */}
+            <img
+              src={preview}
+              alt="Vista previa"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+
+            {/* Capa Hover: cambiar (label nativo) y quitar */}
+            {!disabled && !subiendo && (
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                <label
+                  htmlFor={inputId}
+                  className="p-1.5 bg-white text-slate-900 rounded-md shadow-md text-xs font-medium hover:bg-slate-100 transition-transform transform scale-90 group-hover:scale-100 hover:scale-105 duration-150 cursor-pointer"
+                  title="Cambiar imagen"
+                >
+                  Editar
+                </label>
+
+                {/* Botón Quitar (X) */}
+                <button
+                  type="button"
+                  onClick={quitar}
+                  className="p-1.5 bg-red-600 text-white rounded-md shadow-md text-xs font-bold hover:bg-red-700 transition-transform transform scale-90 group-hover:scale-100 hover:scale-105 duration-150 cursor-pointer"
+                  title="Quitar imagen"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            {/* Spinner de carga superpuesto si está subiendo */}
+            {subiendo && (
+              <div className="absolute inset-0 bg-warmbg/70 flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sección lateral: Solo muestra el control principal si NO hay imagen */}
+        {!preview && (
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor={inputId}
+              className={`rounded-md border border-line bg-surface px-3 py-1.5 text-sm text-ink hover:bg-warmbg transition-colors ${inactivo ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+            >
+              {subiendo ? "Subiendo…" : "Elegir imagen"}
+            </label>
+          </div>
+        )}
       </div>
     </CampoWidget>
   );
