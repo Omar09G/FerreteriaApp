@@ -3,12 +3,10 @@ package mx.ferreteria.api.common.storage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import io.minio.BucketExistsArgs;
@@ -22,29 +20,20 @@ import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 
 /**
- * Subida de fotos de entidades a MinIO. El archivo se renombra a
- * {@code UUID + extensión original} para evitar colisiones y sanear nombres
- * provistos por el cliente. El bucket se crea (público, solo lectura) de forma
- * perezosa en la primera subida para no acoplar el arranque al storage.
+ * {@link FotoStoragePort} sobre MinIO autohospedado (SDK S3-compatible).
+ * Activo cuando {@code app.storage.proveedor=minio} (default si la propiedad
+ * no existe). El archivo se renombra a {@code UUID + extensión original} para
+ * evitar colisiones y sanear nombres provistos por el cliente. El bucket se
+ * crea (público, solo lectura) de forma perezosa en la primera subida para no
+ * acoplar el arranque al storage.
  * <p>
  * Antes de guardar, la imagen se normaliza con {@link OptimizadorImagen}
  * (resize + JPEG progresivo) para lectura y carga rápida en la UI.
  */
 @Service
+@ConditionalOnProperty(name = "app.storage.proveedor", havingValue = "minio", matchIfMissing = true)
 @RequiredArgsConstructor
-public class FotoStorageService {
-
-    /** MIME permitidos y su extensión canónica. */
-    private static final Map<String, String> MIME_A_EXTENSION = Map.of(
-            "image/jpeg", ".jpg",
-            "image/png", ".png",
-            "image/webp", ".webp");
-
-    private static final Set<String> EXTENSIONES = Set.of(".jpg", ".jpeg", ".png", ".webp");
-
-    private static final String POLITICA_LECTURA_PUBLICA = """
-            {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},\
-            "Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}""";
+public class FotoStorageService implements FotoStoragePort {
 
     private final MinioProperties props;
 
@@ -60,24 +49,16 @@ public class FotoStorageService {
      */
     @PostConstruct
     void validarAmbiente() {
-        String amb = ambiente == null ? "" : ambiente.trim().toLowerCase();
-        if (!amb.equals("dev") && !amb.equals("prod")) {
-            throw new IllegalStateException(
-                    "APP_AMBIENTE debe ser dev o prod, valor actual: " + ambiente);
-        }
-        if (amb.equals("prod") && props.publicUrl() != null
-                && props.publicUrl().trim().toLowerCase().startsWith("http://")) {
-            throw new IllegalStateException(
-                    "En ambiente prod MINIO_PUBLIC_URL debe ser HTTPS");
-        }
+        Fotos.validarAmbiente(ambiente, props.publicUrl());
     }
 
     /**
      * Sube la imagen y devuelve la URL pública a guardar en foto_url/imagen_url.
      * La imagen se optimiza (JPEG progresivo ≤1600 px) antes de guardarse.
      */
+    @Override
     public String subir(String contentType, String nombreOriginal, InputStream datos, long tamano) {
-        String extension = extensionPara(contentType, nombreOriginal);
+        String extension = Fotos.extensionPara(contentType, nombreOriginal);
         long maxBytes = props.maxMb() * 1024L * 1024L;
         if (tamano > maxBytes) {
             throw new ValidacionException(ErrorCode.ARCHIVO_MUY_GRANDE, props.maxMb());
@@ -109,31 +90,12 @@ public class FotoStorageService {
         return basePublica() + "/" + props.bucket() + "/" + objeto;
     }
 
-    private String extensionPara(String contentType, String nombreOriginal) {
-        String ct = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
-        if (MIME_A_EXTENSION.containsKey(ct)) {
-            return MIME_A_EXTENSION.get(ct);
-        }
-        String ext = "";
-        if (nombreOriginal != null) {
-            int punto = nombreOriginal.lastIndexOf('.');
-            if (punto >= 0) {
-                ext = nombreOriginal.substring(punto).toLowerCase(Locale.ROOT);
-            }
-        }
-        if (EXTENSIONES.contains(ext)) {
-            return ".jpeg".equals(ext) ? ".jpg" : ext;
-        }
-        throw new ValidacionException(ErrorCode.ARCHIVO_TIPO_NO_PERMITIDO,
-                contentType == null ? "desconocido" : contentType);
-    }
-
     private void asegurarBucket(MinioClient minio) throws Exception {
         if (!minio.bucketExists(BucketExistsArgs.builder().bucket(props.bucket()).build())) {
             minio.makeBucket(MakeBucketArgs.builder().bucket(props.bucket()).build());
             minio.setBucketPolicy(SetBucketPolicyArgs.builder()
                     .bucket(props.bucket())
-                    .config(String.format(POLITICA_LECTURA_PUBLICA, props.bucket()))
+                    .config(Fotos.politicaLecturaPublica(props.bucket()))
                     .build());
         }
     }

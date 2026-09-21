@@ -42,6 +42,11 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     // Fotos de entidades: SDK S3-compatible para MinIO autohospedado.
     implementation("io.minio:minio:8.6.0")
+    // Fotos vía Floci (S3 local): AWS SDK v2 con endpointOverride. El BOM
+    // alinea auth/http-client; apache-client es el transporte HTTP.
+    implementation(platform("software.amazon.awssdk:bom:2.55.1"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:apache-client")
     // Decodificador WebP en Java puro (el ImageIO del JDK no lee WebP).
     // JPEG/PNG se decodifican con el ImageIO estándar; todo se normaliza
     // a JPEG optimizado en OptimizadorImagen.

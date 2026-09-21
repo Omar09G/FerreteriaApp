@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
-import mx.ferreteria.api.common.storage.FotoStorageService;
+import mx.ferreteria.api.common.storage.FotoStoragePort;
 import mx.ferreteria.api.common.web.RateLimited;
 
 /**
@@ -32,7 +32,7 @@ import mx.ferreteria.api.common.web.RateLimited;
 @RateLimited("default")
 public class ArchivoController {
 
-    private final FotoStorageService storage;
+    private final FotoStoragePort storage;
 
     public record ImagenResponse(String url) {
     }

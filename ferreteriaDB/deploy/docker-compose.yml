@@ -495,6 +495,35 @@ services:
     networks:
       - app-net
 
+  # =================================================================
+  # Floci — emulador AWS local (S3 para fotos de entidades).
+  # Alternativa a MinIO: el backend lo usa cuando
+  # STORAGE_PROVEEDOR=floci (default: minio, MinIO sigue vivo).
+  # S3 es in-process: NO requiere /var/run/docker.sock. Consola web
+  # desactivada (su sidecar sí pediría el socket).
+  # Persistencia: hybrid + volumen (la imagen trae memory por defecto
+  # y todo se pierde al reiniciar). Ver conf de storage en docs Floci.
+  # =================================================================
+  floci:
+    image: ${FLOCI_IMAGE:-floci/floci:2.1.0}
+    container_name: ferreteria-floci
+    restart: unless-stopped
+    environment:
+      FLOCI_STORAGE_MODE: ${FLOCI_STORAGE_MODE:-hybrid}
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      FLOCI_SERVICES_UI_ENABLED: "false"
+    ports:
+      - "${FLOCI_HOST_PORT:-4566}:4566"
+    volumes:
+      - floci_data:/app/data
+    networks:
+      - app-net
+    # La imagen oficial trae su propio HEALTHCHECK (GET /_floci/health),
+    # así que no se define uno aquí. El backend NO depende de floci en
+    # el arranque (MinIO es el default y el bucket se crea perezoso).
+    mem_limit: 512m
+    cpus: 1.0
+
 networks:
   # Red para DB: postgres + pgbouncer + replica. Aislada.
   db-net:
@@ -511,6 +540,7 @@ networks:
 
 volumes:
   minio_data:
+  floci_data:
   pg_data_primary:
   pg_data_replica:
   # pgBackRest repo — PITR (DB-ESC-008). Descomentar cuando se habilite pgBackRest:

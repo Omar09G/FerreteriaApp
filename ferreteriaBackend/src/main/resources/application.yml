@@ -64,6 +64,18 @@ app:
     access-minutes: ${ACCESS_MINUTES:15}  # 15 min (antes 480 = 8h, ventana de exposición excesiva)
     refresh-hours: ${REFRESH_HOURS:8}     # 8h (antes 72h); refresh rotativo ya gestiona sesión larga
   zona: ${ZONA:America/Mexico_City}
+  # Proveedor de fotos: minio (default) o floci (S3 local). El bean activo
+  # se elige con @ConditionalOnProperty; MinIO sigue vivo como rollback.
+  storage:
+    proveedor: ${STORAGE_PROVEEDOR:minio}
+    floci:
+      endpoint: ${FLOCI_ENDPOINT:http://localhost:4566}
+      public-url: ${FLOCI_PUBLIC_URL:http://localhost:4566}
+      region: ${FLOCI_REGION:us-east-1}
+      access-key: ${FLOCI_ACCESS_KEY:test}
+      secret-key: ${FLOCI_SECRET_KEY:test}
+      bucket: ${FLOCI_BUCKET:ferreteria-fotos}
+      max-mb: ${FLOCI_MAX_MB:5}
   # Fotos de entidades (clientes, proveedores, empleados, productos).
   # ENDPOINT lo usa el backend en red interna; PUBLIC_URL es lo que se
   # guarda en foto_url/imagen_url y resuelve el browser.
