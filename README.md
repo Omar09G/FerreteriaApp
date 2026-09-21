@@ -75,6 +75,9 @@ Notas:
   create/update. El backend optimiza a JPEG, renombra a UUID y crea el bucket
   público solo si no existe. Con Floci la consola muestra los objetos en
   http://localhost:4500.
+- Floci con `FLOCI_ENFORCE_AUTH=true` (default) evalúa la bucket policy como
+  MinIO: el listado anónimo del bucket da `AccessDenied` y los objetos siguen
+  públicos para el front; el backend (firmado) no se ve afectado.
 - La imagen de subida requiere imagen `quay.io/minio/minio` (Docker Hub
   rechaza el pull del tag fijado en el compose).
 

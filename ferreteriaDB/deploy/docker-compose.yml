@@ -520,6 +520,10 @@ services:
     environment:
       FLOCI_STORAGE_MODE: ${FLOCI_STORAGE_MODE:-hybrid}
       FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      # Authz S3 (estilo MinIO): evalúa la bucket policy en firmados y niega
+      # lo no permitido (p.ej. ListBucket anónimo → 403). Sin esto Floci
+      # permite el listado aunque la policy no lo otorgue. Default true.
+      FLOCI_SERVICES_S3_ENFORCE_AUTH: ${FLOCI_ENFORCE_AUTH:-true}
       # Podman rootless: el socket de usuario es 600 del host UID y la
       # imagen dropea a 1001 (que no lo puede abrir: crash del sidecar UI).
       # Sin drop (sigue siendo el usuario host, no root real) abre el
