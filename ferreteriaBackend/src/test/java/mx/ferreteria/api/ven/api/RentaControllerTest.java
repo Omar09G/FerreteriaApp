@@ -19,11 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
@@ -31,77 +31,76 @@ import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.service.RentaService;
 
-@WebMvcTest(controllers = RentaController.class,
-        excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(controllers = RentaController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, WebMvcTestProps.class, RentaControllerTest.SliceConfig.class})
-@MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
-           mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
-           mx.ferreteria.api.common.security.JwtService.class})
+@Import({ DbErrorTranslator.class, WebMvcTestProps.class, RentaControllerTest.SliceConfig.class })
+@MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
+                mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
+                mx.ferreteria.api.common.security.JwtService.class })
 class RentaControllerTest {
 
-    @Autowired
-    MockMvc mvc;
+        @Autowired
+        MockMvc mvc;
 
-    @MockBean
-    RentaService service;
+        @MockitoBean
+        RentaService service;
 
-    @org.springframework.boot.test.context.TestConfiguration
-    static class SliceConfig {
-        @org.springframework.context.annotation.Bean
-        mx.ferreteria.api.common.web.RequestIdProperties requestIdProperties() {
-            return new mx.ferreteria.api.common.web.RequestIdProperties(
-                    mx.ferreteria.api.common.web.RequestIdProperties.Mode.GENERATE);
+        @org.springframework.boot.test.context.TestConfiguration
+        static class SliceConfig {
+                @org.springframework.context.annotation.Bean
+                mx.ferreteria.api.common.web.RequestIdProperties requestIdProperties() {
+                        return new mx.ferreteria.api.common.web.RequestIdProperties(
+                                        mx.ferreteria.api.common.web.RequestIdProperties.Mode.GENERATE);
+                }
         }
-    }
 
-    private VenDtos.RentaResponse sampleResp() {
-        return new VenDtos.RentaResponse(
-                1L, "R-001", 1L, "Cliente", 1, "Almacen",
-                Instant.now(), LocalDate.now().plusDays(7), null,
-                new BigDecimal("500.00"), BigDecimal.ZERO,
-                1, 1L,
-                "ABIERTA", 1, List.of());
-    }
+        private VenDtos.RentaResponse sampleResp() {
+                return new VenDtos.RentaResponse(
+                                1L, "R-001", 1L, "Cliente", 1, "Almacen",
+                                Instant.now(), LocalDate.now().plusDays(7), null,
+                                new BigDecimal("500.00"), BigDecimal.ZERO,
+                                1, 1L,
+                                "ABIERTA", 1, List.of());
+        }
 
-    // ── GET /api/v1/rentas ──────────────────────────────────────────
+        // ── GET /api/v1/rentas ──────────────────────────────────────────
 
-    @Test
-    @DisplayName("GET /api/v1/rentas -> 200 con array")
-    void list_returns200() throws Exception {
-        when(service.list(eq(null), eq(null), eq(null), any()))
-                .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
+        @Test
+        @DisplayName("GET /api/v1/rentas -> 200 con array")
+        void list_returns200() throws Exception {
+                when(service.list(eq(null), eq(null), eq(null), any()))
+                                .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
 
-        mvc.perform(get("/api/v1/rentas"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
-    }
+                mvc.perform(get("/api/v1/rentas"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data").isArray())
+                                .andExpect(jsonPath("$.data.length()").value(1));
+        }
 
-    // ── POST /api/v1/rentas ─────────────────────────────────────────
+        // ── POST /api/v1/rentas ─────────────────────────────────────────
 
-    @Test
-    @DisplayName("POST /api/v1/rentas válido -> 201")
-    void create_ok() throws Exception {
-        when(service.create(any(VenDtos.RentaRequest.class)))
-                .thenReturn(sampleResp());
+        @Test
+        @DisplayName("POST /api/v1/rentas válido -> 201")
+        void create_ok() throws Exception {
+                when(service.create(any(VenDtos.RentaRequest.class)))
+                                .thenReturn(sampleResp());
 
-        mvc.perform(post("/api/v1/rentas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "clienteId": 1,
-                                  "almacenId": 1,
-                                  "cajaId": 1,
-                                  "formaPagoId": 1,
-                                  "fechaDevEsperada": "%s",
-                                  "deposito": 500.00,
-                                  "detalles": [{"productoId": 1, "cantidad": 1, "costoDia": 50.00}]
-                                }""".formatted(LocalDate.now().plusDays(7))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.rentaId").value(1))
-                .andExpect(jsonPath("$.data.folio").value("R-001"));
-    }
+                mvc.perform(post("/api/v1/rentas")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                                {
+                                                  "clienteId": 1,
+                                                  "almacenId": 1,
+                                                  "cajaId": 1,
+                                                  "formaPagoId": 1,
+                                                  "fechaDevEsperada": "%s",
+                                                  "deposito": 500.00,
+                                                  "detalles": [{"productoId": 1, "cantidad": 1, "costoDia": 50.00}]
+                                                }""".formatted(LocalDate.now().plusDays(7))))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.rentaId").value(1))
+                                .andExpect(jsonPath("$.data.folio").value("R-001"));
+        }
 }

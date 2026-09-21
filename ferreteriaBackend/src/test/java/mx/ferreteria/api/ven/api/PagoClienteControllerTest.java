@@ -15,9 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
@@ -25,19 +25,18 @@ import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.service.PagoService;
 
-@WebMvcTest(controllers = PagoClienteController.class,
-        excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(controllers = PagoClienteController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, WebMvcTestProps.class, PagoClienteControllerTest.SliceConfig.class})
-@MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
-           mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
-           mx.ferreteria.api.common.security.JwtService.class})
+@Import({ DbErrorTranslator.class, WebMvcTestProps.class, PagoClienteControllerTest.SliceConfig.class })
+@MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
+        mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
+        mx.ferreteria.api.common.security.JwtService.class })
 class PagoClienteControllerTest {
 
     @Autowired
     MockMvc mvc;
 
-    @MockBean
+    @MockitoBean
     PagoService service;
 
     @org.springframework.boot.test.context.TestConfiguration
@@ -59,14 +58,14 @@ class PagoClienteControllerTest {
                         1L, 1, "REF-001", new BigDecimal("100.00"), Instant.now()));
 
         mvc.perform(post("/api/v1/pagos-cliente")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "cuentaCobrarId": 1,
-                                  "formaPagoId": 1,
-                                  "monto": 100.00,
-                                  "referencia": "REF-001"
-                                }"""))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "cuentaCobrarId": 1,
+                          "formaPagoId": 1,
+                          "monto": 100.00,
+                          "referencia": "REF-001"
+                        }"""))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.pagoClienteId").value(1))

@@ -13,16 +13,16 @@ lucide-react · recharts.
 
 ## Requisitos
 
-Node (con `bun` opcional) y el backend corriendo (default `http://localhost:8080`).
+Bun 1.x y el backend corriendo (default `http://localhost:8080`).
 
 ## Arranque rápido
 
 ```bash
-npm install        # o: bun install
-npm run dev        # Vite, http://localhost:5173 — proxy /api → http://localhost:8080 (sin CORS en backend)
-npm run build      # tsc -b && vite build → dist/
-npm run lint       # ESLint
-npm run preview    # sirve dist/ localmente
+bun install        # instala según bun.lock
+bun run dev        # Vite, http://localhost:5173 — proxy /api → http://localhost:8080 (sin CORS en backend)
+bun run build      # tsc -b && vite build → dist/
+bun run lint       # ESLint
+bun run preview    # sirve dist/ localmente
 ```
 
 ### Variables de entorno

@@ -20,11 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.cat.dto.CatDtos.ClienteRequest;
@@ -36,7 +36,7 @@ import mx.ferreteria.api.common.web.WebMvcTestProps;
 @WebMvcTest(controllers = ClienteController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({ DbErrorTranslator.class, WebMvcTestProps.class, ClienteControllerTest.SliceConfig.class })
-@MockBean({ mx.ferreteria.api.common.security.JwtAuthFilter.class,
+@MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
                 mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
                 mx.ferreteria.api.common.security.JwtService.class })
 class ClienteControllerTest {
@@ -44,7 +44,7 @@ class ClienteControllerTest {
         @Autowired
         MockMvc mvc;
 
-        @MockBean
+        @MockitoBean
         ClienteService service;
 
         @org.springframework.boot.test.context.TestConfiguration

@@ -21,12 +21,12 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResponse;
@@ -42,15 +42,17 @@ import mx.ferreteria.api.rh.service.EmpleadoService;
 @Import({ mx.ferreteria.api.common.error.DbErrorTranslator.class,
                 mx.ferreteria.api.common.web.WebMvcTestProps.class,
                 EmpleadoControllerTest.SliceConfig.class })
-@MockBean({ mx.ferreteria.api.common.security.JwtAuthFilter.class,
+@MockitoBean(types = {
+                mx.ferreteria.api.common.security.JwtAuthFilter.class,
                 mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
-                mx.ferreteria.api.common.security.JwtService.class })
+                mx.ferreteria.api.common.security.JwtService.class
+})
 class EmpleadoControllerTest {
 
         @Autowired
         MockMvc mvc;
 
-        @MockBean
+        @MockitoBean
         EmpleadoService service;
 
         @TestConfiguration

@@ -12,7 +12,7 @@ codebase questions, then `graphify update .` after code changes.
 1. `cd ferreteriaDB/deploy && cp .env.example .env && podman compose up -d`
 2. `cd ferreteriaBackend && ./gradlew bootRun` (needs `JWT_SECRET` in env or
    `.env`, ≥32 bytes — fail-fast, no default; `openssl rand -base64 48`)
-3. `cd ferreteriaFront && npm install && npm run dev`
+3. `cd ferreteriaFront && bun install && bun run dev`
 
 App connects via PgBouncer `localhost:6432` as `ferreteria_app`, never direct
 `5432` (admin only). Backend `bootRun` auto-loads `./.env` (real env wins);
@@ -59,10 +59,10 @@ frontend never reads DB `.env` — Vite bakes `VITE_*` at build time.
 
 ## Frontend (`ferreteriaFront/`)
 
-- `npm run dev` (proxy `/api → http://localhost:8080`, override
+- `bun run dev` (proxy `/api → http://localhost:8080`, override
   `VITE_API_PROXY`; `VITE_DEV_SIN_PROXY=true` bypasses proxy in dev) ·
-  `npm run build` (`tsc -b && vite build`) · `npm run lint` · `npm test`
-  = `vitest run`; single file: `npx vitest run src/path/to.test.tsx`.
+  `bun run build` (`tsc -b && vite build`) · `bun run lint` · `bun test`
+  = `vitest run`; single file: `bunx vitest run src/path/to.test.tsx`.
 - API envelope: success `{ success, data?, meta? }`, error
   `{ success:false, errorCode, codigo, errorMessage }`. Axios interceptor
   refreshes with mutex + one retry; on failure → local logout → `/login?expired=1`.

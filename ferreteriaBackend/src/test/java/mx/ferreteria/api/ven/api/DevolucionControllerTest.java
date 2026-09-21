@@ -18,11 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
@@ -30,84 +30,83 @@ import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.service.DevolucionService;
 
-@WebMvcTest(controllers = DevolucionController.class,
-        excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(controllers = DevolucionController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({DbErrorTranslator.class, WebMvcTestProps.class, DevolucionControllerTest.SliceConfig.class})
-@MockBean({mx.ferreteria.api.common.security.JwtAuthFilter.class,
-           mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
-           mx.ferreteria.api.common.security.JwtService.class})
+@Import({ DbErrorTranslator.class, WebMvcTestProps.class, DevolucionControllerTest.SliceConfig.class })
+@MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
+                mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
+                mx.ferreteria.api.common.security.JwtService.class })
 class DevolucionControllerTest {
 
-    @Autowired
-    MockMvc mvc;
+        @Autowired
+        MockMvc mvc;
 
-    @MockBean
-    DevolucionService service;
+        @MockitoBean
+        DevolucionService service;
 
-    @org.springframework.boot.test.context.TestConfiguration
-    static class SliceConfig {
-        @org.springframework.context.annotation.Bean
-        mx.ferreteria.api.common.web.RequestIdProperties requestIdProperties() {
-            return new mx.ferreteria.api.common.web.RequestIdProperties(
-                    mx.ferreteria.api.common.web.RequestIdProperties.Mode.GENERATE);
+        @org.springframework.boot.test.context.TestConfiguration
+        static class SliceConfig {
+                @org.springframework.context.annotation.Bean
+                mx.ferreteria.api.common.web.RequestIdProperties requestIdProperties() {
+                        return new mx.ferreteria.api.common.web.RequestIdProperties(
+                                        mx.ferreteria.api.common.web.RequestIdProperties.Mode.GENERATE);
+                }
         }
-    }
 
-    private VenDtos.DevolucionResponse sampleResp() {
-        return new VenDtos.DevolucionResponse(
-                1L, "DEV-001", 1L, "V-001", Instant.now(), "Defectuoso",
-                BigDecimal.ZERO, 1, "EFECTIVO", 1, List.of());
-    }
+        private VenDtos.DevolucionResponse sampleResp() {
+                return new VenDtos.DevolucionResponse(
+                                1L, "DEV-001", 1L, "V-001", Instant.now(), "Defectuoso",
+                                BigDecimal.ZERO, 1, "EFECTIVO", 1, List.of());
+        }
 
-    // ── GET /api/v1/devoluciones/venta/{ventaId} ─────────────────────
+        // ── GET /api/v1/devoluciones/venta/{ventaId} ─────────────────────
 
-    @Test
-    @DisplayName("GET /api/v1/devoluciones/venta/1 -> 200 con array")
-    void listByVenta_returns200() throws Exception {
-        when(service.listByVenta(eq(1L), any()))
-                .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
+        @Test
+        @DisplayName("GET /api/v1/devoluciones/venta/1 -> 200 con array")
+        void listByVenta_returns200() throws Exception {
+                when(service.listByVenta(eq(1L), any()))
+                                .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
 
-        mvc.perform(get("/api/v1/devoluciones/venta/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
-    }
+                mvc.perform(get("/api/v1/devoluciones/venta/1"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data").isArray())
+                                .andExpect(jsonPath("$.data.length()").value(1));
+        }
 
-    // ── GET /api/v1/devoluciones/{id} ───────────────────────────────
+        // ── GET /api/v1/devoluciones/{id} ───────────────────────────────
 
-    @Test
-    @DisplayName("GET /api/v1/devoluciones/1 -> 200 con folio")
-    void getById_found() throws Exception {
-        when(service.getById(1L)).thenReturn(sampleResp());
+        @Test
+        @DisplayName("GET /api/v1/devoluciones/1 -> 200 con folio")
+        void getById_found() throws Exception {
+                when(service.getById(1L)).thenReturn(sampleResp());
 
-        mvc.perform(get("/api/v1/devoluciones/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.folio").value("DEV-001"));
-    }
+                mvc.perform(get("/api/v1/devoluciones/1"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.folio").value("DEV-001"));
+        }
 
-    // ── POST /api/v1/devoluciones ───────────────────────────────────
+        // ── POST /api/v1/devoluciones ───────────────────────────────────
 
-    @Test
-    @DisplayName("POST /api/v1/devoluciones válido -> 201")
-    void create_ok() throws Exception {
-        when(service.create(any(VenDtos.DevolucionRequest.class)))
-                .thenReturn(sampleResp());
+        @Test
+        @DisplayName("POST /api/v1/devoluciones válido -> 201")
+        void create_ok() throws Exception {
+                when(service.create(any(VenDtos.DevolucionRequest.class)))
+                                .thenReturn(sampleResp());
 
-        mvc.perform(post("/api/v1/devoluciones")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "ventaId": 1,
-                                  "motivo": "Defectuoso",
-                                  "formaDevolucionId": 1,
-                                  "detalles": [{"productoId": 1, "cantidad": 1, "precioUnitario": 50.00}]
-                                }"""))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.devolucionId").value(1))
-                .andExpect(jsonPath("$.data.folio").value("DEV-001"));
-    }
+                mvc.perform(post("/api/v1/devoluciones")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                                {
+                                                  "ventaId": 1,
+                                                  "motivo": "Defectuoso",
+                                                  "formaDevolucionId": 1,
+                                                  "detalles": [{"productoId": 1, "cantidad": 1, "precioUnitario": 50.00}]
+                                                }"""))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.devolucionId").value(1))
+                                .andExpect(jsonPath("$.data.folio").value("DEV-001"));
+        }
 }

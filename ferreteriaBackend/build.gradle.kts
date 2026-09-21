@@ -1,8 +1,8 @@
 plugins {
     java
     jacoco
-    id("org.springframework.boot") version "3.3.4"
-    id("io.spring.dependency-management") version "1.1.6"
+    id("org.springframework.boot") version "3.4.13"
+    id("io.spring.dependency-management") version "1.1.7"
 }
 
 group = "mx.ferreteria"
@@ -26,22 +26,22 @@ dependencies {
     // trazas/métricas/logs programáticamente (sin javaagent). El javaagent en Docker
     // ya hace auto-instrumentación, pero tener el SDK disponible permite agregar
     // trazas manuales en puntos críticos (login, checkout, etc.).
-    implementation("io.opentelemetry:opentelemetry-api:1.43.0")
-    implementation("io.opentelemetry:opentelemetry-sdk:1.43.0")
-    implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.43.0")
-    implementation("io.opentelemetry:opentelemetry-exporter-logging:1.43.0")
+    implementation("io.opentelemetry:opentelemetry-api:1.66.0")
+    implementation("io.opentelemetry:opentelemetry-sdk:1.66.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.66.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-logging:1.66.0")
     implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
     // M7 endurecimiento: rate limiting por controller (bucket4j) con buckets en memoria (Caffeine)
     implementation("com.bucket4j:bucket4j-core:8.10.1")
     implementation("com.github.ben-manes.caffeine:caffeine")
     implementation("org.springframework.boot:spring-boot-starter-cache")
-    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
     runtimeOnly("org.postgresql:postgresql")
     // Fotos de entidades: SDK S3-compatible para MinIO autohospedado.
-    implementation("io.minio:minio:8.5.13")
+    implementation("io.minio:minio:8.6.0")
     // Decodificador WebP en Java puro (el ImageIO del JDK no lee WebP).
     // JPEG/PNG se decodifican con el ImageIO estándar; todo se normaliza
     // a JPEG optimizado en OptimizadorImagen.
@@ -52,7 +52,7 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:junit-jupiter")
 }
@@ -61,7 +61,7 @@ dependencies {
 // generateMigrations: genera las migraciones Flyway desde los scripts canónicos
 // de ../ferreteriaDB (única fuente de verdad del esquema).
 //  - Resuelve meta-comandos psql (\connect se elimina, \ir se empata en línea).
-//  - V1__base.sql  = 01_base_esquemas + 02_tablas(+vistas_core empalado) 
+//  - V1__base.sql  = 01_base_esquemas + 02_tablas(+vistas_core empalado)
 //  - V2__parametria.sql = 03_parametria + refresh_tokens (backend)
 //  - Copia 05_dummy.sql a db/demo (SOLO perfil demo, nunca en migración).
 // Los archivos generados se versionan para que la imagen Docker construya sola.
@@ -163,7 +163,7 @@ tasks.named<JavaExec>("bootRun") {
     }
 }
 
-jacoco { toolVersion = "0.8.12" }
+jacoco { toolVersion = "0.8.13" }
 
 // DTOs/config/bootstrap quedan fuera del cálculo de cobertura
 val coverageExclusions = listOf(

@@ -33,19 +33,19 @@ cd ../../ferreteriaBackend
 ./gradlew bootRun
 
 # 3) Frontend
-cd ../ferreteriaFront && npm install && npm run dev
+cd ../ferreteriaFront && bun install && bun run dev
 ```
 
 Detalles y comandos de pruebas/build en el README de cada proyecto.
 
 ## Puertos y conexiones (dev local)
 
-La app corre con `bootRun` + `npm run dev` en el host; solo datos, storage y
+La app corre con `bootRun` + `bun run dev` en el host; solo datos, storage y
 observabilidad van en contenedores (`ferreteriaDB/deploy`, red `db-net`/`app-net`/`obs-net`).
 
 | Servicio | Contenedor / proceso | Puerto host | URL / uso |
 |---|---|---|---|
-| Frontend Vite | host (`npm run dev`) | 5173 | http://localhost:5173 · proxy `/api → :8080` |
+| Frontend Vite | host (`bun run dev`) | 5173 | http://localhost:5173 · proxy `/api → :8080` |
 | Backend API | host (`./gradlew bootRun`) | 8080 | http://localhost:8080/`api/v1` · `/actuator/health` |
 | PostgreSQL primario | `ferreteria-postgres-primary` | 5432 | admin directo (la app usa PgBouncer) |
 | PostgreSQL réplica | `ferreteria-postgres-replica` | 5433 | solo lectura |
@@ -79,5 +79,5 @@ Notas:
 - `collector/` — colección de requests HTTP de apoyo (collections para probar la API).
 
 
-DoD global: `./gradlew build` (JaCoCo ≥80%), `npm run test` en verde, validadores en
+DoD global: `./gradlew build` (JaCoCo ≥80%), `bun test` en verde, validadores en
 PASS y cada historia con test que falla antes y pasa después + replay en staging.
