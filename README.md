@@ -77,9 +77,10 @@ Notas:
   create/update. El backend optimiza a JPEG, renombra a UUID y crea el bucket
   público solo si no existe. Con Floci la consola muestra los objetos en
   http://localhost:4500.
-- Floci con `FLOCI_ENFORCE_AUTH=true` (default) evalúa la bucket policy como
-  MinIO: el listado anónimo del bucket da `AccessDenied` y los objetos siguen
-  públicos para el front; el backend (firmado) no se ve afectado.
+- Floci va con `FLOCI_ENFORCE_AUTH=false` (default upstream): con `true` la
+  consola `floci-ui` no lista nada (firma como cuenta `000000000000` y Floci
+  solo reconoce la key `test` → 403 `InvalidAccessKeyId`). El backend siempre
+  firma con `test`/`test`, así que el flujo no se ve afectado.
 - La imagen de subida requiere imagen `quay.io/minio/minio` (Docker Hub
   rechaza el pull del tag fijado en el compose).
 
@@ -102,6 +103,17 @@ Notas:
   default `false`: los jobs quedan `PENDIENTE` y se procesan al habilitar).
   Vars: `RABBITMQ_*`, `NOTIF_MAX_INTENTOS`, `MAIL_HOST/PORT` (dev: Mailpit),
   `TELEGRAM_BOT_TOKEN/CHAT_ID`, `WHATSAPP_ENABLED=false`.
+- **Verificación E2E** — tras un `POST /api/v1/ventas`: job en `ENVIADA` con
+  `pdf_url` en `notif.notificacion_jobs` (= `ven.ventas.pdf_url`), objeto en el
+  bucket (`tickets/<id>.pdf`, visible en `floci-ui` → Storage o MinIO consola),
+  1 publicado/1 entregado en la cola `notificacion.jobs` (DLQ vacía) y email con
+  el PDF adjunto en Mailpit (http://localhost:8025). Los POST mutantes exigen
+  CSRF (`GET /api/v1/auth/csrf-init` + header `X-XSRF-TOKEN`).
+- **Troubleshooting floci-ui** — si el explorador responde 403
+  `InvalidAccessKeyId` al listar: debe estar `FLOCI_ENFORCE_AUTH=false` (la
+  consola firma como cuenta `000000000000` y Floci solo reconoce la key `test`)
+  y recrear el servicio (`podman compose up -d floci`, el sidecar reaparece
+  solo). Credenciales de la consola: `test`/`test`.
 - **BD existentes** — Flyway va deshabilitado en la app, así que un volumen con
   esquema viejo no se migra solo: aplicar en orden los deltas idempotentes de
   `ferreteriaDB/migrations/` (p. ej. `delta_ventas_motivo_cancelacion.sql`,
