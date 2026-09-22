@@ -23,11 +23,14 @@ public class AlmacenService {
 
     @Transactional(readOnly = true)
     public Page<AlmacenResponse> list(String q, boolean todos, Pageable pageable) {
-        Page<Almacen> page = StringUtils.hasText(q)
-                ? repo.findByNombreContainingIgnoreCase(q, pageable)
-                : todos
-                        ? repo.findAllByOrderByNombreAsc(pageable)
-                        : repo.findByActivoTrue(pageable);
+        Page<Almacen> page;
+        if (StringUtils.hasText(q)) {
+            page = repo.findByNombreContainingIgnoreCase(q, pageable);
+        } else if (todos) {
+            page = repo.findAllByOrderByNombreAsc(pageable);
+        } else {
+            page = repo.findByActivoTrue(pageable);
+        }
         return page.map(this::toResponse);
     }
 
@@ -43,7 +46,7 @@ public class AlmacenService {
                 .nombre(req.nombre())
                 .direccion(req.direccion())
                 .telefono(req.telefono())
-                .esPuntoVenta(req.esPuntoVenta() != null ? req.esPuntoVenta() : true)
+                .esPuntoVenta(!Boolean.FALSE.equals(req.esPuntoVenta()))
                 .build();
         return toResponse(repo.save(entity));
     }

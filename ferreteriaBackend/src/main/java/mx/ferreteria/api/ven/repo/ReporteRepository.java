@@ -3,7 +3,6 @@ package mx.ferreteria.api.ven.repo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import jakarta.persistence.Tuple;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -75,7 +74,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         ((Number) tuple.get("rankingMes")).longValue(),
                         ((Number) tuple.get("rankingUnidades")).longValue()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
 
@@ -120,7 +119,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         ((Number) tuple.get("rankingMes")).longValue(),
                         ((Number) tuple.get("rankingHistorico")).longValue()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -159,7 +158,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         tuple.get("costoVentas", BigDecimal.class),
                         tuple.get("utilidadBruta", BigDecimal.class)
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -211,7 +210,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         ((Number) tuple.get("rankingMes")).longValue(),
                         ((Number) tuple.get("rankingHistorico")).longValue()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -245,7 +244,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         // RANK() casteado a Long de forma segura
                         ((Number) tuple.get("rankingHorario")).longValue()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -287,16 +286,15 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         // RANK() casteado a Long
                         ((Number) tuple.get("ranking")).longValue()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
      * KPIs del dashboard acotados al rango: ventas, tickets, promedio, cuentas
      * por cobrar (vigentes y vencidas), valor de inventario, productos
      * agotados, promociones activas y cajas abiertas.
-     */
-    /**
-     * Proyeccion native query -> DTO record. Spring Data no mapea Tuple a
+     * <p>
+     * Proyeccion native query -&gt; DTO record. Spring Data no mapea Tuple a
      * record Java directamente; devuelve Object[] y construimos el record en
      * el metodo default para evitar ConverterNotFoundException.
      */
@@ -413,7 +411,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         // Bandera booleana del estado del cierre
                         tuple.get("todoCuadrado", Boolean.class)
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -464,7 +462,7 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                             tuple.get("imagenUrl", String.class)
                     );
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -509,6 +507,6 @@ public interface ReporteRepository extends JpaRepository<Venta, Long> {
                         ((Number) tuple.get("rankingMes")).longValue(),
                         ((Number) tuple.get("rankingHistorico")).longValue()
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

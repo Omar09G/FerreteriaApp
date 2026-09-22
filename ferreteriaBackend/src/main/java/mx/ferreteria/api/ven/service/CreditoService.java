@@ -18,6 +18,7 @@ import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.entity.CuentaCobrar;
+import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.repo.CuentaCobrarRepository;
 import mx.ferreteria.api.ven.repo.PagoClienteRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
@@ -55,16 +56,18 @@ public class CreditoService {
                                 : clienteRepo.findAllById(clienteIds).stream()
                                                 .collect(Collectors.toMap(Cliente::getClienteId, Function.identity()));
                 Map<Long, String> ventaFolios = ventaRepo.findAllById(ventaIds).stream()
-                                .collect(Collectors.toMap(mx.ferreteria.api.ven.entity.Venta::getVentaId,
-                                                mx.ferreteria.api.ven.entity.Venta::getFolio));
+                                .collect(Collectors.toMap(Venta::getVentaId, Venta::getFolio));
                 List<Long> cuentaIds = page.getContent().stream().map(CuentaCobrar::getCuentaCobrarId).toList();
                 Map<Long, List<mx.ferreteria.api.ven.entity.PagoCliente>> pagosByCuenta = cuentaIds.isEmpty() ? Map.of()
                                 : pagoRepo.findByCuentaCobrarIdIn(cuentaIds).stream()
                                                 .collect(Collectors.groupingBy(
                                                                 mx.ferreteria.api.ven.entity.PagoCliente::getCuentaCobrarId));
                 List<VenDtos.CuentaCobrarResponse> content = page.getContent().stream().map(cc -> {
-                        String clienteNombre = cc.getClienteId() == null ? null
-                                : clientes.containsKey(cc.getClienteId()) ? clientes.get(cc.getClienteId()).getRazonSocial() : null;
+                        String clienteNombre = null;
+                        Long cid = cc.getClienteId();
+                        if (cid != null && clientes.containsKey(cid)) {
+                                clienteNombre = clientes.get(cid).getRazonSocial();
+                        }
                         String ventaFolio = ventaFolios.get(cc.getVentaId());
                         var pagos = pagosByCuenta.getOrDefault(cc.getCuentaCobrarId(), List.of()).stream()
                                 .sorted(java.util.Comparator.comparing(
@@ -92,7 +95,7 @@ public class CreditoService {
                                         .map(Cliente::getRazonSocial).orElse(null);
                 }
                 String ventaFolio = ventaRepo.findById(cc.getVentaId())
-                                .map(v -> v.getFolio()).orElse(null);
+                                .map(Venta::getFolio).orElse(null);
                 var pagos = pagoRepo.findByCuentaCobrarIdOrderByFechaDesc(cc.getCuentaCobrarId())
                                 .stream().map(p -> new VenDtos.PagoResponse(
                                                 p.getPagoClienteId(), p.getFormaPagoId(),

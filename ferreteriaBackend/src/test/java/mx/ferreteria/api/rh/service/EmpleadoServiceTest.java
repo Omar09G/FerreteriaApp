@@ -70,8 +70,7 @@ class EmpleadoServiceTest {
     @Test
     @DisplayName("create: fecha y sueldo por default y re-carga el registro creado")
     void create_defaultsAndRefetches() {
-        when(gateway.create(eq(3), eq("Juan"), eq("Pérez"), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any())).thenReturn(1);
+        when(gateway.create(any())).thenReturn(1);
         when(gateway.findById(1)).thenReturn(Optional.of(ROW));
 
         var r = service.create(new EmpleadoCreateRequest(3, "Juan", "Pérez", null, null, null,
@@ -80,17 +79,16 @@ class EmpleadoServiceTest {
 
         assertThat(r.empleadoId()).isEqualTo(1);
         // fecha/sueldo default viven del lado del servicio (no en NULL explícito)
-        verify(gateway).create(eq(3), eq("Juan"), eq("Pérez"), any(), any(), any(), eq("555"),
-                eq("juan@x.mx"), any(), any(), any(), any(), eq(LocalDate.now()), eq(BigDecimal.ZERO),
-                any());
+        verify(gateway).create(new EmpleadoGateway.EmpleadoDatos(3, "Juan", "Pérez", null, null,
+                null, "555", "juan@x.mx", null, null, null, null, LocalDate.now(),
+                BigDecimal.ZERO, null));
         verify(usuarioAlta, never()).crearUsuarioConRoles(any(), any(), any(), anyInt(), any());
     }
 
     @Test
     @DisplayName("create con username: en la MISMA funcion crea usuario con roles (email coherente)")
     void create_conUsuario_creaUsuarioYRoles() {
-        when(gateway.create(anyInt(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any())).thenReturn(1);
+        when(gateway.create(any())).thenReturn(1);
         when(gateway.findById(1)).thenReturn(Optional.of(ROW));
 
         var r = service.create(new EmpleadoCreateRequest(3, "Juan", "Pérez", null, null, null,
@@ -121,8 +119,7 @@ class EmpleadoServiceTest {
         var r = service.update(1, new EmpleadoUpdateRequest(null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, false, null));
 
-        verify(gateway).update(eq(1), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), eq(false), any());
+        verify(gateway).update(eq(1), any(), eq(false));
         assertThat(r.activo()).isTrue(); // row stub sin cambio; el update ya quedó verificado
     }
 

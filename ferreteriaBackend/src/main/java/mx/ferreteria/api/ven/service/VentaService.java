@@ -133,12 +133,10 @@ public class VentaService {
         // ── Promoción opcional (validación + cálculo descuento) ──
         BigDecimal beneficioTotal = BigDecimal.ZERO;
         Long promoIdAAplicar = null;
-        String promoTipo = null;
         Map<Long, BigDecimal> descuentoPorProducto = Map.of();
         if (req.promocionId() != null) {
             var promo = promocionRepo.findById(req.promocionId())
                     .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-            promoTipo = promo.getTipo();
             // Validar que la promo realmente aplica al carrito actual
             var evalReq = new VenDtos.PromocionEvaluarRequest(
                     req.clienteId(),
@@ -149,7 +147,7 @@ public class VentaService {
             var evals = promocionService.evaluar(evalReq);
             var eval = evals.stream().filter(e -> e.promocionId().equals(req.promocionId())).findFirst()
                     .orElseThrow(() -> new ValidacionException(ErrorCode.VALOR_INVALIDO));
-            if (!eval.aplica()) {
+            if (!Boolean.TRUE.equals(eval.aplica())) {
                 throw new ValidacionException(ErrorCode.VALOR_INVALIDO);
             }
             beneficioTotal = eval.beneficioEstimado() != null ? eval.beneficioEstimado() : BigDecimal.ZERO;
@@ -176,7 +174,6 @@ public class VentaService {
                 .build();
         Venta savedVenta = ventaRepo.save(venta);
 
-        List<VentaDetalle> detalles = new ArrayList<>();
         for (VenDtos.VentaDetalleRequest d : req.detalles()) {
             BigDecimal desc = BigDecimal.ZERO;
             Long pidPromo = null;
@@ -202,7 +199,6 @@ public class VentaService {
                     .promocionId(pidPromo)
                     .build();
             detalleRepo.save(det);
-            detalles.add(det);
         }
         ventaRepo.flush();
 
@@ -268,29 +264,18 @@ public class VentaService {
             return out;
         }
         // Para tipos por producto, el beneficio ya viene sumado en evaluación;
-        // replicamos cálculo por línea
-        // Necesitamos categoria por producto para filtrar
-        Set<Long> pids = detalles.stream().map(VenDtos.VentaDetalleRequest::productoId).collect(Collectors.toSet());
-        Map<Long, Integer> catPorProd = productoRepo.findAllById(pids).stream()
-                .filter(p -> p.getCategoria() != null)
-                .collect(Collectors.toMap(p -> p.getProductoId(), p -> p.getCategoria().getCategoriaId()));
-        // Cargar relaciones de la promo (podría reutilizar pero simple: query repo)
-        // Para no hacer N queries extra, asumimos que si la promo tiene listas vacías
-        // aplica a todo
-        // y si no, solo líneas que matchean
-        boolean promoTieneFiltro = false; // se determinará por existencia de relaciones, pero sin acceso directo
-        // Truco: inferir por beneficioTotal: si es producto y no hay match, evaluación
-        // habría dado 0; como estamos aquí, hay al menos un match
+        // replicamos cálculo por línea. El filtrado por producto/categoría ya
+        // lo validó evaluar(): aquí toda línea con beneficio > 0 entra al map.
         // Calculamos línea a línea
+        BigDecimal valorMonto = promo.getValorMonto() != null ? promo.getValorMonto() : BigDecimal.ZERO;
         for (var d : detalles) {
-            Integer cat = catPorProd.get(d.productoId());
             BigDecimal lineaTotal = d.precioUnitario().multiply(d.cantidad());
-            BigDecimal b = BigDecimal.ZERO;
+            BigDecimal b;
             switch (tipo) {
                 case "DESCUENTO_PRODUCTO" -> b = promo.getValorPct() != null
                         ? lineaTotal.multiply(promo.getValorPct()).divide(BigDecimal.valueOf(100), 2,
                                 java.math.RoundingMode.HALF_UP)
-                        : (promo.getValorMonto() != null ? promo.getValorMonto() : BigDecimal.ZERO);
+                        : valorMonto;
                 case "POR_CANTIDAD" -> {
                     if (promo.getCompraMinCantidad() != null
                             && d.cantidad().compareTo(promo.getCompraMinCantidad()) < 0)
@@ -299,7 +284,7 @@ public class VentaService {
                         b = promo.getValorPct() != null
                                 ? lineaTotal.multiply(promo.getValorPct()).divide(BigDecimal.valueOf(100), 2,
                                         java.math.RoundingMode.HALF_UP)
-                                : (promo.getValorMonto() != null ? promo.getValorMonto() : BigDecimal.ZERO);
+                                : valorMonto;
                 }
                 case "PRECIO_ESPECIAL" -> {
                     BigDecimal pe = promo.getPrecioEspecial() != null ? promo.getPrecioEspecial() : BigDecimal.ZERO;
@@ -342,6 +327,7 @@ public class VentaService {
             throw new ReglaNegocioException(ErrorCode.REGISTRO_DUPLICADO);
         }
         v.setEstado("CANCELADA");
+        v.setMotivoCancelacion(motivo);
         ventaRepo.save(v);
         return toResponse(v);
     }
@@ -445,7 +431,7 @@ public class VentaService {
                     v.getSubtotal(), v.getIva(),
                     v.getDescuentoTotal(), v.getTotal(),
                     v.getEstado(), v.getUsuarioId(), v.getTurnoCajaId(),
-                    v.getNotas(), detalles, pagos));
+                    v.getNotas(), v.getMotivoCancelacion(), detalles, pagos));
         }
         return result;
     }
@@ -486,7 +472,7 @@ public class VentaService {
                 v.getSubtotal(), v.getIva(),
                 v.getDescuentoTotal(), v.getTotal(),
                 v.getEstado(), v.getUsuarioId(), v.getTurnoCajaId(),
-                v.getNotas(), detalles, pagos);
+                v.getNotas(), v.getMotivoCancelacion(), detalles, pagos);
     }
 
     private VenDtos.ClienteVentaInfo toClienteInfo(Cliente c, Map<Integer, Ciudad> ciudades) {

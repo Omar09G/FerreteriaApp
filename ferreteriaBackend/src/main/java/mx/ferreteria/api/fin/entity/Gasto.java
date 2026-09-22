@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import lombok.*;
 
 @Entity
@@ -26,7 +28,7 @@ public class Gasto {
     private BigDecimal monto;
 
     @Column(nullable = false)
-    @Builder.Default private LocalDate fechaGasto = LocalDate.now();
+    @Builder.Default private LocalDate fechaGasto = ZonaHoraria.hoy();
 
     @Column(nullable = false)
     private Integer formaPagoId;

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 
 /**
  * Rango de fechas para consultas por periodo de reportes, dashboard,
@@ -15,7 +16,7 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 public record RangoFechas(LocalDate inicio, LocalDate fin) {
 
     public static RangoFechas of(LocalDate inicio, LocalDate fin) {
-        LocalDate i = inicio != null ? inicio : LocalDate.now();
+        LocalDate i = inicio != null ? inicio : ZonaHoraria.hoy();
         LocalDate f = fin != null ? fin : i;
         if (f.isBefore(i)) {
             throw new ValidacionException(ErrorCode.VALOR_INVALIDO);

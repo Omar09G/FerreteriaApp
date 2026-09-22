@@ -276,8 +276,10 @@ class VentaServiceTest {
                 var resp = service.cancel(1L, "Cliente solicitó");
 
                 assertThat(v.getEstado()).isEqualTo("CANCELADA");
+                assertThat(v.getMotivoCancelacion()).isEqualTo("Cliente solicitó");
                 verify(ventaRepo).save(v);
                 assertThat(resp.estado()).isEqualTo("CANCELADA");
+                assertThat(resp.motivoCancelacion()).isEqualTo("Cliente solicitó");
         }
 
         @Test

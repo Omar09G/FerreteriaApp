@@ -177,6 +177,8 @@ class ExceptionsAndHandlerTest {
         class Holder {
             @SuppressWarnings("unused")
             void crear(String nombre) {
+                // Intencionalmente vacío: solo existe para obtener un Method
+                // vía reflexión (MethodParameter del caso de validación).
             }
         }
         var metodo = Holder.class.getDeclaredMethod("crear", String.class);

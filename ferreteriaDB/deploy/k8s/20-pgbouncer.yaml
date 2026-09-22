@@ -22,6 +22,7 @@ spec:
         app: pgbouncer
         tier: db-proxy
     spec:
+      automountServiceAccountToken: false
       # La imagen corre como 70:70 con entrypoint propio que renderiza
       # /etc/pgbouncer/*.ini al arrancar: por eso NO lleva
       # readOnlyRootFilesystem (lo rompería). Verificado contra registry.

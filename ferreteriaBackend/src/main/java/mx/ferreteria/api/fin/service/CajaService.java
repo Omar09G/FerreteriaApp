@@ -60,6 +60,9 @@ public class CajaService {
                         "GASTO_OPERATIVO", "NOMINA", "RETIRO_EFECTIVO",
                         "DEVOLUCION_CLIENTE", "DEVOLUCION_DEPOSITO_RENTA");
 
+        /** Estado del turno abierto (turnos_caja.estado). */
+        private static final String ESTADO_ABIERTO = "ABIERTO";
+
         private final CajaRepository cajaRepo;
         private final TurnoCajaRepository turnoRepo;
         private final MovimientoCajaRepository movRepo;
@@ -131,7 +134,7 @@ public class CajaService {
         public FinDtos.TurnoCajaResponse abrirTurno(FinDtos.TurnoAperturaRequest req) {
                 Caja caja = cajaRepo.findById(req.cajaId())
                                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-                turnoRepo.findByCajaIdAndEstado(req.cajaId(), "ABIERTO")
+                turnoRepo.findByCajaIdAndEstado(req.cajaId(), ESTADO_ABIERTO)
                                 .ifPresent(t -> {
                                         throw new ReglaNegocioException(ErrorCode.TURNO_YA_CERRADO);
                                 });
@@ -140,7 +143,7 @@ public class CajaService {
                                 .cajaId(req.cajaId())
                                 .usuarioId(UserPrincipal.actual().usuarioId())
                                 .montoApertura(req.montoApertura())
-                                .estado("ABIERTO")
+                                .estado(ESTADO_ABIERTO)
                                 .build();
                 TurnoCaja saved = turnoRepo.save(turno);
                 return toTurnoResponse(saved, caja.getNombre());
@@ -182,7 +185,7 @@ public class CajaService {
                 if (!cajaRepo.existsById(cajaId)) {
                         throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
                 }
-                TurnoCaja t = turnoRepo.findByCajaIdAndEstado(cajaId, "ABIERTO")
+                TurnoCaja t = turnoRepo.findByCajaIdAndEstado(cajaId, ESTADO_ABIERTO)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
                 String nombre = cajaRepo.findById(t.getCajaId()).map(Caja::getNombre).orElse(null);
                 return toTurnoResponse(t, nombre);
@@ -195,7 +198,7 @@ public class CajaService {
         @Transactional(readOnly = true)
         public boolean turnoAbierto(Long turnoId) {
                 return turnoId != null && turnoRepo.findById(turnoId)
-                                .map(t -> "ABIERTO".equals(t.getEstado())).orElse(false);
+                                .map(t -> ESTADO_ABIERTO.equals(t.getEstado())).orElse(false);
         }
 
         /**
@@ -208,7 +211,7 @@ public class CajaService {
         public Long resolverTurnoAbierto(Integer cajaId, int almacenId) {
                 if (cajaId == null)
                         return null;
-                TurnoCaja turno = turnoRepo.findByCajaIdAndEstado(cajaId, "ABIERTO")
+                TurnoCaja turno = turnoRepo.findByCajaIdAndEstado(cajaId, ESTADO_ABIERTO)
                                 .orElseThrow(() -> new ReglaNegocioException(ErrorCode.TURNO_NO_ABIERTO, cajaId));
                 Caja caja = cajaRepo.findById(cajaId)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
@@ -251,8 +254,11 @@ public class CajaService {
                                 : formaPagoRepo.findAllById(formaIds).stream()
                                                 .collect(Collectors.toMap(FormaPago::getFormaPagoId, Function.identity()));
                 return movs.stream().map(mc -> {
-                        String fpNombre = mc.getFormaPagoId() == null ? null
-                                        : formas.containsKey(mc.getFormaPagoId()) ? formas.get(mc.getFormaPagoId()).getNombre() : null;
+                        Integer fpId = mc.getFormaPagoId();
+                        String fpNombre = null;
+                        if (fpId != null && formas.containsKey(fpId)) {
+                                fpNombre = formas.get(fpId).getNombre();
+                        }
                         String refDesc = null;
                         if ("com.pagos_proveedor".equals(mc.getRefTabla()) && mc.getRefId() != null) {
                                 refDesc = reportRepo.findFolioPagoProveedor(mc.getRefId());

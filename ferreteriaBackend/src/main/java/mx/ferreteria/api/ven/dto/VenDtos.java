@@ -86,7 +86,7 @@ public final class VenDtos {
         BigDecimal subtotal, BigDecimal iva,
         BigDecimal descuentoTotal, BigDecimal total,
         String estado, Integer usuarioId, Long turnoCajaId,
-        String notas,
+        String notas, String motivoCancelacion,
         List<VentaDetalleResponse> detalles,
         List<PagoResponse> pagos
     ) {}

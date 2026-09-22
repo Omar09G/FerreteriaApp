@@ -23,6 +23,7 @@ import mx.ferreteria.api.cat.repo.FormaPagoRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.fin.service.CajaService;
@@ -104,7 +105,7 @@ public class RentaService {
     }
 
     public VenDtos.RentaResponse create(VenDtos.RentaRequest req) {
-        if (req.fechaDevEsperada().isBefore(LocalDate.now())) {
+        if (req.fechaDevEsperada().isBefore(ZonaHoraria.hoy())) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
         }
         formaPagoRepo.findById(req.formaPagoId())
@@ -144,8 +145,28 @@ public class RentaService {
         if (!"ABIERTA".equals(r.getEstado()) && !"VENCIDA".equals(r.getEstado())) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
         }
+        // El cliente solo informa días por producto; el precio (costo_dia) sale
+        // de la BD y el subtotal lo genera la BD (GENERATED). Nunca se confía
+        // en importes del request.
+        Map<Long, RentaDetalle> guardados = detalleRepo.findByRentaId(rentaId).stream()
+                .collect(Collectors.toMap(RentaDetalle::getProductoId, Function.identity()));
+        for (VenDtos.RentaDevolucionDetalleRequest d : req.detalles()) {
+            RentaDetalle det = guardados.get(d.productoId());
+            if (det == null) {
+                throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO,
+                        "producto " + d.productoId() + " no pertenece a la renta");
+            }
+            det.setDiasCobrados(d.diasCobrados());
+            detalleRepo.save(det);
+        }
+        detalleRepo.flush();
+        // costo_total = Σ subtotal releído de BD (escala exacta del GENERATED).
+        BigDecimal costoTotal = detalleRepo.findByRentaId(rentaId).stream()
+                .map(d -> d.getSubtotal() != null ? d.getSubtotal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         r.setFechaDevReal(Instant.now());
         r.setEstado("DEVUELTA");
+        r.setCostoTotal(costoTotal);
         repo.save(r);
         return toResponse(r);
     }

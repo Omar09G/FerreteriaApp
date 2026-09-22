@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.fin.dto.FinDtos;
 import mx.ferreteria.api.fin.entity.Gasto;
@@ -42,7 +43,7 @@ public class GastoService {
                 .tipoGastoId(req.tipoGastoId())
                 .descripcion(req.descripcion())
                 .monto(req.monto())
-                .fechaGasto(req.fechaGasto() != null ? req.fechaGasto() : java.time.LocalDate.now())
+                .fechaGasto(req.fechaGasto() != null ? req.fechaGasto() : ZonaHoraria.hoy())
                 .formaPagoId(req.formaPagoId())
                 .proveedorId(req.proveedorId())
                 .turnoCajaId(req.turnoCajaId())
@@ -97,7 +98,7 @@ public class GastoService {
         IngresoOtro io = IngresoOtro.builder()
                 .concepto(req.concepto())
                 .monto(req.monto())
-                .fecha(req.fecha() != null ? req.fecha() : java.time.LocalDate.now())
+                .fecha(req.fecha() != null ? req.fecha() : ZonaHoraria.hoy())
                 .formaPagoId(req.formaPagoId())
                 .turnoCajaId(req.turnoCajaId())
                 .usuarioId(UserPrincipal.actual().usuarioId())

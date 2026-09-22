@@ -97,7 +97,10 @@ public class ProductoService {
         if (pageProj != null) {
             mapped = pageProj.map(this::toResponseFromListado);
         } else {
-            mapped = pageFull.map(this::baseResponse);
+            // pageFull cubre todas las ramas restantes (q / marcaId / tipo):
+            // nunca es null cuando pageProj es null. requireNonNull sin mensaje
+            // para no introducir literales fuera de ErrorCode.
+            mapped = java.util.Objects.requireNonNull(pageFull).map(this::baseResponse);
         }
         // Adjunta barras en UNA sola consulta (evita N+1) + factor de escaneo.
         if (!mapped.getContent().isEmpty()) {
@@ -155,7 +158,7 @@ public class ProductoService {
                 p.getCostoActual(),
                 p.getPrecioMenudeo(),
                 p.getPrecioMayoreo(),
-                p.getAplicaIva() != null ? p.getAplicaIva() : true,
+                p.getAplicaIva() == null || p.getAplicaIva(),
                 BigDecimal.ZERO, // stock se enriquece via inventarioRepo si almacenId != null
                 null, null, // barras/factor se adjuntan en lote en list()
                 p.getImagenUrl());
@@ -191,7 +194,7 @@ public class ProductoService {
                 .costoActual(req.costoActual() != null ? req.costoActual() : BigDecimal.ZERO)
                 .precioMenudeo(req.precioMenudeo() != null ? req.precioMenudeo() : BigDecimal.ZERO)
                 .precioMayoreo(req.precioMayoreo())
-                .aplicaIva(req.aplicaIva() != null ? req.aplicaIva() : true)
+                .aplicaIva(req.aplicaIva() == null || req.aplicaIva())
                 .imagenUrl(req.imagenUrl())
                 .build();
         Producto saved = repo.save(entity);

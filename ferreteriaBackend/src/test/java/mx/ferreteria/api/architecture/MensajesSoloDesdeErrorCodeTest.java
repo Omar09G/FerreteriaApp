@@ -77,7 +77,7 @@ class MensajesSoloDesdeErrorCodeTest {
                         .should().dependOnClassesThat().haveSimpleNameEndingWith("Repository")
                         .because("Controllers no deben acceder directamente a repositorios: deben pasar por services");
 
-        /**
+        /*
          * 6. Services NO inyectan *Repository directamente (deben usar gateways).
          * BACK-DIS-001: actualmente expone ~538 violaciones pre-existentes en
          * los modulos cat/inv/ven/com/fin/fis/rh. La migracion a patron

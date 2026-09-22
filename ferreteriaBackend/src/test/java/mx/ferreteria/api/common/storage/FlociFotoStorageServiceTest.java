@@ -70,8 +70,7 @@ class FlociFotoStorageServiceTest {
         String url = servicio(s3).subir("image/png", "foto.png",
                 new ByteArrayInputStream(png), png.length);
 
-        assertThat(url).startsWith("http://localhost:4566/test-bucket/");
-        assertThat(url).endsWith(".jpg");
+        assertThat(url).startsWith("http://localhost:4566/test-bucket/").endsWith(".jpg");
         verify(s3).createBucket(any(CreateBucketRequest.class));
         verify(s3).putBucketPolicy(any(PutBucketPolicyRequest.class));
         verify(s3).putObject(any(PutObjectRequest.class), any(RequestBody.class));

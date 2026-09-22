@@ -1,6 +1,8 @@
 package mx.ferreteria.api.common.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,9 +27,9 @@ class EnvelopeAdviceTest {
     }
 
     private org.springframework.http.server.ServerHttpRequest request() {
-        org.springframework.http.server.ServerHttpRequest rq = org.mockito.Mockito.mock(
+        org.springframework.http.server.ServerHttpRequest rq = mock(
                 org.springframework.http.server.ServerHttpRequest.class);
-        org.mockito.Mockito.when(rq.getURI()).thenReturn(java.net.URI.create("/api/v1/test"));
+        when(rq.getURI()).thenReturn(java.net.URI.create("/api/v1/test"));
         return rq;
     }
 

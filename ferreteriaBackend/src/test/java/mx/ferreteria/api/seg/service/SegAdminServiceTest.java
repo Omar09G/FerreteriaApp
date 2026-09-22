@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +64,7 @@ class SegAdminServiceTest {
     private static final EmpleadoResumen EMPLEADO_ACTIVO = new EmpleadoResumen(
             42, "Juan Pérez", "Vendedor", "cajero1@x.mx", "555", true, null);
 
+    @BeforeEach
     void setUp() {
         service = new SegAdminService(gateway, auth, empleados, encoder);
     }
@@ -74,7 +77,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("listUsuarios: pagina de UsuarioResponse con roles resueltos (batch)")
     void listUsuarios_paginatesWithRoles() {
-        setUp();
         when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1));
         when(gateway.countUsuarios()).thenReturn(1L);
         when(auth.rolesOfBatch(Set.of(11))).thenReturn(Map.of(11, List.of("VENDEDOR")));
@@ -91,10 +93,9 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("listUsuarios: con múltiples usuarios ejecuta UNA sola query batch de roles")
     void listUsuarios_batchRoles_singleQuery() {
-        setUp();
-        var U2 = new SegAdminGateway.UsuarioRow(12, "cajero2", "c2@x.mx", null, true,
+        var u2 = new SegAdminGateway.UsuarioRow(12, "cajero2", "c2@x.mx", null, true,
                 Instant.parse("2026-01-01T12:00:00Z"), Instant.parse("2026-01-01T12:00:00Z"));
-        when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1, U2));
+        when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1, u2));
         when(gateway.countUsuarios()).thenReturn(2L);
         when(auth.rolesOfBatch(Set.of(11, 12)))
                 .thenReturn(Map.of(11, List.of("VENDEDOR"), 12, List.of("ALMACENISTA")));
@@ -104,14 +105,13 @@ class SegAdminServiceTest {
         assertThat(page.getContent()).hasSize(2);
         assertThat(page.getContent().get(0).roles()).containsExactly("VENDEDOR");
         assertThat(page.getContent().get(1).roles()).containsExactly("ALMACENISTA");
-        verify(auth, org.mockito.Mockito.times(1)).rolesOfBatch(any());
+        verify(auth, times(1)).rolesOfBatch(any());
         verify(auth, never()).rolesOf(anyInt());
     }
 
     @Test
     @DisplayName("createUsuario: hashea el password, crea y asigna roles VALIDADOS")
     void createUsuario_hashesPasswordAndAssignsValidatedRoles() {
-        setUp();
         stubRolValido();
         when(gateway.createUsuario(eq("nuevo01"), eq("nuevo01@x.mx"), anyString(),
                 any(), anyBoolean())).thenReturn(11);
@@ -129,7 +129,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("createUsuario con rol inexistente -> 400 REFERENCIA_INVALIDA y sin insertar rol")
     void createUsuario_unknownRole_rejected() {
-        setUp();
         stubRolValido();
         when(gateway.createUsuario(eq("mal"), eq("mal@x.mx"), anyString(), any(), anyBoolean()))
                 .thenReturn(99);
@@ -145,7 +144,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("setRoles: reemplazo atomico; lista vacia limpia roles")
     void setRoles_replacesAndEmptyClears() {
-        setUp();
         stubRolValido();
         when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
         when(auth.rolesOf(11)).thenReturn(List.of());
@@ -161,7 +159,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("updateUsuario: delega parches basicos y devuelve usuario actualizado")
     void updateUsuario_patchesBasics() {
-        setUp();
         when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
         when(auth.rolesOf(11)).thenReturn(List.of());
 
@@ -174,7 +171,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("resetPassword: exigue usuario existente, guarda hash BCrypt nuevo")
     void resetPassword_hashesNewPassword() {
-        setUp();
         when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
 
         service.resetPassword(11, new UsuarioPasswordRequest("NuevaClave99"));
@@ -189,7 +185,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("deleteUsuario/getUsuario inexistente: soft-delete y 404")
     void deleteAndGet_guardanExistencias() {
-        setUp();
         when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
         service.deleteUsuario(11);
         verify(gateway).borrarUsuario(11);
@@ -203,7 +198,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("rol: crear con activo default true, actualizar y desactivar")
     void rolCrud() {
-        setUp();
         when(gateway.createRol("SUPERVISOR", "Supervisor", null, true)).thenReturn(5);
         when(gateway.findRolById(5)).thenReturn(Optional.of(
                 new SegAdminGateway.RolRow(5, "SUPERVISOR", "Supervisor", null, true)));
@@ -225,7 +219,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("rol inexistente al actualizar/consultar permisos -> 404 RECURSO_NO_ENCONTRADO")
     void rolMissing_throws404() {
-        setUp();
         when(gateway.findRolById(9)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.getRol(9))
                 .isInstanceOfSatisfying(ReglaNegocioException.class,
@@ -235,7 +228,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("setPermisos: valida claves contra catalogo y reemplaza sin duplicar")
     void setPermisos_validatesAndReplaces() {
-        setUp();
         when(gateway.findRolById(5)).thenReturn(Optional.of(
                 new SegAdminGateway.RolRow(5, "SUPERVISOR", "Supervisor", null, true)));
         when(gateway.permisoClaves()).thenReturn(Set.of("V.VENDER", "V.CANCELAR"));
@@ -254,7 +246,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("deleteUsuario revoca refresh y cierra sesiones en la misma transacción")
     void deleteUsuario_revocaCredenciales() {
-        setUp();
         when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
         service.deleteUsuario(11);
         verify(gateway).borrarUsuario(11);
@@ -264,7 +255,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("resetPassword revoca refresh y cierra sesiones además de guardar hash")
     void resetPassword_revocaCredenciales() {
-        setUp();
         when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
         service.resetPassword(11, new UsuarioPasswordRequest("NuevaClave99"));
         verify(gateway).actualizarPassword(eq(11), anyString());
@@ -274,7 +264,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("deletePermiso en uso: 409 sin borrar (sin cascada silenciosa)")
     void deletePermiso_enUso_rechaza() {
-        setUp();
         var p = new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas");
         when(gateway.findPermisoById(1)).thenReturn(Optional.of(p));
         when(gateway.countRolesConPermiso(1)).thenReturn(2L);
@@ -287,7 +276,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("deletePermiso sin uso: borra")
     void deletePermiso_sinUso_borra() {
-        setUp();
         var p = new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas");
         when(gateway.findPermisoById(1)).thenReturn(Optional.of(p));
         when(gateway.countRolesConPermiso(1)).thenReturn(0L);
@@ -298,7 +286,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("listPermisos/getPermiso: pagina y 404 cuando no existe")
     void permisosListAndGet() {
-        setUp();
         var p = new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas");
         when(gateway.findPermisos(20, 0)).thenReturn(List.of(p));
         when(gateway.countPermisos()).thenReturn(1L);
@@ -317,7 +304,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("createUsuario con empleado: email coherente se conserva y se incluye el resumen")
     void createUsuario_withEmpleado_validEmailConsistency() {
-        setUp();
         stubRolValido();
         when(empleados.resumenById(42)).thenReturn(Optional.of(EMPLEADO_ACTIVO));
         when(gateway.createUsuario(eq("nuevo01"), eq("cajero1@x.mx"), anyString(),
@@ -337,7 +323,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("createUsuario sin email y con empleado: email se toma del empleado")
     void createUsuario_empleadoEmailSink() {
-        setUp();
         stubRolValido();
         when(empleados.resumenById(42)).thenReturn(Optional.of(EMPLEADO_ACTIVO));
         when(gateway.createUsuario(eq("nuevo01"), eq("cajero1@x.mx"), anyString(),
@@ -355,7 +340,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("createUsuario con email distinto al del empleado -> 400 VALOR_INVALIDO")
     void createUsuario_empleadoEmailMismatch_rejected() {
-        setUp();
         when(empleados.resumenById(42)).thenReturn(Optional.of(EMPLEADO_ACTIVO));
 
         assertThatThrownBy(() -> service.createUsuario(new UsuarioCreateRequest(
@@ -369,7 +353,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("createUsuario con empleado inexistente o inactivo -> 400 REFERENCIA_INVALIDA")
     void createUsuario_empleadoInvalido_rejected() {
-        setUp();
         when(empleados.resumenById(999)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.createUsuario(new UsuarioCreateRequest(
                 "nuevo01", null, "Secreta123", 999, List.of())))
@@ -388,7 +371,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("toUsuario: el resumen del empleado se enriquece en cada respuesta (batch)")
     void usuarioResponse_incluyeEmpleado() {
-        setUp();
         when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1));
         when(gateway.countUsuarios()).thenReturn(1L);
         when(auth.rolesOfBatch(Set.of(11))).thenReturn(Map.of(11, List.of("VENDEDOR")));
@@ -403,7 +385,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("crearUsuarioConRoles (puerto rh): BCrypt + roles validados + reemplazo")
     void crearUsuarioConRoles_delegaCreaYValida() {
-        setUp();
         stubRolValido();
         when(gateway.createUsuario(eq("juan.perez"), eq("cajero1@x.mx"), anyString(),
                 eq(42), anyBoolean())).thenReturn(11);
@@ -423,7 +404,6 @@ class SegAdminServiceTest {
     @Test
     @DisplayName("crearUsuarioConRoles con rol inexistente -> 400 REFERENCIA_INVALIDA")
     void crearUsuarioConRoles_rolInvalido_rejected() {
-        setUp();
         stubRolValido();
         when(gateway.createUsuario(anyString(), anyString(), anyString(), any(), anyBoolean()))
                 .thenReturn(11);

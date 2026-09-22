@@ -38,6 +38,8 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
+    private static final String REQUEST_ID = "requestId";
+
     private final MessageSource messages;
     private final DbErrorTranslator dbTranslator;
 
@@ -122,9 +124,9 @@ public class GlobalExceptionHandler {
         body.put("errorCode", code.http().value());
         body.put("codigo", code.name());
         body.put("errorMessage", messages.getMessage(code.key(), args, code.name(), locale));
-        String rid = org.slf4j.MDC.get("requestId");
+        String rid = org.slf4j.MDC.get(REQUEST_ID);
         if (rid != null) {
-            body.put("requestId", rid);
+            body.put(REQUEST_ID, rid);
         }
         if (req != null && req.getRequestURI() != null) {
             body.put("instance", req.getRequestURI());
@@ -144,7 +146,7 @@ public class GlobalExceptionHandler {
     }
 
     private Object[] requestIdArg() {
-        String rid = org.slf4j.MDC.get("requestId");
+        String rid = org.slf4j.MDC.get(REQUEST_ID);
         return rid == null ? new Object[0] : new Object[] {rid};
     }
 }

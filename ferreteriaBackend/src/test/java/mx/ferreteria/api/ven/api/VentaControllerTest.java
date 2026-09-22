@@ -1,7 +1,7 @@
 package mx.ferreteria.api.ven.api;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -62,7 +62,7 @@ class VentaControllerTest {
                                 new BigDecimal("16.00"), true,
                                 new BigDecimal("100.00"), new BigDecimal("16.00"),
                                 BigDecimal.ZERO, new BigDecimal("116.00"),
-                                "COMPLETADA", 1, null, null, List.of(), List.of());
+                                "COMPLETADA", 1, null, null, null, List.of(), List.of());
         }
 
         // ── POST /api/v1/ventas ─────────────────────────────────────────
@@ -93,7 +93,7 @@ class VentaControllerTest {
         @Test
         @DisplayName("GET /api/v1/ventas -> 200 con array de ventas")
         void list_returns200() throws Exception {
-                when(service.listByFechaLocal(eq(null), eq(null), eq(null), any()))
+                when(service.listByFechaLocal(isNull(), isNull(), isNull(), any()))
                                 .thenReturn(new PageImpl<>(List.of(sampleResp()), PageRequest.of(0, 20), 1));
 
                 mvc.perform(get("/api/v1/ventas"))
@@ -127,9 +127,9 @@ class VentaControllerTest {
                                 new BigDecimal("16.00"), true,
                                 BigDecimal.ZERO, BigDecimal.ZERO,
                                 BigDecimal.ZERO, BigDecimal.ZERO,
-                                "CANCELADA", 1, null, null, List.of(), List.of());
+                                "CANCELADA", 1, null, null, "Error", List.of(), List.of());
 
-                when(service.cancel(eq(1L), eq("Error"))).thenReturn(cancelled);
+                when(service.cancel(1L, "Error")).thenReturn(cancelled);
 
                 mvc.perform(patch("/api/v1/ventas/1/cancelar")
                                 .contentType(MediaType.APPLICATION_JSON)

@@ -2,6 +2,7 @@ package mx.ferreteria.api.seg.api;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -69,7 +70,7 @@ class SegAdminControllerTest {
         @Test
         @DisplayName("GET /usuarios -> 200 success:true, data arreglo + meta de pagina")
         void listUsuarios_paginated() throws Exception {
-                Mockito.when(service.listUsuarios(any())).thenReturn(
+                when(service.listUsuarios(any())).thenReturn(
                                 new PageImpl<>(List.of(U), PageRequest.of(0, 20), 1));
 
                 mvc.perform(get("/api/v1/usuarios")).andExpect(status().isOk())
@@ -82,7 +83,7 @@ class SegAdminControllerTest {
         @Test
         @DisplayName("POST /usuarios crea y devuelve data del usuario (sin password en JSON)")
         void createUsuario_returnsData() throws Exception {
-                Mockito.when(service.createUsuario(any())).thenReturn(U);
+                when(service.createUsuario(any())).thenReturn(U);
 
                 mvc.perform(post("/api/v1/usuarios")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -96,7 +97,7 @@ class SegAdminControllerTest {
         @DisplayName("PATCH /usuarios/{id}/password resetea password")
         void resetPassword_ok() throws Exception {
                 Mockito.doNothing().when(service).resetPassword(anyInt(), any());
-                Mockito.when(service.getUsuario(11)).thenReturn(U);
+                when(service.getUsuario(11)).thenReturn(U);
 
                 mvc.perform(patch("/api/v1/usuarios/11/password")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -108,7 +109,7 @@ class SegAdminControllerTest {
         @Test
         @DisplayName("PUT /usuarios/{id}/roles asigna roles")
         void setRoles_ok() throws Exception {
-                Mockito.when(service.setRoles(anyInt(), any())).thenReturn(U);
+                when(service.setRoles(anyInt(), any())).thenReturn(U);
 
                 mvc.perform(put("/api/v1/usuarios/11/roles")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -132,7 +133,7 @@ class SegAdminControllerTest {
         @Test
         @DisplayName("PUT /roles/{id}/permisos devuelve clave de permisos reemplazados")
         void setPermisos_ok() throws Exception {
-                Mockito.when(service.setPermisos(anyInt(), any())).thenReturn(List.of("V.VENDER"));
+                when(service.setPermisos(anyInt(), any())).thenReturn(List.of("V.VENDER"));
 
                 mvc.perform(put("/api/v1/roles/5/permisos")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -145,9 +146,9 @@ class SegAdminControllerTest {
         @Test
         @DisplayName("GET /roles/{id} y /permisos/{id} devuelven recursos + datos basicos")
         void getRolAndPermiso() throws Exception {
-                Mockito.when(service.getRol(5)).thenReturn(
+                when(service.getRol(5)).thenReturn(
                                 new RolResponse(5, "SUPERVISOR", "Supervisor", null, true, List.of()));
-                Mockito.when(service.getPermiso(1)).thenReturn(
+                when(service.getPermiso(1)).thenReturn(
                                 new PermisoResponse(1, "V.VENDER", "Registrar ventas"));
 
                 mvc.perform(get("/api/v1/roles/5")).andExpect(status().isOk())

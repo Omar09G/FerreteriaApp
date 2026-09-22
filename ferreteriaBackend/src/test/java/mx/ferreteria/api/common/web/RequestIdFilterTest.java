@@ -64,7 +64,7 @@ class RequestIdFilterTest {
 
     @Test
     @DisplayName("Header invalido: 400 REQUEST_ID_INVALIDO con envelope y cadena NO invocada")
-    void invalidHeader_rejectsWith400_andDoesNotCallChain() throws Exception {
+    void invalidHeader_rejectsWith400_andDoesNotCallChain() {
         var req = new MockHttpServletRequest("GET", "/x");
         req.addHeader(RequestIdFilter.HEADER, "no-es-un-uuid");
         var res = new MockHttpServletResponse();

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -241,7 +242,7 @@ class DevolucionServiceTest {
 
         assertThatThrownBy(() -> service.create(devRequest("1.500")))
                 .isInstanceOf(ReglaNegocioException.class);
-        verify(detalleRepo, org.mockito.Mockito.never()).save(any(DevolucionDetalle.class));
+        verify(detalleRepo, never()).save(any(DevolucionDetalle.class));
     }
 
     @Test

@@ -40,7 +40,7 @@ public class UnidadMedidaService {
         UnidadMedida entity = UnidadMedida.builder()
                 .clave(req.clave())
                 .nombre(req.nombre())
-                .permiteFraccion(req.permiteFraccion() != null ? req.permiteFraccion() : false)
+                .permiteFraccion(Boolean.TRUE.equals(req.permiteFraccion()))
                 .build();
         return toResponse(repo.save(entity));
     }

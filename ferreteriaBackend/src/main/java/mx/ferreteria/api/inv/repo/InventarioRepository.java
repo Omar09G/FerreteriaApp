@@ -18,8 +18,6 @@ public interface InventarioRepository extends JpaRepository<Inventario, Inventar
 
     List<Inventario> findByAlmacenIdAndProductoIdIn(Integer almacenId, List<Long> productoIds);
 
-    // Page<Inventario> findByAlmacenIdAndStockLessThanStockMinimo(Integer
-    // almacenId, Pageable pageable);
     @Query("SELECT i FROM Inventario i WHERE i.almacenId = :almacenId AND i.stock < i.stockMinimo")
     Page<Inventario> findStockBajo(@Param("almacenId") Integer almacenId, Pageable pageable);
 

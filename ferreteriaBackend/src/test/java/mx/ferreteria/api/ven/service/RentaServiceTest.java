@@ -192,6 +192,47 @@ class RentaServiceTest {
     }
 
     @Test
+    @DisplayName("devolver con detalles: aplica dias y recalcula costoTotal desde costo_dia de BD")
+    void devolver_conDetalles_recalculaTotal() {
+        Renta r = sampleRenta(1L, "ABIERTA");
+        when(repo.findById(1L)).thenReturn(Optional.of(r));
+        stubToResponse();
+        // Simula fila post-BD: subtotal GENERATED ya calculado (costo_dia x dias).
+        RentaDetalle det = RentaDetalle.builder().rentaId(1L).productoId(7L)
+                .cantidad(BigDecimal.ONE).costoDia(new BigDecimal("100.00"))
+                .diasCobrados(BigDecimal.ZERO).subtotal(new BigDecimal("200.00")).build();
+        when(detalleRepo.findByRentaId(1L)).thenReturn(List.of(det));
+
+        VenDtos.RentaDevolucionRequest req = new VenDtos.RentaDevolucionRequest(List.of(
+                new VenDtos.RentaDevolucionDetalleRequest(7L, new BigDecimal("2"))));
+
+        var resp = service.devolver(1L, req);
+
+        assertThat(det.getDiasCobrados()).isEqualByComparingTo(new BigDecimal("2"));
+        assertThat(r.getCostoTotal()).isEqualByComparingTo(new BigDecimal("200.00"));
+        assertThat(r.getEstado()).isEqualTo("DEVUELTA");
+        assertThat(resp.costoTotal()).isEqualByComparingTo(new BigDecimal("200.00"));
+    }
+
+    @Test
+    @DisplayName("devolver con producto ajeno a la renta: lanza ReglaNegocioException")
+    void devolver_productoAjeno_lanzaError() {
+        Renta r = sampleRenta(1L, "ABIERTA");
+        when(repo.findById(1L)).thenReturn(Optional.of(r));
+        stubToResponse();
+        RentaDetalle det = RentaDetalle.builder().rentaId(1L).productoId(7L)
+                .cantidad(BigDecimal.ONE).costoDia(new BigDecimal("100.00"))
+                .diasCobrados(BigDecimal.ZERO).build();
+        when(detalleRepo.findByRentaId(1L)).thenReturn(List.of(det));
+
+        VenDtos.RentaDevolucionRequest req = new VenDtos.RentaDevolucionRequest(List.of(
+                new VenDtos.RentaDevolucionDetalleRequest(99L, BigDecimal.ONE)));
+
+        assertThatThrownBy(() -> service.devolver(1L, req))
+                .isInstanceOf(ReglaNegocioException.class);
+    }
+
+    @Test
     @DisplayName("devolver estado incorrecto (CANCELADA): lanza ReglaNegocioException")
     void devolver_wrongEstado() {
         Renta r = sampleRenta(1L, "CANCELADA");

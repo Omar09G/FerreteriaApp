@@ -284,15 +284,19 @@ class RateLimitInterceptorTest {
 
         @SuppressWarnings("unused")
         public void catalogo() {
+            // Intencionalmente vacío: marcador para HandlerMethod, nunca se
+            // invoca; solo porta la anotación @RateLimited del perfil.
         }
 
         @RateLimited("auth")
         @SuppressWarnings("unused")
         public void mixto() {
+            // Intencionalmente vacío: ver comentario en catalogo().
         }
 
         @SuppressWarnings("unused")
         public void neutro() {
+            // Intencionalmente vacío: ver comentario en catalogo().
         }
     }
 
@@ -303,6 +307,7 @@ class RateLimitInterceptorTest {
 
         @SuppressWarnings("unused")
         public void catalogo() {
+            // Intencionalmente vacío: ver MarcadorController.catalogo().
         }
     }
 

@@ -64,7 +64,10 @@ public final class LocaleResolver {
      * devuelve {@code valid=false} con el valor crudo recibido.
      */
     public static Validation validateLangParam(HttpServletRequest req) {
-        String langParam = req == null ? null : req.getParameter(LANG_PARAM);
+        if (req == null) {
+            return new Validation(true, null, DEFAULT_LOCALE);
+        }
+        String langParam = req.getParameter(LANG_PARAM);
         if (langParam == null || langParam.isBlank()) {
             return new Validation(true, null, readAcceptLanguage(req));
         }

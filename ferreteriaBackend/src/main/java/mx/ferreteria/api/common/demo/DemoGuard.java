@@ -60,23 +60,26 @@ public class DemoGuard implements ApplicationRunner {
                 || "prod".equalsIgnoreCase(ferreteriaEnv);
 
         if (contextoProd) {
-            String msg = "============================================================\n"
-                    + " BLOQUEO DE ARRANQUE: perfil '" + DEMO_PROFILE + "' activo en\n"
-                    + " contexto de PRODUCCIÓN. El seeder de datos dummy NO se ejecuta.\n"
-                    + "   perfiles activos: " + Arrays.toString(env.getActiveProfiles()) + "\n"
-                    + "   app.cookie.secure: " + cookieSecure + "\n"
-                    + "   FERRETERIA_ENV: " + ferreteriaEnv + "\n"
-                    + " Solución: quitar 'demo' de SPRING_PROFILES_ACTIVE y usar\n"
-                    + " únicamente 'docker' (o el perfil que aplique).\n"
-                    + "============================================================";
+            String msg = """
+                    ============================================================
+                     BLOQUEO DE ARRANQUE: perfil '%s' activo en
+                     contexto de PRODUCCIÓN. El seeder de datos dummy NO se ejecuta.
+                       perfiles activos: %s
+                       app.cookie.secure: %s
+                       FERRETERIA_ENV: %s
+                     Solución: quitar 'demo' de SPRING_PROFILES_ACTIVE y usar
+                     únicamente 'docker' (o el perfil que aplique).
+                    ============================================================""".formatted(DEMO_PROFILE,
+                    Arrays.toString(env.getActiveProfiles()), cookieSecure, ferreteriaEnv);
             log.error(msg);
             throw new IllegalStateException(
                     "Perfil 'demo' activado en contexto de producción. Abortando arranque.");
         }
 
-        log.warn("================================================================"
-                + "\n PERFIL DEMO ACTIVO — se cargarán datos dummy al arranque."
-                + "\n NO exponer este perfil a internet."
-                + "\n================================================================");
+        log.warn("""
+                ================================================================
+                 PERFIL DEMO ACTIVO — se cargarán datos dummy al arranque.
+                 NO exponer este perfil a internet.
+                =================================================================""" );
     }
 }

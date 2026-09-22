@@ -125,10 +125,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
     }
 
     @Override
-    public int create(int puestoId, String nombre, String apellidoPaterno, String apellidoMaterno,
-            String curp, String nss, String telefono, String email, String calle,
-            String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-            BigDecimal sueldoDiario, String fotoUrl) {
+    public int create(EmpleadoDatos d) {
         return jdbc.sql("""
                 INSERT INTO rh.empleados (puesto_id, nombre, apellido_p, apellido_m,
                     curp, nss, telefono, email, calle, colonia, ciudad_id, cp,
@@ -137,21 +134,18 @@ public class EmpleadoRepository implements EmpleadoGateway {
                     :cd, :cp, :ingreso, :sueldo, :foto)
                 RETURNING empleado_id
                 """)
-                .param("pto", puestoId).param("n", nombre).param("ap", apellidoPaterno)
-                .param("am", apellidoMaterno).param("curp", curp).param("nss", nss)
-                .param("tel", telefono).param("em", email).param("calle", calle)
-                .param("col", colonia).param("cd", ciudadId).param("cp", cp)
-                .param("ingreso", fechaIngreso == null ? null : Date.valueOf(fechaIngreso))
-                .param("sueldo", sueldoDiario).param("foto", fotoUrl)
+                .param("pto", d.puestoId()).param("n", d.nombre()).param("ap", d.apellidoPaterno())
+                .param("am", d.apellidoMaterno()).param("curp", d.curp()).param("nss", d.nss())
+                .param("tel", d.telefono()).param("em", d.email()).param("calle", d.calle())
+                .param("col", d.colonia()).param("cd", d.ciudadId()).param("cp", d.cp())
+                .param("ingreso", d.fechaIngreso() == null ? null : Date.valueOf(d.fechaIngreso()))
+                .param("sueldo", d.sueldoDiario()).param("foto", d.fotoUrl())
                 .query(Integer.class)
                 .single();
     }
 
     @Override
-    public void update(int empleadoId, Integer puestoId, String nombre, String apellidoPaterno,
-            String apellidoMaterno, String curp, String nss, String telefono, String email,
-            String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-            BigDecimal sueldoDiario, Boolean activo, String fotoUrl) {
+    public void update(int empleadoId, EmpleadoDatos d, Boolean activo) {
         jdbc.sql("""
                 UPDATE rh.empleados
                 SET puesto_id = COALESCE(:p, puesto_id),
@@ -175,13 +169,13 @@ public class EmpleadoRepository implements EmpleadoGateway {
                                     ELSE CAST(:foto AS TEXT) END
                 WHERE empleado_id = :id
                 """)
-                .param("id", empleadoId).param("p", puestoId).param("n", nombre)
-                .param("ap", apellidoPaterno).param("am", apellidoMaterno)
-                .param("curp", curp).param("nss", nss).param("tel", telefono)
-                .param("em", email).param("calle", calle).param("col", colonia)
-                .param("cd", ciudadId).param("cp", cp)
-                .param("ingreso", fechaIngreso == null ? null : Date.valueOf(fechaIngreso))
-                .param("su", sueldoDiario).param("a", activo).param("foto", fotoUrl)
+                .param("id", empleadoId).param("p", d.puestoId()).param("n", d.nombre())
+                .param("ap", d.apellidoPaterno()).param("am", d.apellidoMaterno())
+                .param("curp", d.curp()).param("nss", d.nss()).param("tel", d.telefono())
+                .param("em", d.email()).param("calle", d.calle()).param("col", d.colonia())
+                .param("cd", d.ciudadId()).param("cp", d.cp())
+                .param("ingreso", d.fechaIngreso() == null ? null : Date.valueOf(d.fechaIngreso()))
+                .param("su", d.sueldoDiario()).param("a", activo).param("foto", d.fotoUrl())
                 .update();
     }
 

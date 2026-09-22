@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 
 import java.math.BigDecimal;
@@ -76,8 +75,8 @@ class NominaServiceTest {
         // fallback per-id also stubs for safety
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
 
         var result = service.list("PENDIENTE", null, null, pg);
 
@@ -100,17 +99,17 @@ class NominaServiceTest {
     void create_ok() {
         Nomina saved = sampleNomina(10L, "PENDIENTE");
         doReturn(true).when(empleadoGateway).existsAndActivo(7);
-        doReturn(true).when(empleadoGateway).existsAndActivo(eq(7));
+        doReturn(true).when(empleadoGateway).existsAndActivo(7);
         doReturn(true).when(empleadoGateway).existsAndActivo(anyInt());
         doReturn(true).when(empleadoRepo).existsAndActivo(7);
-        doReturn(true).when(empleadoRepo).existsAndActivo(eq(7));
+        doReturn(true).when(empleadoRepo).existsAndActivo(7);
         doReturn(true).when(empleadoRepo).existsAndActivo(anyInt());
         doReturn(saved).when(nominaRepo).save(any(Nomina.class));
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
 
         NominaRequest req = new NominaRequest(
@@ -129,9 +128,9 @@ class NominaServiceTest {
     @DisplayName("create: empleado inexistente -> RecursoNoEncontradoException")
     void create_empleadoInexistente() {
         doReturn(false).when(empleadoGateway).existsAndActivo(404);
-        doReturn(false).when(empleadoGateway).existsAndActivo(eq(404));
+        doReturn(false).when(empleadoGateway).existsAndActivo(404);
         doReturn(false).when(empleadoRepo).existsAndActivo(404);
-        doReturn(false).when(empleadoRepo).existsAndActivo(eq(404));
+        doReturn(false).when(empleadoRepo).existsAndActivo(404);
 
         NominaRequest req = new NominaRequest(
                 404, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 15),
@@ -148,10 +147,10 @@ class NominaServiceTest {
         doReturn(Optional.of(sampleNomina(1L, "PENDIENTE"))).when(nominaRepo).findById(1L);
         doReturn(sampleNomina(1L, "PAGADA")).when(nominaRepo).save(any(Nomina.class));
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
 
         var resp = service.marcarPagada(1L);
@@ -175,10 +174,10 @@ class NominaServiceTest {
         doReturn(Optional.of(sampleNomina(1L, "PENDIENTE"))).when(nominaRepo).findById(1L);
         doReturn(sampleNomina(1L, "CANCELADA")).when(nominaRepo).save(any(Nomina.class));
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(7);
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
-        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(eq(7));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(7);
         doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoRepo).resumenById(anyInt());
 
         var resp = service.cancelar(1L);

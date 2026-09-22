@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
@@ -71,7 +71,7 @@ class CompraServiceTest {
 
     /** Simula el INSERT...RETURNING de abonar devolviendo el id indicado. */
     private jakarta.persistence.Query stubInsertPagoRetornando(long id) {
-        var q = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        var q = mock(jakarta.persistence.Query.class);
         doReturn(q).when(em).createNativeQuery(any(String.class));
         doReturn(q).when(q).setParameter(any(String.class), any());
         doReturn(id).when(q).getSingleResult();

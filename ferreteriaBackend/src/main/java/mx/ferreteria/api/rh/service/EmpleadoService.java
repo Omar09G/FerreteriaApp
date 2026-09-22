@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoCreateRequest;
 import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResponse;
 import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoUpdateRequest;
@@ -51,12 +52,12 @@ public class EmpleadoService {
                 || req.password().length() < 8)) {
             throw new ValidacionException(ErrorCode.CAMPO_REQUERIDO);
         }
-        int id = gateway.create(req.puestoId(), req.nombre(), req.apellidoPaterno(),
-                req.apellidoMaterno(), req.curp(), req.nss(), req.telefono(), req.email(),
-                req.calle(), req.colonia(), req.ciudadId(), req.cp(),
-                req.fechaIngreso() == null ? java.time.LocalDate.now() : req.fechaIngreso(),
+        int id = gateway.create(new EmpleadoGateway.EmpleadoDatos(req.puestoId(), req.nombre(),
+                req.apellidoPaterno(), req.apellidoMaterno(), req.curp(), req.nss(), req.telefono(),
+                req.email(), req.calle(), req.colonia(), req.ciudadId(), req.cp(),
+                req.fechaIngreso() == null ? ZonaHoraria.hoy() : req.fechaIngreso(),
                 req.sueldoDiario() == null ? java.math.BigDecimal.ZERO : req.sueldoDiario(),
-                req.fotoUrl());
+                req.fotoUrl()));
         if (req.conUsuario()) {
             // email coherente usuario↔empleado: el empleado usa req.email (o null)
             usuarioAlta.crearUsuarioConRoles(req.username(), req.email(), req.password(), id,
@@ -68,10 +69,10 @@ public class EmpleadoService {
     @Transactional
     public EmpleadoResponse update(int empleadoId, EmpleadoUpdateRequest req) {
         exigir(empleadoId);
-        gateway.update(empleadoId, req.puestoId(), req.nombre(), req.apellidoPaterno(),
-                req.apellidoMaterno(), req.curp(), req.nss(), req.telefono(), req.email(),
-                req.calle(), req.colonia(), req.ciudadId(), req.cp(), req.fechaIngreso(),
-                req.sueldoDiario(), req.activo(), normalizarFoto(req.fotoUrl()));
+        gateway.update(empleadoId, new EmpleadoGateway.EmpleadoDatos(req.puestoId(), req.nombre(),
+                req.apellidoPaterno(), req.apellidoMaterno(), req.curp(), req.nss(), req.telefono(),
+                req.email(), req.calle(), req.colonia(), req.ciudadId(), req.cp(), req.fechaIngreso(),
+                req.sueldoDiario(), normalizarFoto(req.fotoUrl())), req.activo());
         return get(empleadoId);
     }
 

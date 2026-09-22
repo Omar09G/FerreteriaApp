@@ -2,6 +2,8 @@ package mx.ferreteria.api.rh.api;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -15,7 +17,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -72,7 +73,7 @@ class EmpleadoControllerTest {
         @Test
         @DisplayName("GET /empleados -> 200 success:true, data arreglo + meta")
         void list_paginated() throws Exception {
-                Mockito.when(service.list(any())).thenReturn(
+                when(service.list(any())).thenReturn(
                                 new PageImpl<>(List.of(E), PageRequest.of(0, 20), 1));
 
                 mvc.perform(get("/api/v1/empleados"))
@@ -86,7 +87,7 @@ class EmpleadoControllerTest {
         @Test
         @DisplayName("GET /empleados/{id} -> 200 con datos completos")
         void get_byId() throws Exception {
-                Mockito.when(service.get(1)).thenReturn(E);
+                when(service.get(1)).thenReturn(E);
 
                 mvc.perform(get("/api/v1/empleados/1"))
                                 .andExpect(status().isOk())
@@ -97,7 +98,7 @@ class EmpleadoControllerTest {
         @Test
         @DisplayName("POST /empleados valido -> 200 crea empleado (+usuario si trae username) y devuelve registro")
         void create_valid() throws Exception {
-                Mockito.when(service.create(any())).thenReturn(E);
+                when(service.create(any())).thenReturn(E);
 
                 mvc.perform(post("/api/v1/empleados")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -108,7 +109,7 @@ class EmpleadoControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.empleadoId").value(1));
-                Mockito.verify(service).create(any());
+                verify(service).create(any());
         }
 
         @Test
@@ -125,7 +126,7 @@ class EmpleadoControllerTest {
         @Test
         @DisplayName("PATCH /empleados/{id} -> 200 actualiza con parche")
         void update_patch() throws Exception {
-                Mockito.when(service.update(anyInt(), any(EmpleadoUpdateRequest.class))).thenReturn(E);
+                when(service.update(anyInt(), any(EmpleadoUpdateRequest.class))).thenReturn(E);
 
                 mvc.perform(patch("/api/v1/empleados/1")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -141,6 +142,6 @@ class EmpleadoControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.ok").value(true));
-                Mockito.verify(service).baja(1);
+                verify(service).baja(1);
         }
 }

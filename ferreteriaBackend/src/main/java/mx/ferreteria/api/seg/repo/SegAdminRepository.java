@@ -29,8 +29,8 @@ import mx.ferreteria.api.seg.service.SegAdminGateway;
 @RequiredArgsConstructor
 public class SegAdminRepository implements SegAdminGateway {
 
-    private static final String USUARIO_CAMPOS = """
-            usuario_id, username, email, empleado_id, activo, ultimo_login, creado_en""";
+    private static final String USUARIO_CAMPOS =
+            "usuario_id, username, email, empleado_id, activo, ultimo_login, creado_en";
 
     private final JdbcClient jdbc;
 

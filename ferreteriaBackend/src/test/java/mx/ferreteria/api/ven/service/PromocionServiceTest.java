@@ -120,7 +120,7 @@ class PromocionServiceTest {
         verify(categoriasRepo, times(1)).save(any());
         assertThat(cap.getValue().getUsuarioId()).isNotNull();
         assertThat(resp.promocionId()).isEqualTo(1L);
-        assertThat(resp.usosActual()).isEqualTo(0);
+        assertThat(resp.usosActual()).isZero();
     }
 
     @Test

@@ -131,7 +131,7 @@ class OptimizadorImagenMetadatosTest {
     private static byte[] jpegConMetadatos() throws Exception {
         byte[] base = imagenBase("jpeg");
         byte[] app13 = segmentoJpeg(0xED,
-                "Photoshop 3.0\08BIM GPS-DUMMY".getBytes(StandardCharsets.US_ASCII));
+                ("Photoshop 3.0\0" + "8BIM GPS-DUMMY").getBytes(StandardCharsets.US_ASCII));
         byte[] com = segmentoJpeg(0xFE,
                 "comentario secreto gps 19.43,-99.13".getBytes(StandardCharsets.US_ASCII));
         byte[] resto = new byte[base.length - 2];
@@ -277,7 +277,7 @@ class OptimizadorImagenMetadatosTest {
         // Vale ruta fail-open (sanitizado) o éxito (re-codificado):
         // en ambas, sin texto sensible.
         assertThat(contiene(r.datos(), "Juan Perez")).isFalse();
-        assertThat(r.datos().length).isGreaterThan(0);
+        assertThat(r.datos()).hasSizeGreaterThan(0);
     }
 
     @Test

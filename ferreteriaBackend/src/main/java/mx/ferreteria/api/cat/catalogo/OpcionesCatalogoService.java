@@ -1,6 +1,8 @@
 package mx.ferreteria.api.cat.catalogo;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
@@ -30,16 +32,36 @@ public class OpcionesCatalogoService {
     public List<OpcionFk> opciones(String claveCatalogoOrigen, List<String> columnas) {
         return switch (claveCatalogoOrigen) {
             case "estados" -> estadoRepo.findAllByOrderByNombre().stream()
-                    .map(e -> new OpcionFk(e.getEstadoId(), List.of(e.getNombre())))
+                    .map(e -> proyectar(e.getEstadoId(), Map.of("nombre", e.getNombre()), columnas))
                     .toList();
             case "impuestos" -> impuestoRepo.findByActivoTrueOrderByNombre().stream()
-                    .map(i -> new OpcionFk(i.getImpuestoId(), List.of(i.getNombre())))
+                    .map(i -> proyectar(i.getImpuestoId(), Map.of("nombre", i.getNombre()), columnas))
                     .toList();
             case "formas_pago_sat" -> formaPagoSatRepo.findByActivoTrueOrderByClave().stream()
-                    .map(f -> new OpcionFk(f.getClave(), List.of(f.getDescripcion())))
+                    .map(f -> proyectar(f.getClave(), Map.of("descripcion", f.getDescripcion()), columnas))
                     .toList();
             default -> throw new ValidacionException(ErrorCode.REFERENCIA_INVALIDA, claveCatalogoOrigen);
         };
+    }
+
+    /**
+     * Selecciona los textos a mostrar según las columnas pedidas por el
+     * descriptor FK ({@code opcionesColumnas}). Sin columnas (null/vacío) se
+     * devuelven todos los campos disponibles (comportamiento anterior).
+     * Columna desconocida -> 400 REFERENCIA_INVALIDA.
+     */
+    private static OpcionFk proyectar(Object clave, Map<String, String> campos, List<String> columnas) {
+        if (columnas == null || columnas.isEmpty()) {
+            return new OpcionFk(clave, List.copyOf(campos.values()));
+        }
+        List<String> texto = new ArrayList<>(columnas.size());
+        for (String col : columnas) {
+            if (!campos.containsKey(col)) {
+                throw new ValidacionException(ErrorCode.REFERENCIA_INVALIDA, col);
+            }
+            texto.add(campos.get(col));
+        }
+        return new OpcionFk(clave, texto);
     }
 
     public record OpcionFk(Object clave, List<String> texto) { }

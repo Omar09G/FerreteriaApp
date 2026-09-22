@@ -60,7 +60,7 @@ class CotizacionServiceTest {
                 1, "Almacén Principal", Instant.now(), java.time.LocalDate.now(),
                 1, "Efectivo", new BigDecimal("16.00"), true,
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                "COMPLETADA", 1, null, null,
+                "COMPLETADA", 1, null, null, null,
                 List.of(), List.of());
     }
 

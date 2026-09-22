@@ -30,6 +30,7 @@ import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
@@ -241,6 +242,7 @@ public class PromocionService {
                 }
             }
             default -> {
+                // Inalcanzable: req.tipo() ya se validó contra TIPOS arriba.
             }
         }
         if (req.diasSemana() != null) {
@@ -346,7 +348,7 @@ public class PromocionService {
             cliente = clienteRepo.findById(req.clienteId()).orElse(null);
         }
 
-        ZoneId zona = ZoneId.of("America/Mexico_City");
+        ZoneId zona = ZonaHoraria.ZONA;
         ZonedDateTime ahoraZoned = ZonedDateTime.now(zona);
         Instant ahora = ahoraZoned.toInstant();
         int dow = ahoraZoned.getDayOfWeek().getValue(); // 1=Lunes .. 7=Domingo = ISODOW
@@ -523,6 +525,7 @@ public class PromocionService {
             }
             case "DESCUENTO_PRODUCTO" -> {
                 BigDecimal sum = BigDecimal.ZERO;
+                BigDecimal monto = p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO;
                 for (var it : items) {
                     boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
                     if (!match && (!prods.isEmpty() || !cats.isEmpty()))
@@ -531,7 +534,7 @@ public class PromocionService {
                     BigDecimal b = p.getValorPct() != null
                             ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2,
                                     RoundingMode.HALF_UP)
-                            : (p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO);
+                            : monto;
                     sum = sum.add(b);
                 }
                 yield sum;
@@ -542,6 +545,7 @@ public class PromocionService {
                 if (!cumpleCant)
                     yield BigDecimal.ZERO;
                 BigDecimal sum = BigDecimal.ZERO;
+                BigDecimal monto = p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO;
                 for (var it : items) {
                     boolean match = prods.contains(it.productoId()) || cats.contains(catPorProd.get(it.productoId()));
                     if (!match && (!prods.isEmpty() || !cats.isEmpty()))
@@ -550,7 +554,7 @@ public class PromocionService {
                     BigDecimal b = p.getValorPct() != null
                             ? lineaTotal.multiply(p.getValorPct()).divide(BigDecimal.valueOf(100), 2,
                                     RoundingMode.HALF_UP)
-                            : (p.getValorMonto() != null ? p.getValorMonto() : BigDecimal.ZERO);
+                            : monto;
                     sum = sum.add(b);
                 }
                 yield sum;

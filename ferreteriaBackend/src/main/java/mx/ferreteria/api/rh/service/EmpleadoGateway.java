@@ -39,15 +39,19 @@ public interface EmpleadoGateway {
 
     List<EmpleadoSueldo> findActivosConSueldo();
 
-    int create(int puestoId, String nombre, String apellidoPaterno, String apellidoMaterno,
-               String curp, String nss, String telefono, String email, String calle, String colonia,
-               Integer ciudadId, String cp, LocalDate fechaIngreso, BigDecimal sueldoDiario,
-               String fotoUrl);
+    /**
+     * Datos de alta/parche de empleado. Agrupa los 15 campos para no
+     * propagar listas posicionales de parámetros (propensas a swaps
+     * silenciosos entre Strings).
+     */
+    record EmpleadoDatos(Integer puestoId, String nombre, String apellidoPaterno,
+            String apellidoMaterno, String curp, String nss, String telefono, String email,
+            String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
+            BigDecimal sueldoDiario, String fotoUrl) { }
 
-    void update(int empleadoId, Integer puestoId, String nombre, String apellidoPaterno,
-                String apellidoMaterno, String curp, String nss, String telefono, String email,
-                String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-                BigDecimal sueldoDiario, Boolean activo, String fotoUrl);
+    int create(EmpleadoDatos datos);
+
+    void update(int empleadoId, EmpleadoDatos datos, Boolean activo);
 
     void baja(int empleadoId);
 }

@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.rh.dto.RhDtos;
 import mx.ferreteria.api.rh.entity.Nomina;
@@ -35,6 +36,9 @@ import mx.ferreteria.api.rh.service.EmpleadoGateway.EmpleadoSueldo;
 @RequiredArgsConstructor
 @Slf4j
 public class NominaService {
+
+    private static final String ESTADO_PAGADA = "PAGADA";
+    private static final String ESTADO_CANCELADA = "CANCELADA";
 
     private final NominaRepository nominaRepo;
     private final EmpleadoRepository empleadoRepo;
@@ -85,7 +89,7 @@ public class NominaService {
         if (!"PRIMERA".equals(q) && !"SEGUNDA".equals(q)) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO, "quincena debe ser PRIMERA o SEGUNDA");
         }
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = ZonaHoraria.hoy();
         int anio = req.anio() != null ? req.anio() : hoy.getYear();
         int mes = req.mes() != null ? req.mes() : hoy.getMonthValue();
         if (mes < 1 || mes > 12) throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO, "mes");
@@ -111,7 +115,7 @@ public class NominaService {
         // Batch duplicate check: single SELECT empleado_id FROM rh.nominas WHERE periodo_ini=? AND periodo_fin=? AND empleado_id IN (...)
         List<Integer> allEmpIds = empleados.stream()
                 .map(EmpleadoSueldo::empleadoId)
-                .collect(Collectors.toList());
+                .toList();
         Set<Integer> existingIds = findExistingEmpleadoIds(ini, fin, allEmpIds);
         List<Nomina> savedEntities = new ArrayList<>();
         for (EmpleadoSueldo row : empleados) {
@@ -155,7 +159,7 @@ public class NominaService {
         } else {
             List<Long> savedIds = savedEntities.stream()
                     .map(Nomina::getNominaId)
-                    .collect(Collectors.toList());
+                    .toList();
             List<Nomina> freshEntities = nominaRepo.findAllById(savedIds);
             Set<Integer> freshEmpIds = freshEntities.stream()
                     .map(Nomina::getEmpleadoId)
@@ -163,7 +167,7 @@ public class NominaService {
             Map<Integer, String> nombres = fetchNombresBatch(freshEmpIds);
             fresh = freshEntities.stream()
                     .map(n -> toResponse(n, nombres))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return new RhDtos.GenerarQuincenaResponse(creadas, omitidas, ini, fin, fresh);
     }
@@ -178,8 +182,8 @@ public class NominaService {
         for (Long id : req.ids()) {
             Nomina n = nominaRepo.findById(id).orElse(null);
             if (n == null) { omitidas++; continue; }
-            if ("PAGADA".equals(n.getEstado()) || "CANCELADA".equals(n.getEstado())) { omitidas++; continue; }
-            n.setEstado("PAGADA");
+            if (ESTADO_PAGADA.equals(n.getEstado()) || ESTADO_CANCELADA.equals(n.getEstado())) { omitidas++; continue; }
+            n.setEstado(ESTADO_PAGADA);
             n.setFechaPago(Instant.now());
             Nomina saved = nominaRepo.save(n);
             updated.add(saved);
@@ -193,20 +197,20 @@ public class NominaService {
         Map<Integer, String> nombres = fetchNombresBatch(empIds);
         List<RhDtos.NominaResponse> result = updated.stream()
                 .map(n -> toResponse(n, nombres))
-                .collect(Collectors.toList());
+                .toList();
         return new RhDtos.PagarLoteResponse(pagadas, omitidas, result);
     }
 
     public RhDtos.NominaResponse marcarPagada(Long id) {
         Nomina n = nominaRepo.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-        if ("PAGADA".equals(n.getEstado())) {
+        if (ESTADO_PAGADA.equals(n.getEstado())) {
             throw new ReglaNegocioException(ErrorCode.REGISTRO_DUPLICADO);
         }
-        if ("CANCELADA".equals(n.getEstado())) {
+        if (ESTADO_CANCELADA.equals(n.getEstado())) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
         }
-        n.setEstado("PAGADA");
+        n.setEstado(ESTADO_PAGADA);
         n.setFechaPago(Instant.now());
         return toResponse(nominaRepo.save(n));
     }
@@ -214,13 +218,13 @@ public class NominaService {
     public RhDtos.NominaResponse cancelar(Long id) {
         Nomina n = nominaRepo.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
-        if ("CANCELADA".equals(n.getEstado())) {
+        if (ESTADO_CANCELADA.equals(n.getEstado())) {
             throw new ReglaNegocioException(ErrorCode.REGISTRO_DUPLICADO);
         }
-        if ("PAGADA".equals(n.getEstado())) {
+        if (ESTADO_PAGADA.equals(n.getEstado())) {
             throw new ReglaNegocioException(ErrorCode.VALOR_INVALIDO);
         }
-        n.setEstado("CANCELADA");
+        n.setEstado(ESTADO_CANCELADA);
         return toResponse(nominaRepo.save(n));
     }
 

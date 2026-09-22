@@ -17,6 +17,7 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.common.security.AuthCookieProperties;
 import mx.ferreteria.api.common.security.JwtService;
 import mx.ferreteria.api.common.security.UserPrincipal;
@@ -63,9 +64,10 @@ public class AuthService {
      */
     @Transactional
     public RegisterResponse register(RegisterRequest req) {
-        int empleadoId = empleados.create(req.puestoId(), req.nombre(), req.apellidoPaterno(),
-                req.apellidoMaterno(), null, null, req.telefono(), req.email(), null, null,
-                null, null, java.time.LocalDate.now(), java.math.BigDecimal.ZERO, null);
+        int empleadoId = empleados.create(new EmpleadoGateway.EmpleadoDatos(req.puestoId(),
+                req.nombre(), req.apellidoPaterno(), req.apellidoMaterno(), null, null,
+                req.telefono(), req.email(), null, null, null, null, ZonaHoraria.hoy(),
+                java.math.BigDecimal.ZERO, null));
         int usuarioId = admin.createUsuario(req.username(), req.email(),
                 passwordEncoder.encode(req.password()), empleadoId, true);
         admin.reemplazarRoles(usuarioId, java.util.Set.of(ROL_REGISTRO));
@@ -261,13 +263,11 @@ public class AuthService {
      * withCredentials la envía siempre; el body es fallback para tests / curl.
      */
     private String resolveRefresh(String bodyRefresh, HttpServletRequest http) {
-        if (http != null) {
-            if (http.getCookies() != null) {
-                for (var c : http.getCookies()) {
-                    if (cookieProps.refreshName().equals(c.getName()) && c.getValue() != null
-                            && !c.getValue().isBlank()) {
-                        return c.getValue();
-                    }
+        if (http != null && http.getCookies() != null) {
+            for (var c : http.getCookies()) {
+                if (cookieProps.refreshName().equals(c.getName()) && c.getValue() != null
+                        && !c.getValue().isBlank()) {
+                    return c.getValue();
                 }
             }
         }

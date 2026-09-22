@@ -668,7 +668,8 @@ CREATE TABLE IF NOT EXISTS ven.ventas (
     usuario_id      INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     turno_caja_id   BIGINT,
     PRIMARY KEY (venta_id, fecha_local), -- PK compuesta requerida por PARTITION BY RANGE
-    notas           TEXT
+    notas           TEXT,
+    motivo_cancelacion TEXT -- V20: motivo informado en PATCH /ventas/{id}/cancelar (NULL = no cancelada)
 ) PARTITION BY RANGE (fecha_local);
 -- Particiones default: ven.ventas_antigua (todo lo previo) + mes actual.
 -- Para prod, crear particiones mensuales via pg_partman:

@@ -77,4 +77,7 @@ public class Venta {
     private UUID folioFiscalUuid;
 
     private String notas;
+
+    /** Motivo de PATCH /cancelar (V20). NULL = no cancelada. */
+    private String motivoCancelacion;
 }

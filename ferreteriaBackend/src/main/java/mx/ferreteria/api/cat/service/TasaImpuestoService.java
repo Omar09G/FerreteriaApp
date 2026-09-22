@@ -1,7 +1,5 @@
 package mx.ferreteria.api.cat.service;
 
-import java.time.LocalDate;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +12,7 @@ import mx.ferreteria.api.cat.repo.ImpuestoRepository;
 import mx.ferreteria.api.cat.repo.TasaImpuestoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.time.ZonaHoraria;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +34,7 @@ public class TasaImpuestoService extends AbstractCatalogoService<TasaImpuesto, I
                 .factor(req.factor())
                 .ambito(req.ambito())
                 .zonaFrontera(Boolean.TRUE.equals(req.zonaFrontera()))
-                .vigenteDesde(req.vigenteDesde() != null ? req.vigenteDesde() : LocalDate.now())
+                .vigenteDesde(req.vigenteDesde() != null ? req.vigenteDesde() : ZonaHoraria.hoy())
                 .vigenteHasta(req.vigenteHasta())
                 .activo(true)
                 .build();
@@ -50,7 +49,7 @@ public class TasaImpuestoService extends AbstractCatalogoService<TasaImpuesto, I
         entity.setFactor(req.factor());
         entity.setAmbito(req.ambito());
         entity.setZonaFrontera(Boolean.TRUE.equals(req.zonaFrontera()));
-        entity.setVigenteDesde(req.vigenteDesde() != null ? req.vigenteDesde() : LocalDate.now());
+        entity.setVigenteDesde(req.vigenteDesde() != null ? req.vigenteDesde() : ZonaHoraria.hoy());
         entity.setVigenteHasta(req.vigenteHasta());
     }
 

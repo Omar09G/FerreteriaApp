@@ -3,6 +3,8 @@ package mx.ferreteria.api.cat.entity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import mx.ferreteria.api.common.time.ZonaHoraria;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -52,7 +54,7 @@ public class TasaImpuesto {
 
     @Column(name = "vigente_desde", nullable = false)
     @Builder.Default
-    private LocalDate vigenteDesde = LocalDate.now();
+    private LocalDate vigenteDesde = ZonaHoraria.hoy();
 
     @Column(name = "vigente_hasta")
     private LocalDate vigenteHasta;

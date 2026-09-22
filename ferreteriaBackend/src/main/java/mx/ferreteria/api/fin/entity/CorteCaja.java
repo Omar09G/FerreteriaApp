@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+
+import mx.ferreteria.api.common.time.ZonaHoraria;
 import lombok.*;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
@@ -31,7 +33,7 @@ public class CorteCaja {
     private Integer usuarioCierreId;
 
     @Column(nullable = false)
-    @Builder.Default private LocalDate fecha = LocalDate.now();
+    @Builder.Default private LocalDate fecha = ZonaHoraria.hoy();
 
     @Column(nullable = false)
     private Instant aperturaEn;

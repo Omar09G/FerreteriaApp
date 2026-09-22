@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -24,7 +24,7 @@ import io.jsonwebtoken.security.SignatureException;
  * El refresh que viaja al cliente es un JWT opaco cuyo SHA-256 se persiste en
  * seg.refresh_tokens (rotación en cada refresh, revocación en logout).
  */
-@Component
+@Service
 public class JwtService {
 
     public static final String CLAIM_UID = "uid";

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.time.ZonaHoraria;
+import mx.ferreteria.api.rh.service.EmpleadoGateway;
 import mx.ferreteria.api.common.security.AuthCookieProperties;
 import mx.ferreteria.api.common.security.JwtProperties;
 import mx.ferreteria.api.common.security.JwtService;
@@ -227,9 +230,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register: crea empleado + usuario ligado + UNICO rol ENCARGADO_CAJA")
     void register_createsEmpleadoUsuarioYRoleUnico() {
-        when(empleados.create(anyInt(), anyString(), anyString(), any(), any(), any(),
-                any(), anyString(), any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(5);
+        when(empleados.create(any())).thenReturn(5);
         when(admin.createUsuario(eq("nuevo01"), eq("nuevo01@ejemplo.mx"), anyString(),
                 eq(5), anyBoolean())).thenReturn(11);
 
@@ -241,8 +242,9 @@ class AuthServiceTest {
         assertThat(r.empleadoId()).isEqualTo(5);
         assertThat(r.username()).isEqualTo("nuevo01");
         // el único rol posible es ENCARGADO_CAJA, nunca ADMINISTRADOR
-        verify(empleados).create(eq(3), eq("Juan"), eq("Pérez"), any(), any(), any(),
-                eq("555"), eq("nuevo01@ejemplo.mx"), any(), any(), any(), any(), any(), any(), any());
+        verify(empleados).create(new EmpleadoGateway.EmpleadoDatos(3, "Juan", "Pérez", "López",
+                null, null, "555", "nuevo01@ejemplo.mx", null, null, null, null,
+                ZonaHoraria.hoy(), BigDecimal.ZERO, null));
         verify(admin).reemplazarRoles(11, Set.of(AuthService.ROL_REGISTRO));
         org.mockito.ArgumentCaptor<String> hash =
                 org.mockito.ArgumentCaptor.forClass(String.class);

@@ -61,7 +61,7 @@ public class ClienteService {
                 .cp(req.cp())
                 .limiteCredito(req.limiteCredito() != null ? req.limiteCredito() : BigDecimal.ZERO)
                 .diasCredito(req.diasCredito() != null ? req.diasCredito() : 0)
-                .esMayorista(req.esMayorista() != null ? req.esMayorista() : false)
+                .esMayorista(Boolean.TRUE.equals(req.esMayorista()))
                 .fotoUrl(req.fotoUrl())
                 .build();
         Cliente saved = repo.save(entity);
@@ -119,7 +119,7 @@ public class ClienteService {
         }
         int dias = c.getDiasCredito() != null && c.getDiasCredito() > 0 ? c.getDiasCredito() : 15;
         // Coerce a rango del trigger (1..365)
-        dias = Math.max(1, Math.min(dias, 365));
+        dias = Math.clamp(dias, 1, 365);
         LineaCredito existente = lineaRepo.findByClienteIdAndEstado(c.getClienteId(), "ACTIVA").orElse(null);
         int actor = 1;
         try {
