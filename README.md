@@ -38,6 +38,13 @@ cd ../ferreteriaFront && bun install && bun run dev
 
 Detalles y comandos de pruebas/build en el README de cada proyecto.
 
+> **Tras reiniciar el host nada arranca solo** (podman sin linger): repetir
+> `podman compose up -d` en `ferreteriaDB/deploy` y luego `bootRun` + `bun run dev`.
+> El `.env` del backend ya incluye el bloque de notificaciones
+> (`APP_NOTIF_ENABLED=true`, `RABBITMQ_*`, `MAIL_*`), así que el `bootRun`
+> levanta con jobs+email sin exports extra. La UI de Floci (`floci-ui`)
+> reaparece ~1 min después de `floci`; recargar la página para ver las bandejas.
+
 ## Puertos y conexiones (dev local)
 
 La app corre con `bootRun` + `bun run dev` en el host; solo datos, storage y
