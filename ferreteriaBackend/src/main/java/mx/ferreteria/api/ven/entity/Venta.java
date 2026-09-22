@@ -80,4 +80,11 @@ public class Venta {
 
     /** Motivo de PATCH /cancelar (V20). NULL = no cancelada. */
     private String motivoCancelacion;
+
+    /**
+     * Clave del ticket PDF en object storage (V21). La llena el job async
+     * de notificación; NULL hasta que se procesa.
+     */
+    @Column(name = "pdf_url")
+    private String pdfUrl;
 }

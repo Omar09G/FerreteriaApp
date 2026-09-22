@@ -44,7 +44,7 @@ class EmpleadoServiceTest {
 
     private static final EmpleadoRow ROW = new EmpleadoRow(
             1, 3, "Vendedor", "Juan", "Pérez", "López", "CURP123", "NSS123",
-            "555", "juan@x.mx", "Av 1", "Colonia", 1, "97000",
+            "555", "5559990001", "juan@x.mx", "Av 1", "Colonia", 1, "97000",
             LocalDate.of(2026, 1, 15), null, new BigDecimal("100.00"), true, null);
 
     @org.junit.jupiter.api.BeforeEach
@@ -74,13 +74,13 @@ class EmpleadoServiceTest {
         when(gateway.findById(1)).thenReturn(Optional.of(ROW));
 
         var r = service.create(new EmpleadoCreateRequest(3, "Juan", "Pérez", null, null, null,
-                "555", "juan@x.mx", null, null, null, null, null, null,
+                "555", null, "juan@x.mx", null, null, null, null, null, null,
                 null, null, null, null));
 
         assertThat(r.empleadoId()).isEqualTo(1);
         // fecha/sueldo default viven del lado del servicio (no en NULL explícito)
         verify(gateway).create(new EmpleadoGateway.EmpleadoDatos(3, "Juan", "Pérez", null, null,
-                null, "555", "juan@x.mx", null, null, null, null, LocalDate.now(),
+                null, "555", null, "juan@x.mx", null, null, null, null, LocalDate.now(),
                 BigDecimal.ZERO, null));
         verify(usuarioAlta, never()).crearUsuarioConRoles(any(), any(), any(), anyInt(), any());
     }
@@ -92,7 +92,7 @@ class EmpleadoServiceTest {
         when(gateway.findById(1)).thenReturn(Optional.of(ROW));
 
         var r = service.create(new EmpleadoCreateRequest(3, "Juan", "Pérez", null, null, null,
-                "555", "juan@x.mx", null, null, null, null, null, null,
+                "555", "5559990001", "juan@x.mx", null, null, null, null, null, null,
                 "juan.perez", "Secreta123", List.of("VENDEDOR"), null));
 
         verify(usuarioAlta).crearUsuarioConRoles("juan.perez", "juan@x.mx", "Secreta123", 1,
@@ -104,7 +104,7 @@ class EmpleadoServiceTest {
     @DisplayName("create con username sin password -> 400 CAMPO_REQUERIDO y no crea nada")
     void create_conUsuarioSinPassword_rejected() {
         assertThatThrownBy(() -> service.create(new EmpleadoCreateRequest(
-                3, "Juan", "Pérez", null, null, null, "555", "juan@x.mx",
+                3, "Juan", "Pérez", null, null, null, "555", null, "juan@x.mx",
                 null, null, null, null, null, null, "juan", null, List.of(), null)))
                 .isInstanceOfSatisfying(ValidacionException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CAMPO_REQUERIDO));
@@ -117,7 +117,7 @@ class EmpleadoServiceTest {
         when(gateway.findById(1)).thenReturn(Optional.of(ROW));
 
         var r = service.update(1, new EmpleadoUpdateRequest(null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, false, null));
+                null, null, null, null, null, null, null, null, null, false, null));
 
         verify(gateway).update(eq(1), any(), eq(false));
         assertThat(r.activo()).isTrue(); // row stub sin cambio; el update ya quedó verificado

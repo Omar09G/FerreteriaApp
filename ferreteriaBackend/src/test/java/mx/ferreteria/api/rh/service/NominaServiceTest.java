@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,6 +41,7 @@ class NominaServiceTest {
     @Mock NominaRepository nominaRepo;
     @Mock EmpleadoRepository empleadoRepo;
     @Mock EmpleadoGateway empleadoGateway;
+    @Mock org.springframework.context.ApplicationEventPublisher events;
 
     @InjectMocks
     NominaService service;
@@ -157,6 +160,30 @@ class NominaServiceTest {
 
         assertThat(resp.estado()).isEqualTo("PAGADA");
         assertThat(resp.fechaPago()).isNotNull();
+        // Aviso al módulo notif vía evento de dominio (sin depender de él)
+        var cap = org.mockito.ArgumentCaptor.forClass(Object.class);
+        verify(events).publishEvent(cap.capture());
+        assertThat(cap.getValue()).isInstanceOfSatisfying(NominaPagadaEvent.class,
+                e -> assertThat(e.nominaId()).isEqualTo(1L));
+    }
+
+    @Test
+    @DisplayName("pagarLote: publica evento solo por cada nomina efectivamente pagada")
+    void pagarLote_publicaEventos() {
+        doReturn(Optional.of(sampleNomina(1L, "PENDIENTE"))).when(nominaRepo).findById(1L);
+        doReturn(Optional.of(sampleNomina(2L, "PAGADA"))).when(nominaRepo).findById(2L);
+        doReturn(Optional.empty()).when(nominaRepo).findById(3L);
+        doReturn(sampleNomina(1L, "PAGADA")).when(nominaRepo).save(any(Nomina.class));
+        doReturn(Optional.of(resumen(7, "Juan Perez"))).when(empleadoGateway).resumenById(anyInt());
+
+        var resp = service.pagarLote(new mx.ferreteria.api.rh.dto.RhDtos.PagarLoteRequest(List.of(1L, 2L, 3L)));
+
+        assertThat(resp.pagadas()).isEqualTo(1);
+        assertThat(resp.omitidas()).isEqualTo(2);
+        var cap = org.mockito.ArgumentCaptor.forClass(Object.class);
+        verify(events).publishEvent(cap.capture());
+        assertThat(cap.getValue()).isInstanceOfSatisfying(NominaPagadaEvent.class,
+                e -> assertThat(e.nominaId()).isEqualTo(1L));
     }
 
     @Test

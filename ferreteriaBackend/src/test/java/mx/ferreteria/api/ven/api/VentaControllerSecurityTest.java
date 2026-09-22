@@ -44,4 +44,13 @@ class VentaControllerSecurityTest {
         assertThat(ann).isNotNull();
         assertThat(ann.value()).contains("VENDEDOR").contains("GERENTE").contains("ADMINISTRADOR");
     }
+
+    @Test
+    @DisplayName("ticketPdf requiere VENDEDOR/GERENTE/ADMINISTRADOR (no solo authenticated)")
+    void ticketPdfRequiereRol() throws Exception {
+        var m = VentaController.class.getMethod("ticketPdf", Long.class);
+        PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).contains("VENDEDOR").contains("GERENTE").contains("ADMINISTRADOR");
+    }
 }

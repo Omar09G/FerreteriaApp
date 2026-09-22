@@ -47,6 +47,28 @@ spring:
       max-request-size: ${MULTIPART_MAX_REQUEST:6MB}
   jackson:
     default-property-inclusion: non_null
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:ferreteria}
+    password: ${RABBITMQ_PASSWORD:ferreteria}
+    listener:
+      simple:
+        # No conectar al broker en local/tests salvo que APP_NOTIF_ENABLED=true
+        # (compose lo setea). Evita fallo de arranque sin RabbitMQ.
+        auto-startup: ${APP_NOTIF_ENABLED:false}
+        default-requeue-rejected: false
+        acknowledge-mode: auto
+        prefetch: 5
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
+    protocol: smtp
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
 
 server:
   port: ${SERVER_PORT:8080}
@@ -106,6 +128,22 @@ app:
       path: ${AUTH_COOKIE_PATH:/}
       refresh-name: ${AUTH_COOKIE_REFRESH_NAME:rt}
       access-name: ${AUTH_COOKIE_ACCESS_NAME:at}
+  # Notificaciones (ticket PDF + nómina pagada). false = no publica/consume
+  # RabbitMQ; el job queda PENDIENTE y el reconciler lo reintenta al habilitar.
+  notif:
+    enabled: ${APP_NOTIF_ENABLED:false}
+    rabbit:
+      exchange: ${RABBITMQ_EXCHANGE:ferreteria.events}
+      routing-key: ${RABBITMQ_ROUTING_KEY:notificacion.job}
+      queue: ${RABBITMQ_QUEUE:notificacion.jobs}
+      dlq: ${RABBITMQ_DLQ:notificacion.jobs.dlq}
+    max-intentos: ${NOTIF_MAX_INTENTOS:5}
+    telegram:
+      bot-token: ${TELEGRAM_BOT_TOKEN:}
+      chat-id: ${TELEGRAM_CHAT_ID:}
+    whatsapp:
+      # Stub no-op hasta proveedor real (Meta/Twilio). Solo log.
+      enabled: ${WHATSAPP_ENABLED:false}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

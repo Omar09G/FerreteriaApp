@@ -25,6 +25,8 @@ import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.time.ZonaHoraria;
+import org.springframework.context.ApplicationEventPublisher;
+
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.rh.dto.RhDtos;
 import mx.ferreteria.api.rh.entity.Nomina;
@@ -43,6 +45,7 @@ public class NominaService {
     private final NominaRepository nominaRepo;
     private final EmpleadoRepository empleadoRepo;
     private final EmpleadoGateway empleadoGateway;
+    private final ApplicationEventPublisher events;
 
     @Transactional(readOnly = true)
     public Page<RhDtos.NominaResponse> list(String estado,
@@ -172,6 +175,12 @@ public class NominaService {
         return new RhDtos.GenerarQuincenaResponse(creadas, omitidas, ini, fin, fresh);
     }
 
+    /**
+     * Paga un lote en una sola transacción y encola un job de notificación por
+     * nómina pagada (el hook AFTER_COMMIT publica fuera de ella: un fallo del
+     * broker no revierte el pago, el reconciler reintenta).
+     */
+    @Transactional
     public RhDtos.PagarLoteResponse pagarLote(RhDtos.PagarLoteRequest req) {
         if (req.ids() == null || req.ids().isEmpty()) {
             throw new ReglaNegocioException(ErrorCode.CAMPO_REQUERIDO, "ids");
@@ -193,6 +202,12 @@ public class NominaService {
         if (updated.isEmpty()) {
             return new RhDtos.PagarLoteResponse(pagadas, omitidas, List.of());
         }
+        // Avisos al módulo de notificaciones (eventos de dominio: nómina no
+        // depende de notif). El hook AFTER_COMMIT crea cada job fuera de esta
+        // transacción; solo las efectivamente pagadas generan aviso.
+        for (Nomina pagada : updated) {
+            events.publishEvent(new NominaPagadaEvent(pagada.getNominaId()));
+        }
         Set<Integer> empIds = updated.stream().map(Nomina::getEmpleadoId).collect(Collectors.toSet());
         Map<Integer, String> nombres = fetchNombresBatch(empIds);
         List<RhDtos.NominaResponse> result = updated.stream()
@@ -201,6 +216,7 @@ public class NominaService {
         return new RhDtos.PagarLoteResponse(pagadas, omitidas, result);
     }
 
+    @Transactional
     public RhDtos.NominaResponse marcarPagada(Long id) {
         Nomina n = nominaRepo.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
@@ -212,7 +228,9 @@ public class NominaService {
         }
         n.setEstado(ESTADO_PAGADA);
         n.setFechaPago(Instant.now());
-        return toResponse(nominaRepo.save(n));
+        Nomina saved = nominaRepo.save(n);
+        events.publishEvent(new NominaPagadaEvent(saved.getNominaId()));
+        return toResponse(saved);
     }
 
     public RhDtos.NominaResponse cancelar(Long id) {

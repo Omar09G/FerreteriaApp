@@ -4,7 +4,10 @@ import java.time.LocalDate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,6 +55,16 @@ public class VentaController {
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
     public VenDtos.VentaResponse checkout(@Valid @RequestBody VenDtos.VentaRequest req) {
         return service.checkout(req);
+    }
+
+    @GetMapping("/{id}/ticket.pdf")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
+    public ResponseEntity<byte[]> ticketPdf(@PathVariable Long id) {
+        byte[] pdf = service.ticketPdf(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"ticket-" + id + ".pdf\"")
+                .body(pdf);
     }
 
     @PatchMapping("/{id}/cancelar")

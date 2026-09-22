@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -62,7 +63,7 @@ class VentaControllerTest {
                                 new BigDecimal("16.00"), true,
                                 new BigDecimal("100.00"), new BigDecimal("16.00"),
                                 BigDecimal.ZERO, new BigDecimal("116.00"),
-                                "COMPLETADA", 1, null, null, null, List.of(), List.of());
+                                "COMPLETADA", 1, null, null, null, null, List.of(), List.of());
         }
 
         // ── POST /api/v1/ventas ─────────────────────────────────────────
@@ -116,6 +117,20 @@ class VentaControllerTest {
                                 .andExpect(jsonPath("$.data.folio").value("V-2024-001"));
         }
 
+        // ── GET /api/v1/ventas/{id}/ticket.pdf ──────────────────────────
+
+        @Test
+        @DisplayName("GET /api/v1/ventas/1/ticket.pdf -> 200 application/pdf")
+        void ticketPdf_ok() throws Exception {
+                byte[] pdf = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+                when(service.ticketPdf(1L)).thenReturn(pdf);
+
+                mvc.perform(get("/api/v1/ventas/1/ticket.pdf"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                                .andExpect(content().bytes(pdf));
+        }
+
         // ── PATCH /api/v1/ventas/{id}/cancelar ──────────────────────────
 
         @Test
@@ -127,7 +142,7 @@ class VentaControllerTest {
                                 new BigDecimal("16.00"), true,
                                 BigDecimal.ZERO, BigDecimal.ZERO,
                                 BigDecimal.ZERO, BigDecimal.ZERO,
-                                "CANCELADA", 1, null, null, "Error", List.of(), List.of());
+                                "CANCELADA", 1, null, null, "Error", null, List.of(), List.of());
 
                 when(service.cancel(1L, "Error")).thenReturn(cancelled);
 

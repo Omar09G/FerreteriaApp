@@ -18,8 +18,8 @@ public interface EmpleadoGateway {
 
     record EmpleadoRow(int empleadoId, int puestoId, String puestoNombre, String nombre,
                        String apellidoPaterno, String apellidoMaterno, String curp, String nss,
-                       String telefono, String email, String calle, String colonia, Integer ciudadId,
-                       String cp, LocalDate fechaIngreso, LocalDate fechaBaja,
+                       String telefono, String whatsapp, String email, String calle, String colonia,
+                       Integer ciudadId, String cp, LocalDate fechaIngreso, LocalDate fechaBaja,
                        BigDecimal sueldoDiario, boolean activo, String fotoUrl) { }
 
     record EmpleadoSueldo(int empleadoId, BigDecimal sueldoDiario) { }
@@ -45,9 +45,9 @@ public interface EmpleadoGateway {
      * silenciosos entre Strings).
      */
     record EmpleadoDatos(Integer puestoId, String nombre, String apellidoPaterno,
-            String apellidoMaterno, String curp, String nss, String telefono, String email,
-            String calle, String colonia, Integer ciudadId, String cp, LocalDate fechaIngreso,
-            BigDecimal sueldoDiario, String fotoUrl) { }
+            String apellidoMaterno, String curp, String nss, String telefono, String whatsapp,
+            String email, String calle, String colonia, Integer ciudadId, String cp,
+            LocalDate fechaIngreso, BigDecimal sueldoDiario, String fotoUrl) { }
 
     int create(EmpleadoDatos datos);
 

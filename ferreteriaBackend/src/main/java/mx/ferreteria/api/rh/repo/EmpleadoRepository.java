@@ -29,9 +29,9 @@ public class EmpleadoRepository implements EmpleadoGateway {
 
     private static final String CAMPOS = """
             e.empleado_id, e.puesto_id, p.nombre AS puesto_nombre, e.nombre,
-            e.apellido_p, e.apellido_m, e.curp, e.nss, e.telefono, e.email,
-            e.calle, e.colonia, e.ciudad_id, e.cp, e.fecha_ingreso, e.fecha_baja,
-            e.sueldo_diario, e.activo, e.foto_url""";
+            e.apellido_p, e.apellido_m, e.curp, e.nss, e.telefono, e.whatsapp,
+            e.email, e.calle, e.colonia, e.ciudad_id, e.cp, e.fecha_ingreso,
+            e.fecha_baja, e.sueldo_diario, e.activo, e.foto_url""";
 
     private final JdbcClient jdbc;
 
@@ -128,15 +128,16 @@ public class EmpleadoRepository implements EmpleadoGateway {
     public int create(EmpleadoDatos d) {
         return jdbc.sql("""
                 INSERT INTO rh.empleados (puesto_id, nombre, apellido_p, apellido_m,
-                    curp, nss, telefono, email, calle, colonia, ciudad_id, cp,
+                    curp, nss, telefono, whatsapp, email, calle, colonia, ciudad_id, cp,
                     fecha_ingreso, sueldo_diario, foto_url)
-                VALUES (:pto, :n, :ap, :am, :curp, :nss, :tel, :em, :calle, :col,
+                VALUES (:pto, :n, :ap, :am, :curp, :nss, :tel, :wa, :em, :calle, :col,
                     :cd, :cp, :ingreso, :sueldo, :foto)
                 RETURNING empleado_id
                 """)
                 .param("pto", d.puestoId()).param("n", d.nombre()).param("ap", d.apellidoPaterno())
                 .param("am", d.apellidoMaterno()).param("curp", d.curp()).param("nss", d.nss())
-                .param("tel", d.telefono()).param("em", d.email()).param("calle", d.calle())
+                .param("tel", d.telefono()).param("wa", d.whatsapp())
+                .param("em", d.email()).param("calle", d.calle())
                 .param("col", d.colonia()).param("cd", d.ciudadId()).param("cp", d.cp())
                 .param("ingreso", d.fechaIngreso() == null ? null : Date.valueOf(d.fechaIngreso()))
                 .param("sueldo", d.sueldoDiario()).param("foto", d.fotoUrl())
@@ -155,6 +156,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
                     curp = COALESCE(:curp, curp),
                     nss = COALESCE(:nss, nss),
                     telefono = COALESCE(:tel, telefono),
+                    whatsapp = COALESCE(:wa, whatsapp),
                     email = COALESCE(:em, email),
                     calle = COALESCE(:calle, calle),
                     colonia = COALESCE(:col, colonia),
@@ -172,6 +174,7 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 .param("id", empleadoId).param("p", d.puestoId()).param("n", d.nombre())
                 .param("ap", d.apellidoPaterno()).param("am", d.apellidoMaterno())
                 .param("curp", d.curp()).param("nss", d.nss()).param("tel", d.telefono())
+                .param("wa", d.whatsapp())
                 .param("em", d.email()).param("calle", d.calle()).param("col", d.colonia())
                 .param("cd", d.ciudadId()).param("cp", d.cp())
                 .param("ingreso", d.fechaIngreso() == null ? null : Date.valueOf(d.fechaIngreso()))
@@ -194,7 +197,8 @@ public class EmpleadoRepository implements EmpleadoGateway {
                 rs.getString("puesto_nombre"), rs.getString("nombre"),
                 rs.getString("apellido_p"), rs.getString("apellido_m"),
                 rs.getString("curp"), rs.getString("nss"), rs.getString("telefono"),
-                rs.getString("email"), rs.getString("calle"), rs.getString("colonia"),
+                rs.getString("whatsapp"), rs.getString("email"),
+                rs.getString("calle"), rs.getString("colonia"),
                 (Integer) rs.getObject("ciudad_id"), rs.getString("cp"),
                 ing == null ? null : ing.toLocalDate(), baja == null ? null : baja.toLocalDate(),
                 rs.getBigDecimal("sueldo_diario"), rs.getBoolean("activo"),

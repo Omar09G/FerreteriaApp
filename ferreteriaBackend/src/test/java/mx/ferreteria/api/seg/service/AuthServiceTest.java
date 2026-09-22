@@ -243,7 +243,7 @@ class AuthServiceTest {
         assertThat(r.username()).isEqualTo("nuevo01");
         // el único rol posible es ENCARGADO_CAJA, nunca ADMINISTRADOR
         verify(empleados).create(new EmpleadoGateway.EmpleadoDatos(3, "Juan", "Pérez", "López",
-                null, null, "555", "nuevo01@ejemplo.mx", null, null, null, null,
+                null, null, "555", null, "nuevo01@ejemplo.mx", null, null, null, null,
                 ZonaHoraria.hoy(), BigDecimal.ZERO, null));
         verify(admin).reemplazarRoles(11, Set.of(AuthService.ROL_REGISTRO));
         org.mockito.ArgumentCaptor<String> hash =

@@ -36,8 +36,11 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.inv.entity.Almacen;
 import mx.ferreteria.api.inv.repo.AlmacenRepository;
 import mx.ferreteria.api.common.security.UserPrincipal;
+import org.springframework.context.ApplicationEventPublisher;
+
 import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.ven.dto.VenDtos;
+import mx.ferreteria.api.ven.pdf.TicketPdfService;
 import mx.ferreteria.api.ven.entity.CuentaCobrar;
 import mx.ferreteria.api.ven.entity.PagoCliente;
 import mx.ferreteria.api.ven.entity.Venta;
@@ -65,6 +68,8 @@ public class VentaService {
     private final PagoClienteRepository pagoRepo;
     private final PromocionRepository promocionRepo;
     private final PromocionService promocionService;
+    private final ApplicationEventPublisher events;
+    private final TicketPdfService ticketPdfService;
 
     @PersistenceContext
     private EntityManager em;
@@ -232,7 +237,25 @@ public class VentaService {
         // BACK-DIS-002: el EntityManager ya NO vive en el service.
         Venta v = ventaRepo.reloadAfterTriggers(savedVenta.getVentaId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+        // Aviso al módulo de notificaciones (evento de dominio: ventas no
+        // depende de notif). El hook AFTER_COMMIT crea el job y publica a
+        // RabbitMQ fuera de esta transacción: un fallo del broker no revierte
+        // la venta — el reconciler reintenta.
+        events.publishEvent(new VentaCreadaEvent(v.getVentaId()));
         return toResponse(v);
+    }
+
+    /**
+     * Ticket PDF de la venta, generado al vuelo desde BD (totales de
+     * triggers/columnas generadas, nunca del cliente). El endpoint lo sirve
+     * como application/pdf; el job async además lo sube a storage.
+     */
+    @Transactional(readOnly = true)
+    public byte[] ticketPdf(Long id) {
+        if (!ventaRepo.existsById(id)) {
+            throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
+        }
+        return ticketPdfService.generarTicketPdf(id);
     }
 
     private Map<Long, BigDecimal> distribuirDescuento(mx.ferreteria.api.ven.entity.Promocion promo,
@@ -431,7 +454,7 @@ public class VentaService {
                     v.getSubtotal(), v.getIva(),
                     v.getDescuentoTotal(), v.getTotal(),
                     v.getEstado(), v.getUsuarioId(), v.getTurnoCajaId(),
-                    v.getNotas(), v.getMotivoCancelacion(), detalles, pagos));
+                    v.getNotas(), v.getMotivoCancelacion(), v.getPdfUrl(), detalles, pagos));
         }
         return result;
     }
@@ -472,7 +495,7 @@ public class VentaService {
                 v.getSubtotal(), v.getIva(),
                 v.getDescuentoTotal(), v.getTotal(),
                 v.getEstado(), v.getUsuarioId(), v.getTurnoCajaId(),
-                v.getNotas(), v.getMotivoCancelacion(), detalles, pagos);
+                v.getNotas(), v.getMotivoCancelacion(), v.getPdfUrl(), detalles, pagos);
     }
 
     private VenDtos.ClienteVentaInfo toClienteInfo(Cliente c, Map<Integer, Ciudad> ciudades) {

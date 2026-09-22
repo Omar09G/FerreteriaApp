@@ -66,6 +66,10 @@ class VentaServiceTest {
         CuentaCobrarRepository cuentaRepo;
         @Mock
         PagoClienteRepository pagoRepo;
+        @Mock
+        org.springframework.context.ApplicationEventPublisher events;
+        @Mock
+        mx.ferreteria.api.ven.pdf.TicketPdfService ticketPdfService;
 
         @InjectMocks
         VentaService service;
@@ -245,6 +249,11 @@ class VentaServiceTest {
                 assertThat(resp.ventaId()).isEqualTo(10L);
                 verify(detalleRepo).save(any(VentaDetalle.class));
                 verify(ventaRepo).flush();
+                // Aviso al módulo notif vía evento de dominio (sin depender de él)
+                var cap = org.mockito.ArgumentCaptor.forClass(Object.class);
+                verify(events).publishEvent(cap.capture());
+                assertThat(cap.getValue()).isInstanceOfSatisfying(VentaCreadaEvent.class,
+                                e -> assertThat(e.ventaId()).isEqualTo(10L));
         }
 
         @Test

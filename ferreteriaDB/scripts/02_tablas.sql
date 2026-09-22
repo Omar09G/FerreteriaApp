@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS rh.empleados (
     nss           VARCHAR(11)  UNIQUE,
     telefono      VARCHAR(20),
     email         VARCHAR(120) UNIQUE,
+    whatsapp      VARCHAR(20), -- V21: notificación de nómina pagada
     foto_url      TEXT CHECK (foto_url IS NULL OR foto_url ~ '^https?://|^data:image/'),
     calle         VARCHAR(150),
     colonia       VARCHAR(100),
@@ -669,7 +670,8 @@ CREATE TABLE IF NOT EXISTS ven.ventas (
     turno_caja_id   BIGINT,
     PRIMARY KEY (venta_id, fecha_local), -- PK compuesta requerida por PARTITION BY RANGE
     notas           TEXT,
-    motivo_cancelacion TEXT -- V20: motivo informado en PATCH /ventas/{id}/cancelar (NULL = no cancelada)
+    motivo_cancelacion TEXT, -- V20: motivo informado en PATCH /ventas/{id}/cancelar (NULL = no cancelada)
+    pdf_url         TEXT -- V21: URL/key del ticket PDF tras subida a object storage
 ) PARTITION BY RANGE (fecha_local);
 -- Particiones default: ven.ventas_antigua (todo lo previo) + mes actual.
 -- Para prod, crear particiones mensuales via pg_partman:
@@ -684,6 +686,26 @@ CREATE INDEX IF NOT EXISTS idx_ventas_cliente_fecha ON ven.ventas(cliente_id, fe
 -- PASO 3: índices para filtros por fecha_local (rango por día sin desfase TZ)
 CREATE INDEX IF NOT EXISTS idx_ventas_fecha_local ON ven.ventas(fecha_local DESC);
 CREATE INDEX IF NOT EXISTS idx_ventas_almacen_fecha_local ON ven.ventas(almacen_id, fecha_local DESC);
+
+-- V21: cola de trabajos de notificación (ticket PDF / nómina pagada).
+CREATE TABLE IF NOT EXISTS notif.notificacion_jobs (
+    job_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    tipo         VARCHAR(32) NOT NULL
+                 CHECK (tipo IN ('VENTA_TICKET','NOMINA_PAGADA')),
+    ref_tipo     VARCHAR(16) NOT NULL
+                 CHECK (ref_tipo IN ('VENTA','NOMINA')),
+    ref_id       BIGINT NOT NULL,
+    estado       VARCHAR(16) NOT NULL DEFAULT 'PENDIENTE'
+                 CHECK (estado IN ('PENDIENTE','PROCESANDO','ENVIADA','ERROR')),
+    pdf_url      TEXT,
+    intentos     INTEGER NOT NULL DEFAULT 0 CHECK (intentos >= 0),
+    ultimo_error TEXT,
+    creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    enviado_en   TIMESTAMPTZ,
+    CONSTRAINT uq_notif_job_ref UNIQUE (tipo, ref_id)
+);
+CREATE INDEX IF NOT EXISTS idx_notif_jobs_estado
+    ON notif.notificacion_jobs(estado, creado_en);
 
 CREATE TABLE IF NOT EXISTS ven.venta_detalles (
     venta_detalle_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

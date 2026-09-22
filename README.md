@@ -12,7 +12,7 @@ aplicación web (SPA).
 ## Arquitectura
 
 - **Datos** — PostgreSQL con esquemas por módulo (`cat`, `cfg`, `rh`, `seg`, `inv`,
-  `com`, `ven`, `fin`, `fis`), integridad vía triggers/funciones y zona
+  `com`, `ven`, `fin`, `fis`, `notif`), integridad vía triggers/funciones y zona
   `America/Mexico_City`. Los scripts de `ferreteriaDB/scripts` son la fuente de verdad;
   el backend los consolida en migraciones Flyway.
 - **Backend** — API REST en `http://localhost:8080` (`/api/v1`), autenticación JWT con
@@ -56,6 +56,8 @@ observabilidad van en contenedores (`ferreteriaDB/deploy`, red `db-net`/`app-net
 | Floci consola web | sidecar `floci-ui` | 4500 | http://localhost:4500 (o vía http://localhost:4566/_floci/ui); requiere socket del motor (ver `PODMAN_SOCKET`) |
 | Backend contenerizado (opcional) | `ferreteria-backend` | 8081 | swagger/health directo; dentro de compose usa `MINIO_ENDPOINT=http://minio:9000` |
 | Frontend contenerizado (opcional) | `ferreteria-frontend` | 8080 | Nginx `:80`; solo prod/staging (choca con bootRun) |
+| RabbitMQ (notificaciones) | `ferreteria-rabbitmq` | 5672 + 15672 | AMQP (`RABBITMQ_USER/PASSWORD`) y consola mgmt http://localhost:15672 |
+| Mailpit (email dev) | `ferreteria-mailpit` | 1025 + 8025 | SMTP de mentira; bandeja en http://localhost:8025 |
 
 Notas:
 - Proveedor de fotos (`STORAGE_PROVEEDOR=minio|floci`, default `minio`):
@@ -80,6 +82,30 @@ Notas:
   públicos para el front; el backend (firmado) no se ve afectado.
 - La imagen de subida requiere imagen `quay.io/minio/minio` (Docker Hub
   rechaza el pull del tag fijado en el compose).
+
+## Notificaciones (ticket PDF / nómina pagada)
+
+- **Flujo** — `checkout`/`pagar` publican eventos de dominio (`VentaCreadaEvent`,
+  `NominaPagadaEvent`; los dominios no dependen del módulo `notif`). El hook
+  `AFTER_COMMIT` crea el job en `notif.notificacion_jobs` y lo procesa en tx
+  propia (`REQUIRES_NEW`): genera el PDF (OpenPDF, datos solo de BD), lo sube al
+  bucket (`tickets/`/`nominas/`, proveedor `minio|floci`), refleja la clave en
+  `ven.ventas.pdf_url`, publica en el exchange `ferreteria.events` y el consumer
+  envía por **email** (adjunto) / **Telegram** (`sendDocument`, si hay token+chat) /
+  **WhatsApp** (stub no-op con log hasta contratar proveedor). Destinatario venta =
+  `Cliente.email/whatsapp`; nómina = `rh.empleados.email/whatsapp` (columna V21).
+  Fallos → job en `ERROR` + reconciler cada 30 s (cola durable + DLQ
+  `notificacion.jobs.dlq`).
+- **Endpoint** — `GET /api/v1/ventas/{id}/ticket.pdf` (`application/pdf`, mismos
+  roles de lectura que ventas).
+- **Activación** — `APP_NOTIF_ENABLED=true` (compose lo trae; en `bootRun` local
+  default `false`: los jobs quedan `PENDIENTE` y se procesan al habilitar).
+  Vars: `RABBITMQ_*`, `NOTIF_MAX_INTENTOS`, `MAIL_HOST/PORT` (dev: Mailpit),
+  `TELEGRAM_BOT_TOKEN/CHAT_ID`, `WHATSAPP_ENABLED=false`.
+- **BD existentes** — Flyway va deshabilitado en la app, así que un volumen con
+  esquema viejo no se migra solo: aplicar en orden los deltas idempotentes de
+  `ferreteriaDB/migrations/` (p. ej. `delta_ventas_motivo_cancelacion.sql`,
+  `delta_notificacion_jobs.sql`) con superusuario.
 
 ## Observabilidad (OTel + Prometheus)
 

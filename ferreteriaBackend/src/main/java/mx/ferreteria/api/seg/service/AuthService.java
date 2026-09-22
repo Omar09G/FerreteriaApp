@@ -66,7 +66,7 @@ public class AuthService {
     public RegisterResponse register(RegisterRequest req) {
         int empleadoId = empleados.create(new EmpleadoGateway.EmpleadoDatos(req.puestoId(),
                 req.nombre(), req.apellidoPaterno(), req.apellidoMaterno(), null, null,
-                req.telefono(), req.email(), null, null, null, null, ZonaHoraria.hoy(),
+                req.telefono(), null, req.email(), null, null, null, null, ZonaHoraria.hoy(),
                 java.math.BigDecimal.ZERO, null));
         int usuarioId = admin.createUsuario(req.username(), req.email(),
                 passwordEncoder.encode(req.password()), empleadoId, true);

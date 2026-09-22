@@ -51,6 +51,12 @@ dependencies {
     // JPEG/PNG se decodifican con el ImageIO estándar; todo se normaliza
     // a JPEG optimizado en OptimizadorImagen.
     implementation("org.sejda.imageio:webp-imageio:0.1.6")
+    // PDFs de ticket/nómina (OpenPDF, fork mantenida de iText 2.x, AGPL).
+    implementation("com.github.librepdf:openpdf:1.3.43")
+    // RabbitMQ: publisher/consumer de notificaciones (seam async).
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
+    // Email transaccional (dev: Mailpit; prod: SMTP real).
+    implementation("org.springframework.boot:spring-boot-starter-mail")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

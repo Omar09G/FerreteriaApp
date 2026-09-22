@@ -86,6 +86,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       # BD vía PgBouncer
       PG_HOST: ${PG_HOST:-pgbouncer}
@@ -142,6 +144,26 @@ services:
       FLOCI_ACCESS_KEY: ${FLOCI_ACCESS_KEY:-test}
       FLOCI_SECRET_KEY: ${FLOCI_SECRET_KEY:-test}
       FLOCI_BUCKET: ${FLOCI_BUCKET:-ferreteria-fotos}
+      # RabbitMQ (notificaciones async: ticket PDF / nómina pagada). En local
+      # fuera de compose el backend usa localhost:5672 con APP_NOTIF_ENABLED=false
+      # (no conecta al broker; los jobs quedan PENDIENTE hasta habilitar).
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USER: ${RABBITMQ_USER:-ferreteria}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Define RABBITMQ_PASSWORD en .env}
+      APP_NOTIF_ENABLED: ${APP_NOTIF_ENABLED:-true}
+      NOTIF_MAX_INTENTOS: ${NOTIF_MAX_INTENTOS:-5}
+      # Email transaccional: dev = Mailpit (este compose); prod = SMTP real.
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # Telegram: vacío = solo email + stub WhatsApp. Con token+chat el
+      # consumer adjunta el PDF vía sendDocument.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      # WhatsApp: stub no-op (solo log) hasta contratar proveedor real.
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
       # ─── OpenTelemetry (Java agent) ─────────────────────────────────
       OTEL_SERVICE_NAME: ferreteria-backend
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=docker,service.namespace=ferreteria"
@@ -546,6 +568,51 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
+  # =================================================================
+  # RabbitMQ — broker de notificaciones (ticket PDF / nómina pagada).
+  # Exchange topic ferreteria.events + cola durable notificacion.jobs + DLQ.
+  # Consola management: http://localhost:15672 (RABBITMQ_USER/PASSWORD).
+  # =================================================================
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:-rabbitmq:4-management}
+    container_name: ferreteria-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-ferreteria}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Define RABBITMQ_PASSWORD en .env}
+    ports:
+      - "${RABBITMQ_HOST_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    mem_limit: 512m
+    cpus: 1.0
+
+  # =================================================================
+  # Mailpit — SMTP de mentira para dev: atrapa los emails transaccionales
+  # (tickets, recibos) sin enviar nada real. Bandeja web: http://localhost:8025.
+  # El backend NO depende de él al arrancar (JavaMail conecta perezoso).
+  # =================================================================
+  mailpit:
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.27}
+    container_name: ferreteria-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - app-net
+    mem_limit: 128m
+    cpus: 0.5
+
 networks:
   # Red para DB: postgres + pgbouncer + replica. Aislada.
   db-net:
@@ -563,6 +630,7 @@ networks:
 volumes:
   minio_data:
   floci_data:
+  rabbitmq_data:
   pg_data_primary:
   pg_data_replica:
   # pgBackRest repo — PITR (DB-ESC-008). Descomentar cuando se habilite pgBackRest:

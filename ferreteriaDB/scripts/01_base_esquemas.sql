@@ -49,6 +49,7 @@ CREATE SCHEMA IF NOT EXISTS com;   -- compras
 CREATE SCHEMA IF NOT EXISTS ven;   -- ventas
 CREATE SCHEMA IF NOT EXISTS fin;   -- finanzas / caja
 CREATE SCHEMA IF NOT EXISTS fis;   -- fiscal (catálogos SAT e impuestos)
+CREATE SCHEMA IF NOT EXISTS notif; -- notificaciones (jobs ticket/nómina)
 
 -- ----------------------------------------------------------------------------
 -- 4. Extensiones
