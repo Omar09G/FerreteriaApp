@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,6 +34,7 @@ import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.rh.dto.EmpleadoDtos.EmpleadoResumen;
 import mx.ferreteria.api.rh.service.EmpleadoGateway;
+import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisoRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.PermisosRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.RolRequest;
 import mx.ferreteria.api.seg.dto.SegAdminDtos.RolUpdateRequest;
@@ -413,5 +415,386 @@ class SegAdminServiceTest {
                 .isInstanceOfSatisfying(ReglaNegocioException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REFERENCIA_INVALIDA));
         verify(gateway, never()).reemplazarRoles(anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("crearUsuarioConRoles con roles null -> reemplaza con conjunto vacio")
+    void crearUsuarioConRoles_rolesNull_limpia() {
+        when(gateway.createUsuario(anyString(), anyString(), anyString(), any(), anyBoolean()))
+                .thenReturn(11);
+
+        int id = service.crearUsuarioConRoles("juan", "juan@x.mx", "Secreta123", 42, null);
+
+        assertThat(id).isEqualTo(11);
+        verify(gateway).reemplazarRoles(11, Set.of());
+    }
+
+    @Test
+    @DisplayName("createUsuario: si el creado no se recupera -> 500 ERROR_INTERNO")
+    void createUsuario_noRecuperado_errorInterno() {
+        when(gateway.createUsuario(eq("nuevo01"), anyString(), anyString(), any(), anyBoolean()))
+                .thenReturn(11);
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.createUsuario(new UsuarioCreateRequest(
+                "nuevo01", "nuevo01@x.mx", "Secreta123", null, List.of())))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.ERROR_INTERNO));
+        verify(gateway, never()).reemplazarRoles(anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("createUsuario: segunda lectura vacia usa el row ya creado (fallback)")
+    void createUsuario_segundaLecturaVacia_usaCreado() {
+        stubRolValido();
+        when(gateway.createUsuario(anyString(), anyString(), anyString(), any(), anyBoolean()))
+                .thenReturn(11);
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1), Optional.empty());
+        when(auth.rolesOf(11)).thenReturn(List.of("VENDEDOR"));
+
+        var r = service.createUsuario(new UsuarioCreateRequest(
+                "nuevo01", "nuevo01@x.mx", "Secreta123", null, List.of("VENDEDOR")));
+
+        assertThat(r.usuarioId()).isEqualTo(11);
+        assertThat(r.roles()).containsExactly("VENDEDOR");
+    }
+
+    @Test
+    @DisplayName("getUsuario existente: resuelve roles y resumen de empleado")
+    void getUsuario_ok_conEmpleadoYRoles() {
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
+        when(auth.rolesOf(11)).thenReturn(List.of("VENDEDOR"));
+        when(empleados.resumenById(42)).thenReturn(Optional.of(EMPLEADO_ACTIVO));
+
+        var r = service.getUsuario(11);
+
+        assertThat(r.username()).isEqualTo("cajero1");
+        assertThat(r.roles()).containsExactly("VENDEDOR");
+        assertThat(r.empleado().nombreCompleto()).isEqualTo("Juan Pérez");
+    }
+
+    @Test
+    @DisplayName("usuario inexistente en update/resetPassword/setRoles/delete -> 404")
+    void usuarioInexistente_operaciones_404() {
+        when(gateway.findUsuarioById(404)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateUsuario(404,
+                new UsuarioUpdateRequest(null, null, null, null)))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        assertThatThrownBy(() -> service.resetPassword(404, new UsuarioPasswordRequest("NuevaClave99")))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        assertThatThrownBy(() -> service.setRoles(404, new UsuarioRolesRequest(List.of())))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        assertThatThrownBy(() -> service.deleteUsuario(404))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        verify(gateway, never()).borrarUsuario(anyInt());
+        verify(gateway, never()).actualizarPassword(anyInt(), anyString());
+    }
+
+    @Test
+    @DisplayName("updateUsuario con empleado inconsistente/inexistente/inactivo -> 400 sin parchear")
+    void updateUsuario_empleadoInvalido_rejected() {
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
+        when(empleados.resumenById(42)).thenReturn(Optional.of(EMPLEADO_ACTIVO));
+
+        assertThatThrownBy(() -> service.updateUsuario(11,
+                new UsuarioUpdateRequest(null, "otro@x.mx", 42, null)))
+                .isInstanceOfSatisfying(
+                        mx.ferreteria.api.common.error.ValidacionException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.VALOR_INVALIDO));
+
+        when(empleados.resumenById(999)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.updateUsuario(11,
+                new UsuarioUpdateRequest(null, null, 999, null)))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REFERENCIA_INVALIDA));
+
+        var inactivo = new EmpleadoResumen(42, "Juan", "Vendedor", null, null, false, null);
+        when(empleados.resumenById(42)).thenReturn(Optional.of(inactivo));
+        assertThatThrownBy(() -> service.updateUsuario(11,
+                new UsuarioUpdateRequest(null, null, 42, null)))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REFERENCIA_INVALIDA));
+
+        verify(gateway, never()).updateUsuarioBasico(anyInt(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("updateUsuario con empleado valido: parchea y devuelve resumen")
+    void updateUsuario_ok_conEmpleado() {
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
+        when(empleados.resumenById(42)).thenReturn(Optional.of(EMPLEADO_ACTIVO));
+        when(auth.rolesOf(11)).thenReturn(List.of("VENDEDOR"));
+
+        var r = service.updateUsuario(11,
+                new UsuarioUpdateRequest("cajero1", "cajero1@x.mx", 42, true));
+
+        verify(gateway).updateUsuarioBasico(11, "cajero1", "cajero1@x.mx", 42, true);
+        assertThat(r.empleado().nombreCompleto()).isEqualTo("Juan Pérez");
+    }
+
+    @Test
+    @DisplayName("setRoles con rol inexistente -> 400 sin reemplazar; roles null limpia")
+    void setRoles_invalidoYNull() {
+        stubRolValido();
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
+        when(auth.rolesOf(11)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.setRoles(11,
+                new UsuarioRolesRequest(List.of("ROLE_FANTASMA"))))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REFERENCIA_INVALIDA));
+        verify(gateway, never()).reemplazarRoles(anyInt(), any());
+
+        service.setRoles(11, new UsuarioRolesRequest(null));
+        verify(gateway).reemplazarRoles(11, Set.of());
+    }
+
+    @Test
+    @DisplayName("listUsuarios vacia: no consulta empleados y pagina en cero")
+    void listUsuarios_vacia_sinBatchEmpleados() {
+        when(gateway.findUsuarios(20, 0)).thenReturn(List.of());
+        when(gateway.countUsuarios()).thenReturn(0L);
+
+        var page = service.listUsuarios(PageRequest.of(0, 20));
+
+        assertThat(page.getContent()).isEmpty();
+        assertThat(page.getTotalElements()).isZero();
+        verify(empleados, never()).resumenByIds(any());
+    }
+
+    @Test
+    @DisplayName("listUsuarios: roles y empleado ausentes del batch -> vacio y null")
+    void listUsuarios_batchAusente_defaults() {
+        when(gateway.findUsuarios(20, 0)).thenReturn(List.of(U1));
+        when(gateway.countUsuarios()).thenReturn(1L);
+        when(auth.rolesOfBatch(Set.of(11))).thenReturn(Map.of());
+        when(empleados.resumenByIds(Set.of(42))).thenReturn(Map.of());
+
+        var page = service.listUsuarios(PageRequest.of(0, 20));
+
+        assertThat(page.getContent().get(0).roles()).isEmpty();
+        assertThat(page.getContent().get(0).empleado()).isNull();
+    }
+
+    @Test
+    @DisplayName("listUsuarios segunda pagina: aplica offset del pageable")
+    void listUsuarios_segundaPagina_offset() {
+        when(gateway.findUsuarios(20, 20)).thenReturn(List.of());
+        when(gateway.countUsuarios()).thenReturn(0L);
+
+        var page = service.listUsuarios(PageRequest.of(1, 20));
+
+        assertThat(page.getContent()).isEmpty();
+        verify(gateway).findUsuarios(20, 20);
+    }
+
+    @Test
+    @DisplayName("vinculo empleado: casos borde (sin email, null/null, case-insensitive)")
+    void vinculoEmpleado_casosBorde() {
+        stubRolValido();
+        var sinEmail = new EmpleadoResumen(42, "Juan Pérez", "Vendedor", null, null, true, null);
+        when(empleados.resumenById(42)).thenReturn(Optional.of(sinEmail));
+        when(gateway.createUsuario(anyString(), any(), anyString(), any(), anyBoolean()))
+                .thenReturn(11);
+        when(gateway.findUsuarioById(11)).thenReturn(Optional.of(U1));
+        when(auth.rolesOf(11)).thenReturn(List.of());
+
+        service.createUsuario(new UsuarioCreateRequest("a", "a@x.mx", "Secreta123", 42, List.of()));
+        verify(gateway).createUsuario(eq("a"), eq("a@x.mx"), anyString(), eq(42), eq(true));
+
+        service.createUsuario(new UsuarioCreateRequest("b", null, "Secreta123", 42, List.of()));
+        verify(gateway).createUsuario(eq("b"), isNull(), anyString(), eq(42), eq(true));
+
+        when(empleados.resumenById(43)).thenReturn(Optional.of(
+                new EmpleadoResumen(43, "Ana", "Cajera", "Ana@X.mx", null, true, null)));
+        service.createUsuario(new UsuarioCreateRequest("c", "ana@x.mx", "Secreta123", 43, List.of()));
+        verify(gateway).createUsuario(eq("c"), eq("ana@x.mx"), anyString(), eq(43), eq(true));
+    }
+
+    @Test
+    @DisplayName("listRoles: pagina con permisos batch sin N+1; vacia retorna cero")
+    void listRoles_paginaConPermisosBatch() {
+        var r5 = new SegAdminGateway.RolRow(5, "SUPERVISOR", "Supervisor", null, true);
+        var r6 = new SegAdminGateway.RolRow(6, "CAJERO", "Cajero", "desc", false);
+        when(gateway.findRoles(20, 0)).thenReturn(List.of(r5, r6));
+        when(gateway.permisosDeBatch(Set.of(5, 6)))
+                .thenReturn(Map.of(5, List.of("V.VENDER"), 6, List.of()));
+        when(gateway.countRoles()).thenReturn(2L);
+
+        var page = service.listRoles(PageRequest.of(0, 20));
+
+        assertThat(page.getContent()).hasSize(2);
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent().get(0).permisos()).containsExactly("V.VENDER");
+        assertThat(page.getContent().get(1).permisos()).isEmpty();
+        verify(gateway, never()).permisosDe(anyInt());
+
+        when(gateway.findRoles(10, 0)).thenReturn(List.of());
+        when(gateway.countRoles()).thenReturn(0L);
+        assertThat(service.listRoles(PageRequest.of(0, 10)).getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getRol existente: resuelve permisos")
+    void getRol_ok() {
+        when(gateway.findRolById(5)).thenReturn(Optional.of(
+                new SegAdminGateway.RolRow(5, "SUPERVISOR", "Supervisor", null, true)));
+        when(gateway.permisosDe(5)).thenReturn(List.of("V.VENDER"));
+
+        var r = service.getRol(5);
+
+        assertThat(r.clave()).isEqualTo("SUPERVISOR");
+        assertThat(r.permisos()).containsExactly("V.VENDER");
+    }
+
+    @Test
+    @DisplayName("createRol con activo=false respeta el flag")
+    void createRol_activoFalse() {
+        when(gateway.createRol("CAJERO", "Cajero", "desc", false)).thenReturn(6);
+        when(gateway.findRolById(6)).thenReturn(Optional.of(
+                new SegAdminGateway.RolRow(6, "CAJERO", "Cajero", "desc", false)));
+        when(gateway.permisosDe(6)).thenReturn(List.of());
+
+        var r = service.createRol(new RolRequest("CAJERO", "Cajero", "desc", false));
+
+        assertThat(r.activo()).isFalse();
+        verify(gateway).createRol("CAJERO", "Cajero", "desc", false);
+    }
+
+    @Test
+    @DisplayName("rol inexistente en update/delete -> 404 sin efectos")
+    void rolInexistente_updateDelete_404() {
+        when(gateway.findRolById(404)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateRol(404, new RolUpdateRequest("x", null, null)))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        assertThatThrownBy(() -> service.deleteRol(404))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        verify(gateway, never()).desactivarRol(anyInt());
+        verify(gateway, never()).updateRol(anyInt(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("getPermisosDe: lista permisos; rol inexistente -> 404")
+    void getPermisosDe_okY404() {
+        when(gateway.findRolById(5)).thenReturn(Optional.of(
+                new SegAdminGateway.RolRow(5, "SUPERVISOR", "Supervisor", null, true)));
+        when(gateway.permisosDe(5)).thenReturn(List.of("V.VENDER", "V.CANCELAR"));
+
+        assertThat(service.getPermisosDe(5)).containsExactly("V.VENDER", "V.CANCELAR");
+
+        when(gateway.findRolById(404)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.getPermisosDe(404))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+    }
+
+    @Test
+    @DisplayName("setPermisos con rol inexistente -> 404 sin reemplazar")
+    void setPermisos_rolInexistente_404() {
+        when(gateway.findRolById(404)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.setPermisos(404, new PermisosRequest(List.of("V.VENDER"))))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        verify(gateway, never()).reemplazarPermisos(anyInt(), any());
+    }
+
+    @Test
+    @DisplayName("setPermisos con null limpia; duplicados se colapsan")
+    void setPermisos_nullYDedup() {
+        when(gateway.findRolById(5)).thenReturn(Optional.of(
+                new SegAdminGateway.RolRow(5, "SUPERVISOR", "Supervisor", null, true)));
+        when(gateway.permisoClaves()).thenReturn(Set.of("V.VENDER"));
+        when(gateway.permisosDe(5)).thenReturn(List.of());
+
+        assertThat(service.setPermisos(5, new PermisosRequest(null))).isEmpty();
+        verify(gateway).reemplazarPermisos(5, Set.of());
+
+        when(gateway.permisosDe(5)).thenReturn(List.of("V.VENDER"));
+        assertThat(service.setPermisos(5,
+                new PermisosRequest(List.of("V.VENDER", "V.VENDER"))))
+                .containsExactly("V.VENDER");
+        verify(gateway).reemplazarPermisos(5, Set.of("V.VENDER"));
+    }
+
+    @Test
+    @DisplayName("createPermiso: crea y devuelve; clave duplicada -> 409")
+    void createPermiso_okYDuplicado() {
+        when(gateway.findPermisoByClave("V.NUEVO")).thenReturn(Optional.empty());
+        when(gateway.createPermiso("V.NUEVO", "Desc")).thenReturn(7);
+        when(gateway.findPermisoById(7)).thenReturn(Optional.of(
+                new SegAdminGateway.PermisoRow(7, "V.NUEVO", "Desc")));
+
+        var r = service.createPermiso(new PermisoRequest("V.NUEVO", "Desc"));
+        assertThat(r.permisoId()).isEqualTo(7);
+        assertThat(r.clave()).isEqualTo("V.NUEVO");
+
+        when(gateway.findPermisoByClave("V.VENDER")).thenReturn(Optional.of(
+                new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas")));
+        assertThatThrownBy(() -> service.createPermiso(new PermisoRequest("V.VENDER", "x")))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REGISTRO_DUPLICADO));
+        verify(gateway, never()).createPermiso(eq("V.VENDER"), anyString());
+    }
+
+    @Test
+    @DisplayName("updatePermiso: misma clave del propio permiso no es duplicado")
+    void updatePermiso_mismaClave_ok() {
+        var p = new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas");
+        when(gateway.findPermisoById(1)).thenReturn(Optional.of(p));
+        when(gateway.findPermisoByClave("V.VENDER")).thenReturn(Optional.of(p));
+
+        var r = service.updatePermiso(1, new PermisoRequest("V.VENDER", "Nueva desc"));
+
+        verify(gateway).updatePermiso(1, "V.VENDER", "Nueva desc");
+        assertThat(r.permisoId()).isEqualTo(1);
+        assertThat(r.clave()).isEqualTo("V.VENDER");
+    }
+
+    @Test
+    @DisplayName("updatePermiso inexistente -> 404; clave de otro -> 409")
+    void updatePermiso_404YDuplicado() {
+        when(gateway.findPermisoById(404)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.updatePermiso(404, new PermisoRequest("V.X", "x")))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+
+        when(gateway.findPermisoById(1)).thenReturn(Optional.of(
+                new SegAdminGateway.PermisoRow(1, "V.VENDER", "Registrar ventas")));
+        when(gateway.findPermisoByClave("V.CANCELAR")).thenReturn(Optional.of(
+                new SegAdminGateway.PermisoRow(2, "V.CANCELAR", "Cancelar ventas")));
+        assertThatThrownBy(() -> service.updatePermiso(1, new PermisoRequest("V.CANCELAR", "x")))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.REGISTRO_DUPLICADO));
+        verify(gateway, never()).updatePermiso(anyInt(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("deletePermiso inexistente -> 404 sin borrar")
+    void deletePermiso_inexistente_404() {
+        when(gateway.findPermisoById(404)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deletePermiso(404))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
+        verify(gateway, never()).deletePermiso(anyInt());
+    }
+
+    @Test
+    @DisplayName("getPermiso inexistente -> 404 RECURSO_NO_ENCONTRADO")
+    void getPermiso_inexistente_codigo() {
+        when(gateway.findPermisoById(404)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getPermiso(404))
+                .isInstanceOfSatisfying(ReglaNegocioException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO));
     }
 }

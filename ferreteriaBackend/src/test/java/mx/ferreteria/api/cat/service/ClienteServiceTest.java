@@ -3,6 +3,7 @@ package mx.ferreteria.api.cat.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,7 +37,7 @@ class ClienteServiceTest {
     mx.ferreteria.api.cat.repo.CiudadRepository ciudadRepo;
 
     @Mock
-    mx.ferreteria.api.ven.repo.LineaCreditoRepository lineaRepo;
+    mx.ferreteria.api.cat.service.CreditoPort creditoPort;
 
     @InjectMocks
     ClienteService service;
@@ -128,6 +129,20 @@ class ClienteServiceTest {
         assertThat(resp.clienteId()).isEqualTo(10L);
         assertThat(resp.razonSocial()).isEqualTo("Nuevo Cliente");
         verify(repo).save(any(Cliente.class));
+    }
+
+    @Test
+    @DisplayName("create: sincroniza línea de crédito vía puerto")
+    void create_sincronizaLinea() {
+        ClienteRequest req = new ClienteRequest("MORAL", "Nuevo Cliente", null,
+                "NCC850101ABC", null, "55112233", null, "nuevo@test.com",
+                null, null, null, null,
+                new BigDecimal("50000.00"), 15, true, null);
+        when(repo.save(any(Cliente.class))).thenReturn(sampleCliente(10L, "Nuevo Cliente"));
+
+        service.create(req);
+
+        verify(creditoPort).sincronizarLinea(eq(10L), eq(new BigDecimal("50000.00")), eq(30));
     }
 
     // ── update ──────────────────────────────────────────────────────

@@ -5,12 +5,12 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -37,6 +37,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
  * lectura) de forma perezosa en la primera subida.
  */
 @Service
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.storage.proveedor", havingValue = "floci")
 public class FlociFotoStorageService implements FotoStoragePort {
 
@@ -47,17 +48,6 @@ public class FlociFotoStorageService implements FotoStoragePort {
     private String ambiente;
 
     private volatile S3Client cliente;
-
-    @Autowired
-    public FlociFotoStorageService(FlociStorageProperties props) {
-        this(props, null);
-    }
-
-    /** Constructor para tests: permite inyectar un S3Client mockeado. */
-    FlociFotoStorageService(FlociStorageProperties props, S3Client cliente) {
-        this.props = props;
-        this.cliente = cliente;
-    }
 
     @PostConstruct
     void validarAmbiente() {

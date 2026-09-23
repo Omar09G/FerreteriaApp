@@ -39,7 +39,8 @@ class FlociFotoStorageServiceTest {
     }
 
     private static FlociFotoStorageService servicio(S3Client s3) {
-        FlociFotoStorageService service = new FlociFotoStorageService(props(), s3);
+        FlociFotoStorageService service = new FlociFotoStorageService(props());
+        ReflectionTestUtils.setField(service, "cliente", s3);
         ReflectionTestUtils.setField(service, "ambiente", "dev");
         return service;
     }
@@ -116,7 +117,8 @@ class FlociFotoStorageServiceTest {
     @DisplayName("prod exige URL pública HTTPS igual que el impl MinIO")
     void prodExigeHttps() {
         S3Client s3 = mock(S3Client.class);
-        FlociFotoStorageService service = new FlociFotoStorageService(props(), s3);
+        FlociFotoStorageService service = new FlociFotoStorageService(props());
+        ReflectionTestUtils.setField(service, "cliente", s3);
         ReflectionTestUtils.setField(service, "ambiente", "prod");
         assertThatThrownBy(service::validarAmbiente)
                 .isInstanceOf(IllegalStateException.class);

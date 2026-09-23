@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import mx.ferreteria.api.cat.entity.FormaPago;
 import mx.ferreteria.api.cat.entity.Producto;
@@ -466,5 +468,442 @@ class CompraServiceTest {
         org.mockito.Mockito.verifyNoInteractions(cajaService);
         verify(em).createNativeQuery(
                 org.mockito.ArgumentMatchers.contains("INSERT INTO com.pagos_proveedor"));
+    }
+
+    // ── list: resto de filtros ────────────────────────────────────
+
+    @Test
+    @DisplayName("list: filtra por almacen + rango de fechas")
+    void list_byAlmacenYFechas() {
+        Pageable pg = PageRequest.of(0, 20);
+        LocalDate desde = LocalDate.now().minusDays(30);
+        LocalDate hasta = LocalDate.now();
+        Compra c = sampleCompra(1L);
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByAlmacenIdAndFechaLocalBetweenOrderByFechaDesc(
+                        eq(1), eq(desde), eq(hasta), org.mockito.ArgumentMatchers.any(Pageable.class));
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var result = service.list(1, null, desde, hasta, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).folio()).isEqualTo("COMPRA-0001");
+    }
+
+    @Test
+    @DisplayName("list: filtra por proveedor")
+    void list_byProveedor() {
+        Pageable pg = PageRequest.of(0, 20);
+        Compra c = sampleCompra(1L);
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByProveedorIdOrderByFechaDesc(
+                        eq(1), org.mockito.ArgumentMatchers.any(Pageable.class));
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var result = service.list(null, 1, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).proveedor()).isEqualTo("Ferritas SA");
+    }
+
+    @Test
+    @DisplayName("list: filtra por rango de fechas")
+    void list_byFechas() {
+        Pageable pg = PageRequest.of(0, 20);
+        LocalDate desde = LocalDate.now().minusDays(30);
+        LocalDate hasta = LocalDate.now();
+        Compra c = sampleCompra(1L);
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByFechaLocalBetweenOrderByFechaDesc(
+                        eq(desde), eq(hasta), org.mockito.ArgumentMatchers.any(Pageable.class));
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var result = service.list(null, null, desde, hasta, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("list: sin filtros usa consulta general ordenada por fecha")
+    void list_sinFiltros() {
+        Pageable pg = PageRequest.of(0, 20);
+        Compra c = sampleCompra(1L);
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByOrderByFechaDesc(
+                        org.mockito.ArgumentMatchers.any(Pageable.class));
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var result = service.list(null, null, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("list: pageable ya ordenado no se normaliza")
+    void list_sortedMantieneSort() {
+        Pageable pg = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "folio"));
+        Compra c = sampleCompra(1L);
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByOrderByFechaDesc(eq(pg));
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var result = service.list(null, null, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(compraRepo).findByOrderByFechaDesc(pg);
+    }
+
+    @Test
+    @DisplayName("list: almacen + desde sin hasta ignora el rango y filtra solo por almacen")
+    void list_almacenConDesdeSinHasta() {
+        Pageable pg = PageRequest.of(0, 20);
+        LocalDate desde = LocalDate.now().minusDays(30);
+        Compra c = sampleCompra(1L);
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByAlmacenIdOrderByFechaDesc(
+                        eq(1), org.mockito.ArgumentMatchers.any(Pageable.class));
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var result = service.list(1, null, desde, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(compraRepo).findByAlmacenIdOrderByFechaDesc(
+                eq(1), org.mockito.ArgumentMatchers.any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("list: desde sin hasta ignora el rango y usa consulta general")
+    void list_desdeSinHasta() {
+        Pageable pg = PageRequest.of(0, 20);
+        LocalDate desde = LocalDate.now().minusDays(30);
+        Compra c = sampleCompra(1L);
+        doReturn(new PageImpl<>(List.of(c), pg, 1))
+                .when(compraRepo).findByOrderByFechaDesc(
+                        org.mockito.ArgumentMatchers.any(Pageable.class));
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var result = service.list(null, null, desde, null, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(compraRepo).findByOrderByFechaDesc(
+                org.mockito.ArgumentMatchers.any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("list: pagina vacia retorna vacio sin consultas extra")
+    void list_paginaVacia() {
+        Pageable pg = PageRequest.of(0, 20);
+        doReturn(new PageImpl<>(List.of(), pg, 0))
+                .when(compraRepo).findByOrderByFechaDesc(
+                        org.mockito.ArgumentMatchers.any(Pageable.class));
+
+        var result = service.list(null, null, null, null, pg);
+
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("list: pagina con varios usa ensamblador batch y tolera nombres ausentes")
+    void list_multiples_batch() {
+        Pageable pg = PageRequest.of(0, 10);
+        Compra c1 = sampleCompra(1L);
+        Compra c2 = sampleCompra(2L);
+        c2.setProveedorId(2);
+        c2.setAlmacenId(2);
+        c2.setFormaPagoId(2);
+        Compra c3 = sampleCompra(3L);
+        doReturn(new PageImpl<>(List.of(c1, c2, c3), pg, 3))
+                .when(compraRepo).findByOrderByFechaDesc(
+                        org.mockito.ArgumentMatchers.any(Pageable.class));
+        doReturn(List.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findAllById(org.mockito.ArgumentMatchers.any());
+        doReturn(List.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findAllById(org.mockito.ArgumentMatchers.any());
+        doReturn(List.of(FormaPago.builder().formaPagoId(1).nombre("Contado").build()))
+                .when(formaPagoRepo).findAllById(org.mockito.ArgumentMatchers.any());
+        CompraDetalle d2 = CompraDetalle.builder().compraDetalleId(2L)
+                .compraId(2L).productoId(99L)
+                .cantidad(new BigDecimal("2.000"))
+                .costoUnitario(new BigDecimal("50.00"))
+                .importeLinea(new BigDecimal("100.00")).build();
+        doReturn(List.of(sampleDetalle(1L), d2))
+                .when(detalleRepo).findByCompraIdIn(org.mockito.ArgumentMatchers.any());
+        doReturn(List.of(Producto.builder().productoId(10L).nombre("Taladro").build()))
+                .when(productoRepo).findAllById(org.mockito.ArgumentMatchers.any());
+
+        var result = service.list(null, null, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(3);
+        assertThat(result.getContent().get(0).proveedor()).isEqualTo("Ferritas SA");
+        assertThat(result.getContent().get(0).almacen()).isEqualTo("Bodega Central");
+        assertThat(result.getContent().get(0).formaPago()).isEqualTo("Contado");
+        assertThat(result.getContent().get(0).detalles()).hasSize(1);
+        assertThat(result.getContent().get(0).detalles().get(0).producto()).isEqualTo("Taladro");
+        // c2: ids desconocidos -> nombres nulos, producto desconocido -> nulo
+        assertThat(result.getContent().get(1).proveedor()).isNull();
+        assertThat(result.getContent().get(1).almacen()).isNull();
+        assertThat(result.getContent().get(1).formaPago()).isNull();
+        assertThat(result.getContent().get(1).detalles()).hasSize(1);
+        assertThat(result.getContent().get(1).detalles().get(0).producto()).isNull();
+        // c3: sin detalles -> lista vacia
+        assertThat(result.getContent().get(2).detalles()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("list: batch sin detalles no consulta productos")
+    void list_batchSinDetalles() {
+        Pageable pg = PageRequest.of(0, 10);
+        doReturn(new PageImpl<>(List.of(sampleCompra(1L), sampleCompra(2L)), pg, 2))
+                .when(compraRepo).findByOrderByFechaDesc(
+                        org.mockito.ArgumentMatchers.any(Pageable.class));
+        doReturn(List.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findAllById(org.mockito.ArgumentMatchers.any());
+        doReturn(List.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findAllById(org.mockito.ArgumentMatchers.any());
+        doReturn(List.of(FormaPago.builder().formaPagoId(1).nombre("Contado").build()))
+                .when(formaPagoRepo).findAllById(org.mockito.ArgumentMatchers.any());
+        doReturn(List.of()).when(detalleRepo).findByCompraIdIn(org.mockito.ArgumentMatchers.any());
+
+        var result = service.list(null, null, null, null, pg);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).detalles()).isEmpty();
+        assertThat(result.getContent().get(1).detalles()).isEmpty();
+        org.mockito.Mockito.verifyNoInteractions(productoRepo);
+    }
+
+    // ── getById: ruta exitosa ─────────────────────────────────────
+
+    @Test
+    @DisplayName("getById: retorna compra con nombres y detalles")
+    void getById_found() {
+        doReturn(Optional.of(sampleCompra(1L))).when(compraRepo).findById(1L);
+        stubNombres();
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+
+        var resp = service.getById(1L);
+
+        assertThat(resp.compraId()).isEqualTo(1L);
+        assertThat(resp.folio()).isEqualTo("COMPRA-0001");
+        assertThat(resp.proveedor()).isEqualTo("Ferritas SA");
+        assertThat(resp.almacen()).isEqualTo("Bodega Central");
+        assertThat(resp.detalles()).hasSize(1);
+        assertThat(resp.detalles().get(0).producto()).isEqualTo("Taladro");
+    }
+
+    @Test
+    @DisplayName("getById: tolera nombres ausentes con nulos")
+    void getById_nombresAusentes() {
+        Compra c = sampleCompra(1L);
+        c.setProveedorId(9);
+        c.setAlmacenId(9);
+        c.setFormaPagoId(9);
+        doReturn(Optional.of(c)).when(compraRepo).findById(1L);
+        doReturn(Optional.empty()).when(proveedorRepo).findById(9);
+        doReturn(Optional.empty()).when(almacenRepo).findById(9);
+        doReturn(Optional.empty()).when(formaPagoRepo).findById(9);
+        CompraDetalle d = sampleDetalle(1L);
+        d.setProductoId(99L);
+        doReturn(List.of(d)).when(detalleRepo).findByCompraIdOrderByCompraDetalleId(1L);
+        doReturn(Optional.empty()).when(productoRepo).findById(99L);
+
+        var resp = service.getById(1L);
+
+        assertThat(resp.proveedor()).isNull();
+        assertThat(resp.almacen()).isNull();
+        assertThat(resp.formaPago()).isNull();
+        assertThat(resp.detalles().get(0).producto()).isNull();
+    }
+
+    // ── create: errores restantes ─────────────────────────────────
+
+    @Test
+    @DisplayName("create: almacen inexistente -> RecursoNoEncontradoException")
+    void create_almacenInvalido() {
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.empty()).when(almacenRepo).findById(1);
+
+        CompraRequest req = new CompraRequest(
+                1, 1, 1, null, null, null, null,
+                List.of(new CompraDetalleRequest(10L, new BigDecimal("1.000"),
+                        new BigDecimal("10.00"))));
+
+        assertThatThrownBy(() -> service.create(req))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
+    @Test
+    @DisplayName("create: forma de pago inexistente -> RecursoNoEncontradoException")
+    void create_formaPagoInvalida() {
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findById(1);
+        doReturn(Optional.empty()).when(formaPagoRepo).findById(99);
+
+        CompraRequest req = new CompraRequest(
+                1, 1, 99, null, null, null, null,
+                List.of(new CompraDetalleRequest(10L, new BigDecimal("1.000"),
+                        new BigDecimal("10.00"))));
+
+        assertThatThrownBy(() -> service.create(req))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
+    @Test
+    @DisplayName("create: si la relectura falla usa la entidad guardada")
+    void create_refreshFallback() {
+        Compra saved = sampleCompra(52L);
+        doReturn(Optional.of(Proveedor.builder().proveedorId(1).razonSocial("Ferritas SA").build()))
+                .when(proveedorRepo).findById(1);
+        doReturn(Optional.of(Almacen.builder().almacenId(1).nombre("Bodega Central").build()))
+                .when(almacenRepo).findById(1);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(6).nombre("Crédito").clave("CREDITO").build()))
+                .when(formaPagoRepo).findById(6);
+        doReturn(saved).when(compraRepo).save(any(Compra.class));
+        doReturn(Optional.empty()).when(compraRepo).findById(52L);
+        doReturn(List.of(sampleDetalle(1L)))
+                .when(detalleRepo).findByCompraIdOrderByCompraDetalleId(52L);
+
+        CompraRequest req = new CompraRequest(
+                1, 1, 6, "F-0005", null, null, null,
+                List.of(new CompraDetalleRequest(10L, new BigDecimal("1.000"),
+                        new BigDecimal("10.00"))));
+
+        var resp = service.create(req);
+
+        assertThat(resp.compraId()).isEqualTo(52L);
+        assertThat(resp.folio()).isEqualTo("COMPRA-0001");
+        verify(compraRepo).flush();
+    }
+
+    // ── cuentasPagar: estado en blanco ────────────────────────────
+
+    @Test
+    @DisplayName("cuentasPagar: estado en blanco consulta toda la vista")
+    void cuentasPagar_estadoEnBlanco() {
+        doReturn(Collections.emptyList()).when(reportRepo).vwCuentasPagar();
+
+        assertThat(service.cuentasPagar("   ")).isEmpty();
+        verify(reportRepo).vwCuentasPagar();
+        org.mockito.Mockito.verifyNoMoreInteractions(reportRepo);
+    }
+
+    // ── abonar: ramas restantes ───────────────────────────────────
+
+    @Test
+    @DisplayName("abonar: cuenta cancelada -> ESTADO_INVALIDO")
+    void abonar_cuentaCancelada() {
+        var cancelada = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "CANCELADA", new BigDecimal("1160.00"),
+                new BigDecimal("1160.00"), BigDecimal.ZERO, 1);
+        doReturn(List.of(cancelada)).when(reportRepo).findCuentaPagoDetalle(1L);
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("10.00"), 1, 5, null);
+
+        org.assertj.core.api.Assertions.assertThat(
+                org.assertj.core.api.Assertions.catchThrowableOfType(
+                        () -> service.abonar(1L, req), ReglaNegocioException.class)
+                        .errorCode()).isEqualTo(ErrorCode.ESTADO_INVALIDO);
+    }
+
+    @Test
+    @DisplayName("abonar: monto nulo -> VALOR_INVALIDO")
+    void abonar_montoNulo() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        doReturn(List.of(inicial)).when(reportRepo).findCuentaPagoDetalle(1L);
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                null, 1, 5, null);
+
+        org.assertj.core.api.Assertions.assertThat(
+                org.assertj.core.api.Assertions.catchThrowableOfType(
+                        () -> service.abonar(1L, req), ReglaNegocioException.class)
+                        .errorCode()).isEqualTo(ErrorCode.VALOR_INVALIDO);
+    }
+
+    @Test
+    @DisplayName("abonar: forma de pago inexistente -> RecursoNoEncontradoException")
+    void abonar_formaPagoInvalida() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        doReturn(List.of(inicial)).when(reportRepo).findCuentaPagoDetalle(1L);
+        doReturn(Optional.empty()).when(formaPagoRepo).findById(99);
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("100.00"), 99, 5, null);
+
+        assertThatThrownBy(() -> service.abonar(1L, req))
+                .isInstanceOf(RecursoNoEncontradoException.class);
+    }
+
+    @Test
+    @DisplayName("abonar: referencia en blanco usa ABONO por defecto")
+    void abonar_referenciaBlank() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        var finalizada = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "LIQUIDADA", new BigDecimal("1160.00"),
+                new BigDecimal("1160.00"), BigDecimal.ZERO, 1);
+        doReturn(List.of(inicial), List.of(finalizada))
+                .when(reportRepo).findCuentaPagoDetalle(1L);
+        var q = stubInsertPagoRetornando(7L);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
+        doReturn(6L).when(cajaService).resolverTurnoAbierto(5, 1);
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("560.00"), 1, 5, "   ");
+
+        var resp = service.abonar(1L, req);
+
+        assertThat(resp.pagoProveedorId()).isEqualTo(7L);
+        verify(q).setParameter("referencia", "ABONO");
+    }
+
+    @Test
+    @DisplayName("abonar: referencia se recorta antes de guardar")
+    void abonar_referenciaTrim() {
+        var inicial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "VIGENTE", new BigDecimal("1160.00"),
+                new BigDecimal("600.00"), new BigDecimal("560.00"), 1);
+        var parcial = new mx.ferreteria.api.com.dto.ComDtos.CuentaPagoDetalle(
+                1L, "COMPRA-0001", "PARCIAL", new BigDecimal("1160.00"),
+                new BigDecimal("900.00"), new BigDecimal("260.00"), 1);
+        doReturn(List.of(inicial), List.of(parcial))
+                .when(reportRepo).findCuentaPagoDetalle(1L);
+        var q = stubInsertPagoRetornando(8L);
+        doReturn(Optional.of(FormaPago.builder().formaPagoId(1).nombre("Efectivo").clave("EFECTIVO").build()))
+                .when(formaPagoRepo).findById(1);
+        doReturn(6L).when(cajaService).resolverTurnoAbierto(5, 1);
+
+        var req = new mx.ferreteria.api.com.dto.ComDtos.PagoProveedorRequest(
+                new BigDecimal("300.00"), 1, 5, "  PAGO-1  ");
+
+        var resp = service.abonar(1L, req);
+
+        assertThat(resp.pagoProveedorId()).isEqualTo(8L);
+        verify(q).setParameter("referencia", "PAGO-1");
     }
 }

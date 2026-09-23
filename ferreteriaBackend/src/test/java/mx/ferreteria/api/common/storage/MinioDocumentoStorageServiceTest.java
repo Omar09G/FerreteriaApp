@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
@@ -43,8 +44,8 @@ class MinioDocumentoStorageServiceTest {
     void setUp() {
         service = new MinioDocumentoStorageService(
                 new MinioProperties("http://localhost:9000", "http://localhost:9000",
-                        "minioadmin", "minioadmin", "ferreteria-fotos", "ferreteria-tickets", 5),
-                s3);
+                        "minioadmin", "minioadmin", "ferreteria-fotos", "ferreteria-tickets", 5));
+        ReflectionTestUtils.setField(service, "cliente", s3);
     }
 
     @Test

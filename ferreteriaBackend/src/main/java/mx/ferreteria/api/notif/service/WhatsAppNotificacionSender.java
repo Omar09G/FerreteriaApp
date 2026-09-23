@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mx.ferreteria.api.notif.config.NotificacionProperties;
 
@@ -27,23 +28,13 @@ import mx.ferreteria.api.notif.config.NotificacionProperties;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.notif.enabled", havingValue = "true")
 public class WhatsAppNotificacionSender {
 
     private final NotificacionProperties props;
     private final WhatsAppMockBandeja bandeja;
-    private final RestClient restClient;
-
-    public WhatsAppNotificacionSender(NotificacionProperties props, WhatsAppMockBandeja bandeja) {
-        this(props, bandeja, RestClient.create());
-    }
-
-    WhatsAppNotificacionSender(NotificacionProperties props, WhatsAppMockBandeja bandeja,
-            RestClient restClient) {
-        this.props = props;
-        this.bandeja = bandeja;
-        this.restClient = restClient;
-    }
+    private RestClient restClient = RestClient.create();
 
     public void send(String telefono, String asunto, byte[] pdf) {
         NotificacionProperties.WhatsApp cfg = props.whatsapp();

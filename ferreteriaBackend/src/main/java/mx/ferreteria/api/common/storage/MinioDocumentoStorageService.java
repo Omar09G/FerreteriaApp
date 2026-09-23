@@ -2,9 +2,10 @@ package mx.ferreteria.api.common.storage;
 
 import java.net.URI;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
 
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
@@ -29,22 +30,13 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  * pública) y el backend los re-sirve o adjunta con credencial.
  */
 @Service
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.storage.proveedor", havingValue = "minio", matchIfMissing = true)
 public class MinioDocumentoStorageService implements DocumentoStoragePort {
 
     private final MinioProperties props;
 
     private volatile S3Client cliente;
-
-    @Autowired
-    public MinioDocumentoStorageService(MinioProperties props) {
-        this(props, null);
-    }
-
-    MinioDocumentoStorageService(MinioProperties props, S3Client cliente) {
-        this.props = props;
-        this.cliente = cliente;
-    }
 
     @Override
     public String subirPdf(String clave, byte[] datos) {

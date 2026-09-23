@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -55,6 +56,8 @@ class ProductoServiceTest {
     MarcaRepository marcaRepo;
     @Mock
     UnidadMedidaRepository unidadMedidaRepo;
+    @Mock
+    mx.ferreteria.api.cat.service.StockPort stockPort;
 
     @InjectMocks
     ProductoService service;
@@ -103,6 +106,54 @@ class ProductoServiceTest {
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).nombre()).isEqualTo("Taladro");
+    }
+
+    private mx.ferreteria.api.cat.repo.ProductoListado listado(Long id, String codigo, String nombre) {
+        mx.ferreteria.api.cat.repo.ProductoListado p =
+                mock(mx.ferreteria.api.cat.repo.ProductoListado.class);
+        when(p.getProductoId()).thenReturn(id);
+        when(p.getCodigo()).thenReturn(codigo);
+        when(p.getNombre()).thenReturn(nombre);
+        when(p.getCategoriaNombre()).thenReturn("Herramientas");
+        when(p.getMarcaNombre()).thenReturn("Acme");
+        when(p.getCostoActual()).thenReturn(new java.math.BigDecimal("100.00"));
+        when(p.getPrecioMenudeo()).thenReturn(new java.math.BigDecimal("150.00"));
+        when(p.getPrecioMayoreo()).thenReturn(new java.math.BigDecimal("130.00"));
+        when(p.getAplicaIva()).thenReturn(true);
+        when(p.getActivo()).thenReturn(true);
+        return p;
+    }
+
+    @Test
+    @DisplayName("list con almacen y varios: enriquece stock vía puerto en una consulta")
+    void list_conAlmacenMulti_enriqueceStock() {
+        Pageable pg = PageRequest.of(0, 10);
+        var p1 = listado(1L, "P001", "Taladro");
+        var p2 = listado(2L, "P002", "Martillo");
+        when(repo.findListadoByActivoTrue(pg)).thenReturn(new PageImpl<>(List.of(p1, p2), pg, 2));
+        when(stockPort.stockPorProductos(1, List.of(1L, 2L)))
+                .thenReturn(Map.of(1L, new java.math.BigDecimal("5")));
+
+        var result = service.list(null, null, null, null, 1, pg);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).stockActual()).isEqualTo(new java.math.BigDecimal("5"));
+        assertThat(result.getContent().get(1).stockActual()).isEqualTo(java.math.BigDecimal.ZERO);
+        verify(stockPort).stockPorProductos(1, List.of(1L, 2L));
+    }
+
+    @Test
+    @DisplayName("list con almacen y uno solo: usa consulta unitaria del puerto")
+    void list_conAlmacenUno_stockUnitario() {
+        Pageable pg = PageRequest.of(0, 10);
+        var p = listado(7L, "P007", "Pinzas");
+        when(repo.findListadoByActivoTrue(pg)).thenReturn(new PageImpl<>(List.of(p), pg, 1));
+        when(stockPort.stockDeProducto(1, 7L)).thenReturn(new java.math.BigDecimal("3"));
+
+        var result = service.list(null, null, null, null, 1, pg);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).stockActual()).isEqualTo(new java.math.BigDecimal("3"));
     }
 
     @Test

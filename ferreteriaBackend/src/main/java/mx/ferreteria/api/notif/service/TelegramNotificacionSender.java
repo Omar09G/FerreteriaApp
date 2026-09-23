@@ -9,6 +9,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mx.ferreteria.api.notif.config.NotificacionProperties;
 
@@ -18,16 +19,12 @@ import mx.ferreteria.api.notif.config.NotificacionProperties;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.notif.enabled", havingValue = "true")
 public class TelegramNotificacionSender {
 
     private final NotificacionProperties props;
-    private final RestClient restClient;
-
-    public TelegramNotificacionSender(NotificacionProperties props) {
-        this.props = props;
-        this.restClient = RestClient.create();
-    }
+    private RestClient restClient = RestClient.create();
 
     public void send(String chatId, String asunto, byte[] pdf, String clave) {
         String token = props.telegram().botToken();

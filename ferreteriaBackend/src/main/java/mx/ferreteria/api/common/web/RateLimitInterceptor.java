@@ -22,6 +22,7 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
 
@@ -56,21 +57,29 @@ import mx.ferreteria.api.common.security.UserPrincipal;
  * implementan {@code HandlerInterceptor}; marcarlas como componentes rompe los
  * slices. Por eso se instancia manualmente desde {@code RateLimitConfig}.
  */
+@RequiredArgsConstructor
 public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final RateLimitProperties props;
     private final MessageSource messages;
     private final ObjectMapper objectMapper;
-    private final Cache<String, Bucket> buckets;
+    private volatile Cache<String, Bucket> buckets;
 
-    public RateLimitInterceptor(RateLimitProperties props, MessageSource messages, ObjectMapper objectMapper) {
-        this.props = props;
-        this.messages = messages;
-        this.objectMapper = objectMapper;
-        this.buckets = Caffeine.newBuilder()
-                .maximumSize(Math.max(1L, props.cacheMaxSize()))
-                .expireAfterAccess(Duration.ofMinutes(Math.max(1L, props.cacheTtlMinutes())))
-                .build();
+    private Cache<String, Bucket> buckets() {
+        Cache<String, Bucket> actual = buckets;
+        if (actual == null) {
+            synchronized (this) {
+                actual = buckets;
+                if (actual == null) {
+                    actual = Caffeine.newBuilder()
+                            .maximumSize(Math.max(1L, props.cacheMaxSize()))
+                            .expireAfterAccess(Duration.ofMinutes(Math.max(1L, props.cacheTtlMinutes())))
+                            .build();
+                    buckets = actual;
+                }
+            }
+        }
+        return actual;
     }
 
     @Override
@@ -99,7 +108,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         RateLimitProperties.Grupo grupo = props.grupo(perfil);
         String usuarioOIp = claveDe(request);
         String clave = perfil + ":" + controllerId + ":" + usuarioOIp;
-        Bucket bucket = buckets.get(clave, k -> nuevoBucket(grupo));
+        Bucket bucket = buckets().get(clave, k -> nuevoBucket(grupo));
 
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
         response.setHeader("X-RateLimit-Limit", Integer.toString(grupo.capacity()));

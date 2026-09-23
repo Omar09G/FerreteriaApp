@@ -39,6 +39,9 @@ public class JwtService {
     private final Duration accessTtl;
     private final Duration refreshTtl;
 
+    // Constructor manual a propósito (no Lombok): valida el secret y deriva
+    // las claves en construcción (fail-fast al arrancar); JwtServiceTest lo
+    // exige con secrets inválidos.
     public JwtService(JwtProperties props) {
         byte[] secret = props.secret().getBytes(StandardCharsets.UTF_8);
         if (secret.length < 32) {

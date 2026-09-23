@@ -17,9 +17,6 @@ import mx.ferreteria.api.cat.repo.CiudadRepository;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
-import mx.ferreteria.api.common.security.UserPrincipal;
-import mx.ferreteria.api.ven.entity.LineaCredito;
-import mx.ferreteria.api.ven.repo.LineaCreditoRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +25,7 @@ public class ClienteService {
 
     private final ClienteRepository repo;
     private final CiudadRepository ciudadRepo;
-    private final LineaCreditoRepository lineaRepo;
+    private final CreditoPort creditoPort;
 
     @Transactional(readOnly = true)
     public Page<ClienteResponse> list(String q, Pageable pageable) {
@@ -66,8 +63,9 @@ public class ClienteService {
                 .build();
         Cliente saved = repo.save(entity);
         // Auto-creacion de linea de credito si hay limite>0 (independiente de
-        // esMayorista)
-        autoCrearOActualizarLinea(saved);
+        // esMayorista). El adapter en ven implementa la regla (rompe ciclo cat→ven).
+        creditoPort.sincronizarLinea(saved.getClienteId(), saved.getLimiteCredito(),
+                saved.getDiasCredito());
         return toResponse(saved);
     }
 
@@ -101,7 +99,8 @@ public class ClienteService {
             entity.setFotoUrl(req.fotoUrl().isBlank() ? null : req.fotoUrl());
         }
         Cliente saved = repo.save(entity);
-        autoCrearOActualizarLinea(saved);
+        creditoPort.sincronizarLinea(saved.getClienteId(), saved.getLimiteCredito(),
+                saved.getDiasCredito());
         return toResponse(saved);
     }
 
@@ -112,40 +111,6 @@ public class ClienteService {
         repo.save(entity);
     }
 
-    private void autoCrearOActualizarLinea(Cliente c) {
-        BigDecimal limite = c.getLimiteCredito();
-        if (limite == null || limite.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
-        }
-        int dias = c.getDiasCredito() != null && c.getDiasCredito() > 0 ? c.getDiasCredito() : 15;
-        // Coerce a rango del trigger (1..365)
-        dias = Math.clamp(dias, 1, 365);
-        LineaCredito existente = lineaRepo.findByClienteIdAndEstado(c.getClienteId(), "ACTIVA").orElse(null);
-        int actor = 1;
-        try {
-            actor = UserPrincipal.actual().usuarioId();
-            if (actor == 0)
-                actor = 1;
-        } catch (Exception ignored) {
-            actor = 1;
-        }
-        if (existente != null) {
-            existente.setMontoAutorizado(limite);
-            existente.setDiasCredito((short) dias);
-            lineaRepo.save(existente);
-        } else {
-            LineaCredito nueva = LineaCredito.builder()
-                    .clienteId(c.getClienteId())
-                    .montoAutorizado(limite)
-                    .diasCredito((short) dias)
-                    .tasaMoratorio(BigDecimal.ZERO)
-                    .usuarioAutorizoId(actor)
-                    .estado("ACTIVA")
-                    .observaciones("Auto-creada desde alta/edicion de cliente")
-                    .build();
-            lineaRepo.save(nueva);
-        }
-    }
 
     private ClienteResponse toResponse(Cliente c) {
         String ciudadNombre = null;

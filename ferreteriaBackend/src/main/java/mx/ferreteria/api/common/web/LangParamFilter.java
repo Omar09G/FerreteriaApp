@@ -16,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.FilterChain;
+import lombok.RequiredArgsConstructor;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,15 +42,11 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
+@RequiredArgsConstructor
 public class LangParamFilter extends OncePerRequestFilter {
 
     private final MessageSource messages;
     private final ObjectMapper objectMapper;
-
-    public LangParamFilter(MessageSource messages, ObjectMapper objectMapper) {
-        this.messages = messages;
-        this.objectMapper = objectMapper;
-    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {

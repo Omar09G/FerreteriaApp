@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -39,8 +38,6 @@ import mx.ferreteria.api.cat.repo.UnidadMedidaRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
-import mx.ferreteria.api.inv.entity.Inventario;
-import mx.ferreteria.api.inv.repo.InventarioRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -52,7 +49,7 @@ public class ProductoService {
     private final CategoriaRepository categoriaRepo;
     private final MarcaRepository marcaRepo;
     private final UnidadMedidaRepository unidadMedidaRepo;
-    private final InventarioRepository inventarioRepo;
+    private final StockPort stockPort;
 
     @Transactional(readOnly = true)
     public Page<ProductoResponse> list(String q, Integer categoriaId,
@@ -115,14 +112,9 @@ public class ProductoService {
         }
         if (almacenId != null && mapped.getContent().size() > 1) {
             List<Long> pids = mapped.getContent().stream().map(ProductoResponse::productoId).toList();
-            Map<Long, Inventario> invByProd = inventarioRepo
-                    .findByAlmacenIdAndProductoIdIn(almacenId, pids).stream()
-                    .collect(Collectors.toMap(Inventario::getProductoId, Function.identity()));
-            List<ProductoResponse> enriched = mapped.getContent().stream().map(product -> {
-                Inventario inv = invByProd.get(product.productoId());
-                BigDecimal stock = (inv != null && inv.getStock() != null) ? inv.getStock() : BigDecimal.ZERO;
-                return product.withStock(stock);
-            }).toList();
+            Map<Long, BigDecimal> stockByProd = stockPort.stockPorProductos(almacenId, pids);
+            List<ProductoResponse> enriched = mapped.getContent().stream().map(product -> product
+                    .withStock(stockByProd.getOrDefault(product.productoId(), BigDecimal.ZERO))).toList();
             // BACK-REND-021: reusar mapped.getPageable()/getTotalElements() evita
             // remapear cada entity->response una segunda vez solo para obtener
             // metadata; Pageable y TotalElements vienen de la Page original.
@@ -130,13 +122,7 @@ public class ProductoService {
         }
         return mapped.map(product -> {
             if (almacenId != null) {
-                Inventario inventario = inventarioRepo.findByAlmacenIdAndProductoId(almacenId, product.productoId());
-                if (inventario != null) {
-                    product = product
-                            .withStock(inventario.getStock() != null ? inventario.getStock() : BigDecimal.ZERO);
-                } else {
-                    product = product.withStock(BigDecimal.ZERO);
-                }
+                product = product.withStock(stockPort.stockDeProducto(almacenId, product.productoId()));
             }
             return product;
         });
@@ -159,7 +145,7 @@ public class ProductoService {
                 p.getPrecioMenudeo(),
                 p.getPrecioMayoreo(),
                 p.getAplicaIva() == null || p.getAplicaIva(),
-                BigDecimal.ZERO, // stock se enriquece via inventarioRepo si almacenId != null
+                BigDecimal.ZERO, // stock se enriquece via StockPort si almacenId != null
                 null, null, // barras/factor se adjuntan en lote en list()
                 p.getImagenUrl());
     }

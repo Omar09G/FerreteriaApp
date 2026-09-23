@@ -15,7 +15,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
@@ -120,7 +119,7 @@ class WhatsAppNotificacionSenderTest {
         ObjectMapper om = new ObjectMapper();
         try (ServidorFake server = new ServidorFake()) {
             WhatsAppNotificacionSender sender = new WhatsAppNotificacionSender(
-                    props(true, "evolution", server.baseUrl()), bandeja, RestClient.create());
+                    props(true, "evolution", server.baseUrl()), bandeja);
 
             sender.send("(555) 000-1111", "Ticket V-1", PDF);
 
@@ -147,7 +146,7 @@ class WhatsAppNotificacionSenderTest {
         try (ServidorFake server = new ServidorFake()) {
             server.estatus = 500;
             WhatsAppNotificacionSender sender = new WhatsAppNotificacionSender(
-                    props(true, "evolution", server.baseUrl()), bandeja, RestClient.create());
+                    props(true, "evolution", server.baseUrl()), bandeja);
 
             assertThatCode(() -> sender.send("5550001111", "Ticket V-1", PDF))
                     .doesNotThrowAnyException();
