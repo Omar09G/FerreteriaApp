@@ -22,6 +22,78 @@ aplicación web (SPA).
   :8080`; prod `VITE_API_URL`). Autenticación, roles, POS, caja/cortes, inventario,
   compras, reportes y dashboard.
 
+### Mapa del sistema (contenedores, puertos y conexiones)
+
+```mermaid
+flowchart LR
+    U(["👤 Usuario / navegador"])
+
+    subgraph DEV["Local dev (procesos)"]
+        VITE["Vite :5173<br/>proxy /api → :8080"]
+        BOOT["bootRun :8080<br/>/api/v1"]
+    end
+
+    subgraph COMPOSE["podman compose (ferreteriaDB/deploy)"]
+        FE["frontend :8080→80"]
+        BE["backend :8081→8080"]
+        PGB["pgbouncer :6432"]
+        PG["postgres :5432<br/>(admin directo)"]
+        REPL["réplica :5433<br/>(solo lectura)"]
+        MINIO["minio :9000 API<br/>:9001 consola"]
+        FLOCI["floci :4566<br/>(S3 local)"]
+        FUI["floci-ui<br/>(sidecar, socket podman)"]
+        RAB["rabbitmq :5672 AMQP<br/>:15672 mgmt"]
+        MP["mailpit :1025 SMTP<br/>:8025 bandeja"]
+        OBS["otel :4317 · prom :9090<br/>grafana :3000 · tempo :3200"]
+    end
+
+    subgraph EXT["Externo (si se configura)"]
+        TG[("Telegram API<br/>sendDocument")]
+        EVO[("Evolution API<br/>(WhatsApp real, futuro)")]
+    end
+
+    U -->|"http :5173"| VITE
+    U -->|"http :8081"| BE
+    VITE -->|"proxy /api"| BOOT
+    FE -->|" red app-net "| BE
+    BOOT -->|"JDBC prepareThreshold=0"| PGB
+    BE -->|"JDBC prepareThreshold=0"| PGB
+    PGB -->|"pool transaction"| PG
+    PG -->|"streaming"| REPL
+    BOOT -->|"fotos (público)"| MINIO
+    BE -->|"fotos (público)"| MINIO
+    BOOT -->|"PDFs (privado, proveedor=config)"| FLOCI
+    BE -->|"PDFs (privado, proveedor=config)"| FLOCI
+    FUI -.->|"lista buckets"| FLOCI
+    FUI -.->|"lista buckets"| MINIO
+    BOOT -->|"exchange ferreteria.events<br/>cola notificacion.jobs + DLQ"| RAB
+    BE -->|"exchange ferreteria.events<br/>cola notificacion.jobs + DLQ"| RAB
+    BOOT -->|"SMTP"| MP
+    BE -->|"SMTP"| MP
+    BOOT -->|"OTLP"| OBS
+    BE -->|"OTLP"| OBS
+    BOOT -.->|"si token+chat"| TG
+    BE -.->|"si token+chat"| TG
+    BOOT -.->|"si proveedor=evolution"| EVO
+    U -->|"ver emails"| MP
+    U -->|"ver colas"| RAB
+    U -->|"ver fotos/PDFs"| FUI
+    U -->|"ver métricas"| OBS
+```
+
+Notas:
+- En dev local el backend (`bootRun :8080`) habla con la infra de compose por
+  `localhost` (PgBouncer `:6432`, MinIO `:9000`, Floci `:4566`, RabbitMQ
+  `:5672`, Mailpit `:1025`); dentro de compose usa DNS interno
+  (`pgbouncer`, `minio`, `floci`, `rabbitmq`, `mailpit`) con los mismos puertos
+  de contenedor.
+- El backend **nunca** toca Postgres directo (`:5432` es solo admin) ni la
+  réplica (`:5433`, lectura para reportes).
+- Buckets: `ferreteria-fotos` (público) en MinIO o Floci según
+  `STORAGE_PROVEEDOR`; `ferreteria-tickets` (privado) en el mismo proveedor.
+- Observabilidad (`otel`, `prometheus`, `grafana`, `tempo`,
+  `postgres-exporter`) es opcional y no afecta el flujo funcional.
+
 ## Quickstart (todo el stack)
 
 ```bash
@@ -101,7 +173,9 @@ Notas:
   `minio|floci`), refleja la clave en
   `ven.ventas.pdf_url`, publica en el exchange `ferreteria.events` y el consumer
   envía por **email** (adjunto) / **Telegram** (`sendDocument`, si hay token+chat) /
-  **WhatsApp** (stub no-op con log hasta contratar proveedor). Destinatario venta =
+  **WhatsApp** (mock en proceso por default; Evolution API real con
+  `WHATSAPP_PROVEEDOR=evolution` + base-url/instancia/api-key, sin cambiar
+  código). Destinatario venta =
   `Cliente.email/whatsapp`; nómina = `rh.empleados.email/whatsapp` (columna V21).
   Fallos → job en `ERROR` + reconciler cada 30 s (cola durable + DLQ
   `notificacion.jobs.dlq`).
@@ -110,7 +184,8 @@ Notas:
 - **Activación** — `APP_NOTIF_ENABLED=true` (compose lo trae; en `bootRun` local
   default `false`: los jobs quedan `PENDIENTE` y se procesan al habilitar).
   Vars: `RABBITMQ_*`, `NOTIF_MAX_INTENTOS`, `MAIL_HOST/PORT` (dev: Mailpit),
-  `TELEGRAM_BOT_TOKEN/CHAT_ID`, `WHATSAPP_ENABLED=false`.
+  `TELEGRAM_BOT_TOKEN/CHAT_ID`, `WHATSAPP_ENABLED=false`,
+  `WHATSAPP_PROVEEDOR=mock` (mock) o `evolution` (real).
 - **Buckets** — `ferreteria-fotos` (público, fotos de entidades) vs
   `ferreteria-tickets` (privado, PDFs de ticket/nómina con claves
   `tickets/`/`nominas/`). Separados a propósito: las fotos se sirven por URL
