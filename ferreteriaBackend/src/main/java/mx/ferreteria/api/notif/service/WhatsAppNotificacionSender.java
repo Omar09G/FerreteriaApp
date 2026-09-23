@@ -1,14 +1,29 @@
 package mx.ferreteria.api.notif.service;
 
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 import lombok.extern.slf4j.Slf4j;
 import mx.ferreteria.api.notif.config.NotificacionProperties;
 
 /**
- * Stub de WhatsApp: no llama a ningún proveedor (Meta/Twilio) hasta que
- * haya credenciales. Solo loguea la intención. Seguro por defecto.
+ * WhatsApp con contrato Evolution API (sendText/sendMedia) y mock en proceso.
+ * <ul>
+ * <li>{@code enabled=false} (default): no-op, solo log.</li>
+ * <li>{@code proveedor=mock} (default): captura en {@link WhatsAppMockBandeja}
+ * (par de Mailpit para email). Cero infraestructura.</li>
+ * <li>{@code proveedor=evolution} + {@code base-url/instancia/api-key}:
+ * envío real a Evolution API sin cambiar código.</li>
+ * </ul>
+ * Nunca lanza: un fallo del canal se loguea y no tumba el job (igual que
+ * Telegram). El número se normaliza a solo dígitos; si trae 10 dígitos se
+ * antepone {@code prefijo-por-defecto} (521 México).
  */
 @Component
 @Slf4j
@@ -16,17 +31,93 @@ import mx.ferreteria.api.notif.config.NotificacionProperties;
 public class WhatsAppNotificacionSender {
 
     private final NotificacionProperties props;
+    private final WhatsAppMockBandeja bandeja;
+    private final RestClient restClient;
 
-    public WhatsAppNotificacionSender(NotificacionProperties props) {
+    public WhatsAppNotificacionSender(NotificacionProperties props, WhatsAppMockBandeja bandeja) {
+        this(props, bandeja, RestClient.create());
+    }
+
+    WhatsAppNotificacionSender(NotificacionProperties props, WhatsAppMockBandeja bandeja,
+            RestClient restClient) {
         this.props = props;
+        this.bandeja = bandeja;
+        this.restClient = restClient;
     }
 
     public void send(String telefono, String asunto, byte[] pdf) {
-        if (props.whatsapp() != null && props.whatsapp().enabled()) {
-            log.info("whatsapp stub DISABLED — pendiente proveedor. to={} asunto={}",
-                    telefono, asunto);
-        } else {
-            log.debug("whatsapp omitido (stub) to={}", telefono);
+        NotificacionProperties.WhatsApp cfg = props.whatsapp();
+        if (cfg == null || !cfg.enabled()) {
+            log.debug("whatsapp omitido (deshabilitado) to={}", telefono);
+            return;
+        }
+        String numero = normalizar(telefono);
+        if (numero == null || numero.isBlank()) {
+            log.debug("whatsapp omitido (sin número)");
+            return;
+        }
+        if ("evolution".equalsIgnoreCase(cfg.proveedor()) && cfg.baseUrl() != null
+                && !cfg.baseUrl().isBlank()) {
+            enviarEvolution(cfg, numero, asunto, pdf);
+            return;
+        }
+        bandeja.registrar(numero, asunto, "documento.pdf", pdf);
+        log.info("whatsapp mock to={} asunto={}", numero, asunto);
+    }
+
+    private void enviarEvolution(NotificacionProperties.WhatsApp cfg, String numero, String asunto,
+            byte[] pdf) {
+        try {
+            String base = cfg.baseUrl().replaceAll("/+$", "");
+            String instancia = cfg.instancia() != null && !cfg.instancia().isBlank()
+                    ? cfg.instancia()
+                    : "ferreteria";
+            Map<String, Object> texto = new HashMap<>();
+            texto.put("number", numero);
+            texto.put("text", asunto != null ? asunto : "Documento");
+            restClient.post()
+                    .uri(base + "/message/sendText/{instancia}", instancia)
+                    .header("apikey", cfg.apiKey() != null ? cfg.apiKey() : "")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(texto)
+                    .retrieve()
+                    .toBodilessEntity();
+            if (pdf != null) {
+                Map<String, Object> media = new HashMap<>();
+                media.put("number", numero);
+                media.put("mediatype", "document");
+                media.put("media", Base64.getEncoder().encodeToString(pdf));
+                media.put("fileName", "documento.pdf");
+                media.put("caption", asunto != null ? asunto : "Documento");
+                restClient.post()
+                        .uri(base + "/message/sendMedia/{instancia}", instancia)
+                        .header("apikey", cfg.apiKey() != null ? cfg.apiKey() : "")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(media)
+                        .retrieve()
+                        .toBodilessEntity();
+            }
+            log.info("whatsapp evolution enviado to={}", numero);
+        } catch (Exception e) {
+            log.warn("whatsapp evolution fallo to={} err={}", numero, e.getMessage());
         }
     }
+
+    static String normalizar(String telefono, String prefijoPorDefecto) {
+        if (telefono == null) {
+            return null;
+        }
+        String digitos = telefono.replaceAll("\\D", "");
+        if (digitos.length() == 10 && prefijoPorDefecto != null && !prefijoPorDefecto.isBlank()) {
+            return prefijoPorDefecto + digitos;
+        }
+        return digitos;
+    }
+
+    private String normalizar(String telefono) {
+        NotificacionProperties.WhatsApp cfg = props.whatsapp();
+        String prefijo = cfg != null ? cfg.prefijoPorDefecto() : null;
+        return normalizar(telefono, prefijo);
+    }
+
 }

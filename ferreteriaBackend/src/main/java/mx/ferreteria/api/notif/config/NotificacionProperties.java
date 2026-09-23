@@ -23,6 +23,12 @@ public record NotificacionProperties(
     public record Telegram(String botToken, String chatId) {
     }
 
-    public record WhatsApp(boolean enabled) {
+    public record WhatsApp(
+            boolean enabled,
+            String proveedor,
+            String baseUrl,
+            String instancia,
+            String apiKey,
+            String prefijoPorDefecto) {
     }
 }

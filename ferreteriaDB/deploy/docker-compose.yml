@@ -165,8 +165,14 @@ services:
       # consumer adjunta el PDF vía sendDocument.
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-      # WhatsApp: stub no-op (solo log) hasta contratar proveedor real.
+      # WhatsApp: mock en proceso (bandeja en memoria) por default; con
+      # proveedor=evolution + base-url/instancia/api-key envía de verdad.
       WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
+      WHATSAPP_PROVEEDOR: ${WHATSAPP_PROVEEDOR:-mock}
+      WHATSAPP_BASE_URL: ${WHATSAPP_BASE_URL:-}
+      WHATSAPP_INSTANCIA: ${WHATSAPP_INSTANCIA:-ferreteria}
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:-}
+      WHATSAPP_PREFIJO: ${WHATSAPP_PREFIJO:-521}
       # ─── OpenTelemetry (Java agent) ─────────────────────────────────
       OTEL_SERVICE_NAME: ferreteria-backend
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=docker,service.namespace=ferreteria"

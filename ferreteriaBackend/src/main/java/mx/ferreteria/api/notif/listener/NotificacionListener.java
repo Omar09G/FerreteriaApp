@@ -13,7 +13,8 @@ import mx.ferreteria.api.notif.service.NotificacionJobService;
 
 /**
  * Consumer de la cola notificacion.jobs. Descarga el PDF y envía por
- * email / Telegram / WhatsApp (stub). Marca el job ENVIADA o ERROR.
+ * cada canal activo (email / WhatsApp mock o Evolution / Telegram).
+ * Marca el job ENVIADA o ERROR.
  * No relanza: el reconciler es la única vía de reintento (evita doble
  * envío consumer+reconciler); la DLQ queda solo para mensajes veneno.
  */

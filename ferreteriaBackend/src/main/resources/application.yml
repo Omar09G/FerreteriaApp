@@ -144,8 +144,16 @@ app:
       bot-token: ${TELEGRAM_BOT_TOKEN:}
       chat-id: ${TELEGRAM_CHAT_ID:}
     whatsapp:
-      # Stub no-op hasta proveedor real (Meta/Twilio). Solo log.
+      # enabled=false: no-op. enabled=true + proveedor=mock (default):
+      # captura en WhatsAppMockBandeja (cero infra, par de Mailpit).
+      # proveedor=evolution + base-url/instancia/api-key: envío real
+      # Evolution API (sendText/sendMedia) sin cambiar código.
       enabled: ${WHATSAPP_ENABLED:false}
+      proveedor: ${WHATSAPP_PROVEEDOR:mock}
+      base-url: ${WHATSAPP_BASE_URL:}
+      instancia: ${WHATSAPP_INSTANCIA:ferreteria}
+      api-key: ${WHATSAPP_API_KEY:}
+      prefijo-por-defecto: ${WHATSAPP_PREFIJO:521}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

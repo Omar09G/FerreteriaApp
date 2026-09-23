@@ -10,9 +10,12 @@ import mx.ferreteria.api.notif.config.NotificacionProperties;
 import mx.ferreteria.api.notif.dto.NotificacionMensaje;
 
 /**
- * Envío multi-canal de un mensaje ya publicado. WhatsApp es stub no-op
- * hasta proveedor real; Telegram solo si hay token+chat; email si hay
- * destinatario. Destinatarios vacíos se omiten sin fallar el job.
+ * Envío multi-canal de un mensaje ya publicado. Cada canal activo se intenta
+ * (email si hay destinatario, WhatsApp si hay número, Telegram si hay
+ * token+chat; con los dos → por los dos) y el fallo de uno no salta los
+ * demás. Semántica: si al menos un canal entregó → ENVIADA; si todos los
+ * intentados fallaron → lanza y el job va a ERROR (reconciler reintenta).
+ * Así un reintento nunca duplica lo ya entregado por otro canal.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,14 +34,32 @@ public class NotificacionEnvioService {
                 ? documentoStorage.descargarPdf(msg.pdfUrl())
                 : null;
 
+        int intentados = 0;
+        int exitosos = 0;
+        RuntimeException primerFallo = null;
+
         if (msg.paraEmail() != null && !msg.paraEmail().isBlank()) {
-            emailSender.send(msg.paraEmail(), msg.asunto(), pdf, msg.pdfUrl());
+            intentados++;
+            try {
+                emailSender.send(msg.paraEmail(), msg.asunto(), pdf, msg.pdfUrl());
+                exitosos++;
+            } catch (RuntimeException e) {
+                primerFallo = e;
+                log.warn("email fallo job_id={} err={}", msg.jobId(), e.getMessage());
+            }
         } else {
             log.debug("email omitido (sin destinatario) job_id={}", msg.jobId());
         }
 
         if (msg.paraWhatsapp() != null && !msg.paraWhatsapp().isBlank()) {
-            whatsappSender.send(msg.paraWhatsapp(), msg.asunto(), pdf);
+            intentados++;
+            try {
+                whatsappSender.send(msg.paraWhatsapp(), msg.asunto(), pdf);
+                exitosos++;
+            } catch (RuntimeException e) {
+                primerFallo = e;
+                log.warn("whatsapp fallo job_id={} err={}", msg.jobId(), e.getMessage());
+            }
         }
 
         if (props.telegram() != null
@@ -46,7 +67,18 @@ public class NotificacionEnvioService {
                 && !props.telegram().botToken().isBlank()
                 && props.telegram().chatId() != null
                 && !props.telegram().chatId().isBlank()) {
-            telegramSender.send(props.telegram().chatId(), msg.asunto(), pdf, msg.pdfUrl());
+            intentados++;
+            try {
+                telegramSender.send(props.telegram().chatId(), msg.asunto(), pdf, msg.pdfUrl());
+                exitosos++;
+            } catch (RuntimeException e) {
+                primerFallo = e;
+                log.warn("telegram fallo job_id={} err={}", msg.jobId(), e.getMessage());
+            }
+        }
+
+        if (intentados > 0 && exitosos == 0) {
+            throw primerFallo;
         }
     }
 }
