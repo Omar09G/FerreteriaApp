@@ -97,7 +97,8 @@ Notas:
   `NominaPagadaEvent`; los dominios no dependen del módulo `notif`). El hook
   `AFTER_COMMIT` crea el job en `notif.notificacion_jobs` y lo procesa en tx
   propia (`REQUIRES_NEW`): genera el PDF (OpenPDF, datos solo de BD), lo sube al
-  bucket (`tickets/`/`nominas/`, proveedor `minio|floci`), refleja la clave en
+  bucket PRIVADO `ferreteria-tickets` (claves `tickets/`/`nominas/`, proveedor
+  `minio|floci`), refleja la clave en
   `ven.ventas.pdf_url`, publica en el exchange `ferreteria.events` y el consumer
   envía por **email** (adjunto) / **Telegram** (`sendDocument`, si hay token+chat) /
   **WhatsApp** (stub no-op con log hasta contratar proveedor). Destinatario venta =
@@ -110,9 +111,16 @@ Notas:
   default `false`: los jobs quedan `PENDIENTE` y se procesan al habilitar).
   Vars: `RABBITMQ_*`, `NOTIF_MAX_INTENTOS`, `MAIL_HOST/PORT` (dev: Mailpit),
   `TELEGRAM_BOT_TOKEN/CHAT_ID`, `WHATSAPP_ENABLED=false`.
+- **Buckets** — `ferreteria-fotos` (público, fotos de entidades) vs
+  `ferreteria-tickets` (privado, PDFs de ticket/nómina con claves
+  `tickets/`/`nominas/`). Separados a propósito: las fotos se sirven por URL
+  pública y los PDFs traen datos de cliente, así que nunca comparten policy.
+  El backend crea `ferreteria-tickets` solo si no existe (sin política
+  pública); override con `MINIO_DOCS_BUCKET`/`FLOCI_DOCS_BUCKET`.
 - **Verificación E2E** — tras un `POST /api/v1/ventas`: job en `ENVIADA` con
   `pdf_url` en `notif.notificacion_jobs` (= `ven.ventas.pdf_url`), objeto en el
-  bucket (`tickets/<id>.pdf`, visible en `floci-ui` → Storage o MinIO consola),
+  bucket `ferreteria-tickets` (`tickets/<id>.pdf`, visible en `floci-ui` →
+  Storage o MinIO consola),
   1 publicado/1 entregado en la cola `notificacion.jobs` (DLQ vacía) y email con
   el PDF adjunto en Mailpit (http://localhost:8025). Los POST mutantes exigen
   CSRF (`GET /api/v1/auth/csrf-init` + header `X-XSRF-TOKEN`).

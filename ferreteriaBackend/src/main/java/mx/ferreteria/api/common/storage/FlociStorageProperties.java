@@ -11,6 +11,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * <p>
  * Floci acepta cualquier credencial no vacía; la región la exige el firmante
  * SigV4 del SDK (cualquiera vale en local).
+ * {@code bucketDocumentos} es el bucket SEPARADO (privado, sin política
+ * pública) para PDFs de ticket/nómina; nunca comparte bucket con fotos.
  */
 @ConfigurationProperties(prefix = "app.storage.floci")
 public record FlociStorageProperties(
@@ -20,5 +22,6 @@ public record FlociStorageProperties(
         @DefaultValue("test") String accessKey,
         @DefaultValue("test") String secretKey,
         @DefaultValue("ferreteria-fotos") String bucket,
+        @DefaultValue("ferreteria-tickets") String bucketDocumentos,
         @DefaultValue("5") long maxMb) {
 }

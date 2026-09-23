@@ -8,6 +8,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * fotos de entidades. {@code endpoint} lo usa el backend en red interna;
  * {@code publicUrl} es la base de la URL que se guarda en foto_url/imagen_url
  * y que resuelve el browser (ver compose: minio:9000 vs localhost:9000).
+ * {@code bucketDocumentos} es el bucket SEPARADO (privado, sin política
+ * pública) para PDFs de ticket/nómina; nunca comparte bucket con fotos.
  */
 @ConfigurationProperties(prefix = "app.minio")
 public record MinioProperties(
@@ -16,5 +18,6 @@ public record MinioProperties(
         @DefaultValue("minioadmin") String accessKey,
         @DefaultValue("minioadmin") String secretKey,
         @DefaultValue("ferreteria-fotos") String bucket,
+        @DefaultValue("ferreteria-tickets") String bucketDocumentos,
         @DefaultValue("5") long maxMb) {
 }

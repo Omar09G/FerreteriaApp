@@ -97,6 +97,7 @@ app:
       access-key: ${FLOCI_ACCESS_KEY:test}
       secret-key: ${FLOCI_SECRET_KEY:test}
       bucket: ${FLOCI_BUCKET:ferreteria-fotos}
+      bucket-documentos: ${FLOCI_DOCS_BUCKET:ferreteria-tickets}
       max-mb: ${FLOCI_MAX_MB:5}
   # Fotos de entidades (clientes, proveedores, empleados, productos).
   # ENDPOINT lo usa el backend en red interna; PUBLIC_URL es lo que se
@@ -107,6 +108,7 @@ app:
     access-key: ${MINIO_ACCESS_KEY:minioadmin}
     secret-key: ${MINIO_SECRET_KEY:minioadmin}
     bucket: ${MINIO_BUCKET:ferreteria-fotos}
+    bucket-documentos: ${MINIO_DOCS_BUCKET:ferreteria-tickets}
     max-mb: ${MINIO_MAX_MB:5}
   # CORS restrictivo por origen configurado (PLAN M7)
   cors:

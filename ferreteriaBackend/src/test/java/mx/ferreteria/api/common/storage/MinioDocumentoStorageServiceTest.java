@@ -43,7 +43,7 @@ class MinioDocumentoStorageServiceTest {
     void setUp() {
         service = new MinioDocumentoStorageService(
                 new MinioProperties("http://localhost:9000", "http://localhost:9000",
-                        "minioadmin", "minioadmin", "ferreteria-fotos", 5),
+                        "minioadmin", "minioadmin", "ferreteria-fotos", "ferreteria-tickets", 5),
                 s3);
     }
 
@@ -57,7 +57,7 @@ class MinioDocumentoStorageServiceTest {
 
         assertThat(clave).isEqualTo("tickets/1.pdf");
         verify(s3).putObject(
-                org.mockito.ArgumentMatchers.argThat((PutObjectRequest r) -> r.bucket().equals("ferreteria-fotos")
+                org.mockito.ArgumentMatchers.argThat((PutObjectRequest r) -> r.bucket().equals("ferreteria-tickets")
                         && r.key().equals("tickets/1.pdf")
                         && r.contentType().equals("application/pdf")),
                 any(software.amazon.awssdk.core.sync.RequestBody.class));

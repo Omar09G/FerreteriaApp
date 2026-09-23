@@ -12,7 +12,7 @@ class FotoStorageAmbienteTest {
     private static FotoStorageService servicio(String ambiente, String publicUrl) {
         MinioProperties props = new MinioProperties(
                 "http://localhost:9000", publicUrl, "minioadmin", "minioadmin",
-                "ferreteria-fotos", 5);
+                "ferreteria-fotos", "ferreteria-tickets", 5);
         FotoStorageService service = new FotoStorageService(props);
         ReflectionTestUtils.setField(service, "ambiente", ambiente);
         return service;

@@ -23,9 +23,10 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
  * {@link DocumentoStoragePort} sobre MinIO con AWS SDK v2 (S3-compatible).
- * Activo cuando {@code app.storage.proveedor=minio} (default). Bucket
- * compartido con fotos; los PDFs permanecen privados (sin política pública)
- * y el backend los re-sirve o adjunta con credencial.
+ * Activo cuando {@code app.storage.proveedor=minio} (default). Usa el bucket
+ * dedicado {@code bucketDocumentos} (default ferreteria-tickets), SEPARADO
+ * del bucket público de fotos; los PDFs permanecen privados (sin política
+ * pública) y el backend los re-sirve o adjunta con credencial.
  */
 @Service
 @ConditionalOnProperty(name = "app.storage.proveedor", havingValue = "minio", matchIfMissing = true)
@@ -51,7 +52,7 @@ public class MinioDocumentoStorageService implements DocumentoStoragePort {
             S3Client s3 = cliente();
             asegurarBucket(s3);
             s3.putObject(PutObjectRequest.builder()
-                    .bucket(props.bucket())
+                    .bucket(props.bucketDocumentos())
                     .key(clave)
                     .contentType("application/pdf")
                     .build(),
@@ -65,7 +66,7 @@ public class MinioDocumentoStorageService implements DocumentoStoragePort {
     @Override
     public byte[] descargarPdf(String clave) {
         try (ResponseInputStream<?> in = cliente().getObject(GetObjectRequest.builder()
-                .bucket(props.bucket())
+                .bucket(props.bucketDocumentos())
                 .key(clave)
                 .build())) {
             return in.readAllBytes();
@@ -78,9 +79,9 @@ public class MinioDocumentoStorageService implements DocumentoStoragePort {
 
     private void asegurarBucket(S3Client s3) {
         try {
-            s3.headBucket(HeadBucketRequest.builder().bucket(props.bucket()).build());
+            s3.headBucket(HeadBucketRequest.builder().bucket(props.bucketDocumentos()).build());
         } catch (NoSuchBucketException e) {
-            s3.createBucket(CreateBucketRequest.builder().bucket(props.bucket()).build());
+            s3.createBucket(CreateBucketRequest.builder().bucket(props.bucketDocumentos()).build());
             // Sin putBucketPolicy: PDFs permanecen privados.
         }
     }

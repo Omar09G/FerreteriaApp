@@ -24,7 +24,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 /**
  * {@link DocumentoStoragePort} sobre Floci (S3 local) con AWS SDK v2.
  * Activo cuando {@code app.storage.proveedor=floci}. Mismo contrato que
- * {@link MinioDocumentoStorageService} sin política pública (PDFs privados).
+ * {@link MinioDocumentoStorageService}: bucket dedicado
+ * {@code bucketDocumentos} (default ferreteria-tickets), sin política
+ * pública (PDFs privados).
  */
 @Service
 @ConditionalOnProperty(name = "app.storage.proveedor", havingValue = "floci")
@@ -50,7 +52,7 @@ public class FlociDocumentoStorageService implements DocumentoStoragePort {
             S3Client s3 = cliente();
             asegurarBucket(s3);
             s3.putObject(PutObjectRequest.builder()
-                    .bucket(props.bucket())
+                    .bucket(props.bucketDocumentos())
                     .key(clave)
                     .contentType("application/pdf")
                     .build(),
@@ -64,7 +66,7 @@ public class FlociDocumentoStorageService implements DocumentoStoragePort {
     @Override
     public byte[] descargarPdf(String clave) {
         try (ResponseInputStream<?> in = cliente().getObject(GetObjectRequest.builder()
-                .bucket(props.bucket())
+                .bucket(props.bucketDocumentos())
                 .key(clave)
                 .build())) {
             return in.readAllBytes();
@@ -77,9 +79,9 @@ public class FlociDocumentoStorageService implements DocumentoStoragePort {
 
     private void asegurarBucket(S3Client s3) {
         try {
-            s3.headBucket(HeadBucketRequest.builder().bucket(props.bucket()).build());
+            s3.headBucket(HeadBucketRequest.builder().bucket(props.bucketDocumentos()).build());
         } catch (NoSuchBucketException e) {
-            s3.createBucket(CreateBucketRequest.builder().bucket(props.bucket()).build());
+            s3.createBucket(CreateBucketRequest.builder().bucket(props.bucketDocumentos()).build());
             // Sin putBucketPolicy: PDFs permanecen privados.
         }
     }

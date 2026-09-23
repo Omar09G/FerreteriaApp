@@ -35,7 +35,7 @@ class FlociFotoStorageServiceTest {
     private static FlociStorageProperties props() {
         return new FlociStorageProperties(
                 "http://localhost:4566", "http://localhost:4566", "us-east-1",
-                "test", "test", "test-bucket", 5);
+                "test", "test", "test-bucket", "test-docs", 5);
     }
 
     private static FlociFotoStorageService servicio(S3Client s3) {

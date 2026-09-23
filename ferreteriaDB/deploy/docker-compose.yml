@@ -135,6 +135,8 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD en .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-ferreteria-fotos}
+      # Bucket PRIVADO separado para PDFs de ticket/nómina (nunca el de fotos).
+      MINIO_DOCS_BUCKET: ${MINIO_DOCS_BUCKET:-ferreteria-tickets}
       # Proveedor de fotos: minio (default) o floci. Con floci, ENDPOINT es
       # el DNS interno y PUBLIC_URL lo que ve el browser.
       STORAGE_PROVEEDOR: ${STORAGE_PROVEEDOR:-minio}
@@ -144,6 +146,7 @@ services:
       FLOCI_ACCESS_KEY: ${FLOCI_ACCESS_KEY:-test}
       FLOCI_SECRET_KEY: ${FLOCI_SECRET_KEY:-test}
       FLOCI_BUCKET: ${FLOCI_BUCKET:-ferreteria-fotos}
+      FLOCI_DOCS_BUCKET: ${FLOCI_DOCS_BUCKET:-ferreteria-tickets}
       # RabbitMQ (notificaciones async: ticket PDF / nómina pagada). En local
       # fuera de compose el backend usa localhost:5672 con APP_NOTIF_ENABLED=false
       # (no conecta al broker; los jobs quedan PENDIENTE hasta habilitar).
