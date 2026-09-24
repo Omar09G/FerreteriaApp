@@ -60,6 +60,20 @@ export default defineConfig(({ mode }) => {
 			environment: "jsdom",
 			setupFiles: ["./src/test/setup.ts"],
 			globals: true,
+			// Todos los tests viven en src/test/ (espejo de src/). Nada de
+			// *.test.* junto al código fuente.
+			include: ["src/test/**/*.{test,spec}.{ts,tsx}"],
+			coverage: {
+				provider: "v8",
+				reporter: ["text", "html"],
+				include: ["src/**/*.{ts,tsx}"],
+				exclude: [
+					"src/**/*.test.{ts,tsx}",
+					"src/test/**",
+					"src/main.tsx",
+					"src/vite-env.d.ts",
+				],
+			},
 		},
 		server: {
 			proxy: sinProxyDev

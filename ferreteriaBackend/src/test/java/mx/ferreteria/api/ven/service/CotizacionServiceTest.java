@@ -430,12 +430,12 @@ class CotizacionServiceTest {
         c.setSubtotal(new BigDecimal("64.66"));
         c.setIva(new BigDecimal("10.34"));
         c.setTotal(new BigDecimal("75.00"));
+        stubToResponse();
         when(repo.findById(1L)).thenReturn(Optional.of(c));
         when(detalleRepo.findByCotizacionId(1L))
                 .thenReturn(List.of(sampleDetalle(1L, 1L)));
         when(ventaService.checkout(any(VenDtos.VentaRequest.class)))
                 .thenReturn(sampleVentaResponse(10L));
-        stubToResponse();
 
         service.convertirAVenta(1L, 1, 1, 2);
 

@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -587,6 +588,7 @@ class AuthServiceTest {
         mockUserOk();
         LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
                 RequestMeta.UNKNOWN);
+        clearInvocations(gateway);
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
                         Instant.now().plusSeconds(3600), null)));
@@ -606,6 +608,7 @@ class AuthServiceTest {
         mockUserOk();
         LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
                 RequestMeta.UNKNOWN);
+        clearInvocations(gateway);
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
                         Instant.now().plusSeconds(3600), null)));
@@ -746,14 +749,14 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("buildAccessCookie: HttpOnly con path raiz y maxAge del access")
+    @DisplayName("buildAccessCookie: HttpOnly con path del fixture y maxAge del access")
     void buildAccessCookie_props() {
         var c = service.buildAccessCookie("ACC");
 
         assertThat(c.getName()).isEqualTo("at");
         assertThat(c.getValue()).isEqualTo("ACC");
         assertThat(c.isHttpOnly()).isTrue();
-        assertThat(c.getPath()).isEqualTo("/");
+        assertThat(c.getPath()).isEqualTo("/api/v1/auth");
         assertThat(c.getMaxAge()).isEqualTo(Duration.ofMinutes(15));
     }
 

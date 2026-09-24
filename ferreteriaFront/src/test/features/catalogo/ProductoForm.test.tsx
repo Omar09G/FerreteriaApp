@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { ProductoForm } from "./ProductosPage";
+import { ProductoForm } from "@/features/catalogo/ProductosPage";
 import type { Producto, ProductoRequest } from "@/lib/api/types";
 
 const PRODUCTO: Producto = {

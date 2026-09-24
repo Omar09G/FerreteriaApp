@@ -3,8 +3,17 @@ package mx.ferreteria.api.architecture;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Set;
+
+import org.junit.jupiter.api.Test;
+
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaCall;
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -27,6 +36,9 @@ import org.springframework.web.bind.annotation.RestController;
  *   6. services NO inyectan *Repository directamente (deben usar gateways)
  *   7. no hay @Service en paquetes common.web.. (capa de infraestructura)
  *   8. entidades JPA NO se exponen como @RestController
+ *   9. cada interfaz *Gateway tiene exactamente UNA implementación (evita
+ *      ambigüedad de inyección: dos candidatos romperían el arranque Spring
+ *      y confunden a @InjectMocks en tests)
  */
 @AnalyzeClasses(packages = "mx.ferreteria.api", importOptions = ImportOption.DoNotIncludeTests.class)
 class MensajesSoloDesdeErrorCodeTest {
@@ -106,4 +118,34 @@ class MensajesSoloDesdeErrorCodeTest {
                         .that().areAnnotatedWith(Entity.class)
                         .should().beAnnotatedWith(RestController.class)
                         .because("Entidades JPA no deben exponerse como @RestController (separacion modelo/API)");
+
+        /**
+         * 9. Cada *Gateway con exactamente una implementación. Con dos
+         * candidatos Spring falla al arrancar (NoUniqueBeanDefinitionException)
+         * y Mockito @InjectMocks puede cablear el mock equivocado en silencio.
+         */
+        @Test
+        void gatewaysConImplementacionUnica() {
+                JavaClasses classes = new ClassFileImporter()
+                                .withImportOption(new ImportOption.DoNotIncludeTests())
+                                .importPackages("mx.ferreteria.api");
+                Set<JavaClass> gateways = new java.util.HashSet<>();
+                for (JavaClass c : classes) {
+                        if (c.isInterface() && c.getSimpleName().endsWith("Gateway")) {
+                                gateways.add(c);
+                        }
+                }
+                assertThat(gateways).as("interfaces *Gateway del proyecto").isNotEmpty();
+                for (JavaClass gateway : gateways) {
+                        Set<String> impls = new java.util.HashSet<>();
+                        for (JavaClass c : gateway.getSubclasses()) {
+                                if (!c.isInterface()) {
+                                        impls.add(c.getSimpleName());
+                                }
+                        }
+                        assertThat(impls)
+                                        .as("implementaciones de " + gateway.getSimpleName())
+                                        .hasSize(1);
+                }
+        }
 }
