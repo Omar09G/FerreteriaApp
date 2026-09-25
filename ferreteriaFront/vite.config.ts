@@ -72,7 +72,17 @@ export default defineConfig(({ mode }) => {
 					"src/test/**",
 					"src/main.tsx",
 					"src/vite-env.d.ts",
+					// Rama con OTLP real: exige collector con red e intervalos
+					// vivos; en jsdom solo se cubre el modo noop. Ver
+					// src/test/telemetry/otel.test.ts.
+					"src/telemetry/otel.ts",
 				],
+				thresholds: {
+					lines: 80,
+					functions: 80,
+					branches: 80,
+					statements: 80,
+				},
 			},
 		},
 		server: {

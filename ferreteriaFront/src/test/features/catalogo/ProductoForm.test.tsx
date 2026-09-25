@@ -81,4 +81,109 @@ describe("ProductoForm", () => {
 			screen.getByText("Corrige los códigos de barras antes de guardar."),
 		).toBeInTheDocument();
 	});
+
+	it("pide nombre, categoría y unidad al guardar vacío", async () => {
+		const user = userEvent.setup();
+		const onGuardar = vi.fn();
+		renderForm(null, onGuardar);
+		await user.click(screen.getByRole("button", { name: /Guardar/ }));
+		expect(onGuardar).not.toHaveBeenCalled();
+		expect(
+			screen.getByText("Completa nombre, categoría y unidad de medida."),
+		).toBeInTheDocument();
+	});
+
+	it("bloquea con factor inválido y permite factor vacío", async () => {
+		const user = userEvent.setup();
+		const onGuardar = vi.fn();
+		const { container } = renderForm(
+			{ ...PRODUCTO, codigosBarras: ["7501234567001"] },
+			onGuardar,
+		);
+		const factor = container.querySelector(
+			"#factor-0",
+		) as HTMLInputElement;
+		await user.clear(factor);
+		await user.type(factor, "0");
+		await user.click(screen.getByRole("button", { name: /Guardar/ }));
+		expect(onGuardar).not.toHaveBeenCalled();
+		expect(
+			screen.getByText(/factores inválidos/),
+		).toBeInTheDocument();
+	});
+
+	it("agrega un código de barras y lo envía", async () => {
+		const user = userEvent.setup();
+		const onGuardar = vi.fn();
+		renderForm({ ...PRODUCTO, codigosBarras: [] }, onGuardar);
+		expect(
+			screen.getByText(/Sin códigos. Agrega el EAN\/UPC/),
+		).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Agregar" }));
+		await user.type(
+			screen.getByPlaceholderText("Ej. 7501234567001"),
+			"7509999999999",
+		);
+		await user.click(screen.getByRole("button", { name: /Guardar/ }));
+		expect(onGuardar).toHaveBeenCalledOnce();
+		expect(
+			(onGuardar.mock.calls[0][0] as ProductoRequest).codigosBarras,
+		).toEqual([{ codigo: "7509999999999", factor: 1 }]);
+	});
+
+	it("quita un código de barras antes de guardar", async () => {
+		const user = userEvent.setup();
+		const onGuardar = vi.fn();
+		renderForm({ ...PRODUCTO, codigosBarras: ["A", "B"] }, onGuardar);
+		await user.click(screen.getByRole("button", { name: "Quitar código 1" }));
+		await user.click(screen.getByRole("button", { name: /Guardar/ }));
+		expect(
+			(onGuardar.mock.calls[0][0] as ProductoRequest).codigosBarras,
+		).toEqual([{ codigo: "B", factor: 1 }]);
+	});
+
+	it("infiere categoría, marca y unidad por nombre/clave", async () => {
+		const user = userEvent.setup();
+		const onGuardar = vi.fn();
+		renderForm(
+			{
+				...PRODUCTO,
+				categoriaId: undefined as never,
+				categoriaNombre: "construcción",
+				marcaId: null,
+				marcaNombre: "truper",
+				unidadMedidaId: undefined as never,
+				unidadMedidaClave: "pza",
+			},
+			onGuardar,
+		);
+		expect(screen.getByLabelText(/Categoría/)).toHaveValue("5");
+		expect(screen.getByLabelText(/Marca/)).toHaveValue("1");
+		expect(screen.getByLabelText(/Unidad de medida/)).toHaveValue("1");
+		await user.click(screen.getByRole("button", { name: /Guardar/ }));
+		expect(onGuardar).toHaveBeenCalledOnce();
+	});
+
+	it("envía tipo, IVA desactivado, mayoreo nulo e imagen sin cambio", async () => {
+		const user = userEvent.setup();
+		const onGuardar = vi.fn();
+		renderForm(
+			{
+				...PRODUCTO,
+				tipo: "PRODUCTO",
+				precioMayoreo: null,
+				imagenUrl: "https://cdn.tienda.com/p.jpg",
+			},
+			onGuardar,
+		);
+		await user.selectOptions(screen.getByLabelText(/Tipo/), "SERVICIO");
+		await user.click(screen.getByLabelText("Aplica IVA"));
+		await user.click(screen.getByRole("button", { name: /Guardar/ }));
+		const payload = onGuardar.mock.calls[0][0] as ProductoRequest;
+		expect(payload.tipo).toBe("SERVICIO");
+		expect(payload.aplicaIva).toBe(false);
+		expect(payload.precioMayoreo).toBeNull();
+		expect(payload.imagenUrl).toBeUndefined();
+		expect(payload.descripcion).toBeUndefined();
+	});
 });
