@@ -117,6 +117,49 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
 > levanta con jobs+email sin exports extra. La UI de Floci (`floci-ui`)
 > reaparece ~1 min después de `floci`; recargar la página para ver las bandejas.
 
+## Tests (cómo correrlos)
+
+### Backend (`ferreteriaBackend/`)
+
+```bash
+./gradlew test                                         # suite completa (~1048 tests)
+./gradlew test --tests "mx.ferreteria.api.ven.service.VentaServiceTest"  # uno solo
+./gradlew build                                        # compila + tests + gates JaCoCo
+```
+
+- **Gates** — JaCoCo ≥80% global y ≥85% en `common/i18n`, `common/error`,
+  `common/web` (estado: 85.4% global, `build` en verde).
+- **Convenciones** — unitarios JUnit5 + Mockito (`LENIENT`,
+  `@Mock`/`@InjectMocks`), excepciones asertadas por `ErrorCode` (nunca por
+  texto), sin contexto Spring ni BD. Los `*IT` (ej. `AuthFlowIT`) requieren
+  socket Docker/Podman y se saltan sin él.
+- **Reglas ArchUnit** (`MensajesSoloDesdeErrorCodeTest`, 8 reglas): mensajes
+  solo vía `ErrorCode`, sin ciclos entre módulos, naming `@Service`/`@Controller`,
+  controllers sin `*Repository`, sin `@Service` en `common.web`, entidades no
+  expuestas como controllers, y cada `*Gateway` con exactamente una
+  implementación. Los ciclos `cat↔inv/ven` se rompieron con ports lado-consumidor
+  (`StockPort`/`CreditoPort` en `cat` + adapters en `inv`/`ven`).
+
+### Frontend (`ferreteriaFront/`)
+
+```bash
+bun test                          # vitest run (111 archivos, 1126 tests)
+bunx vitest run src/test/ventas   # por carpeta/archivo
+bunx vitest run --coverage        # con reporte + gate de thresholds
+bun run lint && bun run build     # los tests también deben tipar (tsc)
+```
+
+- **Gate** — thresholds 80% en líneas/funciones/ramas/statements
+  (estado: 98.7% / 89.8% / 91.5% / 98.7%).
+- **Convenciones** — todos los tests en `src/test/` como espejo de `src/`
+  (config `include` solo `src/test/**`; nada de `*.test.*` junto al fuente),
+  imports con `@/...`, red mockeada con `vi.mock("@/lib/api/*")`, providers
+  `MemoryRouter` + `QueryClientProvider(retry:false)` + `ToastProvider`, roles
+  vía `useAuthStore.setState`. Sin backend real.
+- **Exclusiones de cobertura** — `src/main.tsx`, `src/vite-env.d.ts` y
+  `src/telemetry/otel.ts` (la rama OTLP real exige collector con red;
+  en jsdom solo se cubre el modo noop).
+
 ## Puertos y conexiones (dev local)
 
 La app corre con `bootRun` + `bun run dev` en el host; solo datos, storage y
