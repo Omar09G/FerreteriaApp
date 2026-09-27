@@ -24,7 +24,7 @@ function config(url = "/ventas"): InternalAxiosRequestConfig & { _retry?: RetryM
   };
 }
 
-function error401(url = "/ventas", codigo = "TOKEN_EXPIRADO"): AxiosError<ApiErrorBody> {
+function error401(codigo = "TOKEN_EXPIRADO"): AxiosError<ApiErrorBody> {
   return {
     response: {
       status: 401,
@@ -101,7 +101,7 @@ describe("puedeRefrescar", () => {
 
   it("401 con CREDENCIALES_INVALIDAS → true", () => {
     expect(
-      puedeRefrescar(error401("/ventas", "CREDENCIALES_INVALIDAS"), config(), meta()),
+      puedeRefrescar(error401("CREDENCIALES_INVALIDAS"), config(), meta()),
     ).toBe(true);
   });
 
@@ -130,13 +130,13 @@ describe("puedeRefrescar", () => {
 
   it("request a /auth/refresh → false", () => {
     expect(
-      puedeRefrescar(error401("/auth/refresh"), config("/auth/refresh"), meta()),
+      puedeRefrescar(error401(), config("/auth/refresh"), meta()),
     ).toBe(false);
   });
 
   it("request a /auth/login → false", () => {
     expect(
-      puedeRefrescar(error401("/auth/login"), config("/auth/login"), meta()),
+      puedeRefrescar(error401(), config("/auth/login"), meta()),
     ).toBe(false);
   });
 

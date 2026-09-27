@@ -114,10 +114,10 @@ describe("GastosPage (smoke)", () => {
 			screen.getByRole("heading", { name: "Gastos de caja" }),
 		).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Gastos", exact: true }),
+			screen.getByRole("button", { name: /^Gastos$/ }),
 		).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Ingresos", exact: true }),
+			screen.getByRole("button", { name: /^Ingresos$/ }),
 		).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: /registrar gasto/i }),
@@ -129,7 +129,7 @@ describe("GastosPage (smoke)", () => {
 		const user = userEvent.setup();
 		renderPage();
 		await screen.findByText("Flete de pedido");
-		await user.click(screen.getByRole("button", { name: "Ingresos", exact: true }));
+		await user.click(screen.getByRole("button", { name: /^Ingresos$/ }));
 		expect(
 			await screen.findByRole("heading", { name: "Ingresos de caja" }),
 		).toBeInTheDocument();
@@ -395,7 +395,7 @@ describe("GastosPage (profundización)", () => {
 		vi.mocked(apiCrearIngreso).mockResolvedValueOnce({ ingresoOtroId: 9 } as never);
 		renderPage();
 		await screen.findByText("Flete de pedido");
-		await user.click(screen.getByRole("button", { name: "Ingresos", exact: true }));
+		await user.click(screen.getByRole("button", { name: /^Ingresos$/ }));
 		await screen.findByText("Venta de chatarra");
 		await user.click(
 			screen.getByRole("button", { name: /registrar ingreso/i }),
@@ -427,7 +427,7 @@ describe("GastosPage (profundización)", () => {
 		const user = userEvent.setup();
 		renderPage();
 		await screen.findByText("Flete de pedido");
-		await user.click(screen.getByRole("button", { name: "Ingresos", exact: true }));
+		await user.click(screen.getByRole("button", { name: /^Ingresos$/ }));
 		await screen.findByText("Venta de chatarra");
 		await user.click(
 			screen.getByRole("button", { name: /registrar ingreso/i }),
@@ -449,7 +449,7 @@ describe("GastosPage (profundización)", () => {
 		vi.mocked(apiCrearIngreso).mockRejectedValueOnce(new Error("fallo"));
 		renderPage();
 		await screen.findByText("Flete de pedido");
-		await user.click(screen.getByRole("button", { name: "Ingresos", exact: true }));
+		await user.click(screen.getByRole("button", { name: /^Ingresos$/ }));
 		await screen.findByText("Venta de chatarra");
 		await user.click(
 			screen.getByRole("button", { name: /registrar ingreso/i }),
@@ -481,7 +481,7 @@ describe("GastosPage (profundización)", () => {
 		vi.mocked(apiEliminarIngreso).mockResolvedValueOnce({ ok: true } as never);
 		renderPage();
 		await screen.findByText("Flete de pedido");
-		await user.click(screen.getByRole("button", { name: "Ingresos", exact: true }));
+		await user.click(screen.getByRole("button", { name: /^Ingresos$/ }));
 		await screen.findByText("Venta de chatarra");
 		await user.click(screen.getByRole("button", { name: "Editar" }));
 		const dialogo = await screen.findByRole("dialog", {
@@ -574,7 +574,7 @@ describe("GastosPage (profundización)", () => {
 		expect(String(writeFile.mock.calls[0][1])).toMatch(
 			/^gastos-\d{4}-\d{2}-\d{2}\.xlsx$/,
 		);
-		await user.click(screen.getByRole("button", { name: "Ingresos", exact: true }));
+		await user.click(screen.getByRole("button", { name: /^Ingresos$/ }));
 		await screen.findByText("Venta de chatarra");
 		await user.click(screen.getByRole("button", { name: /excel/i }));
 		await waitFor(() => expect(writeFile).toHaveBeenCalledTimes(2));

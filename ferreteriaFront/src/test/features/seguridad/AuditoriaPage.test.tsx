@@ -253,7 +253,7 @@ describe("AuditoriaPage (profundización)", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Limpiar" }));
 		await waitFor(() => {
-			const ultima = vi.mocked(apiAuditoria).mock.calls.at(-1)?.[0] as Record<
+			const ultima = vi.mocked(apiAuditoria).mock.calls.at(-1)?.[0] as unknown as Record<
 				string,
 				unknown
 			>;

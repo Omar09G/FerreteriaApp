@@ -226,7 +226,7 @@ describe("EmpleadosPage (profundización)", () => {
 				expect.objectContaining({ puestoId: 5, nombre: "Luz" }),
 			),
 		);
-		const body = vi.mocked(apiCrearEmpleado).mock.calls[0][0] as Record<
+		const body = vi.mocked(apiCrearEmpleado).mock.calls[0][0] as unknown as Record<
 			string,
 			unknown
 		>;

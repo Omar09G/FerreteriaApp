@@ -3,7 +3,6 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import type { ReactNode } from "react";
 
 import CatalogoCrudPage from "@/features/catalogo/CatalogoCrudPage";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -174,7 +173,7 @@ function renderAt(clave = "estados") {
 			mutations: { retry: false },
 		},
 	});
-	const wrapper = ({ children }: { children: ReactNode }) => (
+	const wrapper = () => (
 		<MemoryRouter initialEntries={[`/catalogos/${clave}`]}>
 			<QueryClientProvider client={qc}>
 				<ToastProvider>

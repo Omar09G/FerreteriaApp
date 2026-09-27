@@ -4,7 +4,8 @@
  * catch-all NotFound. El data-router real choca con jsdom/undici al navegar,
  * así que se componen los elementos sobre MemoryRouter como en router.test.
  */
-import { afterEach, describe, expect, it, vi, type ReactElement } from "vitest";
+import type { ReactElement } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 

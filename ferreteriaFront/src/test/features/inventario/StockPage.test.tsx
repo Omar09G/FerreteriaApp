@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 
 import StockPage from "@/features/inventario/StockPage";
 import { ToastProvider } from "@/components/ui/Toast";
-import { apiAlmacenes } from "@/lib/api/catalogo";
+
 import { apiStock } from "@/lib/api/reportes";
 import { apiCrearMovimiento } from "@/lib/api/inventario";
 

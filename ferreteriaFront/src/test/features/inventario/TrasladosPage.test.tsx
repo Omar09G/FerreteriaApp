@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 
 import TrasladosPage from "@/features/inventario/TrasladosPage";
 import { ToastProvider } from "@/components/ui/Toast";
-import { apiAlmacenes, apiProductos } from "@/lib/api/catalogo";
+import { apiProductos } from "@/lib/api/catalogo";
 import { apiCrearTraslado, apiTraslados } from "@/lib/api/inventario";
 
 vi.mock("sweetalert2", () => ({

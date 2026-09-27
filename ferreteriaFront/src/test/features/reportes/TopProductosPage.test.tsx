@@ -101,7 +101,7 @@ describe("TopProductosPage (profundización)", () => {
 			{
 				mes: "2026-09",
 				productoId: 2,
-				codigo: null,
+				codigo: "CLA-002",
 				producto: "Clavo",
 				categoria: "Fijación",
 				unidadesVendidas: 4,

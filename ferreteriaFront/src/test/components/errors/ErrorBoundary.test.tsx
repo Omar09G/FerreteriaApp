@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -6,7 +7,7 @@ import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
 
 vi.spyOn(console, "error").mockImplementation(() => {});
 
-function Boom({ mensaje = "kaboom" }: { mensaje?: string }) {
+function Boom({ mensaje = "kaboom" }: { mensaje?: string }): ReactElement {
 	throw new Error(mensaje);
 }
 

@@ -14,7 +14,6 @@ import {
 	apiCajas,
 	apiCrearCaja,
 } from "@/lib/api/caja";
-import { apiAlmacenes } from "@/lib/api/catalogo";
 import { useAuthStore } from "@/store/auth";
 
 vi.mock("sweetalert2", () => ({

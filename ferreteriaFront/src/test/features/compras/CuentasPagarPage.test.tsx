@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 
 import CuentasPagarPage from "@/features/compras/CuentasPagarPage";
 import { ToastProvider } from "@/components/ui/Toast";
-import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
+import { apiTurnoActual } from "@/lib/api/caja";
 import {
 	apiAbonarCuentaPagar,
 	apiCuentasPagar,

@@ -42,15 +42,14 @@ describe("ui store", () => {
 		expect(guardado.state.idioma).toBe("en");
 	});
 
-	it("rehidrata desde localStorage al recargar el store", () => {
+	it("rehidrata desde localStorage al recargar el store", async () => {
 		localStorage.setItem(
 			"ferreteria-ui",
 			JSON.stringify({ state: { tema: "light", idioma: "en" }, version: 0 }),
 		);
 		// Re-ejecuta la hidratación contra el storage ya sembrado.
-		return useUiStore.persist.rehydrate().then(() => {
-			expect(useUiStore.getState().tema).toBe("light");
-			expect(useUiStore.getState().idioma).toBe("en");
-		});
+		await useUiStore.persist.rehydrate();
+		expect(useUiStore.getState().tema).toBe("light");
+		expect(useUiStore.getState().idioma).toBe("en");
 	});
 });

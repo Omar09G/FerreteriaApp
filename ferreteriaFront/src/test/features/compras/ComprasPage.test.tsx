@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 import ComprasPage from "@/features/compras/ComprasPage";
 import { ToastProvider } from "@/components/ui/Toast";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
-import { apiAlmacenes, apiProductos, apiProveedores } from "@/lib/api/catalogo";
+import { apiProductos } from "@/lib/api/catalogo";
 import { apiCompras, apiCrearCompra } from "@/lib/api/compras";
 
 vi.mock("sweetalert2", () => ({
