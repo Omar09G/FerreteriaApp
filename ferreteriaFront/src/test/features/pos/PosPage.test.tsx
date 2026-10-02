@@ -227,6 +227,66 @@ describe("PosPage", () => {
 		expect(await screen.findByText("V-0001")).toBeInTheDocument();
 	});
 
+	it("F2 abre la confirmación por la misma ruta que el clic", async () => {
+		const user = userEvent.setup();
+		apiProductosMock.mockResolvedValue(pageOf([PRODUCTO]));
+		apiCheckoutMock.mockResolvedValue(VENTA);
+		renderPagina(<PosPage />);
+		await screen.findByRole("option", { name: "Matriz" });
+		await user.selectOptions(
+			screen.getByLabelText(/Almacén \/ punto de venta/),
+			"1",
+		);
+		await screen.findByRole("option", { name: "Caja 1 · Matriz" });
+		await user.selectOptions(screen.getByLabelText(/Caja donde operas/), "1");
+		await screen.findByText(/abierto desde/);
+		await user.type(screen.getByLabelText(/Buscar producto/), "Martillo{enter}");
+		const lista = await screen.findByRole("listbox", {
+			name: "Resultados de búsqueda",
+		});
+		await user.click(within(lista).getByRole("button", { name: /Martillo/ }));
+		expect(await screen.findByText("Ticket (1)")).toBeInTheDocument();
+		await user.type(screen.getByLabelText("Recibido"), "100");
+		const cobrar = screen.getByRole("button", { name: /Cobrar/ });
+		expect(cobrar).toBeEnabled();
+		expect(cobrar).toHaveAttribute("type", "button");
+		expect(cobrar).toHaveAttribute("aria-keyshortcuts", "F2");
+		fireEvent.keyDown(window, { key: "F2" });
+		expect(
+			await screen.findByRole("dialog", { name: "Confirmar venta" }),
+		).toBeInTheDocument();
+		expect(apiCheckoutMock).not.toHaveBeenCalled();
+	});
+
+	it("F2 con el diálogo abierto no duplica ni dispara el cobro solo", async () => {
+		const user = userEvent.setup();
+		apiProductosMock.mockResolvedValue(pageOf([PRODUCTO]));
+		apiCheckoutMock.mockResolvedValue(VENTA);
+		renderPagina(<PosPage />);
+		await screen.findByRole("option", { name: "Matriz" });
+		await user.selectOptions(
+			screen.getByLabelText(/Almacén \/ punto de venta/),
+			"1",
+		);
+		await screen.findByRole("option", { name: "Caja 1 · Matriz" });
+		await user.selectOptions(screen.getByLabelText(/Caja donde operas/), "1");
+		await screen.findByText(/abierto desde/);
+		await user.type(screen.getByLabelText(/Buscar producto/), "Martillo{enter}");
+		const lista = await screen.findByRole("listbox", {
+			name: "Resultados de búsqueda",
+		});
+		await user.click(within(lista).getByRole("button", { name: /Martillo/ }));
+		expect(await screen.findByText("Ticket (1)")).toBeInTheDocument();
+		await user.type(screen.getByLabelText("Recibido"), "100");
+		await user.click(screen.getByRole("button", { name: /Cobrar/ }));
+		await screen.findByRole("dialog", { name: "Confirmar venta" });
+		fireEvent.keyDown(window, { key: "F2" });
+		expect(
+			screen.getAllByRole("dialog", { name: "Confirmar venta" }),
+		).toHaveLength(1);
+		expect(apiCheckoutMock).not.toHaveBeenCalled();
+	});
+
 	it("muestra las ventas del día con datos en tabla", async () => {
 		const user = userEvent.setup();
 		apiVentasMock.mockResolvedValue(pageOf([VENTA]));

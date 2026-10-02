@@ -82,7 +82,9 @@ class WhatsAppNotificacionSenderTest {
         WhatsAppNotificacionSender sender =
                 new WhatsAppNotificacionSender(props(true, "mock"), bandeja);
 
-        sender.send("555 000-1111", "Ticket V-1", PDF);
+        boolean entregado = sender.send("555 000-1111", "Ticket V-1", PDF);
+
+        assertThat(entregado).isTrue();
 
         assertThat(bandeja.mensajes()).hasSize(1);
         WhatsAppMockBandeja.MensajeMock m = bandeja.mensajes().get(0);
@@ -97,7 +99,9 @@ class WhatsAppNotificacionSenderTest {
         WhatsAppNotificacionSender sender =
                 new WhatsAppNotificacionSender(props(false, "mock"), bandeja);
 
-        sender.send("5550001111", "Ticket V-1", PDF);
+        boolean entregado = sender.send("5550001111", "Ticket V-1", PDF);
+
+        assertThat(entregado).isFalse();
 
         assertThat(bandeja.mensajes()).isEmpty();
     }
@@ -108,7 +112,9 @@ class WhatsAppNotificacionSenderTest {
         WhatsAppNotificacionSender sender =
                 new WhatsAppNotificacionSender(props(true, "mock"), bandeja);
 
-        sender.send("   ", "Ticket V-1", PDF);
+        boolean entregado = sender.send("   ", "Ticket V-1", PDF);
+
+        assertThat(entregado).isFalse();
 
         assertThat(bandeja.mensajes()).isEmpty();
     }
@@ -148,8 +154,11 @@ class WhatsAppNotificacionSenderTest {
             WhatsAppNotificacionSender sender = new WhatsAppNotificacionSender(
                     props(true, "evolution", server.baseUrl()), bandeja);
 
-            assertThatCode(() -> sender.send("5550001111", "Ticket V-1", PDF))
+            java.util.concurrent.atomic.AtomicBoolean entregado = new java.util.concurrent.atomic.AtomicBoolean(true);
+            assertThatCode(() -> entregado.set(sender.send("5550001111", "Ticket V-1", PDF)))
                     .doesNotThrowAnyException();
+
+            assertThat(entregado.get()).isFalse();
 
             assertThat(bandeja.mensajes()).isEmpty();
         }

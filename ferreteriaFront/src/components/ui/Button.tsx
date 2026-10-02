@@ -29,7 +29,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	variant?: Variant;
 	size?: Size;
 	children?: ReactNode;
-	/** Atajo visual + aria-keyshortcuts. Ej: "F2", "Ctrl+Enter". No suscribe listener, solo visual. */
+	/** Atajo (ej: "F2", "Ctrl+Enter"): muestra <kbd>, aria-keyshortcuts y
+	 *  suscribe el listener que activa el botón. No dupliques con useHotkey
+	 *  en la página para la misma tecla: una sola propiedad por atajo. */
 	hotkey?: string;
 	/** Muestra el <kbd> dentro del boton. Default true si hay hotkey y no disabled. */
 	showHotkey?: boolean;

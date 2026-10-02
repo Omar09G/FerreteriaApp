@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mx.ferreteria.api.common.error.ValidacionException;
+import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.storage.DocumentoStoragePort;
 import mx.ferreteria.api.notif.config.NotificacionProperties;
 import mx.ferreteria.api.notif.dto.NotificacionMensaje;
@@ -15,7 +17,9 @@ import mx.ferreteria.api.notif.dto.NotificacionMensaje;
  * token+chat; con los dos → por los dos) y el fallo de uno no salta los
  * demás. Semántica: si al menos un canal entregó → ENVIADA; si todos los
  * intentados fallaron → lanza y el job va a ERROR (reconciler reintenta).
- * Así un reintento nunca duplica lo ya entregado por otro canal.
+ * Una omisión (canal deshabilitado, sin número) o un fallo reportado por el
+ * sender (WhatsApp/Telegram nunca lanzan: devuelven false) no cuenta como
+ * entrega. Así un reintento nunca duplica lo ya entregado por otro canal.
  */
 @Service
 @RequiredArgsConstructor
@@ -54,12 +58,15 @@ public class NotificacionEnvioService {
         if (msg.paraWhatsapp() != null && !msg.paraWhatsapp().isBlank()) {
             intentados++;
             try {
-                whatsappSender.send(msg.paraWhatsapp(), msg.asunto(), pdf);
-                exitosos++;
+                if (whatsappSender.send(msg.paraWhatsapp(), msg.asunto(), pdf)) {
+                    exitosos++;
+                }
             } catch (RuntimeException e) {
                 primerFallo = e;
                 log.warn("whatsapp fallo job_id={} err={}", msg.jobId(), e.getMessage());
             }
+        } else {
+            log.debug("whatsapp omitido (sin destinatario) job_id={}", msg.jobId());
         }
 
         if (props.telegram() != null
@@ -69,8 +76,9 @@ public class NotificacionEnvioService {
                 && !props.telegram().chatId().isBlank()) {
             intentados++;
             try {
-                telegramSender.send(props.telegram().chatId(), msg.asunto(), pdf, msg.pdfUrl());
-                exitosos++;
+                if (telegramSender.send(props.telegram().chatId(), msg.asunto(), pdf, msg.pdfUrl())) {
+                    exitosos++;
+                }
             } catch (RuntimeException e) {
                 primerFallo = e;
                 log.warn("telegram fallo job_id={} err={}", msg.jobId(), e.getMessage());
@@ -78,7 +86,8 @@ public class NotificacionEnvioService {
         }
 
         if (intentados > 0 && exitosos == 0) {
-            throw primerFallo;
+            throw primerFallo != null ? primerFallo
+                    : new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
         }
     }
 }

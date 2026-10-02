@@ -22,8 +22,8 @@ import mx.ferreteria.api.notif.config.NotificacionProperties;
  * <li>{@code proveedor=evolution} + {@code base-url/instancia/api-key}:
  * envío real a Evolution API sin cambiar código.</li>
  * </ul>
- * Nunca lanza: un fallo del canal se loguea y no tumba el job (igual que
- * Telegram). El número se normaliza a solo dígitos; si trae 10 dígitos se
+ * Nunca lanza: un fallo del canal se loguea y se reporta con
+ * {@code false} (igual que Telegram). El número se normaliza a solo dígitos; si trae 10 dígitos se
  * antepone {@code prefijo-por-defecto} (521 México).
  */
 @Component
@@ -36,27 +36,27 @@ public class WhatsAppNotificacionSender {
     private final WhatsAppMockBandeja bandeja;
     private RestClient restClient = RestClient.create();
 
-    public void send(String telefono, String asunto, byte[] pdf) {
+    public boolean send(String telefono, String asunto, byte[] pdf) {
         NotificacionProperties.WhatsApp cfg = props.whatsapp();
         if (cfg == null || !cfg.enabled()) {
             log.debug("whatsapp omitido (deshabilitado) to={}", telefono);
-            return;
+            return false;
         }
         String numero = normalizar(telefono);
         if (numero == null || numero.isBlank()) {
             log.debug("whatsapp omitido (sin número)");
-            return;
+            return false;
         }
         if ("evolution".equalsIgnoreCase(cfg.proveedor()) && cfg.baseUrl() != null
                 && !cfg.baseUrl().isBlank()) {
-            enviarEvolution(cfg, numero, asunto, pdf);
-            return;
+            return enviarEvolution(cfg, numero, asunto, pdf);
         }
         bandeja.registrar(numero, asunto, "documento.pdf", pdf);
         log.info("whatsapp mock to={} asunto={}", numero, asunto);
+        return true;
     }
 
-    private void enviarEvolution(NotificacionProperties.WhatsApp cfg, String numero, String asunto,
+    private boolean enviarEvolution(NotificacionProperties.WhatsApp cfg, String numero, String asunto,
             byte[] pdf) {
         try {
             String base = cfg.baseUrl().replaceAll("/+$", "");
@@ -89,8 +89,10 @@ public class WhatsAppNotificacionSender {
                         .toBodilessEntity();
             }
             log.info("whatsapp evolution enviado to={}", numero);
+            return true;
         } catch (Exception e) {
             log.warn("whatsapp evolution fallo to={} err={}", numero, e.getMessage());
+            return false;
         }
     }
 

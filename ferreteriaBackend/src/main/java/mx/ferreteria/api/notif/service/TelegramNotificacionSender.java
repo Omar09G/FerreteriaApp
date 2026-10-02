@@ -26,10 +26,13 @@ public class TelegramNotificacionSender {
     private final NotificacionProperties props;
     private RestClient restClient = RestClient.create();
 
-    public void send(String chatId, String asunto, byte[] pdf, String clave) {
+    public boolean send(String chatId, String asunto, byte[] pdf, String clave) {
+        if (props.telegram() == null) {
+            return false;
+        }
         String token = props.telegram().botToken();
         if (token == null || token.isBlank() || pdf == null) {
-            return;
+            return false;
         }
         try {
             String nombre = clave != null && clave.contains("/")
@@ -51,8 +54,10 @@ public class TelegramNotificacionSender {
                     .retrieve()
                     .toBodilessEntity();
             log.info("telegram enviado chat_id={}", chatId);
+            return true;
         } catch (Exception e) {
             log.warn("telegram fallo chat_id={} err={}", chatId, e.getMessage());
+            return false;
         }
     }
 }

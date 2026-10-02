@@ -114,6 +114,48 @@ class NotificacionEnvioServiceTest {
     }
 
     @Test
+    @DisplayName("whatsapp deshabilitado + email falla: lanza (el no-op no enmascara el fallo)")
+    void enviar_whatsappDeshabilitado_emailFalla_lanza() {
+        DocumentoStoragePort storage = mock(DocumentoStoragePort.class);
+        when(storage.descargarPdf("tickets/1.pdf")).thenReturn(PDF);
+        NotificacionProperties props = new NotificacionProperties(false, null, 5, null,
+                new WhatsApp(false, "mock", "", "ferreteria", "", "521"));
+        EmailNotificacionSender emailSender = mock(EmailNotificacionSender.class);
+        org.mockito.Mockito.doThrow(new RuntimeException("smtp caído"))
+                .when(emailSender).send(any(), any(), any(), any());
+        TelegramNotificacionSender telegramSender = mock(TelegramNotificacionSender.class);
+        WhatsAppMockBandeja bandeja = new WhatsAppMockBandeja();
+        NotificacionEnvioService service = new NotificacionEnvioService(
+                storage, props, emailSender, telegramSender,
+                new WhatsAppNotificacionSender(props, bandeja));
+        NotificacionMensaje msg = new NotificacionMensaje(7L, "VENTA_TICKET", "VENTA", 1L,
+                "tickets/1.pdf", "cte@acme.mx", "5550001111", "Ticket V-1", BigDecimal.ONE);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.enviar(msg))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("smtp caído");
+        assertThat(bandeja.mensajes()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("solo whatsapp con datos pero deshabilitado: lanza en vez de ENVIADA silenciosa")
+    void enviar_soloWhatsappDeshabilitado_lanza() {
+        DocumentoStoragePort storage = mock(DocumentoStoragePort.class);
+        NotificacionProperties props = new NotificacionProperties(false, null, 5, null,
+                new WhatsApp(false, "mock", "", "ferreteria", "", "521"));
+        EmailNotificacionSender emailSender = mock(EmailNotificacionSender.class);
+        TelegramNotificacionSender telegramSender = mock(TelegramNotificacionSender.class);
+        NotificacionEnvioService service = new NotificacionEnvioService(
+                storage, props, emailSender, telegramSender,
+                new WhatsAppNotificacionSender(props, new WhatsAppMockBandeja()));
+        NotificacionMensaje msg = new NotificacionMensaje(7L, "VENTA_TICKET", "VENTA", 1L,
+                null, null, "5550001111", "Ticket V-1", BigDecimal.ONE);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.enviar(msg))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
     @DisplayName("enviar con email: usa el sender de email con el PDF adjunto")
     void enviar_emailAdjuntaPdf() {
         DocumentoStoragePort storage = mock(DocumentoStoragePort.class);

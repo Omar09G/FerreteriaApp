@@ -517,10 +517,9 @@ export default function PosPage() {
   useHotkey("F1", enfocarBuscador, {
     enabled: !ventaResultado && !confirmAbierto,
   });
-  useHotkey("F2", abrirConfirmacion, {
-    enabled:
-      !ventaResultado && !confirmAbierto && puedeVender && !checkout.isPending,
-  });
+  // F2 lo atiende en exclusiva el botón Cobrar (hotkey="F2"): su listener
+  // interno hace click() y comparte este mismo abrirConfirmacion, así clic
+  // de ratón y teclado recorren una sola ruta con la misma guarda.
 
   /** Cámara como lector: lo detectado entra al mismo flujo que el escáner USB. */
   const abrirScanner = useCallback(() => {
@@ -1243,7 +1242,7 @@ export default function PosPage() {
               type="button"
               hotkey="F2"
               disabled={!puedeVender || checkout.isPending}
-              onClick={() => setConfirmAbierto(true)}
+              onClick={abrirConfirmacion}
               className="mt-3 w-full"
               size="lg"
             >
