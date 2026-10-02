@@ -2,6 +2,8 @@ import http from "./client";
 import type {
   CierreDiario,
   Envelope,
+  InformeEnvio,
+  InformeEstado,
   Inventario,
   MejorCliente,
   MejorDiaVenta,
@@ -26,6 +28,29 @@ export async function apiDashboard(
 ): Promise<ResumenDashboard> {
   const { data } = await http.get<Envelope<ResumenDashboard>>(
     "/reportes/dashboard",
+    { params: rango(inicio, fin) },
+  );
+  return data.data;
+}
+
+export async function apiEnviarInforme(
+  inicio: string,
+  fin: string,
+): Promise<InformeEnvio> {
+  const { data } = await http.post<Envelope<InformeEnvio>>(
+    "/reportes/dashboard/informe",
+    null,
+    { params: rango(inicio, fin) },
+  );
+  return data.data;
+}
+
+export async function apiInformeEstado(
+  inicio: string,
+  fin: string,
+): Promise<InformeEstado> {
+  const { data } = await http.get<Envelope<InformeEstado>>(
+    "/reportes/dashboard/informe/estado",
     { params: rango(inicio, fin) },
   );
   return data.data;

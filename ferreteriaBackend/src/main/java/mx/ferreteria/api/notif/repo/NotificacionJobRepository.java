@@ -20,12 +20,15 @@ public interface NotificacionJobRepository extends JpaRepository<NotificacionJob
      * Jobs reintentables: PENDIENTE/ERROR más los PROCESANDO rancios (proceso
      * caído entre marcarProcesando y el fin). Sin updated_at se usa creado_en
      * como cota: un PROCESANDO con creado_en viejo es un huérfano seguro.
+     * Solo tipos del pipeline broker (ticket/nómina): INFORME_DASHBOARD es
+     * síncrono (botón/JOB diario) y su reintento es manual.
      */
     @Query("""
             select j from NotificacionJob j
             where (j.estado in ('PENDIENTE','ERROR')
                    or (j.estado = 'PROCESANDO' and j.creadoEn < :stale))
               and j.intentos < :maxIntentos
+              and j.tipo in ('VENTA_TICKET','NOMINA_PAGADA')
             order by j.creadoEn asc
             """)
     List<NotificacionJob> pendientesParaReconciliar(

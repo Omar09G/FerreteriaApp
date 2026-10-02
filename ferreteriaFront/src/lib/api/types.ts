@@ -190,6 +190,22 @@ export interface CierreDiario {
   todoCuadrado: boolean;
 }
 
+export interface InformeEnvio {
+  fechaInicio: string;
+  fechaFin: string;
+  destinatarios: number;
+  emailsEnviados: number;
+  whatsappEnviados: number;
+}
+
+export interface InformeEstado {
+  fechaInicio: string;
+  fechaFin: string;
+  yaEnviado: boolean;
+  estado: string | null;
+  enviadoEn: string | null;
+}
+
 /* ── Movimientos de inventario ───────────────────────────────────── */
 
 export interface MovimientoInventario {

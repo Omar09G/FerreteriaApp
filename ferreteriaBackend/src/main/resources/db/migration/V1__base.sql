@@ -753,12 +753,13 @@ CREATE INDEX IF NOT EXISTS idx_ventas_fecha_local ON ven.ventas(fecha_local DESC
 CREATE INDEX IF NOT EXISTS idx_ventas_almacen_fecha_local ON ven.ventas(almacen_id, fecha_local DESC);
 
 -- V21: cola de trabajos de notificación (ticket PDF / nómina pagada).
+-- V22: + informe diario del dashboard (INFORME_DASHBOARD / INFORME).
 CREATE TABLE IF NOT EXISTS notif.notificacion_jobs (
     job_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     tipo         VARCHAR(32) NOT NULL
-                 CHECK (tipo IN ('VENTA_TICKET','NOMINA_PAGADA')),
+                 CHECK (tipo IN ('VENTA_TICKET','NOMINA_PAGADA','INFORME_DASHBOARD')),
     ref_tipo     VARCHAR(16) NOT NULL
-                 CHECK (ref_tipo IN ('VENTA','NOMINA')),
+                 CHECK (ref_tipo IN ('VENTA','NOMINA','INFORME')),
     ref_id       BIGINT NOT NULL,
     estado       VARCHAR(16) NOT NULL DEFAULT 'PENDIENTE'
                  CHECK (estado IN ('PENDIENTE','PROCESANDO','ENVIADA','ERROR')),

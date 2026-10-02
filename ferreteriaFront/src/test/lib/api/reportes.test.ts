@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiCierreDiario,
   apiDashboard,
+  apiEnviarInforme,
   apiHorasPico,
+  apiInformeEstado,
   apiMejoresCategorias,
   apiMejoresClientes,
   apiMejoresDias,
@@ -35,6 +37,7 @@ import http from "@/lib/api/client";
 
 type HttpMock = {
   get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
 };
 
 const mock = http as unknown as HttpMock;
@@ -220,5 +223,30 @@ describe("apiStock", () => {
     const err = new Error("red caída");
     mock.get.mockRejectedValueOnce(err);
     await expect(apiStock({ page: 0, size: 5 })).rejects.toBe(err);
+  });
+});
+
+describe("apiEnviarInforme", () => {
+  it("hace POST con rango y devuelve conteos", async () => {
+    const r = { destinatarios: 3, emailsEnviados: 2, whatsappEnviados: 1 };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: r } });
+    await expect(apiEnviarInforme(INICIO, FIN)).resolves.toEqual(r);
+    expect(mock.post).toHaveBeenCalledWith(
+      "/reportes/dashboard/informe",
+      null,
+      { params: RANGO },
+    );
+  });
+});
+
+describe("apiInformeEstado", () => {
+  it("hace GET con rango y devuelve estado", async () => {
+    const r = { yaEnviado: true, estado: "ENVIADA" };
+    mock.get.mockResolvedValueOnce({ data: { success: true, data: r } });
+    await expect(apiInformeEstado(INICIO, FIN)).resolves.toEqual(r);
+    expect(mock.get).toHaveBeenCalledWith(
+      "/reportes/dashboard/informe/estado",
+      { params: RANGO },
+    );
   });
 });

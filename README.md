@@ -224,6 +224,17 @@ Notas:
   `notificacion.jobs.dlq`).
 - **Endpoint** — `GET /api/v1/ventas/{id}/ticket.pdf` (`application/pdf`, mismos
   roles de lectura que ventas).
+- **Informe diario del dashboard** — PDF con los 11 KPIs (`GET /reportes/dashboard`)
+  + cierre diario (`GET /reportes/cierre-diario`), enviado por **correo y WhatsApp**
+  a usuarios activos con rol `GERENTE`/`ADMINISTRADOR` que tengan correo en
+  `seg.usuarios` o WhatsApp en `rh.empleados`. Dos vías: botón **Enviar informe**
+  en el dashboard (solo GERENTE/ADMINISTRADOR; si ya se envió en el día pide
+  confirmación de reenvío vía `GET .../informe/estado`) y JOB diario 1 vez al día
+  (`POST .../dashboard/informe`). Auditoría en `notif.notificacion_jobs`
+  (`tipo=INFORME_DASHBOARD`, un registro por día). Vars:
+  `INFORME_DASHBOARD_CRON` (default `0 0 7 * * *`), `INFORME_DASHBOARD_ZONA`,
+  `INFORME_DASHBOARD_JOB_ENABLED=false` (solo manual) / `true` (manual + JOB);
+  requiere `APP_NOTIF_ENABLED=true`.
 - **Activación** — `APP_NOTIF_ENABLED=true` (compose lo trae; en `bootRun` local
   default `false`: los jobs quedan `PENDIENTE` y se procesan al habilitar).
   Vars: `RABBITMQ_*`, `NOTIF_MAX_INTENTOS`, `MAIL_HOST/PORT` (dev: Mailpit),
@@ -250,7 +261,7 @@ Notas:
 - **BD existentes** — Flyway va deshabilitado en la app, así que un volumen con
   esquema viejo no se migra solo: aplicar en orden los deltas idempotentes de
   `ferreteriaDB/migrations/` (p. ej. `delta_ventas_motivo_cancelacion.sql`,
-  `delta_notificacion_jobs.sql`) con superusuario.
+  `delta_notificacion_jobs.sql`, `delta_informe_dashboard.sql`) con superusuario.
 
 ## Observabilidad (OTel + Prometheus)
 

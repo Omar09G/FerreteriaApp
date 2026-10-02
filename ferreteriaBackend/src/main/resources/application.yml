@@ -154,6 +154,15 @@ app:
       instancia: ${WHATSAPP_INSTANCIA:ferreteria}
       api-key: ${WHATSAPP_API_KEY:}
       prefijo-por-defecto: ${WHATSAPP_PREFIJO:521}
+  # Informe diario del dashboard (KPIs + cierre) por correo y WhatsApp.
+  # dashboard-job-enabled=false (default): solo envío manual (botón).
+  # =true: además el JOB lo envía 1 vez al día a dashboard-cron en dashboard-zona.
+  # Requiere app.notif.enabled=true (APP_NOTIF_ENABLED), si no el JOB no arranca
+  # y el botón responde 503 SERVICIO_NO_DISPONIBLE.
+  informes:
+    dashboard-cron: ${INFORME_DASHBOARD_CRON:0 0 7 * * *}
+    dashboard-zona: ${INFORME_DASHBOARD_ZONA:America/Mexico_City}
+    dashboard-job-enabled: ${INFORME_DASHBOARD_JOB_ENABLED:false}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

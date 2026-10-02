@@ -6,6 +6,7 @@ import {
   Boxes,
   ClipboardList,
   ReceiptText,
+  Send,
   ShoppingBag,
   Store,
   TrendingUp,
@@ -16,11 +17,15 @@ import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
-import { formatoMoneda } from "@/lib/format";
-import { apiDashboard } from "@/lib/api/reportes";
+import { formatoFechaHora, formatoMoneda } from "@/lib/format";
+import { apiDashboard, apiEnviarInforme, apiInformeEstado } from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Spinner } from "@/components/ui/Spinner";
+import { useTieneRol } from "@/store/auth";
+import type { InformeEstado } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/Toast";
 
@@ -63,8 +68,11 @@ function KPI({
 
 export default function DashboardPage() {
   useDocumentTitle("Inicio");
-  const { error: mostrarError } = useToast();
+  const { success: mostrarExito, error: mostrarError, loading: mostrarCarga } = useToast();
   const [rango] = useState<RangoFechas>(() => rangoFechas());
+  const puedeEnviar = useTieneRol(["ADMINISTRADOR", "GERENTE"]);
+  const [enviando, setEnviando] = useState(false);
+  const [confirmarReenvio, setConfirmarReenvio] = useState<InformeEstado | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard", rango.inicio, rango.fin],
@@ -78,6 +86,41 @@ export default function DashboardPage() {
       );
   }, [error, mostrarError]);
 
+  async function enviarInforme() {
+    if (enviando) return;
+    const cerrarCarga = mostrarCarga("Verificando informe…");
+    try {
+      const estado = await apiInformeEstado(rango.inicio, rango.fin);
+      if (estado.yaEnviado) {
+        setConfirmarReenvio(estado);
+        return;
+      }
+      await ejecutarEnvio();
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      cerrarCarga();
+    }
+  }
+
+  async function ejecutarEnvio() {
+    if (enviando) return;
+    setEnviando(true);
+    const cerrarCarga = mostrarCarga("Enviando informe…");
+    try {
+      const r = await apiEnviarInforme(rango.inicio, rango.fin);
+      setConfirmarReenvio(null);
+      mostrarExito(
+        `Informe enviado a ${r.destinatarios} destinatarios (${r.emailsEnviados} correos, ${r.whatsappEnviados} WhatsApp).`,
+      );
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      cerrarCarga();
+      setEnviando(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -87,6 +130,17 @@ export default function DashboardPage() {
             Resumen del periodo seleccionado.
           </p>
         </div>
+        {puedeEnviar && (
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={enviando}
+            onClick={enviarInforme}
+          >
+            <Send className="h-4 w-4" aria-hidden />
+            {enviando ? "Enviando…" : "Enviar informe"}
+          </Button>
+        )}
       </header>
 
       {isLoading && <Spinner label="Cargando indicadores…" />}
@@ -179,6 +233,24 @@ export default function DashboardPage() {
           </Card>
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmarReenvio !== null}
+        title="Informe ya enviado"
+        confirmLabel="Sí, reenviar"
+        tone="primary"
+        busy={enviando}
+        onCancel={() => !enviando && setConfirmarReenvio(null)}
+        onConfirm={ejecutarEnvio}
+      >
+        <p className="text-sm text-ink">
+          El informe del periodo seleccionado ya se envió
+          {confirmarReenvio?.enviadoEn
+            ? ` el ${formatoFechaHora(confirmarReenvio.enviadoEn)}`
+            : ""}
+          . ¿Desea enviarlo nuevamente por correo y WhatsApp?
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }

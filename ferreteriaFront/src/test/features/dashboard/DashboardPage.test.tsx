@@ -1,19 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 
 import { ToastProvider } from "@/components/ui/Toast";
 import DashboardPage from "@/features/dashboard/DashboardPage";
-import { apiDashboard } from "@/lib/api/reportes";
+import {
+  apiDashboard,
+  apiEnviarInforme,
+  apiInformeEstado,
+} from "@/lib/api/reportes";
 import { useAuthStore } from "@/store/auth";
 
 vi.mock("sweetalert2", () => ({
-	default: { fire: vi.fn(), showLoading: vi.fn(), close: vi.fn() },
+  default: { fire: vi.fn(), showLoading: vi.fn(), close: vi.fn() },
 }));
 
 vi.mock("@/lib/api/reportes", () => ({
-	apiDashboard: vi.fn(),
+  apiDashboard: vi.fn(),
+  apiEnviarInforme: vi.fn(),
+  apiInformeEstado: vi.fn(),
 }));
 
 const RESUMEN = {
@@ -54,7 +60,21 @@ beforeEach(() => {
 		lastActivityAt: Date.now(),
 	});
 	localStorage.clear();
-	vi.mocked(apiDashboard).mockResolvedValue({ ...RESUMEN } as never);
+  vi.mocked(apiDashboard).mockResolvedValue({ ...RESUMEN } as never);
+  vi.mocked(apiInformeEstado).mockResolvedValue({
+    fechaInicio: "2026-10-02",
+    fechaFin: "2026-10-02",
+    yaEnviado: false,
+    estado: null,
+    enviadoEn: null,
+  } as never);
+  vi.mocked(apiEnviarInforme).mockResolvedValue({
+    fechaInicio: "2026-10-02",
+    fechaFin: "2026-10-02",
+    destinatarios: 2,
+    emailsEnviados: 1,
+    whatsappEnviados: 1,
+  } as never);
 });
 
 describe("DashboardPage (smoke)", () => {
@@ -80,12 +100,56 @@ describe("DashboardPage (smoke)", () => {
 		expect(screen.getByText("320")).toBeInTheDocument();
 	});
 
-	it("muestra el enlace a reportes detallados", async () => {
-		renderPage();
-		await screen.findByText("Ventas en rango");
-		const enlace = screen.getByRole("link", { name: /Ver reportes/ });
-		expect(enlace).toBeInTheDocument();
-		expect(enlace).toHaveAttribute("href", "/reportes");
-		expect(apiDashboard).toHaveBeenCalledOnce();
-	});
+  it("muestra el enlace a reportes detallados", async () => {
+    renderPage();
+    await screen.findByText("Ventas en rango");
+    const enlace = screen.getByRole("link", { name: /Ver reportes/ });
+    expect(enlace).toBeInTheDocument();
+    expect(enlace).toHaveAttribute("href", "/reportes");
+    expect(apiDashboard).toHaveBeenCalledOnce();
+  });
+
+  it("muestra Enviar informe a GERENTE y lo envía con el mismo rango", async () => {
+    renderPage();
+    const boton = await screen.findByRole("button", { name: /Enviar informe/ });
+    fireEvent.click(boton);
+    await waitFor(() => expect(apiEnviarInforme).toHaveBeenCalledOnce());
+    const [inicio, fin] = vi.mocked(apiDashboard).mock.calls[0];
+    expect(apiInformeEstado).toHaveBeenCalledWith(inicio, fin);
+    expect(apiEnviarInforme).toHaveBeenCalledWith(inicio, fin);
+  });
+
+  it("si ya fue enviado pide confirmación antes de reenviar", async () => {
+    vi.mocked(apiInformeEstado).mockResolvedValue({
+      fechaInicio: "2026-10-02",
+      fechaFin: "2026-10-02",
+      yaEnviado: true,
+      estado: "ENVIADA",
+      enviadoEn: "2026-10-02T13:00:00Z",
+    } as never);
+    renderPage();
+    const boton = await screen.findByRole("button", { name: /Enviar informe/ });
+    fireEvent.click(boton);
+    const dialogo = await screen.findByRole("dialog", {
+      name: "Informe ya enviado",
+    });
+    expect(apiEnviarInforme).not.toHaveBeenCalled();
+    const reenviar = screen.getByRole("button", { name: "Sí, reenviar" });
+    expect(dialogo).toContainElement(reenviar);
+    fireEvent.click(reenviar);
+    await waitFor(() => expect(apiEnviarInforme).toHaveBeenCalledOnce());
+  });
+
+  it("oculta Enviar informe a VENDEDOR", async () => {
+    useAuthStore.setState({
+      autenticado: true,
+      usuario: { usuarioId: 2, username: "vendedor", roles: ["VENDEDOR"] },
+      lastActivityAt: Date.now(),
+    });
+    renderPage();
+    await screen.findByText("Ventas en rango");
+    expect(
+      screen.queryByRole("button", { name: /Enviar informe/ }),
+    ).not.toBeInTheDocument();
+  });
 });

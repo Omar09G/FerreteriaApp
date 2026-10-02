@@ -33,6 +33,17 @@ public class NotificacionJobService {
         return crear(NotificacionJob.TIPO_NOMINA_PAGADA, NotificacionJob.REF_NOMINA, nominaId);
     }
 
+    /**
+     * Job del informe diario: un registro por día (ref_id = epoch day del fin
+     * del rango). Idempotente: los reenvíos del mismo día devuelven el
+     * existente y actualizan su estado.
+     */
+    @Transactional
+    public NotificacionJob crearInformeDashboard(java.time.LocalDate fecha) {
+        return crear(NotificacionJob.TIPO_INFORME_DASHBOARD, NotificacionJob.REF_INFORME,
+                fecha.toEpochDay());
+    }
+
     private NotificacionJob crear(String tipo, String refTipo, Long refId) {
         Optional<NotificacionJob> existente = repo.findByTipoAndRefId(tipo, refId);
         if (existente.isPresent()) {
