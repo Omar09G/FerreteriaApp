@@ -375,7 +375,7 @@ services:
       POSTGRES_DB: ferreteria
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Define POSTGRES_ADMIN_PASSWORD en .env}
       POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Define POSTGRES_APP_PASSWORD en .env}
-      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-cambia_replica}
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:?Define REPLICATION_PASSWORD en .env}
       TZ: America/Mexico_City
       LANG: es_MX.utf8
     command:
@@ -397,7 +397,9 @@ services:
       - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     ports:
-      - "${PG_HOST_PORT:-5432}:5432"
+      # Solo localhost: la app entra por PgBouncer (6432); 5432 directo es
+      # solo para admin local. Sin bind exponía postgres a la LAN.
+      - "127.0.0.1:${PG_HOST_PORT:-5432}:5432"
     shm_size: ${PG_SHM_SIZE:-256mb}
     mem_limit: ${PG_MEM_LIMIT:-2g}
     cpus: ${PG_CPUS:-2.0}
@@ -489,7 +491,7 @@ services:
           echo 'reserve_pool_timeout = 3'
           echo 'server_reset_query = DISCARD ALL'
           echo 'ignore_startup_parameters = extra_float_digits,options'
-          echo 'admin_users = ferreteria_app'
+          echo 'admin_users = postgres'
         } > /etc/pgbouncer/pgbouncer.ini
         printf '"%s" "%s"\n"postgres" "%s"\n' \
           "$${DB_USER}" "$${DB_PASSWORD}" "$${ADMIN_PASSWORD}" > /etc/pgbouncer/userlist.txt

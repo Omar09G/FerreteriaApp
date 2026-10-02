@@ -88,7 +88,7 @@ public class SecurityConfig {
                                                 .referrerPolicy(r -> r
                                                                 .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                                                 .contentSecurityPolicy(csp -> csp.policyDirectives(
-                                                                "default-src 'self'; frame-ancestors 'none'; base-uri 'self'")))
+                                                                "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")))
                                 .csrf(csrf -> csrf
                                                 .csrfTokenRepository(csrfRepo)
                                                 .csrfTokenRequestHandler(csrfHandler)

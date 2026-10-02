@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import Login from "@/features/auth/Login";
 import { apiLogin } from "@/lib/api/endpoints";
@@ -86,4 +86,23 @@ describe("Login (smoke)", () => {
 		expect(mensajeError).toHaveBeenCalled();
 		expect(useAuthStore.getState().autenticado).toBe(false);
 	});
+
+	it.each(["https://evil.test/x", "//evil.test/x", "javascript:alert(1)"])(
+		"ignora destino forjado %s y cae a /dashboard",
+		async (from) => {
+			const user = userEvent.setup();
+			render(
+				<MemoryRouter initialEntries={[{ pathname: "/login", state: { from } }]}>
+					<Routes>
+						<Route path="/login" element={<Login />} />
+						<Route path="/dashboard" element={<div>Panel</div>} />
+					</Routes>
+				</MemoryRouter>,
+			);
+			await user.type(screen.getByLabelText(/Usuario/), "admin");
+			await user.type(screen.getByLabelText(/Contraseña/), "secreto123");
+			await user.click(screen.getByRole("button", { name: "Ingresar" }));
+			expect(await screen.findByText("Panel")).toBeInTheDocument();
+		},
+	);
 });

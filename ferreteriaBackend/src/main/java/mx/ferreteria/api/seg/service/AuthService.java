@@ -6,11 +6,13 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PostConstruct;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 
@@ -56,6 +58,22 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthCookieProperties cookieProps;
 
+    /** Ambiente (APP_AMBIENTE): en prod las cookies de auth exigen Secure. */
+    @Value("${app.ambiente:dev}")
+    private String ambiente;
+
+    /**
+     * Fail-fast al arrancar: en prod las cookies at/rt deben viajar solo por
+     * HTTPS (si no, el access/refresh queda expuesto en la red).
+     */
+    @PostConstruct
+    void validarAmbiente() {
+        if ("prod".equalsIgnoreCase(String.valueOf(ambiente).trim()) && !cookieProps.secure()) {
+            throw new IllegalStateException(
+                    "En ambiente prod AUTH_COOKIE_SECURE debe ser true (cookies solo HTTPS)");
+        }
+    }
+
     /**
      * Alta pública SOLO ENCARGADO_CAJA (sin permisos de administración):
      * crea el empleado (rh.empleados), luego el usuario ligado (empleado_id) y
@@ -85,13 +103,12 @@ public class AuthService {
         if (principal == null) {
             throw new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS);
         }
-        // Validacion de politica: minimo 8 chars, al menos un digito.
-        // Politicas adicionales (mayusculas, simbolos) se aplican en RegisterRequest
-        // via Bean Validation; aqui evitamos doble implementacion.
-        if (req.nuevaPassword() == null || req.nuevaPassword().length() < 8
-                || !req.nuevaPassword().matches(".*\\d.*")) {
+        // Validacion de politica: minimo 8 chars, mayuscula y digito
+        // (misma que Bean Validation en RegisterRequest/ChangePasswordRequest;
+        // aqui cubre llamadas internas que bypassean el controller).
+        if (req.nuevaPassword() == null || !req.nuevaPassword().matches("^(?=.*[A-Z])(?=.*\\d).{8,}$")) {
             throw new ValidacionException(ErrorCode.VALOR_INVALIDO,
-                    "password debe tener al menos 8 caracteres y un digito");
+                    "password debe tener al menos 8 caracteres, una mayuscula y un digito");
         }
         if (req.nuevaPassword().equals(req.passwordActual())) {
             throw new ValidacionException(ErrorCode.VALOR_INVALIDO,

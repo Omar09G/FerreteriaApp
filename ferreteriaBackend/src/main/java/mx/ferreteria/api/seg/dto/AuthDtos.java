@@ -20,7 +20,9 @@ public final class AuthDtos {
     public record RegisterRequest(
             @NotBlank @Size(max = 40) String username,
             @NotBlank @Size(max = 120) String email,
-            @NotBlank @Size(min = 8, max = 100) String password,
+            // Politica minima: 8 chars + mayuscula + digito (coherente con
+            // ChangePasswordRequest y AuthService.changePassword).
+            @NotBlank @Size(min = 8, max = 100) @Pattern(regexp = "^(?=.*[A-Z])(?=.*\\d).{8,}$") String password,
             @NotBlank @Size(max = 80) String nombre,
             @NotBlank @Size(max = 80) String apellidoPaterno,
             @Size(max = 80) String apellidoMaterno,
@@ -35,9 +37,9 @@ public final class AuthDtos {
 
     public record ChangePasswordRequest(
             @NotBlank @Size(max = 100) String passwordActual,
-            // BACK-SEC-040: politica minima 8 chars + al menos un digito.
+            // BACK-SEC-040: politica minima 8 chars + mayuscula + digito.
             // Validacion adicional en AuthService.changePassword (no igual a actual).
-            @NotBlank @Size(min = 8, max = 100) @Pattern(regexp = ".*\\d.*") String nuevaPassword) { }
+            @NotBlank @Size(min = 8, max = 100) @Pattern(regexp = "^(?=.*[A-Z])(?=.*\\d).{8,}$") String nuevaPassword) { }
 
     public record PasswordOk(boolean cambiada) { }
 

@@ -67,8 +67,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 	);
 
 	const loading = useCallback((mensaje: string) => {
+		// text (nunca title/html): SweetAlert2 inserta title como HTML.
 		Swal.fire({
-			title: mensaje,
+			text: mensaje,
 			allowOutsideClick: false,
 			allowEscapeKey: false,
 			showConfirmButton: false,

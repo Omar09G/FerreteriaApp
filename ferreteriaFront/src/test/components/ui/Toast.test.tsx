@@ -65,9 +65,15 @@ describe("Toast", () => {
 			</ToastProvider>,
 		);
 		await user.click(screen.getByRole("button", { name: "Carga" }));
+		// XSS: el mensaje va en text, nunca en title/html.
 		expect(fireMock).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "Cargando" }),
+			expect.objectContaining({ text: "Cargando" }),
 		);
+		const llamada = fireMock.mock.calls.at(-1)?.[0] as
+			| Record<string, unknown>
+			| undefined;
+		expect(llamada).not.toHaveProperty("title");
+		expect(llamada).not.toHaveProperty("html");
 		expect(closeMock).toHaveBeenCalled();
 	});
 

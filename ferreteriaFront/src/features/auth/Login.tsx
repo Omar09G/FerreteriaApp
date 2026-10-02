@@ -34,7 +34,13 @@ export default function Login() {
   const [cargando, setCargando] = useState(false);
 
   const registro = location.state as { from?: string } | null;
-  const destino = registro?.from ?? "/dashboard";
+  const destinoCrudo = registro?.from ?? "/dashboard";
+  // Allowlist de redirect interno: solo rutas absolutas del SPA (bloquea
+  // //evil, https: y javascript: forjados en location.state).
+  const destino =
+    destinoCrudo.startsWith("/") && !destinoCrudo.startsWith("//")
+      ? destinoCrudo
+      : "/dashboard";
 
   const IconoTema = ICONO_TEMA[tema];
 

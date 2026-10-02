@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.RangoFechas;
+import mx.ferreteria.api.common.web.RateLimited;
 import mx.ferreteria.api.notif.dto.InformeDtos;
 import mx.ferreteria.api.notif.service.DashboardInformeService;
 
@@ -43,9 +44,10 @@ public class InformeController {
         return informeService.estadoInforme(rango.inicio(), rango.fin());
     }
 
-    /** Envío manual del informe diario. */
+    /** Envío manual del informe diario (1 vez/día; bucket "auth" anti-spam). */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
+    @RateLimited("auth")
     public InformeDtos.InformeEnvioResponse enviar(
             @RequestParam(name = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {

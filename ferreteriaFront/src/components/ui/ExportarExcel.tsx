@@ -32,8 +32,14 @@ export function ExportarExcel<T>({
       const encabezados = exportables.map((c) =>
         typeof c.header === "string" ? c.header : (c.tituloExportar ?? c.key),
       );
+      // Anti inyección de fórmulas: Excel ejecuta celdas que empiezan con
+      // = + - @ (datos vienen de la BD, p. ej. nombres de producto).
+      const sanear = (v: unknown) => {
+        const s = String(v ?? "");
+        return /^[=+\-@]/.test(s) ? `'${s}` : s;
+      };
       const filas = items.map((item) =>
-        exportables.map((c) => c.exportar!(item) ?? ""),
+        exportables.map((c) => sanear(c.exportar!(item))),
       );
       const libro = XLSX.utils.book_new();
       const hoja = XLSX.utils.aoa_to_sheet([encabezados, ...filas]);

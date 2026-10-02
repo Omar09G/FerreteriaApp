@@ -84,6 +84,19 @@ describe("RequiereRol", () => {
 		);
 		expect(screen.getByText("Secreto")).toBeInTheDocument();
 	});
+
+	it("niega los children sin el rol (wrapper, no bypass)", () => {
+		sesion(["VENDEDOR"]);
+		render(
+			<MemoryRouter>
+				<RequiereRol roles={["ADMINISTRADOR"]}>
+					<div>Secreto</div>
+				</RequiereRol>
+			</MemoryRouter>,
+		);
+		expect(screen.queryByText("Secreto")).not.toBeInTheDocument();
+		expect(screen.getByText("Acceso denegado")).toBeInTheDocument();
+	});
 });
 
 describe("RedirigirSiAutenticado", () => {

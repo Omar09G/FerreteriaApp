@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mx.ferreteria.api.notif.config.NotificacionProperties;
@@ -35,6 +36,38 @@ public class WhatsAppNotificacionSender {
     private final NotificacionProperties props;
     private final WhatsAppMockBandeja bandeja;
     private RestClient restClient = RestClient.create();
+
+    /**
+     * Fail-fast anti-SSRF al arrancar: el base-url de Evolution API viene de
+     * env y se usa para POSTs salientes; solo se admite https público (sin
+     * IPs literales, localhost ni metadata cloud 169.254.169.254).
+     */
+    @PostConstruct
+    void validarBaseUrl() {
+        NotificacionProperties.WhatsApp cfg = props.whatsapp();
+        if (cfg == null || !"evolution".equalsIgnoreCase(cfg.proveedor())) {
+            return;
+        }
+        String base = cfg.baseUrl() == null ? "" : cfg.baseUrl().trim();
+        String host = "";
+        try {
+            var uri = new java.net.URI(base);
+            if (!"https".equalsIgnoreCase(uri.getScheme())) {
+                throw new IllegalArgumentException("esquema");
+            }
+            host = String.valueOf(uri.getHost()).toLowerCase();
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "WHATSAPP_BASE_URL debe ser https://host valido, valor actual: " + base);
+        }
+        if (host.isBlank() || host.equals("localhost")
+                || host.startsWith("127.") || host.startsWith("10.")
+                || host.startsWith("192.168.") || host.startsWith("169.254.")
+                || host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+|\\[.*\\]")) {
+            throw new IllegalStateException(
+                    "WHATSAPP_BASE_URL no admite host interno o IP literal: " + base);
+        }
+    }
 
     public boolean send(String telefono, String asunto, byte[] pdf) {
         NotificacionProperties.WhatsApp cfg = props.whatsapp();

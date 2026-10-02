@@ -170,6 +170,9 @@ export default function CargaMasivaDialog({
     setLeyendo(true);
     setReporte(null);
     try {
+      // Límite anti zip-bomb/DoS antes de parsear (xlsx 0.18.x sin parche).
+      if (archivo.size > 2_097_152)
+        throw new Error("archivo muy grande (máx 2 MB)");
       const XLSX = await import("xlsx");
       const buf = await archivo.arrayBuffer();
       const libro = XLSX.read(buf, { type: "array" });
@@ -181,12 +184,24 @@ export default function CargaMasivaDialog({
       );
       if (crudas.length === 0)
         throw new Error("la hoja no contiene filas de datos");
-      const encabezados = Object.keys(crudas[0]);
+      if (crudas.length > 1000)
+        throw new Error("máx 1000 filas por carga");
+      // Anti prototype-pollution: descarta claves mágicas del workbook.
+      const filas = crudas.map((f) => {
+        const o: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(f)) {
+          if (k === "__proto__" || k === "constructor" || k === "prototype")
+            continue;
+          o[k] = v;
+        }
+        return o;
+      });
+      const encabezados = Object.keys(filas[0]);
       if (!COLUMNAS.some((c) => encabezados.includes(c)))
         throw new Error(
           `encabezados no reconocidos (${encabezados.join(", ")}). Descarga la plantilla.`,
         );
-      const vistas: FilaVista[] = crudas.map((cruda, i) => {
+      const vistas: FilaVista[] = filas.map((cruda, i) => {
         const errores: string[] = [];
         const tipo = String(cruda.tipo ?? "").trim().toUpperCase();
         if (!TIPOS.includes(tipo as TipoProducto))

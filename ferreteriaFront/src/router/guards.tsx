@@ -24,7 +24,7 @@ export function RequiereRol({
 }) {
 	const rolesUsuario = useAuthStore((s) => s.usuario?.roles);
 	if (!tieneRol(rolesUsuario, roles)) {
-		return children ?? <AccessDenied />;
+		return <AccessDenied />;
 	}
 	return children ?? <Outlet />;
 }
