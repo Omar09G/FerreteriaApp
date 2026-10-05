@@ -48,11 +48,13 @@ import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.rh.service.EmpleadoGateway;
 import mx.ferreteria.api.common.security.AuthCookieProperties;
 import mx.ferreteria.api.common.security.JwtProperties;
+import mx.ferreteria.api.common.security.OtpProperties;
 import mx.ferreteria.api.common.security.JwtService;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.rh.service.EmpleadoGateway;
 import mx.ferreteria.api.seg.dto.AuthDtos.ChangePasswordRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LoginRequest;
+import mx.ferreteria.api.seg.dto.AuthDtos.OtpChallengeResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse;
@@ -72,6 +74,9 @@ class AuthServiceTest {
     @Mock
     EmpleadoGateway empleados;
 
+    @Mock
+    OtpGateway otp;
+
     final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     JwtService jwtService;
     AuthService service;
@@ -84,22 +89,47 @@ class AuthServiceTest {
         jwtService = new JwtService(new JwtProperties("0123456789abcdef0123456789abcdef", null /*previousSecret*/, 15, 8));
         service = new AuthService(gateway, admin, empleados, encoder,
                 jwtService,
-                new AuthCookieProperties(false, "Lax", "/api/v1/auth", "rt", "at"));
+                new AuthCookieProperties(false, "Lax", "/api/v1/auth", "rt", "at"),
+                otp, new OtpProperties(5, 5, 60, 6));
     }
 
     private void mockUserOk() {
         when(gateway.findByUsername("cajero1")).thenReturn(Optional.of(activo));
+        when(gateway.findById(7)).thenReturn(Optional.of(activo));
         when(gateway.rolesOf(7)).thenReturn(List.of("VENDEDOR"));
         when(gateway.abrirSesion(eq(7), any(), any())).thenReturn(1);
+        when(otp.crearDesafio(eq(7), any())).thenReturn("challenge-1");
+        when(gateway.contactosDe(7)).thenReturn(Optional.of(
+                new AuthUserGateway.Contactos("cajero1@ferreteria.local", "5551234567", null)));
     }
 
     @Test
-    @DisplayName("login feliz: tokens emitidos, sesion abierta y refresh persistido hasheado")
-    void login_ok_issuesTokensAndAudits() {
+    @DisplayName("login feliz: password válida devuelve desafío OTP (sin tokens aún)")
+    void login_ok_returnsChallenge() {
         mockUserOk();
 
-        LoginResult result = service.login(new LoginRequest("cajero1", "Secreta123"),
+        OtpChallengeResponse ch = service.login(new LoginRequest("cajero1", "Secreta123"),
                 RequestMeta.UNKNOWN);
+
+        assertThat(ch.challengeId()).isEqualTo("challenge-1");
+        assertThat(ch.canales()).containsExactly("email", "whatsapp");
+        assertThat(ch.emailEnmascarado()).isEqualTo("ca***@ferreteria.local");
+        assertThat(ch.whatsappEnmascarado()).isEqualTo("***567");
+        assertThat(ch.expiraEnSegundos()).isEqualTo(300);
+
+        verify(gateway).resetFailedAttempts(7);
+        verify(otp).crearDesafio(eq(7), eq(java.time.Duration.ofMinutes(5)));
+        // primera fase: sin sesión ni tokens todavía
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any());
+        verify(gateway, never()).saveRefreshToken(anyInt(), anyString(), any());
+    }
+
+    @Test
+    @DisplayName("emitirSesion: tras OTP verificado emite tokens, abre sesión y persiste refresh")
+    void emitirSesion_ok_issuesTokensAndAudits() {
+        mockUserOk();
+
+        LoginResult result = service.emitirSesion(7, RequestMeta.UNKNOWN);
         TokenResponse r = result.body();
 
         assertThat(r.accessToken()).isNotBlank();
@@ -114,6 +144,22 @@ class AuthServiceTest {
         verify(gateway).saveRefreshToken(eq(7),
                 eq(JwtService.sha256Base64(result.refreshRaw())), any(Instant.class));
         verify(gateway).updateUltimoLogin(7);
+    }
+
+    @Test
+    @DisplayName("emitirSesion con usuario inactivo o desconocido: CREDENCIALES_INVALIDAS")
+    void emitirSesion_inactivo_rejected() {
+        var inactivo = new AuthUser(9, "baja", encoder.encode("x"), false, false, null);
+        when(gateway.findById(9)).thenReturn(Optional.of(inactivo));
+        when(gateway.findById(99)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.emitirSesion(9, RequestMeta.UNKNOWN))
+                .isInstanceOfSatisfying(ValidacionException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CREDENCIALES_INVALIDAS));
+        assertThatThrownBy(() -> service.emitirSesion(99, RequestMeta.UNKNOWN))
+                .isInstanceOfSatisfying(ValidacionException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CREDENCIALES_INVALIDAS));
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any());
     }
 
     @Test
@@ -147,8 +193,7 @@ class AuthServiceTest {
     @DisplayName("refresh: rota el hash usado (revoca) y entrega par nuevo válido")
     void refresh_rotatesHash() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
 
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
@@ -169,8 +214,7 @@ class AuthServiceTest {
     @DisplayName("refresh revocado: marca error 'ya expiro' (TOKEN_EXPIRADO) sin volver a revocar")
     void refresh_revocado_throwsExpired() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
                         Instant.now().plusSeconds(3600), Instant.now())));
@@ -186,8 +230,7 @@ class AuthServiceTest {
     @DisplayName("refresh expirado por vigencia de BD: TOKEN_EXPIRADO y se revoca el hash")
     void refresh_expiradoEnBD_throwsExpired() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
                         Instant.now().minusSeconds(60), null)));
@@ -214,8 +257,7 @@ class AuthServiceTest {
     @DisplayName("refresh cuyo hash apunta a otro usuario: TOKEN_EXPIRADO (sesion invalida)")
     void refresh_uidMismatch_throwsExpired() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         // fila del hash pertenece a OTRO usuario (uid=8) que el claim del JWT (7)
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(8,
@@ -232,8 +274,7 @@ class AuthServiceTest {
     @DisplayName("logout: cierra la sesion ligada al refresh y revoca el hash")
     void logout_closesSessionAndRevokes() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
 
         when(gateway.findActiveRefreshOwner(anyString(), any(Instant.class)))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshOwner(7, "cajero1", 42)));
@@ -372,22 +413,24 @@ class AuthServiceTest {
                 .isInstanceOfSatisfying(ValidacionException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CUENTA_BLOQUEADA));
         verify(gateway, never()).abrirSesion(anyInt(), any(), any());
+        verify(otp, never()).crearDesafio(anyInt(), any());
     }
 
     @Test
-    @DisplayName("login con bloqueo ya vencido: entra normal")
+    @DisplayName("login con bloqueo ya vencido: devuelve desafío")
     void login_bloqueoVencido_ok() {
         var desbloqueado = new AuthUserGateway.AuthUser(7, "cajero1",
                 encoder.encode("Secreta123"), true, false, 42, 3,
                 Instant.now().minusSeconds(60));
         when(gateway.findByUsername("cajero1")).thenReturn(Optional.of(desbloqueado));
-        when(gateway.rolesOf(7)).thenReturn(List.of("VENDEDOR"));
-        when(gateway.abrirSesion(eq(7), any(), any())).thenReturn(1);
+        when(otp.crearDesafio(eq(7), any())).thenReturn("ch-vencido");
+        when(gateway.contactosDe(7)).thenReturn(Optional.empty());
 
-        LoginResult r = service.login(new LoginRequest("cajero1", "Secreta123"),
+        OtpChallengeResponse ch = service.login(new LoginRequest("cajero1", "Secreta123"),
                 RequestMeta.UNKNOWN);
 
-        assertThat(r.refreshRaw()).isNotBlank();
+        assertThat(ch.challengeId()).isNotBlank();
+        assertThat(ch.canales()).isEmpty();
     }
 
     @Test
@@ -427,23 +470,22 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("login con meta null: abre sesion sin ip ni user-agent")
-    void login_metaNull_ok() {
+    @DisplayName("emitirSesion con meta null: abre sesion sin ip ni user-agent")
+    void emitirSesion_metaNull_ok() {
         mockUserOk();
 
-        LoginResult r = service.login(new LoginRequest("cajero1", "Secreta123"), null);
+        LoginResult r = service.emitirSesion(7, null);
 
         assertThat(r.refreshRaw()).isNotBlank();
         verify(gateway).abrirSesion(eq(7), isNull(), isNull());
     }
 
     @Test
-    @DisplayName("login propaga ip y user-agent a la sesion")
-    void login_metaPassthrough() {
+    @DisplayName("emitirSesion propaga ip y user-agent a la sesion")
+    void emitirSesion_metaPassthrough() {
         mockUserOk();
 
-        service.login(new LoginRequest("cajero1", "Secreta123"),
-                new RequestMeta("1.2.3.4", "agent-x"));
+        service.emitirSesion(7, new RequestMeta("1.2.3.4", "agent-x"));
 
         verify(gateway).abrirSesion(7, "1.2.3.4", "agent-x");
     }
@@ -560,8 +602,7 @@ class AuthServiceTest {
     @DisplayName("refresh con firma invalida: TOKEN_EXPIRADO y revoke defensivo")
     void refresh_firmaInvalida_rejected() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         String adulterado = login.refreshRaw() + "x";
 
         assertThatThrownBy(() -> service.refresh(adulterado, RequestMeta.UNKNOWN, null))
@@ -586,8 +627,7 @@ class AuthServiceTest {
     @DisplayName("refresh con dueño inactivo: TOKEN_EXPIRADO y revoke")
     void refresh_duenoInactivo_rejected() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         clearInvocations(gateway);
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
@@ -606,8 +646,7 @@ class AuthServiceTest {
     @DisplayName("refresh en carrera (ya revocado al rotar): TOKEN_EXPIRADO sin emitir")
     void refresh_concurrente_rejected() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         clearInvocations(gateway);
         when(gateway.findRefreshRow(anyString()))
                 .thenReturn(Optional.of(new AuthUserGateway.RefreshRow(7,
@@ -626,10 +665,8 @@ class AuthServiceTest {
     @DisplayName("refresh prefiere la cookie sobre el body")
     void refresh_cookiePrecedeAlBody() {
         mockUserOk();
-        LoginResult deCookie = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
-        LoginResult deBody = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult deCookie = service.emitirSesion(7, RequestMeta.UNKNOWN);
+        LoginResult deBody = service.emitirSesion(7, RequestMeta.UNKNOWN);
         mockRefreshOk();
 
         LoginResult r2 = service.refresh(deBody.refreshRaw(), RequestMeta.UNKNOWN,
@@ -645,8 +682,7 @@ class AuthServiceTest {
     @DisplayName("refresh con cookie vacia: usa el body")
     void refresh_cookieVaciaUsaBody() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         mockRefreshOk();
 
         LoginResult r2 = service.refresh(login.refreshRaw(), RequestMeta.UNKNOWN,
@@ -660,8 +696,7 @@ class AuthServiceTest {
     @DisplayName("refresh con cookie de otro nombre: usa el body")
     void refresh_cookieOtroNombreUsaBody() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
         mockRefreshOk();
 
         LoginResult r2 = service.refresh(login.refreshRaw(), RequestMeta.UNKNOWN,
@@ -713,8 +748,7 @@ class AuthServiceTest {
     @DisplayName("logout prefiere la cookie sobre el body")
     void logout_cookiePrecedeAlBody() {
         mockUserOk();
-        LoginResult login = service.login(new LoginRequest("cajero1", "Secreta123"),
-                RequestMeta.UNKNOWN);
+        LoginResult login = service.emitirSesion(7, RequestMeta.UNKNOWN);
 
         assertThat(service.logout("otro-cuerpo",
                 httpConCookie("rt", login.refreshRaw()))).isTrue();

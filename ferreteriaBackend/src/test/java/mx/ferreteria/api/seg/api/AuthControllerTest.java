@@ -26,12 +26,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import mx.ferreteria.api.seg.dto.AuthDtos.ChangePasswordRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LoginRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.MeResponse;
+import mx.ferreteria.api.seg.dto.AuthDtos.OtpChallengeResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.PasswordOk;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse;
 import mx.ferreteria.api.seg.service.AuthService;
 import mx.ferreteria.api.seg.service.AuthService.LoginResult;
+import mx.ferreteria.api.seg.service.GoogleAuthService;
+import mx.ferreteria.api.seg.service.OtpService;
 import mx.ferreteria.api.seg.service.RequestMeta;
 
 /**
@@ -55,6 +58,12 @@ class AuthControllerTest {
         AuthService authService;
 
         @MockitoBean
+        OtpService otpService;
+
+        @MockitoBean
+        GoogleAuthService googleAuthService;
+
+        @MockitoBean
         mx.ferreteria.api.common.security.AuthCookieProperties cookieProperties;
 
         @org.springframework.boot.test.context.TestConfiguration
@@ -64,14 +73,76 @@ class AuthControllerTest {
                         return new mx.ferreteria.api.common.web.RequestIdProperties(
                                         mx.ferreteria.api.common.web.RequestIdProperties.Mode.GENERATE);
                 }
+
+                @org.springframework.context.annotation.Bean
+                mx.ferreteria.api.common.security.GoogleAuthProperties googleAuthProperties() {
+                        return new mx.ferreteria.api.common.security.GoogleAuthProperties(
+                                        null, null, null, "http://localhost:5173/auth/callback");
+                }
         }
 
         private static final MeResponse ME = new MeResponse(7, "cajero1", 42, List.of("VENDEDOR"), null, null, false);
 
         @Test
-        @DisplayName("POST /auth/login valido -> 200 con accessToken en body y Set-Cookie rt HttpOnly")
-        void login_valid_returnsTokens() throws Exception {
+        @DisplayName("POST /auth/login valido -> 200 con desafío OTP (sin tokens ni cookies aún)")
+        void login_valid_returnsChallenge() throws Exception {
                 when(authService.login(any(LoginRequest.class), any(RequestMeta.class)))
+                                .thenReturn(new OtpChallengeResponse("ch-1",
+                                                java.util.List.of("email", "whatsapp"),
+                                                "ca***@ferreteria.local", "***567", 300));
+
+                mvc.perform(post("/api/v1/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"username\":\"cajero1\",\"password\":\"Secreta123\"}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.challengeId").value("ch-1"))
+                                .andExpect(jsonPath("$.data.canales[0]").value("email"))
+                                .andExpect(jsonPath("$.data.expiraEnSegundos").value(300))
+                                .andExpect(header().doesNotExist("Set-Cookie"));
+        }
+
+        @Test
+        @DisplayName("GET /auth/otp/desafio vigente -> 200 con canales")
+        void otpDesafio_ok() throws Exception {
+                when(otpService.desafio("ch-1"))
+                                .thenReturn(new OtpChallengeResponse("ch-1",
+                                                java.util.List.of("email"), "ca***@x", null, 300));
+
+                mvc.perform(get("/api/v1/auth/otp/desafio")
+                                .queryParam("challengeId", "ch-1"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.challengeId").value("ch-1"));
+        }
+
+        @Test
+        @DisplayName("POST /auth/otp/enviar valido -> 200 sin body")
+        void otpEnviar_valid_ok() throws Exception {
+                mvc.perform(post("/api/v1/auth/otp/enviar")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"challengeId\":\"ch-1\",\"canal\":\"email\"}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true));
+                org.mockito.Mockito.verify(otpService)
+                                .enviar("ch-1", "email");
+        }
+
+        @Test
+        @DisplayName("POST /auth/otp/enviar con canal inválido -> 400 CAMPO_REQUERIDO")
+        void otpEnviar_canalInvalido_badRequest() throws Exception {
+                mvc.perform(post("/api/v1/auth/otp/enviar")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"challengeId\":\"ch-1\",\"canal\":\"sms\"}"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+        }
+
+        @Test
+        @DisplayName("POST /auth/otp/verificar valido -> 200 con tokens y Set-Cookie rt/at")
+        void otpVerificar_valid_returnsTokens() throws Exception {
+                when(otpService.verificar(eq("ch-1"), eq("482913"), any(RequestMeta.class)))
                                 .thenReturn(new LoginResult(
                                                 new TokenResponse("acc.jwt", null, 28800, ME),
                                                 "ref.jwt"));
@@ -84,9 +155,9 @@ class AuthControllerTest {
                                                 .httpOnly(true).secure(false).path("/")
                                                 .maxAge(java.time.Duration.ofHours(8)).sameSite("Lax").build());
 
-                mvc.perform(post("/api/v1/auth/login")
+                mvc.perform(post("/api/v1/auth/otp/verificar")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"username\":\"cajero1\",\"password\":\"Secreta123\"}"))
+                                .content("{\"challengeId\":\"ch-1\",\"codigo\":\"482913\"}"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.accessToken").value("acc.jwt"))
@@ -97,6 +168,58 @@ class AuthControllerTest {
                                 .andExpect(cookie().path("rt", "/api/v1/auth"))
                                 .andExpect(cookie().httpOnly("at", true))
                                 .andExpect(cookie().path("at", "/"));
+        }
+
+        @Test
+        @DisplayName("POST /auth/otp/verificar con código corto -> 400 CAMPO_REQUERIDO")
+        void otpVerificar_codigoCorto_badRequest() throws Exception {
+                mvc.perform(post("/api/v1/auth/otp/verificar")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"challengeId\":\"ch-1\",\"codigo\":\"123\"}"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+        }
+
+        @Test
+        @DisplayName("GET /auth/oauth2/google -> 200 con URL de autorización")
+        void googleInit_ok() throws Exception {
+                when(googleAuthService.urlAutorizacion(null))
+                                .thenReturn("https://accounts.google.com/o/oauth2/v2/auth?x=1");
+
+                mvc.perform(get("/api/v1/auth/oauth2/google"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.url")
+                                                .value("https://accounts.google.com/o/oauth2/v2/auth?x=1"));
+        }
+
+        @Test
+        @DisplayName("GET /auth/oauth2/google/callback con challenge -> 302 al frontend")
+        void googleCallback_ok_redirects() throws Exception {
+                when(googleAuthService.callback("code-abc"))
+                                .thenReturn(new OtpChallengeResponse("ch-9",
+                                                java.util.List.of("email"), "nu***@x", null, 300));
+
+                mvc.perform(get("/api/v1/auth/oauth2/google/callback")
+                                .queryParam("code", "code-abc"))
+                                .andExpect(status().isFound())
+                                .andExpect(header().string("Location",
+                                                "http://localhost:5173/auth/callback?challengeId=ch-9"));
+        }
+
+        @Test
+        @DisplayName("GET /auth/oauth2/google/callback con error de Google -> 302 con ?error=")
+        void googleCallback_error_redirects() throws Exception {
+                when(googleAuthService.callback(any()))
+                                .thenThrow(new mx.ferreteria.api.common.error.ValidacionException(
+                                                mx.ferreteria.api.common.i18n.ErrorCode.OAUTH_FALLIDO));
+
+                mvc.perform(get("/api/v1/auth/oauth2/google/callback")
+                                .queryParam("code", "mala"))
+                                .andExpect(status().isFound())
+                                .andExpect(header().string("Location",
+                                                "http://localhost:5173/auth/callback?error=OAUTH_FALLIDO"));
         }
 
         @Test

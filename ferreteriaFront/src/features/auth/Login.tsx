@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Languages, Lock, Monitor, Moon, Sun, User } from "lucide-react";
 
 import { ensureCsrfCookie, mensajeError } from "@/lib/api/client";
-import { apiLogin } from "@/lib/api/endpoints";
+import { apiGoogleInit, apiLogin } from "@/lib/api/endpoints";
 import { useAuthStore } from "@/store/auth";
 import { useUiStore, type Tema } from "@/store/ui";
 import { useT } from "@/i18n";
@@ -23,7 +23,7 @@ export default function Login() {
   useDocumentTitle(t("auth.titulo"));
   const navigate = useNavigate();
   const location = useLocation();
-  const setSession = useAuthStore((state) => state.setSession);
+  const setChallenge = useAuthStore((state) => state.setChallenge);
   const tema = useUiStore((s) => s.tema);
   const idioma = useUiStore((s) => s.idioma);
   const setTema = useUiStore((s) => s.setTema);
@@ -32,6 +32,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [googleCargando, setGoogleCargando] = useState(false);
 
   const registro = location.state as { from?: string } | null;
   const destinoCrudo = registro?.from ?? "/dashboard";
@@ -52,13 +53,30 @@ export default function Login() {
       // Antes del primer mutating request: garantizar que XSRF-TOKEN esté
       // en la cookie para que el interceptor lo copie al header.
       await ensureCsrfCookie();
-      const token = await apiLogin({ username, password });
-      setSession(token);
-      navigate(destino, { replace: true });
+      // Primera fase: password válida → desafío OTP (los tokens llegan tras
+      // verificar el código en /auth/otp).
+      const challenge = await apiLogin({ username, password });
+      setChallenge(challenge);
+      navigate("/auth/otp", { replace: true, state: { from: destino } });
     } catch (err) {
       setError(mensajeError(err));
     } finally {
       setCargando(false);
+    }
+  };
+
+  const entrarConGoogle = async () => {
+    setError(null);
+    setGoogleCargando(true);
+    try {
+      await ensureCsrfCookie();
+      const init = await apiGoogleInit();
+      // Redirect de navegador (no fetch): Google muestra su pantalla y
+      // devuelve al callback del backend, que redirige a /auth/callback.
+      window.location.href = init.url;
+    } catch (err) {
+      setError(mensajeError(err));
+      setGoogleCargando(false);
     }
   };
 
@@ -137,6 +155,37 @@ export default function Login() {
           >
             {cargando ? t("auth.ingresando") : t("auth.ingresar")}
           </Button>
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="h-px flex-1 bg-line" aria-hidden />
+            {t("auth.oSegunda")}
+            <span className="h-px flex-1 bg-line" aria-hidden />
+          </div>
+          <button
+            type="button"
+            onClick={entrarConGoogle}
+            disabled={googleCargando || cargando}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-sm transition hover:bg-warmbg disabled:opacity-60"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden>
+              <path
+                fill="#4285F4"
+                d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.5 2.7.2.1c2.2-2 3.8-5.1 3.8-8.7z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-.1.1-3.6 2.8-.1.1C3.5 21.3 7.5 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-.1-.1-3.6-2.8v.1C.5 8.9 0 10.4 0 12s.5 3.1 1.5 4.5l3.7-2.1z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.6c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.5 0 3.5 2.7 1.5 6.8l3.7 2.8c1-2.9 3.7-5 6.8-5z"
+              />
+            </svg>
+            {googleCargando ? t("auth.googleIniciando") : t("auth.google")}
+          </button>
         </div>
       </form>
     </div>

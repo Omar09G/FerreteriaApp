@@ -51,6 +51,12 @@ public interface EmpleadoGateway {
 
     int create(EmpleadoDatos datos);
 
+    /**
+     * Puesto por nombre exacto (para altas vía OAuth, sin puesto elegido por
+     * el usuario). Vacío si no existe: el llamador aplica su fallback.
+     */
+    Optional<Integer> puestoIdPorNombre(String nombre);
+
     void update(int empleadoId, EmpleadoDatos datos, Boolean activo);
 
     void baja(int empleadoId);

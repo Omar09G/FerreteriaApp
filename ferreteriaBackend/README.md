@@ -44,3 +44,27 @@ export PG_HOST=localhost PG_PORT=6432 PG_USER=ferreteria_app PG_PASSWORD=<ver de
   `resources/i18n/messages_{es,en}.properties`, nunca en código (ArchUnit lo vigila).
 - Toda llamada lleva `X-Request-Id`: GENERATE (default) o STRICT vía env `REQUEST_ID_MODE`.
 - ERRCODE P0xxx de la BD → ErrorCode → HTTP (PLAN §4.3).
+
+## Autenticación (dos fases + Google)
+
+1. `POST /api/v1/auth/login {username,password}` → desafío OTP (canales +
+   destinos enmascarados), sin tokens.
+2. `POST /api/v1/auth/otp/enviar {challengeId,canal}` → código de 6 dígitos
+   por email (HTML + texto) o WhatsApp. TTL 5 min, reenvío ≥60 s.
+3. `POST /api/v1/auth/otp/verificar {challengeId,codigo}` → cookies `at`/`rt`.
+   Máx 5 intentos; agotados/expirado → pedir nuevo desafío.
+4. Google (redirect): `GET /api/v1/auth/oauth2/google` → callback →
+   redirect a `/auth/callback?challengeId=` → mismo OTP. Vincula por email
+   verificado o crea usuario `ENCARGADO_CAJA` (nunca `ADMIN`).
+
+```bash
+# Google OAuth (sin esto el botón Google responde OAUTH_FALLIDO)
+export GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=...
+export GOOGLE_REDIRECT_URI=http://localhost:8080/api/v1/auth/oauth2/google/callback
+# OTP (defaults: 5 min / 5 intentos / reenvío 60 s)
+export OTP_TTL_MINUTOS=5 OTP_MAX_INTENTOS=5 OTP_REENVIO_SEGUNDOS=60
+```
+
+En dev el OTP por WhatsApp cae a la bandeja mock en memoria y el email a
+Mailpit (`MAIL_HOST:1025`); en prod configurar SMTP real y Evolution API
+(`WHATSAPP_*` + `APP_NOTIF_ENABLED=true`).

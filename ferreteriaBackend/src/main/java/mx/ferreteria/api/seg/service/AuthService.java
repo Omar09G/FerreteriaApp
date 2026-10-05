@@ -28,10 +28,12 @@ import mx.ferreteria.api.rh.service.EmpleadoGateway;
 import mx.ferreteria.api.seg.dto.AuthDtos.ChangePasswordRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.LoginRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.MeResponse;
+import mx.ferreteria.api.seg.dto.AuthDtos.OtpChallengeResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.PasswordOk;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterRequest;
 import mx.ferreteria.api.seg.dto.AuthDtos.RegisterResponse;
 import mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse;
+import mx.ferreteria.api.common.security.OtpProperties;
 
 /**
  * Login/refresh/logout/registro/change-password contra seg.usuarios (BCrypt
@@ -57,6 +59,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthCookieProperties cookieProps;
+    private final OtpGateway otp;
+    private final OtpProperties otpProps;
 
     /** Ambiente (APP_AMBIENTE): en prod las cookies de auth exigen Secure. */
     @Value("${app.ambiente:dev}")
@@ -131,8 +135,13 @@ public class AuthService {
     /** Resultado interno de login: cuerpo (sin refresh) + refresh crudo para cookie. */
     public record LoginResult(TokenResponse body, String refreshRaw) { }
 
+    /**
+     * Primera fase del login (password válida): NO emite tokens. Crea un
+     * desafío OTP de un solo uso; la sesión se emite en
+     * {@link OtpService#verificar} vía {@link #emitirSesion}.
+     */
     @Transactional
-    public LoginResult login(LoginRequest req, RequestMeta meta) {
+    public OtpChallengeResponse login(LoginRequest req, RequestMeta meta) {
         var user = gateway.findByUsername(req.username()).orElse(null);
         if (user != null && user.lockedUntil() != null && user.lockedUntil().isAfter(Instant.now())) {
             throw new ValidacionException(ErrorCode.CUENTA_BLOQUEADA);
@@ -144,8 +153,26 @@ public class AuthService {
             }
             throw new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS);
         }
-        // Login exitoso: resetear contador de intentos fallidos
+        // Password correcta: resetear contador de intentos fallidos
         gateway.resetFailedAttempts(user.usuarioId());
+
+        String challengeId = otp.crearDesafio(user.usuarioId(),
+                java.time.Duration.ofMinutes(otpProps.ttlMinutos()));
+        return desafioPara(user.usuarioId(), challengeId);
+    }
+
+    /**
+     * Segunda fase (común a password y Google): emite el par at/rt + sesión
+     * tras el OTP verificado. Contiene la lógica de sesión única, rotación y
+     * auditoría del antiguo login directo.
+     */
+    @Transactional
+    public LoginResult emitirSesion(int usuarioId, RequestMeta meta) {
+        var user = gateway.findById(usuarioId)
+                .orElseThrow(() -> new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS));
+        if (!user.activo()) {
+            throw new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS);
+        }
 
         List<String> roles = gateway.rolesOf(user.usuarioId());
         var principal = new UserPrincipal(user.usuarioId(), user.username(),
@@ -167,6 +194,34 @@ public class AuthService {
         return new LoginResult(
                 new TokenResponse(access, null, jwtService.refreshTtl().toSeconds(), toMe(principal)),
                 refresh);
+    }
+
+    /** Arma el desafío con canales disponibles y destinos enmascarados. */
+    public OtpChallengeResponse desafioPara(int usuarioId, String challengeId) {
+        var contactos = gateway.contactosDe(usuarioId).orElse(null);
+        String email = contactos == null ? null : contactos.email();
+        String whatsapp = contactos == null ? null
+                : (contactos.whatsapp() != null && !contactos.whatsapp().isBlank()
+                        ? contactos.whatsapp() : contactos.telefono());
+        var canales = new java.util.ArrayList<String>();
+        if (email != null && !email.isBlank()) {
+            canales.add("email");
+        }
+        if (whatsapp != null && !whatsapp.isBlank()) {
+            canales.add("whatsapp");
+        }
+        return new OtpChallengeResponse(challengeId, List.copyOf(canales),
+                email == null || email.isBlank() ? null : OtpEmailSender.enmascarar(email),
+                whatsapp == null || whatsapp.isBlank() ? null : enmascararTelefono(whatsapp),
+                (long) otpProps.ttlMinutos() * 60);
+    }
+
+    static String enmascararTelefono(String telefono) {
+        String digitos = telefono.replaceAll("\\D", "");
+        if (digitos.length() <= 3) {
+            return "***";
+        }
+        return "***" + digitos.substring(digitos.length() - 3);
     }
 
     /**

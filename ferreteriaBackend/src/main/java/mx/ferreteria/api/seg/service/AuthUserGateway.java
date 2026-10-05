@@ -26,6 +26,20 @@ public interface AuthUserGateway {
 
     Optional<AuthUser> findByUsername(String username);
 
+    Optional<AuthUser> findById(int usuarioId);
+
+    Optional<AuthUser> findByEmail(String email);
+
+    Optional<AuthUser> findByGoogleSub(String googleSub);
+
+    /** Destinos OTP: email de seg.usuarios + teléfono/whatsapp de rh.empleados. */
+    Optional<Contactos> contactosDe(int usuarioId);
+
+    record Contactos(String email, String telefono, String whatsapp) { }
+
+    /** Vincula una cuenta local existente con Google (link por email verificado). */
+    void linkGoogleAccount(int usuarioId, String googleSub);
+
     List<String> rolesOf(int usuarioId);
 
     /** Roles agrupados por usuarioId (orden estable por rol_id). Para evitar N+1 al listar. */

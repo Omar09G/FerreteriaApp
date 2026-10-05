@@ -125,6 +125,14 @@ public class EmpleadoRepository implements EmpleadoGateway {
     }
 
     @Override
+    public java.util.Optional<Integer> puestoIdPorNombre(String nombre) {
+        return jdbc.sql("SELECT puesto_id FROM cat.puestos WHERE nombre = :n")
+                .param("n", nombre)
+                .query(Integer.class)
+                .optional();
+    }
+
+    @Override
     public int create(EmpleadoDatos d) {
         return jdbc.sql("""
                 INSERT INTO rh.empleados (puesto_id, nombre, apellido_p, apellido_m,

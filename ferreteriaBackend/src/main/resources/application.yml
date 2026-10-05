@@ -130,6 +130,20 @@ app:
       path: ${AUTH_COOKIE_PATH:/}
       refresh-name: ${AUTH_COOKIE_REFRESH_NAME:rt}
       access-name: ${AUTH_COOKIE_ACCESS_NAME:at}
+    # Segundo factor OTP por email/WhatsApp (TTL 5 min, máx 5 intentos,
+    # reenvío mínimo cada 60 s). Código de 6 dígitos, un solo uso.
+    otp:
+      ttl-minutos: ${OTP_TTL_MINUTOS:5}
+      max-intentos: ${OTP_MAX_INTENTOS:5}
+      reenvio-segundos: ${OTP_REENVIO_SEGUNDOS:60}
+      longitud: 6
+    # Login con Google (redirect iniciado por el backend; el secret nunca
+    # llega al frontend). Sin estas vars el botón Google responde OAUTH_FALLIDO.
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/auth/oauth2/google/callback}
+      frontend-callback-url: ${GOOGLE_FRONTEND_CALLBACK:http://localhost:5173/auth/callback}
   # Notificaciones (ticket PDF + nómina pagada). false = no publica/consume
   # RabbitMQ; el job queda PENDIENTE y el reconciler lo reintenta al habilitar.
   notif:

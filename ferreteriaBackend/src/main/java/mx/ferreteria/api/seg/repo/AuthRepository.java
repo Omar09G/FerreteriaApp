@@ -48,6 +48,78 @@ public class AuthRepository implements AuthUserGateway {
         }
 
         @Override
+        public Optional<AuthUser> findById(int usuarioId) {
+                return jdbc.sql("""
+                                SELECT usuario_id, username, password_hash, activo, empleado_id,
+                                       debe_cambiar_password, failed_login_attempts, locked_until
+                                FROM seg.usuarios WHERE usuario_id = :id AND eliminado_en IS NULL
+                                """)
+                                .param("id", usuarioId)
+                                .query((rs, n) -> toAuthUser(rs))
+                                .optional();
+        }
+
+        @Override
+        public Optional<AuthUser> findByEmail(String email) {
+                return jdbc.sql("""
+                                SELECT usuario_id, username, password_hash, activo, empleado_id,
+                                       debe_cambiar_password, failed_login_attempts, locked_until
+                                FROM seg.usuarios WHERE lower(email) = lower(:e) AND eliminado_en IS NULL
+                                """)
+                                .param("e", email)
+                                .query((rs, n) -> toAuthUser(rs))
+                                .optional();
+        }
+
+        @Override
+        public Optional<AuthUser> findByGoogleSub(String googleSub) {
+                return jdbc.sql("""
+                                SELECT usuario_id, username, password_hash, activo, empleado_id,
+                                       debe_cambiar_password, failed_login_attempts, locked_until
+                                FROM seg.usuarios WHERE google_sub = :s AND eliminado_en IS NULL
+                                """)
+                                .param("s", googleSub)
+                                .query((rs, n) -> toAuthUser(rs))
+                                .optional();
+        }
+
+        @Override
+        public Optional<Contactos> contactosDe(int usuarioId) {
+                return jdbc.sql("""
+                                SELECT u.email, e.telefono, e.whatsapp
+                                FROM seg.usuarios u
+                                LEFT JOIN rh.empleados e ON e.empleado_id = u.empleado_id
+                                WHERE u.usuario_id = :id AND u.eliminado_en IS NULL
+                                """)
+                                .param("id", usuarioId)
+                                .query((rs, n) -> new Contactos(rs.getString("email"),
+                                                rs.getString("telefono"), rs.getString("whatsapp")))
+                                .optional();
+        }
+
+        @Override
+        public void linkGoogleAccount(int usuarioId, String googleSub) {
+                jdbc.sql("""
+                                UPDATE seg.usuarios
+                                SET auth_provider = 'google', google_sub = :s,
+                                    email_verificado_en = COALESCE(email_verificado_en, now())
+                                WHERE usuario_id = :id
+                                """)
+                                .param("s", googleSub).param("id", usuarioId)
+                                .update();
+        }
+
+        private static AuthUser toAuthUser(java.sql.ResultSet rs) throws java.sql.SQLException {
+                return new AuthUser(rs.getInt("usuario_id"), rs.getString("username"),
+                                rs.getString("password_hash"), rs.getBoolean("activo"),
+                                rs.getBoolean("debe_cambiar_password"),
+                                (Integer) rs.getObject("empleado_id"),
+                                rs.getInt("failed_login_attempts"),
+                                rs.getTimestamp("locked_until") != null
+                                                ? rs.getTimestamp("locked_until").toInstant() : null);
+        }
+
+        @Override
         public List<String> rolesOf(int usuarioId) {
                 return jdbc.sql("""
                                 SELECT r.clave FROM seg.roles r

@@ -2,19 +2,51 @@ import http from "./client";
 import type {
 	ChangePasswordRequest,
 	Envelope,
+	GoogleInit,
 	LoginRequest,
 	LogoutOk,
 	MeResponse,
 	OperacionOk,
+	OtpChallenge,
+	OtpEnviarRequest,
+	OtpVerificarRequest,
 	PasswordOk,
 	TokenResponse,
 } from "./types";
 
-export async function apiLogin(payload: LoginRequest): Promise<TokenResponse> {
-	const { data } = await http.post<Envelope<TokenResponse>>(
+/**
+ * Primera fase del login (password): devuelve un desafío OTP, NO tokens.
+ * La sesión se abre en apiVerificarOtp.
+ */
+export async function apiLogin(payload: LoginRequest): Promise<OtpChallenge> {
+	const { data } = await http.post<Envelope<OtpChallenge>>(
 		"/auth/login",
 		payload,
 	);
+	return data.data;
+}
+
+/** Envía (o reenvía) el código de 6 dígitos por el canal elegido. */
+export async function apiSolicitarOtp(payload: OtpEnviarRequest): Promise<void> {
+	await http.post("/auth/otp/enviar", payload);
+}
+
+/** Segunda fase: verifica el código y abre la sesión (cookies HttpOnly). */
+export async function apiVerificarOtp(
+	payload: OtpVerificarRequest,
+): Promise<TokenResponse> {
+	const { data } = await http.post<Envelope<TokenResponse>>(
+		"/auth/otp/verificar",
+		payload,
+	);
+	return data.data;
+}
+
+/** URL de autorización de Google generada por el backend (redirect). */
+export async function apiGoogleInit(state?: string): Promise<GoogleInit> {
+	const { data } = await http.get<Envelope<GoogleInit>>("/auth/oauth2/google", {
+		params: state ? { state } : {},
+	});
 	return data.data;
 }
 

@@ -58,9 +58,15 @@ function mockMatchMedia(matches: boolean) {
 }
 
 beforeEach(() => {
-	vi.clearAllMocks();
-	localStorage.clear();
-	useAuthStore.setState({ autenticado: false, usuario: null, lastActivityAt: 0 });
+  vi.clearAllMocks();
+  localStorage.clear();
+  sessionStorage.clear();
+  useAuthStore.setState({
+    autenticado: false,
+    usuario: null,
+    challenge: null,
+    lastActivityAt: 0,
+  });
 	useUiStore.setState({ tema: "light", idioma: "es" });
 	localStorage.clear();
 	document.documentElement.classList.remove("dark");

@@ -70,4 +70,28 @@ public final class AuthDtos {
             boolean debeCambiarPassword) { }
 
     public record LogoutOk(boolean revocado) { }
+
+    /**
+     * Segundo factor obligatorio: tras validar la password (o Google), el
+     * login devuelve un desafío OTP en vez de tokens. El frontend lo usa para
+     * mostrar la pantalla de canal + código. Los destinos van enmascarados
+     * (anti-enumeración: existen pero no se revelan completos).
+     */
+    public record OtpChallengeResponse(
+            String challengeId,
+            List<String> canales,
+            String emailEnmascarado,
+            String whatsappEnmascarado,
+            long expiraEnSegundos) { }
+
+    public record OtpEnviarRequest(
+            @NotBlank @Size(max = 64) String challengeId,
+            @NotBlank @Pattern(regexp = "^(email|whatsapp)$") String canal) { }
+
+    public record OtpVerificarRequest(
+            @NotBlank @Size(max = 64) String challengeId,
+            @NotBlank @Pattern(regexp = "^\\d{6}$") String codigo) { }
+
+    /** URL de autorización de Google generada por el backend (redirect). */
+    public record GoogleInitResponse(String url) { }
 }

@@ -10,6 +10,11 @@ public enum ErrorCode {
     CUENTA_BLOQUEADA("error.auth.cuenta-bloqueada", HttpStatus.TOO_MANY_REQUESTS),
     TOKEN_EXPIRADO("error.auth.token-expirado", HttpStatus.UNAUTHORIZED),
     ACCESO_DENEGADO("error.auth.acceso-denegado", HttpStatus.FORBIDDEN),
+    OTP_INVALIDO("error.auth.otp-invalido", HttpStatus.UNAUTHORIZED),
+    OTP_EXPIRADO("error.auth.otp-expirado", HttpStatus.UNAUTHORIZED),
+    OTP_AGOTADO("error.auth.otp-agotado", HttpStatus.TOO_MANY_REQUESTS),
+    OAUTH_FALLIDO("error.auth.oauth-fallido", HttpStatus.UNAUTHORIZED),
+    CANAL_NO_DISPONIBLE("error.auth.canal-no-disponible", HttpStatus.UNPROCESSABLE_ENTITY),
 
     // validación / paginación / correlación
     CAMPO_REQUERIDO("error.validacion.campo-requerido", HttpStatus.BAD_REQUEST),

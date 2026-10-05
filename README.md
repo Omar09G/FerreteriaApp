@@ -122,7 +122,7 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
 ### Backend (`ferreteriaBackend/`)
 
 ```bash
-./gradlew test                                         # suite completa (~1048 tests)
+./gradlew test                                         # suite completa (~1106 tests)
 ./gradlew test --tests "mx.ferreteria.api.ven.service.VentaServiceTest"  # uno solo
 ./gradlew build                                        # compila + tests + gates JaCoCo
 ```
@@ -137,13 +137,14 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
   solo vía `ErrorCode`, sin ciclos entre módulos, naming `@Service`/`@Controller`,
   controllers sin `*Repository`, sin `@Service` en `common.web`, entidades no
   expuestas como controllers, y cada `*Gateway` con exactamente una
-  implementación. Los ciclos `cat↔inv/ven` se rompieron con ports lado-consumidor
-  (`StockPort`/`CreditoPort` en `cat` + adapters en `inv`/`ven`).
+   implementación. Los ciclos `cat↔inv/ven` se rompieron con ports lado-consumidor
+   (`StockPort`/`CreditoPort` en `cat` + adapters en `inv`/`ven`); igual el ciclo
+   `seg→notif` del OTP (`OtpWhatsappPort` en `seg` + adapter en `notif`).
 
 ### Frontend (`ferreteriaFront/`)
 
 ```bash
-bun test                          # vitest run (111 archivos, 1126 tests)
+bunx vitest run                   # suite completa (113 archivos, ~1160 tests)
 bunx vitest run src/test/ventas   # por carpeta/archivo
 bunx vitest run --coverage        # con reporte + gate de thresholds
 bun run lint && bun run build     # los tests también deben tipar (tsc)

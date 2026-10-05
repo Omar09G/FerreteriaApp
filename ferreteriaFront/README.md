@@ -40,7 +40,7 @@ src/
 │                  #   catalogo, reportes, rrhh, seguridad, fiscal, dashboard, auth
 ├─ lib/api/        # clientes axios por módulo + endpoints.ts + types.ts (contratos)
 ├─ router/         # rutas con guards por rol (roles: ADMINISTRADOR, GERENTE, ...)
-├─ store/          # zustand: sesión (tokens en localStorage) y estado de UI
+├─ store/          # zustand: sesión (tokens en cookies HttpOnly, solo perfil en store) y estado de UI
 ├─ components/     # UI kit propio (design system de ferretería + Tailwind)
 └─ hooks/          # useToast, useDocumentTitle, etc.
 ```
@@ -51,8 +51,11 @@ src/
   errorMessage, details? }`. `success===false` → `ApiError`; `CREDENCIALES_INVALIDAS` /
   `TOKEN_EXPIRADO` manejan sesión; el resto → toast.
 - Enviar `X-Request-Id` (UUID) en cada request; el backend lo ecoa en `errorMessage`.
-- Auth: `POST /api/v1/auth/login` + refresh rotativo (access 8h / refresh 72h). El
-  interceptor refresca con mutex y reintenta una vez; si falla → logout local →
-  `/login?expired=1`.
+- Auth en dos fases: `POST /auth/login` (password) devuelve un desafío OTP;
+  `/auth/otp/enviar` manda el código de 6 dígitos por email o WhatsApp y
+  `/auth/otp/verificar` abre la sesión. Login con Google por redirect
+  (`/auth/oauth2/google` → `/auth/callback` → OTP). Refresh rotativo
+  (access 15 min / refresh 8 h) en cookies HttpOnly; el interceptor refresca
+  con mutex y reintenta una vez; si falla → logout local → `/login`.
 - Fechas: `LocalDate` `yyyy-MM-dd` (input `date`); moneda: `Intl.NumberFormat("es-MX", MXN)`.
 - Reportes y cortes por rango de fechas (default = hoy).

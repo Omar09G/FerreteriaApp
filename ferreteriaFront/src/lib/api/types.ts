@@ -65,6 +65,31 @@ export interface LoginRequest {
   password: string;
 }
 
+/** Segunda fase obligatoria: desafío OTP con canales y destinos enmascarados. */
+export interface OtpChallenge {
+  challengeId: string;
+  canales: ("email" | "whatsapp")[];
+  emailEnmascarado: string | null;
+  whatsappEnmascarado: string | null;
+  expiraEnSegundos: number;
+}
+
+export type OtpCanal = "email" | "whatsapp";
+
+export interface OtpEnviarRequest {
+  challengeId: string;
+  canal: OtpCanal;
+}
+
+export interface OtpVerificarRequest {
+  challengeId: string;
+  codigo: string;
+}
+
+export interface GoogleInit {
+  url: string;
+}
+
 export interface RefreshRequest {
   refreshToken?: string;
 }

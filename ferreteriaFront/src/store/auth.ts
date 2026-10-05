@@ -1,7 +1,18 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import type { MeResponse, TokenResponse } from "@/lib/api/types";
+import type { MeResponse, OtpChallenge, TokenResponse } from "@/lib/api/types";
+
+const CHALLENGE_KEY = "ferreteria-otp-challenge";
+
+function leerChallenge(): OtpChallenge | null {
+	try {
+		const raw = sessionStorage.getItem(CHALLENGE_KEY);
+		return raw ? (JSON.parse(raw) as OtpChallenge) : null;
+	} catch {
+		return null;
+	}
+}
 
 interface AuthState {
 	/**
@@ -11,12 +22,19 @@ interface AuthState {
 	 */
 	autenticado: boolean;
 	usuario: MeResponse | null;
+	/**
+	 * Desafío OTP pendiente (primera fase del login). No es secreto sensible
+	 * (el código viaja por email/WhatsApp) pero tampoco se persiste en
+	 * localStorage: vive en memoria + sessionStorage para sobrevivir recargas.
+	 */
+	challenge: OtpChallenge | null;
 	/** Marca de la última interacción del usuario (epoch ms). */
 	lastActivityAt: number;
 	setSession: (token: TokenResponse) => void;
 	setTokens: (accessToken: string | null, refreshToken: string | null) => void;
 	setMe: (me: MeResponse) => void;
 	clearSession: () => void;
+	setChallenge: (challenge: OtpChallenge | null) => void;
 	pingActivity: () => void;
 }
 
@@ -25,13 +43,21 @@ export const useAuthStore = create<AuthState>()(
 		(set) => ({
 			autenticado: false,
 			usuario: null,
+			challenge: typeof sessionStorage === "undefined" ? null : leerChallenge(),
 			lastActivityAt: Date.now(),
-			setSession: (token) =>
+			setSession: (token) => {
+				try {
+					sessionStorage.removeItem(CHALLENGE_KEY);
+				} catch {
+					// sessionStorage no disponible: solo memoria.
+				}
 				set({
 					autenticado: Boolean(token.accessToken),
 					usuario: token.usuario,
+					challenge: null,
 					lastActivityAt: Date.now(),
-				}),
+				});
+			},
 			// Los tokens no se persisten: viajan en cookies HttpOnly. Este método
 			// solo actualiza el marcador de autenticación para compatibilidad con
 			// flujos que lo invocan tras refresh.
@@ -43,6 +69,15 @@ export const useAuthStore = create<AuthState>()(
 				set({ autenticado: true, usuario: me, lastActivityAt: Date.now() }),
 			clearSession: () =>
 				set({ autenticado: false, usuario: null, lastActivityAt: Date.now() }),
+			setChallenge: (challenge) => {
+				try {
+					if (challenge) sessionStorage.setItem(CHALLENGE_KEY, JSON.stringify(challenge));
+					else sessionStorage.removeItem(CHALLENGE_KEY);
+				} catch {
+					// sessionStorage no disponible: solo memoria.
+				}
+				set({ challenge });
+			},
 			pingActivity: () => set({ lastActivityAt: Date.now() }),
 		}),
 		{

@@ -190,8 +190,33 @@ CREATE TABLE IF NOT EXISTS seg.usuarios (
     locked_until          TIMESTAMPTZ,
     ultimo_login  TIMESTAMPTZ,
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    eliminado_en  TIMESTAMPTZ
+    eliminado_en  TIMESTAMPTZ,
+    -- V23: login con Google (redirect) + OTP de segundo factor.
+    auth_provider VARCHAR(10) NOT NULL DEFAULT 'local'
+        CHECK (auth_provider IN ('local', 'google')),
+    google_sub    VARCHAR(255) UNIQUE,
+    email_verificado_en TIMESTAMPTZ
 );
+
+-- V23: desafíos OTP de un solo uso (TTL 5 min, máx 5 intentos).
+CREATE TABLE IF NOT EXISTS seg.otp_desafios (
+    otp_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    challenge_id VARCHAR(64) NOT NULL UNIQUE,
+    usuario_id   INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id) ON DELETE CASCADE,
+    proposito    VARCHAR(16) NOT NULL DEFAULT 'login'
+                 CHECK (proposito IN ('login')),
+    canal        VARCHAR(16) NOT NULL DEFAULT 'email'
+                 CHECK (canal IN ('email', 'whatsapp')),
+    codigo_hash  VARCHAR(100),
+    intentos     INTEGER NOT NULL DEFAULT 0 CHECK (intentos >= 0),
+    expira_en    TIMESTAMPTZ NOT NULL DEFAULT now() + interval '5 minutes',
+    enviado_en   TIMESTAMPTZ,
+    consumido_en TIMESTAMPTZ,
+    revocado_en  TIMESTAMPTZ,
+    creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_otp_usuario
+    ON seg.otp_desafios(usuario_id, proposito, creado_en DESC);
 
 CREATE TABLE IF NOT EXISTS seg.usuario_roles (
     usuario_id INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id) ON DELETE CASCADE,

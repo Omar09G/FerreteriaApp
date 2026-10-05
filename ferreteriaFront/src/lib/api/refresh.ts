@@ -52,7 +52,9 @@ export function puedeRefrescar(
 		es401 &&
 		!meta.refreshed &&
 		!original.url?.includes("/auth/refresh") &&
-		!original.url?.includes("/auth/login")
+		!original.url?.includes("/auth/login") &&
+		!original.url?.includes("/auth/otp/") &&
+		!original.url?.includes("/auth/oauth2/")
 	);
 }
 

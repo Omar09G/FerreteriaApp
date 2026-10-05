@@ -69,6 +69,56 @@ public class WhatsAppNotificacionSender {
         }
     }
 
+    /**
+     * Texto corto sin PDF (p. ej. código OTP). Mismo enrutado que
+     * {@link #send}: evolution si está configurado, mock en caso contrario.
+     * Nunca lanza.
+     */
+    public boolean sendTexto(String telefono, String texto) {
+        NotificacionProperties.WhatsApp cfg = props.whatsapp();
+        if (cfg == null || !cfg.enabled()) {
+            log.debug("whatsapp omitido (deshabilitado) to={}", telefono);
+            return false;
+        }
+        String numero = normalizar(telefono);
+        if (numero == null || numero.isBlank() || texto == null || texto.isBlank()) {
+            log.debug("whatsapp omitido (sin número o texto)");
+            return false;
+        }
+        if ("evolution".equalsIgnoreCase(cfg.proveedor()) && cfg.baseUrl() != null
+                && !cfg.baseUrl().isBlank()) {
+            return enviarTextoEvolution(cfg, numero, texto);
+        }
+        bandeja.registrar(numero, texto, null, null);
+        log.info("whatsapp mock to={}", numero);
+        return true;
+    }
+
+    private boolean enviarTextoEvolution(NotificacionProperties.WhatsApp cfg, String numero,
+            String texto) {
+        try {
+            String base = cfg.baseUrl().replaceAll("/+$", "");
+            String instancia = cfg.instancia() != null && !cfg.instancia().isBlank()
+                    ? cfg.instancia()
+                    : "ferreteria";
+            Map<String, Object> body = new HashMap<>();
+            body.put("number", numero);
+            body.put("text", texto);
+            restClient.post()
+                    .uri(base + "/message/sendText/{instancia}", instancia)
+                    .header("apikey", cfg.apiKey() != null ? cfg.apiKey() : "")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("whatsapp evolution enviado to={}", numero);
+            return true;
+        } catch (Exception e) {
+            log.warn("whatsapp evolution fallo to={} err={}", numero, e.getMessage());
+            return false;
+        }
+    }
+
     public boolean send(String telefono, String asunto, byte[] pdf) {
         NotificacionProperties.WhatsApp cfg = props.whatsapp();
         if (cfg == null || !cfg.enabled()) {

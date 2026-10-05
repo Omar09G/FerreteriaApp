@@ -105,13 +105,18 @@ public class SecurityConfig {
                                 .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint))
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(HttpMethod.GET,
-                                                                "/api/v1/auth/csrf-init")
+                                                                "/api/v1/auth/csrf-init",
+                                                                "/api/v1/auth/oauth2/google",
+                                                                "/api/v1/auth/oauth2/google/callback",
+                                                                "/api/v1/auth/otp/desafio")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST,
                                                                 "/api/v1/auth/login",
                                                                 "/api/v1/auth/register",
                                                                 "/api/v1/auth/refresh",
-                                                                "/api/v1/auth/logout")
+                                                                "/api/v1/auth/logout",
+                                                                "/api/v1/auth/otp/enviar",
+                                                                "/api/v1/auth/otp/verificar")
                                                 .permitAll()
                                                 .requestMatchers("/actuator/health", "/actuator/health/**",
                                                                                 "/actuator/prometheus")

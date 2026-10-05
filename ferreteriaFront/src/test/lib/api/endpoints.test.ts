@@ -3,13 +3,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   apiCambiarPassword,
   apiEliminar,
+  apiGoogleInit,
   apiLogin,
   apiLogout,
   apiMe,
   apiRefresh,
+  apiSolicitarOtp,
+  apiVerificarOtp,
 } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/errors";
-import type { MeResponse, TokenResponse } from "@/lib/api/types";
+import type {
+  MeResponse,
+  OtpChallenge,
+  TokenResponse,
+} from "@/lib/api/types";
 
 vi.mock("@/lib/api/client", () => ({
   default: {
@@ -26,6 +33,8 @@ import http from "@/lib/api/client";
 type HttpMock = {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
 };
 
@@ -43,11 +52,40 @@ beforeEach(() => {
 });
 
 describe("endpoints: auth", () => {
-  it("apiLogin hace POST /auth/login y devuelve data", async () => {
+  it("apiLogin hace POST /auth/login y devuelve el desafío OTP", async () => {
     const payload = { username: "admin", password: "Secreta1!" };
-    mock.post.mockResolvedValueOnce({ data: { success: true, data: token } });
-    await expect(apiLogin(payload)).resolves.toEqual(token);
+    const challenge: OtpChallenge = {
+      challengeId: "ch-1",
+      canales: ["email", "whatsapp"],
+      emailEnmascarado: "ad***@x",
+      whatsappEnmascarado: "***567",
+      expiraEnSegundos: 300,
+    };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: challenge } });
+    await expect(apiLogin(payload)).resolves.toEqual(challenge);
     expect(mock.post).toHaveBeenCalledWith("/auth/login", payload);
+  });
+
+  it("apiSolicitarOtp hace POST /auth/otp/enviar", async () => {
+    const payload = { challengeId: "ch-1", canal: "email" as const };
+    mock.post.mockResolvedValueOnce({ data: { success: true } });
+    await expect(apiSolicitarOtp(payload)).resolves.toBeUndefined();
+    expect(mock.post).toHaveBeenCalledWith("/auth/otp/enviar", payload);
+  });
+
+  it("apiVerificarOtp hace POST /auth/otp/verificar y devuelve tokens", async () => {
+    const payload = { challengeId: "ch-1", codigo: "482913" };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: token } });
+    await expect(apiVerificarOtp(payload)).resolves.toEqual(token);
+    expect(mock.post).toHaveBeenCalledWith("/auth/otp/verificar", payload);
+  });
+
+  it("apiGoogleInit hace GET /auth/oauth2/google", async () => {
+    const init = { url: "https://accounts.google.com/o/oauth2/v2/auth?x=1" };
+    mock.get.mockResolvedValueOnce({
+      data: { success: true, data: init },
+    });
+    await expect(apiGoogleInit()).resolves.toEqual(init);
   });
 
   it("apiRefresh hace POST /auth/refresh con body vacío (cookie HttpOnly)", async () => {
