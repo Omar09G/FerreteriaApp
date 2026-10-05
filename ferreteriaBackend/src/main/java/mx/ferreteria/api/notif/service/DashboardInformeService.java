@@ -82,7 +82,8 @@ public class DashboardInformeService {
             for (DestinatarioInforme d : destinatarios) {
                 if (d.email() != null && !d.email().isBlank() && email != null) {
                     try {
-                        email.send(d.email(), asunto, pdf, clave);
+                        email.send(d.email(), NotificacionJob.TIPO_INFORME_DASHBOARD,
+                                asunto, null, pdf, clave);
                         emails++;
                     } catch (RuntimeException e) {
                         log.warn("informe email fallo to={} err={}", d.email(), e.getMessage());

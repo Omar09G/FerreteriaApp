@@ -12,9 +12,12 @@ import { apiTurnoActual } from "@/lib/api/caja";
 import {
 	apiAbonarCuentaPagar,
 	apiCuentasPagar,
+	apiEnviarCuentasPagarInforme,
+	apiEstadoCuentasPagarInforme,
 	apiFacturasPendientes,
 	apiFacturasVencidas,
 } from "@/lib/api/compras";
+import { useAuthStore } from "@/store/auth";
 
 vi.mock("sweetalert2", () => ({
 	default: { fire: vi.fn(), showLoading: vi.fn(), close: vi.fn() },
@@ -106,6 +109,8 @@ vi.mock("@/lib/api/compras", () => ({
 		},
 	]),
 	apiAbonarCuentaPagar: vi.fn(),
+	apiEnviarCuentasPagarInforme: vi.fn(),
+	apiEstadoCuentasPagarInforme: vi.fn(),
 }));
 
 function renderPage() {
@@ -433,5 +438,96 @@ describe("CuentasPagarPage (profundización)", () => {
 				expect.objectContaining({ text: expect.stringContaining("caído") }),
 			),
 		);
+	});
+});
+
+describe("CuentasPagarPage (recordatorio manual)", () => {
+	function comoAdmin() {
+		useAuthStore.setState({
+			autenticado: true,
+			usuario: { roles: ["ADMINISTRADOR"] } as never,
+		});
+	}
+
+	function comoSinRol() {
+		useAuthStore.setState({ autenticado: false, usuario: null });
+	}
+
+	it("oculta el botón sin rol GERENTE/ADMINISTRADOR", async () => {
+		comoSinRol();
+		renderPage();
+		await screen.findByText("C-0001");
+		expect(
+			screen.queryByRole("button", { name: /recordatorio/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("envía directo cuando hoy aún no se envió", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoCuentasPagarInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: false,
+			estado: null,
+			enviadoEn: null,
+		});
+		vi.mocked(apiEnviarCuentasPagarInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 2,
+			emailsEnviados: 2,
+			vencidas: 1,
+			pendientes: 1,
+			totalVencido: 500,
+			totalPendiente: 1160,
+		});
+		renderPage();
+		await screen.findByText("C-0001");
+		await user.click(
+			screen.getByRole("button", { name: /recordatorio/i }),
+		);
+		await waitFor(() => {
+			expect(apiEstadoCuentasPagarInforme).toHaveBeenCalledOnce();
+			expect(apiEnviarCuentasPagarInforme).toHaveBeenCalledOnce();
+		});
+		await waitFor(() =>
+			expect(vi.mocked(Swal.fire)).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: expect.stringContaining("Recordatorio enviado a 2 destinatarios"),
+				}),
+			),
+		);
+	});
+
+	it("avisa si ya se envió y reenvía solo al confirmar", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoCuentasPagarInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: true,
+			estado: "ENVIADA",
+			enviadoEn: "2026-10-05T09:00:00",
+		});
+		vi.mocked(apiEnviarCuentasPagarInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 1,
+			emailsEnviados: 1,
+			vencidas: 0,
+			pendientes: 2,
+			totalVencido: 0,
+			totalPendiente: 800,
+		});
+		renderPage();
+		await screen.findByText("C-0001");
+		await user.click(
+			screen.getByRole("button", { name: /recordatorio/i }),
+		);
+		expect(
+			await screen.findByText("Recordatorio ya enviado"),
+		).toBeInTheDocument();
+		expect(apiEnviarCuentasPagarInforme).not.toHaveBeenCalled();
+		await user.click(screen.getByRole("button", { name: /reenviar/i }));
+		await waitFor(() => {
+			expect(apiEnviarCuentasPagarInforme).toHaveBeenCalledOnce();
+		});
 	});
 });

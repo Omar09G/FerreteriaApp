@@ -44,6 +44,16 @@ public class NotificacionJobService {
                 fecha.toEpochDay());
     }
 
+    /**
+     * Job del recordatorio de cuentas por pagar: un registro por día
+     * (ref_id = epoch day). Idempotente como el del informe.
+     */
+    @Transactional
+    public NotificacionJob crearCuentasPagar(java.time.LocalDate fecha) {
+        return crear(NotificacionJob.TIPO_CUENTAS_PAGAR, NotificacionJob.REF_CUENTAS,
+                fecha.toEpochDay());
+    }
+
     private NotificacionJob crear(String tipo, String refTipo, Long refId) {
         Optional<NotificacionJob> existente = repo.findByTipoAndRefId(tipo, refId);
         if (existente.isPresent()) {

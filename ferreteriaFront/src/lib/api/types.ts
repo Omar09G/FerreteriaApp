@@ -223,6 +223,24 @@ export interface InformeEnvio {
   whatsappEnviados: number;
 }
 
+/** Recordatorio de cuentas por pagar (JOB 09:00 + botón manual). */
+export interface CuentasPagarInformeEnvio {
+  fecha: string;
+  destinatarios: number;
+  emailsEnviados: number;
+  vencidas: number;
+  pendientes: number;
+  totalVencido: number;
+  totalPendiente: number;
+}
+
+export interface CuentasPagarInformeEstado {
+  fecha: string;
+  yaEnviado: boolean;
+  estado: string | null;
+  enviadoEn: string | null;
+}
+
 export interface InformeEstado {
   fechaInicio: string;
   fechaFin: string;

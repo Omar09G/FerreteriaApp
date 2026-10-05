@@ -59,3 +59,7 @@ src/
   con mutex y reintenta una vez; si falla → logout local → `/login`.
 - Fechas: `LocalDate` `yyyy-MM-dd` (input `date`); moneda: `Intl.NumberFormat("es-MX", MXN)`.
 - Reportes y cortes por rango de fechas (default = hoy).
+- Recordatorio cuentas por pagar: botón en Compras → Cuentas por pagar
+  (`POST /reportes/cuentas-pagar/informe`); antes pregunta `GET .../estado` y,
+  si hoy ya se envió, pide confirmación con `ConfirmDialog` (mismo patrón del
+  informe del dashboard).

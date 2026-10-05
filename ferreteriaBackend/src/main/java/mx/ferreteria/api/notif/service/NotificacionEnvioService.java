@@ -45,7 +45,8 @@ public class NotificacionEnvioService {
         if (msg.paraEmail() != null && !msg.paraEmail().isBlank()) {
             intentados++;
             try {
-                emailSender.send(msg.paraEmail(), msg.asunto(), pdf, msg.pdfUrl());
+                emailSender.send(msg.paraEmail(), msg.tipo(), msg.asunto(), msg.total(),
+                        pdf, msg.pdfUrl());
                 exitosos++;
             } catch (RuntimeException e) {
                 primerFallo = e;

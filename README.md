@@ -122,7 +122,7 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
 ### Backend (`ferreteriaBackend/`)
 
 ```bash
-./gradlew test                                         # suite completa (~1106 tests)
+./gradlew test                                         # suite completa (~1125 tests)
 ./gradlew test --tests "mx.ferreteria.api.ven.service.VentaServiceTest"  # uno solo
 ./gradlew build                                        # compila + tests + gates JaCoCo
 ```
@@ -144,7 +144,7 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
 ### Frontend (`ferreteriaFront/`)
 
 ```bash
-bunx vitest run                   # suite completa (113 archivos, ~1160 tests)
+bunx vitest run                   # suite completa (113 archivos, ~1165 tests)
 bunx vitest run src/test/ventas   # por carpeta/archivo
 bunx vitest run --coverage        # con reporte + gate de thresholds
 bun run lint && bun run build     # los tests también deben tipar (tsc)

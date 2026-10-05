@@ -63,7 +63,8 @@ class NotificacionEnvioServiceTest {
 
         service.enviar(msg);
 
-        verify(emailSender, org.mockito.Mockito.never()).send(any(), any(), any(), any());
+        verify(emailSender, org.mockito.Mockito.never()).send(any(), any(), any(), any(), any(),
+                any());
         assertThat(bandeja.mensajes()).isEmpty();
     }
 
@@ -76,7 +77,7 @@ class NotificacionEnvioServiceTest {
                 new WhatsApp(true, "mock", "", "ferreteria", "", "521"));
         EmailNotificacionSender emailSender = mock(EmailNotificacionSender.class);
         org.mockito.Mockito.doThrow(new RuntimeException("smtp caído"))
-                .when(emailSender).send(any(), any(), any(), any());
+                .when(emailSender).send(any(), any(), any(), any(), any(), any());
         TelegramNotificacionSender telegramSender = mock(TelegramNotificacionSender.class);
         WhatsAppMockBandeja bandeja = new WhatsAppMockBandeja();
         NotificacionEnvioService service = new NotificacionEnvioService(
@@ -100,7 +101,7 @@ class NotificacionEnvioServiceTest {
                 new WhatsApp(false, "mock", "", "ferreteria", "", "521"));
         EmailNotificacionSender emailSender = mock(EmailNotificacionSender.class);
         org.mockito.Mockito.doThrow(new RuntimeException("smtp caído"))
-                .when(emailSender).send(any(), any(), any(), any());
+                .when(emailSender).send(any(), any(), any(), any(), any(), any());
         TelegramNotificacionSender telegramSender = mock(TelegramNotificacionSender.class);
         NotificacionEnvioService service = new NotificacionEnvioService(
                 storage, props, emailSender, telegramSender,
@@ -122,7 +123,7 @@ class NotificacionEnvioServiceTest {
                 new WhatsApp(false, "mock", "", "ferreteria", "", "521"));
         EmailNotificacionSender emailSender = mock(EmailNotificacionSender.class);
         org.mockito.Mockito.doThrow(new RuntimeException("smtp caído"))
-                .when(emailSender).send(any(), any(), any(), any());
+                .when(emailSender).send(any(), any(), any(), any(), any(), any());
         TelegramNotificacionSender telegramSender = mock(TelegramNotificacionSender.class);
         WhatsAppMockBandeja bandeja = new WhatsAppMockBandeja();
         NotificacionEnvioService service = new NotificacionEnvioService(
@@ -172,6 +173,7 @@ class NotificacionEnvioServiceTest {
 
         service.enviar(msg);
 
-        verify(emailSender).send(eq("cte@acme.mx"), eq("Ticket V-1"), eq(PDF), eq("tickets/1.pdf"));
+        verify(emailSender).send(eq("cte@acme.mx"), eq("VENTA_TICKET"), eq("Ticket V-1"),
+                eq(BigDecimal.ONE), eq(PDF), eq("tickets/1.pdf"));
     }
 }

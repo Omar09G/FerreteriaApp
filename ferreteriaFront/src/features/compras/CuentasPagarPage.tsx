@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, FileWarning, HandCoins } from "lucide-react";
+import { CalendarClock, FileWarning, HandCoins, Send } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
@@ -8,6 +8,8 @@ import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
 import {
 	apiAbonarCuentaPagar,
 	apiCuentasPagar,
+	apiEnviarCuentasPagarInforme,
+	apiEstadoCuentasPagarInforme,
 	apiFacturasPendientes,
 	apiFacturasVencidas,
 } from "@/lib/api/compras";
@@ -15,19 +17,22 @@ import {
 	FORMAS_PAGO,
 	type AbonoProveedorRequest,
 	type CuentasPagar,
+	type CuentasPagarInformeEstado,
 	type FacturaPendiente,
 	type FacturaVencida,
 } from "@/lib/api/types";
-import { formatoFecha, formatoMoneda } from "@/lib/format";
+import { formatoFecha, formatoFechaHora, formatoMoneda } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
+import { useTieneRol } from "@/store/auth";
 
 function estadoAbono(c: CuentasPagar) {
 	if (c.estado === "LIQUIDADA") return <Badge tone="success">Pagada</Badge>;
@@ -186,10 +191,53 @@ function AbonoDialog({
 
 export default function CuentasPagarPage() {
 	useDocumentTitle("Cuentas por pagar");
-	const { error: mostrarError, success: mostrarExito } = useToast();
+	const {
+		error: mostrarError,
+		success: mostrarExito,
+		loading: mostrarCarga,
+	} = useToast();
 	const queryClient = useQueryClient();
 	const [tab, setTab] = useState<"todas" | "pendientes" | "vencidas">("todas");
 	const [cuentaAbonar, setCuentaAbonar] = useState<CuentasPagar | null>(null);
+	const puedeEnviar = useTieneRol(["ADMINISTRADOR", "GERENTE"]);
+	const [enviando, setEnviando] = useState(false);
+	const [confirmarReenvio, setConfirmarReenvio] =
+		useState<CuentasPagarInformeEstado | null>(null);
+
+	async function enviarRecordatorio() {
+		if (enviando) return;
+		const cerrarCarga = mostrarCarga("Verificando recordatorio…");
+		try {
+			const estado = await apiEstadoCuentasPagarInforme();
+			if (estado.yaEnviado) {
+				setConfirmarReenvio(estado);
+				return;
+			}
+			await ejecutarEnvio();
+		} catch (e) {
+			mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+		} finally {
+			cerrarCarga();
+		}
+	}
+
+	async function ejecutarEnvio() {
+		if (enviando) return;
+		setEnviando(true);
+		const cerrarCarga = mostrarCarga("Enviando recordatorio…");
+		try {
+			const r = await apiEnviarCuentasPagarInforme();
+			setConfirmarReenvio(null);
+			mostrarExito(
+				`Recordatorio enviado a ${r.destinatarios} destinatarios (${r.emailsEnviados} correos): ${r.vencidas} vencidas, ${r.pendientes} pendientes.`,
+			);
+		} catch (e) {
+			mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+		} finally {
+			cerrarCarga();
+			setEnviando(false);
+		}
+	}
 
 	const cuentas = useQuery({
 		queryKey: ["cuentas-pagar"],
@@ -364,12 +412,25 @@ export default function CuentasPagarPage() {
 
 	return (
 		<div className="space-y-4">
-			<header>
-				<h1 className="text-xl font-bold text-ink">Cuentas por pagar</h1>
-				<p className="text-sm text-muted">
-					Compromisos con proveedores: pueden cerrarse registrando un abono
-					(salida en caja).
-				</p>
+			<header className="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<h1 className="text-xl font-bold text-ink">Cuentas por pagar</h1>
+					<p className="text-sm text-muted">
+						Compromisos con proveedores: pueden cerrarse registrando un abono
+						(salida en caja).
+					</p>
+				</div>
+				{puedeEnviar && (
+					<Button
+						variant="primary"
+						size="sm"
+						disabled={enviando}
+						onClick={enviarRecordatorio}
+					>
+						<Send className="h-4 w-4" aria-hidden />
+						{enviando ? "Enviando…" : "Enviar recordatorio"}
+					</Button>
+				)}
 			</header>
 
 			<div className="grid gap-4 lg:grid-cols-2">
@@ -482,6 +543,25 @@ export default function CuentasPagarPage() {
 					/>
 				)}
 			</Dialog>
+
+			<ConfirmDialog
+				open={confirmarReenvio !== null}
+				title="Recordatorio ya enviado"
+				confirmLabel="Sí, reenviar"
+				tone="primary"
+				busy={enviando}
+				onCancel={() => !enviando && setConfirmarReenvio(null)}
+				onConfirm={ejecutarEnvio}
+			>
+				<p className="text-sm text-ink">
+					El recordatorio de hoy ya se envió
+					{confirmarReenvio?.enviadoEn
+						? ` el ${formatoFechaHora(confirmarReenvio.enviadoEn)}`
+						: ""}
+					. ¿Desea enviarlo nuevamente por correo a gerentes y
+					administradores?
+				</p>
+			</ConfirmDialog>
 		</div>
 	);
 }

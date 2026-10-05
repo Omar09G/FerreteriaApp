@@ -177,6 +177,12 @@ app:
     dashboard-cron: ${INFORME_DASHBOARD_CRON:0 0 7 * * *}
     dashboard-zona: ${INFORME_DASHBOARD_ZONA:America/Mexico_City}
     dashboard-job-enabled: ${INFORME_DASHBOARD_JOB_ENABLED:false}
+    # Recordatorio diario de cuentas por pagar (vencidas + pendientes) a
+    # GERENTES y ADMINISTRADORES, 09:00 por defecto. Activo salvo que se
+    # apague explícito; requiere app.notif.enabled=true (APP_NOTIF_ENABLED).
+    cuentas-pagar-cron: ${CUENTAS_PAGAR_CRON:0 0 9 * * *}
+    cuentas-pagar-zona: ${CUENTAS_PAGAR_ZONA:America/Mexico_City}
+    cuentas-pagar-job-enabled: ${CUENTAS_PAGAR_JOB_ENABLED:true}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

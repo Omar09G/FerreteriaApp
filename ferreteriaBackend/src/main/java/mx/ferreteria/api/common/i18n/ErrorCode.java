@@ -45,6 +45,7 @@ public enum ErrorCode {
     ARCHIVO_TIPO_NO_PERMITIDO("error.negocio.archivo-tipo-no-permitido", HttpStatus.BAD_REQUEST),
     ARCHIVO_MUY_GRANDE("error.negocio.archivo-muy-grande", HttpStatus.BAD_REQUEST),
     INFORME_SIN_DESTINATARIOS("error.negocio.informe-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
+    CUENTAS_SIN_DESTINATARIOS("error.negocio.cuentas-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
 
     // genéricas / internas
     ERROR_INTERNO("error.interno.inesperado", HttpStatus.INTERNAL_SERVER_ERROR),

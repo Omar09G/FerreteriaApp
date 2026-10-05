@@ -5,6 +5,8 @@ import type {
 	Compra,
 	CompraRequest,
 	CuentasPagar,
+	CuentasPagarInformeEnvio,
+	CuentasPagarInformeEstado,
 	Envelope,
 	FacturaPendiente,
 	FacturaVencida,
@@ -62,6 +64,23 @@ export async function apiAbonarCuentaPagar(
 	const { data } = await http.post<Envelope<AbonoProveedorResponse>>(
 		`/cuentas-pagar/${cuentaPagarId}/abonos`,
 		body,
+	);
+	return data.data;
+}
+
+/** Recordatorio manual de cuentas por pagar (mismo contenido del JOB 09:00). */
+export async function apiEnviarCuentasPagarInforme(): Promise<CuentasPagarInformeEnvio> {
+	const { data } = await http.post<Envelope<CuentasPagarInformeEnvio>>(
+		"/reportes/cuentas-pagar/informe",
+		{},
+	);
+	return data.data;
+}
+
+/** Estado del recordatorio de hoy (avisa si ya se envió). */
+export async function apiEstadoCuentasPagarInforme(): Promise<CuentasPagarInformeEstado> {
+	const { data } = await http.get<Envelope<CuentasPagarInformeEstado>>(
+		"/reportes/cuentas-pagar/informe/estado",
 	);
 	return data.data;
 }

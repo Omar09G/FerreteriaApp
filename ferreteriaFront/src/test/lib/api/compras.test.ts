@@ -5,6 +5,8 @@ import {
   apiCompras,
   apiCrearCompra,
   apiCuentasPagar,
+  apiEnviarCuentasPagarInforme,
+  apiEstadoCuentasPagarInforme,
   apiFacturasPendientes,
   apiFacturasVencidas,
 } from "@/lib/api/compras";
@@ -158,6 +160,40 @@ describe("cuentas por pagar y facturas", () => {
     mock.post.mockResolvedValueOnce({ data: { success: true, data: res } });
     await expect(apiAbonarCuentaPagar(1, body)).resolves.toEqual(res);
     expect(mock.post).toHaveBeenCalledWith("/cuentas-pagar/1/abonos", body);
+  });
+
+  it("apiEnviarCuentasPagarInforme hace POST al informe", async () => {
+    const res = {
+      fecha: "2026-10-05",
+      destinatarios: 2,
+      emailsEnviados: 2,
+      vencidas: 1,
+      pendientes: 1,
+      totalVencido: 500,
+      totalPendiente: 300,
+    };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: res } });
+    await expect(apiEnviarCuentasPagarInforme()).resolves.toEqual(res);
+    expect(mock.post).toHaveBeenCalledWith(
+      "/reportes/cuentas-pagar/informe",
+      {},
+    );
+  });
+
+  it("apiEstadoCuentasPagarInforme pide GET al estado", async () => {
+    const estado = {
+      fecha: "2026-10-05",
+      yaEnviado: true,
+      estado: "ENVIADA",
+      enviadoEn: "2026-10-05T09:00:00",
+    };
+    mock.get.mockResolvedValueOnce({
+      data: { success: true, data: estado },
+    });
+    await expect(apiEstadoCuentasPagarInforme()).resolves.toEqual(estado);
+    expect(mock.get).toHaveBeenCalledWith(
+      "/reportes/cuentas-pagar/informe/estado",
+    );
   });
 
   it("propaga errores en cuentas por pagar", async () => {
