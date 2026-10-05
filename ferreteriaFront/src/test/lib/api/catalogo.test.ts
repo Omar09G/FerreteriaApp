@@ -8,6 +8,7 @@ import {
   apiActualizarProveedor,
   apiAlmacenes,
   apiAlmacenesTodos,
+  apiBuscarProductos,
   apiCargaMasivaProductos,
   apiCategoriasArbol,
   apiClientes,
@@ -119,6 +120,24 @@ describe("catalogo: productos", () => {
     await apiProductos({ page: 0, size: 15 });
     expect(mock.get).toHaveBeenCalledWith("/productos", {
       params: { page: 0, size: 15 },
+    });
+  });
+
+  it("apiBuscarProductos pide GET /productos/buscar con q y límite", async () => {
+    mock.get.mockResolvedValueOnce({ data: { success: true, data: [producto] } });
+    await expect(
+      apiBuscarProductos({ q: "torni", limite: 8, almacenId: 1 }),
+    ).resolves.toEqual([producto]);
+    expect(mock.get).toHaveBeenCalledWith("/productos/buscar", {
+      params: { q: "torni", limite: 8, almacenId: 1 },
+    });
+  });
+
+  it("apiBuscarProductos omite opcionales ausentes", async () => {
+    mock.get.mockResolvedValueOnce({ data: { success: true, data: [] } });
+    await expect(apiBuscarProductos({ q: "torni" })).resolves.toEqual([]);
+    expect(mock.get).toHaveBeenCalledWith("/productos/buscar", {
+      params: { q: "torni" },
     });
   });
 

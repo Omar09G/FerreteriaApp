@@ -8,13 +8,12 @@
  * Fast Refresh desactivado: el elemento raiz combina varios boundary providers.
  */
 /* eslint-disable react-refresh/only-export-components */
-import { Outlet, createBrowserRouter } from "react-router-dom";
-import { Navigate, useLocation } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 
 import { NotFound } from "@/components/errors/PageStates";
 import { AppShell } from "@/components/layout/AppShell";
-import { useAutenticado } from "@/store/auth";
 import { ToastProvider } from "@/components/ui/Toast";
+import { RequiereAuth } from "@/router/guards";
 
 import { publicRoutes, privateRoutes } from "./registry";
 
@@ -29,16 +28,6 @@ function ShellPrivada() {
       <AppShell />
     </ToastProvider>
   );
-}
-
-/** Layout route: gate de autenticacion antes de cualquier ruta privada. */
-function RequiereAuth() {
-  const autenticado = useAutenticado();
-  const location = useLocation();
-  if (!autenticado) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
-  return <Outlet />;
 }
 
 export const router = createBrowserRouter([

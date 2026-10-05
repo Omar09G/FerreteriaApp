@@ -59,6 +59,8 @@ src/
   con mutex y reintenta una vez; si falla → logout local → `/login`.
 - Fechas: `LocalDate` `yyyy-MM-dd` (input `date`); moneda: `Intl.NumberFormat("es-MX", MXN)`.
 - Reportes y cortes por rango de fechas (default = hoy).
+- POS con sugerencias difusas en vivo (`GET /productos/buscar`, tolera typos,
+  debounce 200 ms, clic agrega al ticket; Enter/F3 conservan la búsqueda manual).
 - Recordatorios diarios: botón "Enviar recordatorio" en Compras → Cuentas por
   pagar, Ventas → Cobranza, Ventas → Rentas e Inventario → Existencias
   (`POST /reportes/{cuentas-pagar,cobranza,rentas,stock-bajo}/informe`); antes

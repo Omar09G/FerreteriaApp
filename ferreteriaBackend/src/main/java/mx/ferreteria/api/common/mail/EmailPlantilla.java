@@ -101,10 +101,7 @@ public final class EmailPlantilla {
         StringBuilder th = new StringBuilder();
         for (int i = 0; i < encabezados.length; i++) {
             boolean ultimo = i == encabezados.length - 1;
-            th.append("<th align=\"").append(ultimo ? "right" : "left").append("\" "
-                    + "style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;"
-                    + "font-weight:bold;color:#78716c;padding:6px 8px;"
-                    + "border-bottom:1px solid #fed7aa;\">")
+            th.append("<th align=\"").append(ultimo ? "right" : "left").append("\" ").append("style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;").append("font-weight:bold;color:#78716c;padding:6px 8px;").append("border-bottom:1px solid #fed7aa;\">")
                     .append(escapar(encabezados[i])).append("</th>");
         }
         String borde = alerta ? "#fecaca" : "#fed7aa";

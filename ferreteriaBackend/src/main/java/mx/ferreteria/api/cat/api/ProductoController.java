@@ -1,5 +1,7 @@
 package mx.ferreteria.api.cat.api;
 
+import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -53,6 +55,19 @@ public class ProductoController {
     @GetMapping("/{id}")
     public ProductoResponse getById(@PathVariable Long id) {
         return service.getById(id);
+    }
+
+    /**
+     * Búsqueda difusa del POS (typeahead): tolera typos ("torni" →
+     * "Tornillo 3/8") con ranking por relevancia. Literal antes que
+     * {@code /{id}}: Spring prefiere el match exacto.
+     */
+    @GetMapping("/buscar")
+    public List<ProductoResponse> buscar(
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "limite", required = false, defaultValue = "10") int limite,
+            @RequestParam(name = "almacenId", required = false) Integer almacenId) {
+        return service.buscar(q, almacenId, limite);
     }
 
     @PostMapping

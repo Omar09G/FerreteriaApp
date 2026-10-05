@@ -128,6 +128,62 @@ public class ProductoService {
         });
     }
 
+    /**
+     * Búsqueda difusa del POS (typeahead): tolera typos de mostrador
+     * ("torni" → "Tornillo 3/8") con ranking por relevancia. Términos de
+     * menos de 2 caracteres devuelven vacío (evitan barridos caros).
+     */
+    @Transactional(readOnly = true)
+    public List<ProductoResponse> buscar(String q, Integer almacenId, int limite) {
+        String normalizado = q == null ? "" : q.trim().toLowerCase()
+                .replaceAll("\\s+", " ");
+        if (normalizado.length() < 2) {
+            return List.of();
+        }
+        int lim = Math.min(Math.max(limite, 1), 20);
+        // Las ramas LIKE llevan el término escapado; el operador <% usa el
+        // término crudo (sin semántica LIKE).
+        String escapado = normalizado.replace("\\", "\\\\")
+                .replace("%", "\\%").replace("_", "\\_");
+        List<Long> ids = repo.buscarIds(normalizado, q.trim(), escapado, lim);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Producto> porId = repo.findAllById(ids).stream()
+                .collect(Collectors.toMap(Producto::getProductoId, p -> p));
+        List<Producto> ordenados = ids.stream()
+                .map(porId::get).filter(java.util.Objects::nonNull).toList();
+
+        // Factor de escaneo cuando el término es un código de barras exacto.
+        Map<Long, BigDecimal> factores = Map.of();
+        Optional<ProductoCodigoBarras> barra = barrasRepo.findByCodigoBarras(q.trim());
+        if (barra.isPresent() && Boolean.TRUE.equals(barra.get().getProducto().getActivo())) {
+            factores = Map.of(barra.get().getProducto().getProductoId(),
+                    barra.get().getFactor());
+        }
+        Map<Long, List<String>> barrasPorProd = barrasRepo
+                .findByProductoProductoIdIn(ordenados.stream()
+                        .map(Producto::getProductoId).toList()).stream()
+                .collect(Collectors.groupingBy(b -> b.getProducto().getProductoId(),
+                        Collectors.mapping(ProductoCodigoBarras::getCodigoBarras,
+                                Collectors.toList())));
+        final Map<Long, BigDecimal> factoresFinal = factores;
+        List<ProductoResponse> respuestas = ordenados.stream()
+                .map(p -> completarBarras(baseResponse(p),
+                        barrasPorProd.getOrDefault(p.getProductoId(), List.of()),
+                        factoresFinal.get(p.getProductoId())))
+                .toList();
+        if (almacenId != null) {
+            Map<Long, BigDecimal> stockByProd = stockPort.stockPorProductos(almacenId,
+                    respuestas.stream().map(ProductoResponse::productoId).toList());
+            return respuestas.stream()
+                    .map(r -> r.withStock(
+                            stockByProd.getOrDefault(r.productoId(), BigDecimal.ZERO)))
+                    .toList();
+        }
+        return respuestas;
+    }
+
     /** Mapeo desde la proyeccion BACK-REND-027: no carga descripcion ni JSONB. */
     private ProductoResponse toResponseFromListado(ProductoListado p) {
         return new ProductoResponse(

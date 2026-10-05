@@ -10,6 +10,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 vi.mock("@/lib/api/catalogo", async (importOriginal) => ({
 	...((await importOriginal()) as Record<string, unknown>),
 	apiProductos: vi.fn(),
+	apiBuscarProductos: vi.fn(),
 	apiAlmacenes: vi.fn(),
 	apiClientes: vi.fn(),
 	apiGetCliente: vi.fn(),
@@ -80,6 +81,7 @@ vi.mock("xlsx", () => ({
 
 import {
 	apiAlmacenes,
+	apiBuscarProductos,
 	apiClientes,
 	apiGetCliente,
 	apiProductos,
@@ -105,6 +107,7 @@ import {
 } from "@/test/helpers/ventasPos";
 
 const apiProductosMock = vi.mocked(apiProductos);
+const apiBuscarMock = vi.mocked(apiBuscarProductos);
 const apiAlmacenesMock = vi.mocked(apiAlmacenes);
 const apiClientesMock = vi.mocked(apiClientes);
 vi.mocked(apiGetCliente);
@@ -121,6 +124,7 @@ beforeEach(() => {
 	apiCajasMock.mockResolvedValue([CAJA]);
 	apiClientesMock.mockResolvedValue(pageOf([CLIENTE]));
 	apiProductosMock.mockResolvedValue(pageOf([]));
+	apiBuscarMock.mockResolvedValue([]);
 	apiTurnoMock.mockResolvedValue(TURNO);
 	apiPromosMock.mockResolvedValue([]);
 	apiTicketMock.mockResolvedValue(null as never);
@@ -886,5 +890,45 @@ describe("PosPage (profundización)", () => {
 		expect(String(writeFile.mock.calls[0][1])).toMatch(
 			/^pos-venta-\d{4}-\d{2}-\d{2}\.xlsx$/,
 		);
+	});
+});
+
+describe("PosPage (sugerencias difusas)", () => {
+	it("sugiere en vivo al escribir y agrega al hacer clic", async () => {
+		const user = userEvent.setup();
+		apiBuscarMock.mockResolvedValue([PRODUCTO]);
+		renderPagina(<PosPage />);
+		await user.type(screen.getByLabelText(/Buscar producto/), "torni");
+		const lista = await screen.findByRole("listbox", {
+			name: "Sugerencias de productos",
+		});
+		expect(apiBuscarMock).toHaveBeenCalledWith(
+			expect.objectContaining({ q: "torni" }),
+		);
+		await user.click(within(lista).getByRole("button", { name: /Martillo/ }));
+		expect(await screen.findByText("Ticket (1)")).toBeInTheDocument();
+	});
+
+	it("no sugiere con menos de 2 letras", async () => {
+		const user = userEvent.setup();
+		renderPagina(<PosPage />);
+		await user.type(screen.getByLabelText(/Buscar producto/), "t");
+		await new Promise((r) => setTimeout(r, 350));
+		expect(apiBuscarMock).not.toHaveBeenCalled();
+		expect(
+			screen.queryByRole("listbox", { name: "Sugerencias de productos" }),
+		).not.toBeInTheDocument();
+	});
+
+	it("oculta sugerencias al confirmar la búsqueda manual", async () => {
+		const user = userEvent.setup();
+		apiBuscarMock.mockResolvedValue([PRODUCTO]);
+		apiProductosMock.mockResolvedValue(pageOf([PRODUCTO]));
+		renderPagina(<PosPage />);
+		await user.type(screen.getByLabelText(/Buscar producto/), "torni{enter}");
+		await screen.findByRole("listbox", { name: "Resultados de búsqueda" });
+		expect(
+			screen.queryByRole("listbox", { name: "Sugerencias de productos" }),
+		).not.toBeInTheDocument();
 	});
 });

@@ -20,7 +20,7 @@ import { RequiereAuth } from "@/router/guards";
 import { useAuthStore } from "@/store/auth";
 
 afterEach(() => {
-	useAuthStore.setState({ autenticado: false, usuario: null });
+	useAuthStore.setState({ autenticado: false, usuario: null, sesionLista: false });
 });
 
 /** Misma composición que router.tsx pero sobre MemoryRouter (el data-router
@@ -56,13 +56,23 @@ describe("router", () => {
 	});
 
 	it("renderiza /login como ruta pública", async () => {
+		useAuthStore.setState({ sesionLista: true });
 		renderEn("/login");
 		expect(await screen.findByText("Pagina Login")).toBeInTheDocument();
 	});
 
 	it("redirige a /login al entrar a privada sin auth", async () => {
+		useAuthStore.setState({ sesionLista: true });
 		renderEn("/dashboard");
 		expect(await screen.findByText("Pagina Login")).toBeInTheDocument();
 		expect(screen.queryByText("Shell")).not.toBeInTheDocument();
+	});
+
+	it("muestra splash sin revalidar aunque haya flag persistido", async () => {
+		useAuthStore.setState({ autenticado: true, sesionLista: false });
+		renderEn("/dashboard");
+		expect(await screen.findByRole("status")).toBeInTheDocument();
+		expect(screen.queryByText("Shell")).not.toBeInTheDocument();
+		expect(screen.queryByText("Pagina Login")).not.toBeInTheDocument();
 	});
 });

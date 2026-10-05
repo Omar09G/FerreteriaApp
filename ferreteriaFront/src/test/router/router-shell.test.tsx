@@ -22,7 +22,7 @@ vi.mock("sweetalert2", () => ({
 }));
 
 afterEach(() => {
-	useAuthStore.setState({ autenticado: false, usuario: null });
+	useAuthStore.setState({ autenticado: false, usuario: null, sesionLista: false });
 });
 
 function layoutAuth(): { element: ReactElement; shell: ReactElement } {
@@ -51,15 +51,28 @@ function renderBajoLayout(elemento: ReactElement, ruta: string) {
 
 describe("router.tsx layouts internos", () => {
 	it("RequiereAuth redirige a /login sin sesión", () => {
+		useAuthStore.setState({ sesionLista: true });
 		renderBajoLayout(layoutAuth().element, "/privada");
 		expect(screen.getByText("LoginX")).toBeInTheDocument();
 		expect(screen.queryByText("PrivadoX")).not.toBeInTheDocument();
 	});
 
 	it("RequiereAuth deja pasar con sesión", () => {
-		useAuthStore.setState({ autenticado: true, usuario: { roles: [] } as never });
+		useAuthStore.setState({
+			autenticado: true,
+			sesionLista: true,
+			usuario: { roles: [] } as never,
+		});
 		renderBajoLayout(layoutAuth().element, "/privada");
 		expect(screen.getByText("PrivadoX")).toBeInTheDocument();
+	});
+
+	it("RequiereAuth muestra splash con flag persistido sin revalidar", () => {
+		useAuthStore.setState({ autenticado: true, sesionLista: false });
+		renderBajoLayout(layoutAuth().element, "/privada");
+		expect(screen.queryByText("PrivadoX")).not.toBeInTheDocument();
+		expect(screen.queryByText("LoginX")).not.toBeInTheDocument();
+		expect(screen.getByRole("status")).toBeInTheDocument();
 	});
 
 	it("ShellPrivada monta Toast + AppShell", () => {

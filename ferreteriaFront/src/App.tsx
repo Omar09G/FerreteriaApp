@@ -48,15 +48,19 @@ function BootstrapCsrf() {
  * con /auth/me (la cookie HttpOnly `at` es la fuente de verdad, no
  * localStorage). Si responde 200 -> setMe; si 401 -> clearSession y el guard
  * redirige a /login. Una sola llamada por mount; errores silenciosos.
+ * Al terminar (éxito o fallo) se marca sesionLista para que los guards
+ * decidan: antes de eso solo hay splash, nunca contenido privado.
  */
 function BootstrapSesion() {
 	const setMe = useAuthStore((s) => s.setMe);
 	const clearSession = useAuthStore((s) => s.clearSession);
+	const setSesionLista = useAuthStore((s) => s.setSesionLista);
 	useEffect(() => {
 		apiMe()
 			.then((me) => setMe(me))
-			.catch(() => clearSession());
-	}, [setMe, clearSession]);
+			.catch(() => clearSession())
+			.finally(() => setSesionLista());
+	}, [setMe, clearSession, setSesionLista]);
 	return null;
 }
 

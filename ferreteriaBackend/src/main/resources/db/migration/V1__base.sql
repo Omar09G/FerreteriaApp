@@ -371,6 +371,9 @@ CREATE TABLE IF NOT EXISTS inv.productos (
 CREATE INDEX IF NOT EXISTS idx_productos_categoria ON inv.productos(categoria_id);
 CREATE INDEX IF NOT EXISTS idx_productos_marca     ON inv.productos(marca_id);
 CREATE INDEX IF NOT EXISTS idx_productos_nombre_trgm ON inv.productos USING GIN (nombre gin_trgm_ops);
+-- V27: búsqueda difusa del POS (word_similarity <% sobre nombre insensible a mayúsculas).
+CREATE INDEX IF NOT EXISTS idx_productos_nombre_lower_trgm
+    ON inv.productos USING GIN (lower(nombre) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_productos_activos ON inv.productos(categoria_id) WHERE activo;
 
 CREATE TABLE IF NOT EXISTS inv.producto_codigos_barras (

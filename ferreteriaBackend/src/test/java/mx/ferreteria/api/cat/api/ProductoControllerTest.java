@@ -123,6 +123,34 @@ class ProductoControllerTest {
                                 .andExpect(jsonPath("$.codigo").value("RECURSO_NO_ENCONTRADO"));
         }
 
+        // ── GET /api/v1/productos/buscar ──────────────────────────────
+
+        @Test
+        @DisplayName("GET /api/v1/productos/buscar?q=torni -> 200 con ranking difuso")
+        void buscar_returns200Ranked() throws Exception {
+                when(service.buscar(eq("torni"), eq(null), eq(10)))
+                                .thenReturn(List.of(sampleProducto()));
+
+                mvc.perform(get("/api/v1/productos/buscar").param("q", "torni"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data").isArray())
+                                .andExpect(jsonPath("$.data.length()").value(1))
+                                .andExpect(jsonPath("$.data[0].nombre").value("Taladro"));
+        }
+
+        @Test
+        @DisplayName("GET /api/v1/productos/buscar respeta limite y almacenId")
+        void buscar_conLimiteYAlmacen() throws Exception {
+                when(service.buscar(eq("torni"), eq(1), eq(5)))
+                                .thenReturn(List.of(sampleProducto()));
+
+                mvc.perform(get("/api/v1/productos/buscar")
+                                .param("q", "torni").param("limite", "5").param("almacenId", "1"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.length()").value(1));
+        }
+
         // ── POST /api/v1/productos ──────────────────────────────────────
 
         @Test

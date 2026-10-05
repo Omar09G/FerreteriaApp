@@ -28,6 +28,7 @@ function estadoInicial() {
     autenticado: false,
     usuario: null,
     challenge: null,
+    sesionLista: false,
     lastActivityAt: 0,
   });
   // Limpia el rastro que persist pudo escribir en el setState anterior.
@@ -91,16 +92,32 @@ describe("auth store: acciones", () => {
 		expect(s.usuario).toEqual(ME);
 	});
 
-  it("persist solo guarda autenticado+usuario (nunca tokens)", () => {
+  it("persist solo guarda usuario (autenticado jamás, ni tokens)", () => {
     useAuthStore.getState().setSession(TOKEN);
     const raw = localStorage.getItem("ferreteria-auth");
     expect(raw).not.toBeNull();
     const guardado = JSON.parse(raw as string);
-    expect(guardado.state.autenticado).toBe(true);
     expect(guardado.state.usuario).toEqual(ME);
+    expect(guardado.state).not.toHaveProperty("autenticado");
     expect(JSON.stringify(guardado.state)).not.toContain("accessToken");
     expect(JSON.stringify(guardado.state)).not.toContain("refreshToken");
     expect(JSON.stringify(guardado.state)).not.toContain("lastActivityAt");
+  });
+
+  it("setChallenge con desafío desautentica (fase 1 sin OTP)", () => {
+    useAuthStore.getState().setSession(TOKEN);
+    expect(useAuthStore.getState().autenticado).toBe(true);
+    useAuthStore.getState().setChallenge({ challengeId: "ch-1" } as never);
+    const s = useAuthStore.getState();
+    expect(s.autenticado).toBe(false);
+    expect(s.usuario).toBeNull();
+    expect(s.challenge?.challengeId).toBe("ch-1");
+  });
+
+  it("setSesionLista marca el bootstrap revalidado", () => {
+    expect(useAuthStore.getState().sesionLista).toBe(false);
+    useAuthStore.getState().setSesionLista();
+    expect(useAuthStore.getState().sesionLista).toBe(true);
   });
 
   it("setChallenge guarda el desafío y setSession lo limpia", () => {

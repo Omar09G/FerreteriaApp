@@ -6,12 +6,13 @@ import { RedirigirSiAutenticado, RequiereAuth, RequiereRol } from "@/router/guar
 import { useAuthStore } from "@/store/auth";
 
 afterEach(() => {
-	useAuthStore.setState({ autenticado: false, usuario: null });
+	useAuthStore.setState({ autenticado: false, usuario: null, sesionLista: false });
 });
 
 function sesion(roles: string[] = ["VENDEDOR"]) {
 	useAuthStore.setState({
 		autenticado: true,
+		sesionLista: true,
 		usuario: { roles } as unknown as NonNullable<ReturnType<typeof useAuthStore.getState>["usuario"]>,
 	});
 }
@@ -31,6 +32,7 @@ describe("RequiereAuth", () => {
 	}
 
 	it("redirige a /login sin autenticación", () => {
+		useAuthStore.setState({ sesionLista: true });
 		render(<App />);
 		expect(screen.getByText("Login")).toBeInTheDocument();
 		expect(screen.queryByText("Privado")).not.toBeInTheDocument();
@@ -40,6 +42,16 @@ describe("RequiereAuth", () => {
 		sesion();
 		render(<App />);
 		expect(screen.getByText("Privado")).toBeInTheDocument();
+	});
+
+	it("NO muestra lo privado con flag persistido sin revalidar (anti-bypass OTP)", () => {
+		// Recarga u otra pestaña con `autenticado:true` obsoleto: sin
+		// sesionLista no hay contenido privado ni redirect, solo splash.
+		useAuthStore.setState({ autenticado: true, sesionLista: false });
+		render(<App />);
+		expect(screen.queryByText("Privado")).not.toBeInTheDocument();
+		expect(screen.queryByText("Login")).not.toBeInTheDocument();
+		expect(screen.getByRole("status")).toBeInTheDocument();
 	});
 });
 
@@ -121,6 +133,7 @@ describe("RedirigirSiAutenticado", () => {
 	});
 
 	it("muestra el contenido sin sesión", () => {
+		useAuthStore.setState({ sesionLista: true });
 		render(
 			<MemoryRouter initialEntries={["/login"]}>
 				<Routes>
@@ -136,5 +149,27 @@ describe("RedirigirSiAutenticado", () => {
 			</MemoryRouter>,
 		);
 		expect(screen.getByText("Login")).toBeInTheDocument();
+	});
+
+	it("NO redirige a /dashboard con flag persistido sin revalidar", () => {
+		useAuthStore.setState({ autenticado: true, sesionLista: false });
+		render(
+			<MemoryRouter initialEntries={["/login"]}>
+				<Routes>
+					<Route
+						path="/login"
+						element={
+							<RedirigirSiAutenticado>
+								<div>Login</div>
+							</RedirigirSiAutenticado>
+						}
+					/>
+					<Route path="/dashboard" element={<div>Dashboard</div>} />
+				</Routes>
+			</MemoryRouter>,
+		);
+		expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+		expect(screen.queryByText("Login")).not.toBeInTheDocument();
+		expect(screen.getByRole("status")).toBeInTheDocument();
 	});
 });

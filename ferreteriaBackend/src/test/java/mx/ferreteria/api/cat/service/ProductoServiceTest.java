@@ -3,6 +3,8 @@ package mx.ferreteria.api.cat.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -604,5 +606,77 @@ class ProductoServiceTest {
         assertThat(resp.creados()).hasSize(1);
         assertThat(resp.errores()).isEmpty();
         verify(barrasRepo).saveAll(any());
+    }
+
+    // ── buscar (difuso POS) ─────────────────────────────────────────
+
+    private Producto producto(Long id, String codigo, String nombre) {
+        return Producto.builder()
+                .productoId(id).codigo(codigo).tipo("PRODUCTO").nombre(nombre)
+                .categoria(sampleCategoria()).marca(sampleMarca()).unidadMedida(sampleUM())
+                .costoActual(new BigDecimal("100.00"))
+                .precioMenudeo(new BigDecimal("150.00"))
+                .aplicaIva(true).activo(true).build();
+    }
+
+    @Test
+    @DisplayName("buscar con término corto: vacío sin tocar la BD")
+    void buscar_corto_vacio() {
+        assertThat(service.buscar("t", null, 10)).isEmpty();
+        assertThat(service.buscar(null, null, 10)).isEmpty();
+        verify(repo, never()).buscarIds(any(), any(), any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("buscar conserva el ranking del repo y adjunta barras + stock")
+    void buscar_rankingYEnriquecido() {
+        var tornillo = producto(1L, "TOR-38", "Tornillo 3/8 galvanizado");
+        var tuerca = producto(2L, "TUE-38", "Tuerca 3/8");
+        when(repo.buscarIds(eq("torni"), eq("Torni"), eq("torni"), eq(10)))
+                .thenReturn(List.of(1L, 2L));
+        when(repo.findAllById(List.of(1L, 2L))).thenReturn(List.of(tornillo, tuerca));
+        when(barrasRepo.findByCodigoBarras("torni")).thenReturn(Optional.empty());
+        when(barrasRepo.findByProductoProductoIdIn(List.of(1L, 2L))).thenReturn(List.of());
+        when(stockPort.stockPorProductos(eq(1), eq(List.of(1L, 2L))))
+                .thenReturn(Map.of(1L, new BigDecimal("7"), 2L, BigDecimal.ZERO));
+
+        var r = service.buscar("Torni ", 1, 10);
+
+        assertThat(r).extracting(ProductoResponse::nombre)
+                .containsExactly("Tornillo 3/8 galvanizado", "Tuerca 3/8");
+        assertThat(r.get(0).stockActual()).isEqualByComparingTo("7");
+        assertThat(r.get(0).codigosBarras()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("buscar con código de barras exacto: propaga factor de escaneo")
+    void buscar_barraExacta_factor() {
+        var p = producto(1L, "TOR-38", "Tornillo 3/8 galvanizado");
+        var barra = ProductoCodigoBarras.builder()
+                .codigoBarras("750123").producto(p).factor(new BigDecimal("12")).build();
+        when(repo.buscarIds(eq("750123"), eq("750123"), eq("750123"), eq(10)))
+                .thenReturn(List.of(1L));
+        when(repo.findAllById(List.of(1L))).thenReturn(List.of(p));
+        when(barrasRepo.findByCodigoBarras("750123")).thenReturn(Optional.of(barra));
+        when(barrasRepo.findByProductoProductoIdIn(List.of(1L)))
+                .thenReturn(List.of(barra));
+
+        var r = service.buscar("750123", null, 10);
+
+        assertThat(r).hasSize(1);
+        assertThat(r.get(0).factorEscaneo()).isEqualByComparingTo("12");
+        assertThat(r.get(0).codigosBarras()).containsExactly("750123");
+    }
+
+    @Test
+    @DisplayName("buscar acota el límite a [1,20]")
+    void buscar_limiteAcotado() {
+        when(repo.buscarIds(any(), any(), any(), anyInt())).thenReturn(List.of());
+
+        service.buscar("torni", null, 100);
+        verify(repo).buscarIds(eq("torni"), eq("torni"), eq("torni"), eq(20));
+
+        service.buscar("torni", null, 0);
+        verify(repo).buscarIds(eq("torni"), eq("torni"), eq("torni"), eq(1));
     }
 }

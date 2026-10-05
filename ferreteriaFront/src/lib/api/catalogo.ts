@@ -40,6 +40,24 @@ export async function apiProductos(p: {
   return data;
 }
 
+/**
+ * Búsqueda difusa del POS (typeahead): tolera typos ("torni" → "Tornillo 3/8")
+ * con ranking por relevancia. Para sugerencias en vivo, no para paginar.
+ */
+export async function apiBuscarProductos(p: {
+  q: string;
+  limite?: number;
+  almacenId?: number;
+}): Promise<Producto[]> {
+  const params: Record<string, string | number> = { q: p.q };
+  if (p.limite) params.limite = p.limite;
+  if (p.almacenId) params.almacenId = p.almacenId;
+  const { data } = await http.get<Envelope<Producto[]>>("/productos/buscar", {
+    params,
+  });
+  return data.data;
+}
+
 export async function apiCrearProducto(
   body: ProductoRequest,
 ): Promise<Producto> {

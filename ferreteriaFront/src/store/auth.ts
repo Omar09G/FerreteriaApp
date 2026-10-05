@@ -19,9 +19,19 @@ interface AuthState {
 	 * Marcador de "estoy autenticado". El access y refresh tokens viven en
 	 * cookies HttpOnly (browser-only) y JS NO puede leerlos: aquí solo
 	 * guardamos lo que necesitamos para el UX (perfil + estado de actividad).
+	 *
+	 * NUNCA se confía en un valor persistido: cada arranque parte en false
+	 * y solo /auth/me (cookie vigente) o el OTP verificado lo activan.
 	 */
 	autenticado: boolean;
 	usuario: MeResponse | null;
+	/**
+	 * True cuando el bootstrap ya revalidó la sesión contra el backend
+	 * (/auth/me). Mientras sea false, los guards muestran un splash y NO
+	 * deciden (evita mostrar el sistema con un flag persistido obsoleto).
+	 * No se persiste.
+	 */
+	sesionLista: boolean;
 	/**
 	 * Desafío OTP pendiente (primera fase del login). No es secreto sensible
 	 * (el código viaja por email/WhatsApp) pero tampoco se persiste en
@@ -35,6 +45,7 @@ interface AuthState {
 	setMe: (me: MeResponse) => void;
 	clearSession: () => void;
 	setChallenge: (challenge: OtpChallenge | null) => void;
+	setSesionLista: () => void;
 	pingActivity: () => void;
 }
 
@@ -43,6 +54,7 @@ export const useAuthStore = create<AuthState>()(
 		(set) => ({
 			autenticado: false,
 			usuario: null,
+			sesionLista: false,
 			challenge: typeof sessionStorage === "undefined" ? null : leerChallenge(),
 			lastActivityAt: Date.now(),
 			setSession: (token) => {
@@ -69,6 +81,8 @@ export const useAuthStore = create<AuthState>()(
 				set({ autenticado: true, usuario: me, lastActivityAt: Date.now() }),
 			clearSession: () =>
 				set({ autenticado: false, usuario: null, lastActivityAt: Date.now() }),
+			// Iniciar la fase 1 (desafío OTP) invalida cualquier marca de
+			// sesión previa: sin código verificado nadie está autenticado.
 			setChallenge: (challenge) => {
 				try {
 					if (challenge) sessionStorage.setItem(CHALLENGE_KEY, JSON.stringify(challenge));
@@ -76,22 +90,32 @@ export const useAuthStore = create<AuthState>()(
 				} catch {
 					// sessionStorage no disponible: solo memoria.
 				}
-				set({ challenge });
+				set(
+					challenge
+						? { challenge, autenticado: false, usuario: null }
+						: { challenge },
+				);
 			},
+			setSesionLista: () => set({ sesionLista: true }),
 			pingActivity: () => set({ lastActivityAt: Date.now() }),
 		}),
 		{
 			name: "ferreteria-auth",
 			storage: createJSONStorage(() => localStorage),
-			// Solo persistimos `usuario` (perfil cacheado) y `autenticado` como
-			// pista de UX. El access y refresh tokens NO se persisten: viven en
-			// cookies HttpOnly y se revalidan contra el backend en cada mount.
-			// Al recargar, si la cookie `at` sigue vigente, /auth/me responde 200
-			// y `setSession` reactiva el flag; si expiró, /auth/me responde 401
-			// y `clearSession` lo limpia.
+			// Solo persistimos `usuario` (perfil cacheado para pintar el nombre
+			// tras revalidar). `autenticado` JAMÁS se persiste ni se rehidrata:
+			// cada arranque parte en false hasta que /auth/me (cookie vigente)
+			// o el OTP verificado lo activen. Así recargar u otra pestaña no
+			// puede reutilizar un flag obsoleto para entrar al sistema.
+			// Los tokens NO se persisten: viven en cookies HttpOnly.
 			partialize: (state) => ({
-				autenticado: state.autenticado,
 				usuario: state.usuario,
+			}),
+			merge: (persisted, current) => ({
+				...current,
+				...(persisted as Partial<AuthState>),
+				autenticado: false,
+				sesionLista: false,
 			}),
 		},
 	),

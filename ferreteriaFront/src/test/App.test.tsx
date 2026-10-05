@@ -65,6 +65,7 @@ beforeEach(() => {
     autenticado: false,
     usuario: null,
     challenge: null,
+    sesionLista: false,
     lastActivityAt: 0,
   });
 	useUiStore.setState({ tema: "light", idioma: "es" });
@@ -116,6 +117,7 @@ describe("App", () => {
 			expect(useAuthStore.getState().autenticado).toBe(true);
 		});
 		expect(useAuthStore.getState().usuario?.username).toBe("cajera");
+		expect(useAuthStore.getState().sesionLista).toBe(true);
 	});
 
 	it("con /auth/me 401 limpia la sesión", async () => {
@@ -126,5 +128,6 @@ describe("App", () => {
 			expect(useAuthStore.getState().autenticado).toBe(false);
 		});
 		expect(useAuthStore.getState().usuario).toBeNull();
+		expect(useAuthStore.getState().sesionLista).toBe(true);
 	});
 });

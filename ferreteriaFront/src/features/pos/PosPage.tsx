@@ -26,6 +26,7 @@ import { useHotkey } from "@/hooks/useHotkey";
 import { useDebounce } from "@/hooks/useDebounce";
 import { esApiError } from "@/lib/api/client";
 import {
+  apiBuscarProductos,
   apiProductos,
   apiAlmacenes,
   apiClientes,
@@ -213,6 +214,30 @@ export default function PosPage() {
         almacenId: typeof almacenId === "number" ? almacenId : undefined,
       }),
     enabled: qEfectivo.length > 0,
+  });
+
+  /**
+   * Sugerencias difusas en vivo (typeahead): con 2+ letras y sin que parezca
+   * código de barras, sugiere mientras se escribe (toleran typos: "torni" →
+   * "Tornillo 3/8"). Se ocultan al confirmar la búsqueda manual (Enter/F3).
+   */
+  const busquedaDebounceada = useDebounce(busquedaTrim, 200);
+  const sugerenciaQ = busquedaDebounceada.trim();
+  const mostrarSugerencias =
+    busquedaTrim.length >= 2 && !modoBarcode && busquedaTrim !== q;
+  const sugerencias = useQuery({
+    queryKey: ["productos-buscar", sugerenciaQ, almacenId],
+    queryFn: () =>
+      apiBuscarProductos({
+        q: sugerenciaQ,
+        limite: 8,
+        almacenId: typeof almacenId === "number" ? almacenId : undefined,
+      }),
+    enabled:
+      mostrarSugerencias &&
+      sugerenciaQ.length >= 2 &&
+      !pareceCodigoBarras(sugerenciaQ),
+    staleTime: 30_000,
   });
 
   const ventasHoy = useQuery({
@@ -847,6 +872,45 @@ export default function PosPage() {
                 </span>
               )}
             </div>
+
+            {mostrarSugerencias &&
+              sugerencias.data !== undefined &&
+              sugerencias.data.length > 0 && (
+                <div
+                  className="mt-2 max-h-72 overflow-auto rounded-md border border-primary/40 bg-surface shadow-lg"
+                  role="listbox"
+                  aria-label="Sugerencias de productos"
+                >
+                  {sugerencias.data.map((p) => (
+                    <button
+                      key={p.productoId}
+                      type="button"
+                      onClick={() => agregar(p)}
+                      className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2 text-left last:border-b-0 hover:bg-orange-50 focus:bg-orange-50 focus:outline-none"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-ink">
+                          {p.nombre}
+                        </span>
+                        <span className="text-xs text-muted">
+                          {p.codigo ?? "—"} · {p.unidadMedidaClave} ·{" "}
+                          {p.categoriaNombre}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right text-sm">
+                        <span className="block font-semibold text-primary tabular-nums">
+                          {formatoMoneda(p.precioMenudeo)}
+                        </span>
+                        {typeof p.stockActual === "number" && (
+                          <span className="block text-xs text-muted tabular-nums">
+                            {p.stockActual} disp.
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
             {qEfectivo && resultados.isLoading && <Spinner />}
             <ScannerCamara
