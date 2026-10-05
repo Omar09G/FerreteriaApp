@@ -183,6 +183,22 @@ app:
     cuentas-pagar-cron: ${CUENTAS_PAGAR_CRON:0 0 9 * * *}
     cuentas-pagar-zona: ${CUENTAS_PAGAR_ZONA:America/Mexico_City}
     cuentas-pagar-job-enabled: ${CUENTAS_PAGAR_JOB_ENABLED:true}
+    # Cobranza (cuentas vencidas + pendientes) 09:05 y rentas (vencidas +
+    # próximas a devolver) 09:10, a GERENTES y ADMINISTRADORES por correo
+    # (detalle) y WhatsApp (resumen). Activos salvo apagado explícito;
+    # requieren app.notif.enabled=true (APP_NOTIF_ENABLED).
+    cobranza-cron: ${COBRANZA_CRON:0 5 9 * * *}
+    cobranza-zona: ${COBRANZA_ZONA:America/Mexico_City}
+    cobranza-job-enabled: ${COBRANZA_JOB_ENABLED:true}
+    rentas-cron: ${RENTAS_CRON:0 10 9 * * *}
+    rentas-zona: ${RENTAS_ZONA:America/Mexico_City}
+    rentas-job-enabled: ${RENTAS_JOB_ENABLED:true}
+    # Stock bajo (resumen + Excel del detalle) 09:15, a GERENTES y
+    # ADMINISTRADORES. Activo salvo apagado explícito; requiere
+    # app.notif.enabled=true (APP_NOTIF_ENABLED).
+    stock-cron: ${STOCK_CRON:0 15 9 * * *}
+    stock-zona: ${STOCK_ZONA:America/Mexico_City}
+    stock-job-enabled: ${STOCK_JOB_ENABLED:true}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.DisplayName;
@@ -21,23 +20,23 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
 import mx.ferreteria.api.common.web.WebMvcTestProps;
-import mx.ferreteria.api.notif.dto.CuentasPagarDtos.CuentasPagarEnvioResponse;
-import mx.ferreteria.api.notif.dto.CuentasPagarDtos.CuentasPagarEstadoResponse;
-import mx.ferreteria.api.notif.service.CuentasPagarInformeService;
+import mx.ferreteria.api.notif.dto.RentasDtos.RentasEnvioResponse;
+import mx.ferreteria.api.notif.dto.RentasDtos.RentasEstadoResponse;
+import mx.ferreteria.api.notif.service.RentasInformeService;
 
-@WebMvcTest(controllers = CuentasPagarInformeController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(controllers = RentasInformeController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({ DbErrorTranslator.class, WebMvcTestProps.class, CuentasPagarInformeControllerTest.SliceConfig.class })
+@Import({ DbErrorTranslator.class, WebMvcTestProps.class, RentasInformeControllerTest.SliceConfig.class })
 @MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
                 mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
                 mx.ferreteria.api.common.security.JwtService.class })
-class CuentasPagarInformeControllerTest {
+class RentasInformeControllerTest {
 
         @Autowired
         MockMvc mvc;
 
         @MockitoBean
-        CuentasPagarInformeService cuentasService;
+        RentasInformeService rentasService;
 
         @org.springframework.boot.test.context.TestConfiguration
         static class SliceConfig {
@@ -49,28 +48,27 @@ class CuentasPagarInformeControllerTest {
         }
 
         @Test
-        @DisplayName("POST /api/v1/reportes/cuentas-pagar/informe -> 200 con conteos y totales")
+        @DisplayName("POST /api/v1/reportes/rentas/informe -> 200 con conteos")
         void enviar_returns200() throws Exception {
-                var r = new CuentasPagarEnvioResponse(LocalDate.of(2026, 10, 5), 2, 2, 1,
-                                1, 1, new BigDecimal("500.00"), new BigDecimal("300.00"));
-                when(cuentasService.enviar()).thenReturn(r);
+                var r = new RentasEnvioResponse(LocalDate.of(2026, 10, 5), 2, 2, 1, 1, 1);
+                when(rentasService.enviar()).thenReturn(r);
 
-                mvc.perform(post("/api/v1/reportes/cuentas-pagar/informe"))
+                mvc.perform(post("/api/v1/reportes/rentas/informe"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.destinatarios").value(2))
                                 .andExpect(jsonPath("$.data.vencidas").value(1))
-                                .andExpect(jsonPath("$.data.pendientes").value(1));
+                                .andExpect(jsonPath("$.data.proximas").value(1));
         }
 
         @Test
-        @DisplayName("GET /api/v1/reportes/cuentas-pagar/informe/estado -> 200 con yaEnviado")
+        @DisplayName("GET /api/v1/reportes/rentas/informe/estado -> 200 con yaEnviado")
         void estado_returns200() throws Exception {
-                var r = new CuentasPagarEstadoResponse(LocalDate.of(2026, 10, 5), true,
+                var r = new RentasEstadoResponse(LocalDate.of(2026, 10, 5), true,
                                 "ENVIADA", java.time.Instant.now());
-                when(cuentasService.estado()).thenReturn(r);
+                when(rentasService.estado()).thenReturn(r);
 
-                mvc.perform(get("/api/v1/reportes/cuentas-pagar/informe/estado"))
+                mvc.perform(get("/api/v1/reportes/rentas/informe/estado"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.yaEnviado").value(true));

@@ -228,6 +228,7 @@ export interface CuentasPagarInformeEnvio {
   fecha: string;
   destinatarios: number;
   emailsEnviados: number;
+  whatsappsEnviados: number;
   vencidas: number;
   pendientes: number;
   totalVencido: number;
@@ -235,6 +236,59 @@ export interface CuentasPagarInformeEnvio {
 }
 
 export interface CuentasPagarInformeEstado {
+  fecha: string;
+  yaEnviado: boolean;
+  estado: string | null;
+  enviadoEn: string | null;
+}
+
+/** Recordatorios diarios de cobranza y rentas (JOB + botón manual). */
+export interface CobranzaInformeEnvio {
+  fecha: string;
+  destinatarios: number;
+  emailsEnviados: number;
+  whatsappsEnviados: number;
+  vencidas: number;
+  pendientes: number;
+  totalVencido: number;
+  totalPendiente: number;
+}
+
+export interface CobranzaInformeEstado {
+  fecha: string;
+  yaEnviado: boolean;
+  estado: string | null;
+  enviadoEn: string | null;
+}
+
+export interface RentasInformeEnvio {
+  fecha: string;
+  destinatarios: number;
+  emailsEnviados: number;
+  whatsappsEnviados: number;
+  vencidas: number;
+  proximas: number;
+}
+
+export interface RentasInformeEstado {
+  fecha: string;
+  yaEnviado: boolean;
+  estado: string | null;
+  enviadoEn: string | null;
+}
+
+/** Recordatorio diario de stock bajo (JOB + botón manual). */
+export interface StockBajoInformeEnvio {
+  fecha: string;
+  destinatarios: number;
+  emailsEnviados: number;
+  whatsappsEnviados: number;
+  productos: number;
+  agotados: number;
+  almacenes: number;
+}
+
+export interface StockBajoInformeEstado {
   fecha: string;
   yaEnviado: boolean;
   estado: string | null;

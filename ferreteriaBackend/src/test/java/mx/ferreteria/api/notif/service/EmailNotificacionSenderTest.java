@@ -66,6 +66,38 @@ class EmailNotificacionSenderTest {
         return null;
     }
 
+    @Test
+    @DisplayName("stock bajo: resumen en el cuerpo y Excel adjunto")
+    void stockBajo_excelAdjunto() throws Exception {
+        var sesion = jakarta.mail.Session.getInstance(new java.util.Properties());
+        when(mailSender.createMimeMessage()).thenReturn(new MimeMessage(sesion));
+        new EmailNotificacionSender(mailSender).sendStockBajo("g@x.mx",
+                java.time.LocalDate.of(2026, 10, 5), 10, 3, 2,
+                new byte[] { 1, 2, 3 }, "stock-bajo-2026-10-05.xlsx");
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(captor.capture());
+        var bytes = new java.io.ByteArrayOutputStream();
+        captor.getValue().writeTo(bytes);
+        MimeMessage m = new MimeMessage(sesion,
+                new java.io.ByteArrayInputStream(bytes.toByteArray()));
+
+        assertThat(m.getSubject()).contains("10 productos").contains("3 agotados");
+        String html = htmlDe(m);
+        assertThat(html).contains("Productos en bajo stock");
+        assertThat(html).contains("Agotados");
+        Multipart mp = (Multipart) m.getContent();
+        boolean xlsx = false;
+        for (int i = 0; i < mp.getCount(); i++) {
+            Part p = mp.getBodyPart(i);
+            if (p.isMimeType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    && "stock-bajo-2026-10-05.xlsx".equals(p.getFileName())) {
+                xlsx = true;
+            }
+        }
+        assertThat(xlsx).isTrue();
+    }
+
     private static boolean tieneAdjuntoPdf(MimeMessage m) throws Exception {
         Multipart mp = (Multipart) m.getContent();
         for (int i = 0; i < mp.getCount(); i++) {
@@ -132,6 +164,73 @@ class EmailNotificacionSenderTest {
         MimeMessage m = enviado("cte@acme.mx", "OTRO", "Aviso", null, null);
 
         assertThat(htmlDe(m)).contains("Tienes un documento nuevo");
+        assertThat(tieneAdjuntoPdf(m)).isFalse();
+    }
+
+    private MimeMessage enviadoTablas(String metodo, Object... args) throws Exception {
+        var sesion = jakarta.mail.Session.getInstance(new java.util.Properties());
+        when(mailSender.createMimeMessage()).thenReturn(new MimeMessage(sesion));
+        var sender = new EmailNotificacionSender(mailSender);
+        if ("cobranza".equals(metodo)) {
+            sender.sendCobranza("g@x.mx", java.time.LocalDate.of(2026, 10, 5),
+                    (java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse>) args[0],
+                    (java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse>) args[1]);
+        } else {
+            sender.sendRentas("g@x.mx", java.time.LocalDate.of(2026, 10, 5),
+                    (java.util.List<mx.ferreteria.api.ven.dto.VenDtos.RentaResponse>) args[0],
+                    (java.util.List<mx.ferreteria.api.ven.dto.VenDtos.RentaResponse>) args[1]);
+        }
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(captor.capture());
+        var bytes = new java.io.ByteArrayOutputStream();
+        captor.getValue().writeTo(bytes);
+        return new MimeMessage(sesion, new java.io.ByteArrayInputStream(bytes.toByteArray()));
+    }
+
+    private static mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse cuentaCobrar(
+            String cliente, String saldo, java.time.LocalDate vto) {
+        return new mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse(1L, 10L, "V-1",
+                5L, cliente, new BigDecimal("1000.00"), BigDecimal.ZERO,
+                new BigDecimal(saldo), vto, "VIGENTE", java.time.Instant.now(),
+                java.util.List.of());
+    }
+
+    private static mx.ferreteria.api.ven.dto.VenDtos.RentaResponse renta(
+            String estado, java.time.LocalDate dev) {
+        return new mx.ferreteria.api.ven.dto.VenDtos.RentaResponse(1L, "R-1", 5L,
+                "Cliente A", 1, "Central", java.time.Instant.now(), dev, null,
+                new BigDecimal("200.00"), new BigDecimal("600.00"), 1, null,
+                estado, 7, java.util.List.of());
+    }
+
+    @Test
+    @DisplayName("cobranza: tablas de vencidas y pendientes con saldos, sin PDF")
+    void cobranza_tablas() throws Exception {
+        MimeMessage m = enviadoTablas("cobranza",
+                java.util.List.of(cuentaCobrar("Cliente A", "500.00",
+                        java.time.LocalDate.of(2026, 9, 20))),
+                java.util.List.of(cuentaCobrar("Cliente B", "300.00",
+                        java.time.LocalDate.of(2026, 10, 20))));
+
+        assertThat(m.getSubject()).contains("1 vencidas").contains("1 pendientes");
+        String html = htmlDe(m);
+        assertThat(html).contains("Cliente A");
+        assertThat(html).contains("Cliente B");
+        assertThat(html).contains("500");
+        assertThat(tieneAdjuntoPdf(m)).isFalse();
+    }
+
+    @Test
+    @DisplayName("rentas: vencidas en rojo y próximas, con depósito")
+    void rentas_tablas() throws Exception {
+        MimeMessage m = enviadoTablas("rentas",
+                java.util.List.of(renta("VENCIDA", java.time.LocalDate.of(2026, 10, 1))),
+                java.util.List.of(renta("ABIERTA", java.time.LocalDate.of(2026, 10, 7))));
+
+        assertThat(m.getSubject()).contains("1 vencidas").contains("1 próximas");
+        String html = htmlDe(m);
+        assertThat(html).contains("Cliente A");
+        assertThat(html).contains("R-1");
         assertThat(tieneAdjuntoPdf(m)).isFalse();
     }
 }

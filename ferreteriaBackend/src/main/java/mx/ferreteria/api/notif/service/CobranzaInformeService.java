@@ -10,31 +10,29 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mx.ferreteria.api.com.dto.ComDtos.FacturaPendienteResponse;
-import mx.ferreteria.api.com.dto.ComDtos.FacturaVencidaResponse;
-import mx.ferreteria.api.com.service.CompraService;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.time.ZonaHoraria;
-import mx.ferreteria.api.notif.dto.CuentasPagarDtos;
+import mx.ferreteria.api.notif.dto.CobranzaDtos;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository.DestinatarioInforme;
+import mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse;
+import mx.ferreteria.api.ven.service.CreditoService;
 
 /**
- * Recordatorio de cuentas por pagar (vencidas + pendientes) a GERENTES y
- * ADMINISTRADORES con correo. Mismo esquema que el informe diario: un job
- * por día en {@code notif.notificacion_jobs} (tipo CUENTAS_PAGAR, ref_id =
- * epoch day) para avisar si ya se envió y permitir el reenvío manual.
- * Solo correo (sin PDF ni WhatsApp): el detalle vive en el HTML.
+ * Recordatorio de cobranza (cuentas vencidas + pendientes) a GERENTES y
+ * ADMINISTRADORES: correo con detalle y WhatsApp con resumen. Misma
+ * auditoría diaria que los demás recordatorios (tipo COBRANZA). Solo se
+ * notifica si hay registros.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CuentasPagarInformeService {
+public class CobranzaInformeService {
 
-    private final CompraService compraService;
+    private final CreditoService creditoService;
     private final InformeDestinatarioRepository destinatarioRepo;
     private final NotificacionJobService jobService;
     private final NotificacionJobRepository jobRepo;
@@ -42,38 +40,42 @@ public class CuentasPagarInformeService {
     private final ObjectProvider<WhatsAppNotificacionSender> whatsappSender;
 
     @Transactional(readOnly = true)
-    public CuentasPagarDtos.CuentasPagarEstadoResponse estado() {
+    public CobranzaDtos.CobranzaEstadoResponse estado() {
         LocalDate hoy = ZonaHoraria.hoy();
         var job = jobRepo
-                .findByTipoAndRefId(NotificacionJob.TIPO_CUENTAS_PAGAR, hoy.toEpochDay())
+                .findByTipoAndRefId(NotificacionJob.TIPO_COBRANZA, hoy.toEpochDay())
                 .orElse(null);
         boolean yaEnviado = job != null && NotificacionJob.ESTADO_ENVIADA.equals(job.getEstado());
-        return new CuentasPagarDtos.CuentasPagarEstadoResponse(
+        return new CobranzaDtos.CobranzaEstadoResponse(
                 hoy, yaEnviado,
                 job != null ? job.getEstado() : null,
                 job != null ? job.getEnviadoEn() : null);
     }
 
     @Transactional
-    public CuentasPagarDtos.CuentasPagarEnvioResponse enviar() {
+    public CobranzaDtos.CobranzaEnvioResponse enviar() {
         LocalDate hoy = ZonaHoraria.hoy();
-        List<FacturaVencidaResponse> vencidas = compraService.facturasVencidas();
-        List<FacturaPendienteResponse> pendientes = compraService.facturasPendientes();
+        List<CuentaCobrarResponse> abiertas = creditoService.cuentasAbiertas();
+        List<CuentaCobrarResponse> vencidas = abiertas.stream()
+                .filter(c -> c.fechaVencimiento() != null && c.fechaVencimiento().isBefore(hoy))
+                .toList();
+        List<CuentaCobrarResponse> pendientes = abiertas.stream()
+                .filter(c -> !vencidas.contains(c))
+                .toList();
 
-        NotificacionJob job = jobService.crearCuentasPagar(hoy);
+        NotificacionJob job = jobService.crearCobranza(hoy);
         jobService.marcarProcesando(job);
         try {
             if (vencidas.isEmpty() && pendientes.isEmpty()) {
-                // Sin adeudos: no hay nada que recordar; se audita y no se envía.
                 jobService.marcarEnviada(job, null);
-                log.info("cuentas-pagar sin adeudos fecha={}", hoy);
-                return new CuentasPagarDtos.CuentasPagarEnvioResponse(hoy, 0, 0, 0, 0, 0,
+                log.info("cobranza sin adeudos fecha={}", hoy);
+                return new CobranzaDtos.CobranzaEnvioResponse(hoy, 0, 0, 0, 0, 0,
                         BigDecimal.ZERO, BigDecimal.ZERO);
             }
             List<DestinatarioInforme> destinatarios = destinatarioRepo
                     .findGerentesYAdministradores();
             if (destinatarios.stream().noneMatch(d -> d.email() != null && !d.email().isBlank())) {
-                throw new ValidacionException(ErrorCode.CUENTAS_SIN_DESTINATARIOS);
+                throw new ValidacionException(ErrorCode.COBRANZA_SIN_DESTINATARIOS);
             }
             EmailNotificacionSender email = emailSender.getIfAvailable();
             WhatsAppNotificacionSender whatsapp = whatsappSender.getIfAvailable();
@@ -87,11 +89,10 @@ public class CuentasPagarInformeService {
             for (DestinatarioInforme d : destinatarios) {
                 if (email != null && d.email() != null && !d.email().isBlank()) {
                     try {
-                        email.sendCuentasPagar(d.email(), hoy, vencidas, pendientes);
+                        email.sendCobranza(d.email(), hoy, vencidas, pendientes);
                         emails++;
                     } catch (RuntimeException e) {
-                        log.warn("cuentas-pagar email fallo to={} err={}",
-                                d.email(), e.getMessage());
+                        log.warn("cobranza email fallo to={} err={}", d.email(), e.getMessage());
                     }
                 }
                 if (whatsapp != null && d.whatsapp() != null && !d.whatsapp().isBlank()) {
@@ -100,7 +101,7 @@ public class CuentasPagarInformeService {
                             whatsapps++;
                         }
                     } catch (RuntimeException e) {
-                        log.warn("cuentas-pagar whatsapp fallo err={}", e.getMessage());
+                        log.warn("cobranza whatsapp fallo err={}", e.getMessage());
                     }
                 }
             }
@@ -109,14 +110,13 @@ public class CuentasPagarInformeService {
                 throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
             }
             jobService.marcarEnviada(job, null);
-            log.info("cuentas-pagar enviado fecha={} destinatarios={} emails={} whatsapps={} "
+            log.info("cobranza enviada fecha={} destinatarios={} emails={} whatsapps={} "
                     + "vencidas={} pendientes={}",
                     hoy, destinatarios.size(), emails, whatsapps,
                     vencidas.size(), pendientes.size());
-            return new CuentasPagarDtos.CuentasPagarEnvioResponse(hoy, destinatarios.size(),
+            return new CobranzaDtos.CobranzaEnvioResponse(hoy, destinatarios.size(),
                     emails, whatsapps, vencidas.size(), pendientes.size(),
-                    total(vencidas.stream().map(FacturaVencidaResponse::saldo).toList()),
-                    total(pendientes.stream().map(FacturaPendienteResponse::saldo).toList()));
+                    total(vencidas), total(pendientes));
         } catch (RuntimeException e) {
             if (NotificacionJob.ESTADO_PROCESANDO.equals(job.getEstado())) {
                 jobService.marcarError(job, e.getMessage());
@@ -125,21 +125,18 @@ public class CuentasPagarInformeService {
         }
     }
 
-    private static BigDecimal total(List<BigDecimal> saldos) {
-        return saldos.stream()
-                .map(s -> s == null ? BigDecimal.ZERO : s)
+    private static BigDecimal total(List<CuentaCobrarResponse> cuentas) {
+        return cuentas.stream()
+                .map(c -> c.saldo() == null ? BigDecimal.ZERO : c.saldo())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    static String resumenWhatsApp(
-            List<FacturaVencidaResponse> vencidas,
-            List<FacturaPendienteResponse> pendientes) {
-        return "El Tornillo Feliz — Cuentas por pagar: " + vencidas.size() + " vencidas ("
-                + EmailNotificacionSender.moneda(total(vencidas.stream()
-                        .map(FacturaVencidaResponse::saldo).toList()))
-                + ") · " + pendientes.size() + " pendientes ("
-                + EmailNotificacionSender.moneda(total(pendientes.stream()
-                        .map(FacturaPendienteResponse::saldo).toList()))
-                + "). Revise Compras → Cuentas por pagar.";
+    static String resumenWhatsApp(List<CuentaCobrarResponse> vencidas,
+            List<CuentaCobrarResponse> pendientes) {
+        return "El Tornillo Feliz — Cobranza: " + vencidas.size() + " vencidas ("
+                + EmailNotificacionSender.moneda(total(vencidas)) + ") · "
+                + pendientes.size() + " pendientes ("
+                + EmailNotificacionSender.moneda(total(pendientes))
+                + "). Revise Ventas → Cobranza.";
     }
 }

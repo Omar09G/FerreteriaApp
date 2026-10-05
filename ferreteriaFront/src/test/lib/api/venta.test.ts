@@ -12,6 +12,10 @@ import {
   apiCuentasCobrar,
   apiDevolucionRenta,
   apiDevolucionesDeVenta,
+  apiEnviarCobranzaInforme,
+  apiEnviarRentasInforme,
+  apiEstadoCobranzaInforme,
+  apiEstadoRentasInforme,
   apiPagoCliente,
   apiRentas,
   apiVentas,
@@ -156,6 +160,64 @@ describe("cobranza", () => {
     await expect(
       apiPagoCliente({ cuentaCobrarId: 1, formaPagoId: 1, monto: -5 }),
     ).rejects.toBe(err);
+  });
+
+  it("apiEnviarCobranzaInforme hace POST al informe", async () => {
+    const res = {
+      fecha: "2026-10-05",
+      destinatarios: 2,
+      emailsEnviados: 2,
+      whatsappsEnviados: 1,
+      vencidas: 1,
+      pendientes: 1,
+      totalVencido: 500,
+      totalPendiente: 300,
+    };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: res } });
+    await expect(apiEnviarCobranzaInforme()).resolves.toEqual(res);
+    expect(mock.post).toHaveBeenCalledWith("/reportes/cobranza/informe", {});
+  });
+
+  it("apiEstadoCobranzaInforme pide GET al estado", async () => {
+    const estado = {
+      fecha: "2026-10-05",
+      yaEnviado: true,
+      estado: "ENVIADA",
+      enviadoEn: "2026-10-05T09:05:00",
+    };
+    mock.get.mockResolvedValueOnce({
+      data: { success: true, data: estado },
+    });
+    await expect(apiEstadoCobranzaInforme()).resolves.toEqual(estado);
+    expect(mock.get).toHaveBeenCalledWith("/reportes/cobranza/informe/estado");
+  });
+
+  it("apiEnviarRentasInforme hace POST al informe", async () => {
+    const res = {
+      fecha: "2026-10-05",
+      destinatarios: 2,
+      emailsEnviados: 2,
+      whatsappsEnviados: 2,
+      vencidas: 1,
+      proximas: 1,
+    };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: res } });
+    await expect(apiEnviarRentasInforme()).resolves.toEqual(res);
+    expect(mock.post).toHaveBeenCalledWith("/reportes/rentas/informe", {});
+  });
+
+  it("apiEstadoRentasInforme pide GET al estado", async () => {
+    const estado = {
+      fecha: "2026-10-05",
+      yaEnviado: false,
+      estado: null,
+      enviadoEn: null,
+    };
+    mock.get.mockResolvedValueOnce({
+      data: { success: true, data: estado },
+    });
+    await expect(apiEstadoRentasInforme()).resolves.toEqual(estado);
+    expect(mock.get).toHaveBeenCalledWith("/reportes/rentas/informe/estado");
   });
 });
 

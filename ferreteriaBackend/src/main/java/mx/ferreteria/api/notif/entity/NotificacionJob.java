@@ -32,10 +32,16 @@ public class NotificacionJob {
     public static final String TIPO_NOMINA_PAGADA = "NOMINA_PAGADA";
     public static final String TIPO_INFORME_DASHBOARD = "INFORME_DASHBOARD";
     public static final String TIPO_CUENTAS_PAGAR = "CUENTAS_PAGAR";
+    public static final String TIPO_COBRANZA = "COBRANZA";
+    public static final String TIPO_RENTAS = "RENTAS";
+    public static final String TIPO_STOCK_BAJO = "STOCK_BAJO";
     public static final String REF_VENTA = "VENTA";
     public static final String REF_NOMINA = "NOMINA";
     public static final String REF_INFORME = "INFORME";
     public static final String REF_CUENTAS = "CUENTAS";
+    public static final String REF_COBRANZA = "COBRANZA";
+    public static final String REF_RENTAS = "RENTAS";
+    public static final String REF_STOCK = "STOCK";
 
     public static final String ESTADO_PENDIENTE = "PENDIENTE";
     public static final String ESTADO_PROCESANDO = "PROCESANDO";

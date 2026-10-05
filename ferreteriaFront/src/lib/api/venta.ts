@@ -1,5 +1,7 @@
 import http from "./client";
 import type {
+	CobranzaInformeEnvio,
+	CobranzaInformeEstado,
 	Cotizacion,
 	CotizacionRequest,
 	CuentaCobrar,
@@ -11,6 +13,8 @@ import type {
 	Renta,
 	RentaDevolucionRequest,
 	RentaRequest,
+	RentasInformeEnvio,
+	RentasInformeEstado,
 	Venta,
 	VentaCancelRequest,
 	VentaRequest,
@@ -74,6 +78,40 @@ export async function apiCuentasCobrar(p: {
 
 export async function apiPagoCliente(body: PagoClienteRequest): Promise<void> {
 	await http.post<Envelope<object>>("/pagos-cliente", body);
+}
+
+/** Recordatorio manual de cobranza (mismo contenido del JOB 09:05). */
+export async function apiEnviarCobranzaInforme(): Promise<CobranzaInformeEnvio> {
+	const { data } = await http.post<Envelope<CobranzaInformeEnvio>>(
+		"/reportes/cobranza/informe",
+		{},
+	);
+	return data.data;
+}
+
+/** Estado del recordatorio de cobranza de hoy (avisa si ya se envió). */
+export async function apiEstadoCobranzaInforme(): Promise<CobranzaInformeEstado> {
+	const { data } = await http.get<Envelope<CobranzaInformeEstado>>(
+		"/reportes/cobranza/informe/estado",
+	);
+	return data.data;
+}
+
+/** Recordatorio manual de rentas (mismo contenido del JOB 09:10). */
+export async function apiEnviarRentasInforme(): Promise<RentasInformeEnvio> {
+	const { data } = await http.post<Envelope<RentasInformeEnvio>>(
+		"/reportes/rentas/informe",
+		{},
+	);
+	return data.data;
+}
+
+/** Estado del recordatorio de rentas de hoy (avisa si ya se envió). */
+export async function apiEstadoRentasInforme(): Promise<RentasInformeEstado> {
+	const { data } = await http.get<Envelope<RentasInformeEstado>>(
+		"/reportes/rentas/informe/estado",
+	);
+	return data.data;
 }
 
 export async function apiCotizaciones(p: {

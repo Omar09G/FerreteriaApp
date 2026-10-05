@@ -97,6 +97,15 @@ public class RentaService {
         return new PageImpl<>(content, page.getPageable(), page.getTotalElements());
     }
 
+    /**
+     * Rentas abiertas (recordatorio diario): vencidas y próximas a devolver
+     * se separan en el llamador por estado y fecha esperada.
+     */
+    @Transactional(readOnly = true)
+    public List<VenDtos.RentaResponse> rentasAbiertas() {
+        return repo.rentasAbiertas().stream().map(this::toResponse).toList();
+    }
+
     @Transactional(readOnly = true)
     public VenDtos.RentaResponse getById(Long id) {
         Renta r = repo.findById(id)

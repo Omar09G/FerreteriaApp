@@ -9,8 +9,13 @@ import Swal from "sweetalert2";
 import StockPage from "@/features/inventario/StockPage";
 import { ToastProvider } from "@/components/ui/Toast";
 
-import { apiStock } from "@/lib/api/reportes";
+import {
+	apiEnviarStockBajoInforme,
+	apiEstadoStockBajoInforme,
+	apiStock,
+} from "@/lib/api/reportes";
 import { apiCrearMovimiento } from "@/lib/api/inventario";
+import { useAuthStore } from "@/store/auth";
 
 vi.mock("sweetalert2", () => ({
 	default: { fire: vi.fn(), showLoading: vi.fn(), close: vi.fn() },
@@ -40,6 +45,8 @@ vi.mock("@/lib/api/catalogo", () => ({
 }));
 
 vi.mock("@/lib/api/reportes", () => ({
+	apiEnviarStockBajoInforme: vi.fn(),
+	apiEstadoStockBajoInforme: vi.fn(),
 	apiStock: vi.fn(async () => ({
 		success: true,
 		data: [
@@ -399,5 +406,92 @@ describe("StockPage (profundización)", () => {
 				expect.objectContaining({ text: expect.stringContaining("sin conexión") }),
 			),
 		);
+	});
+});
+
+describe("StockPage (recordatorio manual)", () => {
+	function comoAdmin() {
+		useAuthStore.setState({
+			autenticado: true,
+			usuario: { roles: ["ADMINISTRADOR"] } as never,
+		});
+	}
+
+	function comoSinRol() {
+		useAuthStore.setState({ autenticado: false, usuario: null });
+	}
+
+	it("oculta el botón sin rol GERENTE/ADMINISTRADOR", async () => {
+		comoSinRol();
+		renderPage();
+		await screen.findByText("Martillo");
+		expect(
+			screen.queryByRole("button", { name: /recordatorio/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("envía directo cuando hoy aún no se envió", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoStockBajoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: false,
+			estado: null,
+			enviadoEn: null,
+		});
+		vi.mocked(apiEnviarStockBajoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 2,
+			emailsEnviados: 2,
+			whatsappsEnviados: 1,
+			productos: 10,
+			agotados: 3,
+			almacenes: 2,
+		});
+		renderPage();
+		await screen.findByText("Martillo");
+		await user.click(screen.getByRole("button", { name: /recordatorio/i }));
+		await waitFor(() => {
+			expect(apiEstadoStockBajoInforme).toHaveBeenCalledOnce();
+			expect(apiEnviarStockBajoInforme).toHaveBeenCalledOnce();
+		});
+		await waitFor(() =>
+			expect(vi.mocked(Swal.fire)).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: expect.stringContaining("Recordatorio enviado a 2 destinatarios"),
+				}),
+			),
+		);
+	});
+
+	it("avisa si ya se envió y reenvía solo al confirmar", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoStockBajoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: true,
+			estado: "ENVIADA",
+			enviadoEn: "2026-10-05T09:15:00",
+		});
+		vi.mocked(apiEnviarStockBajoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 1,
+			emailsEnviados: 1,
+			whatsappsEnviados: 0,
+			productos: 5,
+			agotados: 1,
+			almacenes: 1,
+		});
+		renderPage();
+		await screen.findByText("Martillo");
+		await user.click(screen.getByRole("button", { name: /recordatorio/i }));
+		expect(
+			await screen.findByText("Recordatorio ya enviado"),
+		).toBeInTheDocument();
+		expect(apiEnviarStockBajoInforme).not.toHaveBeenCalled();
+		await user.click(screen.getByRole("button", { name: /reenviar/i }));
+		await waitFor(() => {
+			expect(apiEnviarStockBajoInforme).toHaveBeenCalledOnce();
+		});
 	});
 });

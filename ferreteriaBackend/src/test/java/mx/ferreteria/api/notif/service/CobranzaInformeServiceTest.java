@@ -23,22 +23,21 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.ObjectProvider;
 
-import mx.ferreteria.api.com.dto.ComDtos.FacturaPendienteResponse;
-import mx.ferreteria.api.com.dto.ComDtos.FacturaVencidaResponse;
-import mx.ferreteria.api.com.service.CompraService;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository.DestinatarioInforme;
+import mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse;
+import mx.ferreteria.api.ven.service.CreditoService;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class CuentasPagarInformeServiceTest {
+class CobranzaInformeServiceTest {
 
     @Mock
-    CompraService compraService;
+    CreditoService creditoService;
     @Mock
     InformeDestinatarioRepository destinatarioRepo;
     @Mock
@@ -54,105 +53,90 @@ class CuentasPagarInformeServiceTest {
     @Mock
     WhatsAppNotificacionSender whatsappSender;
 
-    private CuentasPagarInformeService service() {
-        return new CuentasPagarInformeService(compraService, destinatarioRepo,
+    private CobranzaInformeService service() {
+        return new CobranzaInformeService(creditoService, destinatarioRepo,
                 jobService, jobRepo, emailProvider, whatsappProvider);
     }
 
-    private static FacturaVencidaResponse vencida(String proveedor, String saldo, int dias) {
-        return new FacturaVencidaResponse(1L, "C-1", "F-1", 2, proveedor, "555",
-                LocalDate.of(2026, 9, 1), new BigDecimal("1000.00"), BigDecimal.ZERO,
-                new BigDecimal(saldo), LocalDate.of(2026, 9, 20), dias, dias + " días", null);
-    }
-
-    private static FacturaPendienteResponse pendiente(String proveedor, String saldo) {
-        return new FacturaPendienteResponse(2L, "C-2", "F-2", 3, proveedor,
-                LocalDate.of(2026, 10, 1), new BigDecimal("800.00"), BigDecimal.ZERO,
-                new BigDecimal(saldo), "VIGENTE", LocalDate.now().plusDays(5), 5, "por vencer",
-                null);
+    private static CuentaCobrarResponse cuenta(String cliente, String saldo, LocalDate vto) {
+        return new CuentaCobrarResponse(1L, 10L, "V-1", 5L, cliente,
+                new BigDecimal("1000.00"), new BigDecimal("1000.00").subtract(new BigDecimal(saldo)),
+                new BigDecimal(saldo), vto, "VIGENTE", java.time.Instant.now(), List.of());
     }
 
     private NotificacionJob job(String estado) {
         return NotificacionJob.builder().jobId(9L)
-                .tipo(NotificacionJob.TIPO_CUENTAS_PAGAR)
-                .refTipo(NotificacionJob.REF_CUENTAS).refId(1L)
+                .tipo(NotificacionJob.TIPO_COBRANZA)
+                .refTipo(NotificacionJob.REF_COBRANZA).refId(1L)
                 .estado(estado).build();
     }
 
     @Test
-    @DisplayName("enviar con adeudos: correo + WhatsApp y job ENVIADA con totales")
+    @DisplayName("enviar con adeudos: separa vencidas/pendientes y notifica por ambos canales")
     void enviar_conAdeudos_ok() {
         var job = job(NotificacionJob.ESTADO_PENDIENTE);
-        when(jobService.crearCuentasPagar(any())).thenReturn(job);
-        when(compraService.facturasVencidas())
-                .thenReturn(List.of(vencida("Proveedor A", "500.00", 12)));
-        when(compraService.facturasPendientes())
-                .thenReturn(List.of(pendiente("Proveedor B", "300.00")));
+        when(jobService.crearCobranza(any())).thenReturn(job);
+        when(creditoService.cuentasAbiertas()).thenReturn(List.of(
+                cuenta("Cliente A", "500.00", LocalDate.now().minusDays(12)),
+                cuenta("Cliente B", "300.00", LocalDate.now().plusDays(5))));
         when(destinatarioRepo.findGerentesYAdministradores()).thenReturn(List.of(
-                new DestinatarioInforme("g@x.mx", null),
-                new DestinatarioInforme("a@x.mx", "5215500000001"),
-                new DestinatarioInforme(null, "5215500000002")));
+                new DestinatarioInforme("g@x.mx", "5215500000001")));
         when(emailProvider.getIfAvailable()).thenReturn(emailSender);
         when(whatsappProvider.getIfAvailable()).thenReturn(whatsappSender);
         when(whatsappSender.sendTexto(anyString(), anyString())).thenReturn(true);
 
         var r = service().enviar();
 
-        assertThat(r.destinatarios()).isEqualTo(3);
-        assertThat(r.emailsEnviados()).isEqualTo(2);
-        assertThat(r.whatsappsEnviados()).isEqualTo(2);
+        assertThat(r.destinatarios()).isEqualTo(1);
+        assertThat(r.emailsEnviados()).isEqualTo(1);
+        assertThat(r.whatsappsEnviados()).isEqualTo(1);
         assertThat(r.vencidas()).isEqualTo(1);
         assertThat(r.pendientes()).isEqualTo(1);
         assertThat(r.totalVencido()).isEqualByComparingTo("500.00");
         assertThat(r.totalPendiente()).isEqualByComparingTo("300.00");
-        verify(emailSender).sendCuentasPagar(eq("g@x.mx"), any(), any(), any());
-        verify(emailSender).sendCuentasPagar(eq("a@x.mx"), any(), any(), any());
+        verify(emailSender).sendCobranza(eq("g@x.mx"), any(), any(), any());
         verify(whatsappSender).sendTexto(eq("5215500000001"), anyString());
-        verify(whatsappSender).sendTexto(eq("5215500000002"), anyString());
-        verify(jobService).marcarProcesando(job);
         verify(jobService).marcarEnviada(eq(job), eq(null));
     }
 
     @Test
-    @DisplayName("sin adeudos: no envía correos pero audita el job como ENVIADA")
-    void enviar_sinAdeudos_ok() {
+    @DisplayName("sin cuentas abiertas: no envía nada pero audita ENVIADA")
+    void enviar_sinCuentas_ok() {
         var job = job(NotificacionJob.ESTADO_PENDIENTE);
-        when(jobService.crearCuentasPagar(any())).thenReturn(job);
-        when(compraService.facturasVencidas()).thenReturn(List.of());
-        when(compraService.facturasPendientes()).thenReturn(List.of());
+        when(jobService.crearCobranza(any())).thenReturn(job);
+        when(creditoService.cuentasAbiertas()).thenReturn(List.of());
 
         var r = service().enviar();
 
         assertThat(r.emailsEnviados()).isZero();
-        verify(emailSender, never()).sendCuentasPagar(anyString(), any(), any(), any());
+        assertThat(r.whatsappsEnviados()).isZero();
+        verify(emailSender, never()).sendCobranza(anyString(), any(), any(), any());
         verify(jobService).marcarEnviada(eq(job), eq(null));
     }
 
     @Test
-    @DisplayName("sin destinatarios con correo: 422 CUENTAS_SIN_DESTINATARIOS y job en ERROR")
+    @DisplayName("sin destinatarios con correo: 422 COBRANZA_SIN_DESTINATARIOS")
     void enviar_sinDestinatarios_422() {
         var job = job(NotificacionJob.ESTADO_PROCESANDO);
-        when(jobService.crearCuentasPagar(any())).thenReturn(job);
-        when(compraService.facturasVencidas())
-                .thenReturn(List.of(vencida("Proveedor A", "500.00", 3)));
-        when(compraService.facturasPendientes()).thenReturn(List.of());
+        when(jobService.crearCobranza(any())).thenReturn(job);
+        when(creditoService.cuentasAbiertas()).thenReturn(List.of(
+                cuenta("Cliente A", "500.00", LocalDate.now().minusDays(3))));
         when(destinatarioRepo.findGerentesYAdministradores()).thenReturn(List.of());
 
         assertThatThrownBy(() -> service().enviar())
                 .isInstanceOfSatisfying(ValidacionException.class,
                         e -> assertThat(e.errorCode())
-                                .isEqualTo(ErrorCode.CUENTAS_SIN_DESTINATARIOS));
+                                .isEqualTo(ErrorCode.COBRANZA_SIN_DESTINATARIOS));
         verify(jobService).marcarError(eq(job), anyString());
     }
 
     @Test
-    @DisplayName("canales ausentes: 503 SERVICIO_NO_DISPONIBLE")
-    void enviar_sinCanal_503() {
+    @DisplayName("sin canales: 503 SERVICIO_NO_DISPONIBLE")
+    void enviar_sinCanales_503() {
         var job = job(NotificacionJob.ESTADO_PROCESANDO);
-        when(jobService.crearCuentasPagar(any())).thenReturn(job);
-        when(compraService.facturasVencidas())
-                .thenReturn(List.of(vencida("Proveedor A", "500.00", 3)));
-        when(compraService.facturasPendientes()).thenReturn(List.of());
+        when(jobService.crearCobranza(any())).thenReturn(job);
+        when(creditoService.cuentasAbiertas()).thenReturn(List.of(
+                cuenta("Cliente A", "500.00", LocalDate.now().minusDays(3))));
         when(destinatarioRepo.findGerentesYAdministradores()).thenReturn(
                 List.of(new DestinatarioInforme("g@x.mx", null)));
         when(emailProvider.getIfAvailable()).thenReturn(null);
@@ -167,17 +151,13 @@ class CuentasPagarInformeServiceTest {
     @Test
     @DisplayName("estado sin job: yaEnviado=false; con job ENVIADA: true")
     void estado_ramos() {
-        when(jobRepo.findByTipoAndRefId(eq(NotificacionJob.TIPO_CUENTAS_PAGAR), any()))
+        when(jobRepo.findByTipoAndRefId(eq(NotificacionJob.TIPO_COBRANZA), any()))
                 .thenReturn(Optional.empty());
         assertThat(service().estado().yaEnviado()).isFalse();
 
         var enviado = job(NotificacionJob.ESTADO_ENVIADA);
-        enviado.setEnviadoEn(java.time.Instant.now());
-        when(jobRepo.findByTipoAndRefId(eq(NotificacionJob.TIPO_CUENTAS_PAGAR), any()))
+        when(jobRepo.findByTipoAndRefId(eq(NotificacionJob.TIPO_COBRANZA), any()))
                 .thenReturn(Optional.of(enviado));
-        var est = service().estado();
-        assertThat(est.yaEnviado()).isTrue();
-        assertThat(est.estado()).isEqualTo(NotificacionJob.ESTADO_ENVIADA);
-        assertThat(est.enviadoEn()).isNotNull();
+        assertThat(service().estado().yaEnviado()).isTrue();
     }
 }

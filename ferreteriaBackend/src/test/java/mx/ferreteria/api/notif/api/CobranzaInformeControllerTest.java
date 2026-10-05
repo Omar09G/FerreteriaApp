@@ -21,23 +21,23 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
 import mx.ferreteria.api.common.web.WebMvcTestProps;
-import mx.ferreteria.api.notif.dto.CuentasPagarDtos.CuentasPagarEnvioResponse;
-import mx.ferreteria.api.notif.dto.CuentasPagarDtos.CuentasPagarEstadoResponse;
-import mx.ferreteria.api.notif.service.CuentasPagarInformeService;
+import mx.ferreteria.api.notif.dto.CobranzaDtos.CobranzaEnvioResponse;
+import mx.ferreteria.api.notif.dto.CobranzaDtos.CobranzaEstadoResponse;
+import mx.ferreteria.api.notif.service.CobranzaInformeService;
 
-@WebMvcTest(controllers = CuentasPagarInformeController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(controllers = CobranzaInformeController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({ DbErrorTranslator.class, WebMvcTestProps.class, CuentasPagarInformeControllerTest.SliceConfig.class })
+@Import({ DbErrorTranslator.class, WebMvcTestProps.class, CobranzaInformeControllerTest.SliceConfig.class })
 @MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
                 mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
                 mx.ferreteria.api.common.security.JwtService.class })
-class CuentasPagarInformeControllerTest {
+class CobranzaInformeControllerTest {
 
         @Autowired
         MockMvc mvc;
 
         @MockitoBean
-        CuentasPagarInformeService cuentasService;
+        CobranzaInformeService cobranzaService;
 
         @org.springframework.boot.test.context.TestConfiguration
         static class SliceConfig {
@@ -49,13 +49,13 @@ class CuentasPagarInformeControllerTest {
         }
 
         @Test
-        @DisplayName("POST /api/v1/reportes/cuentas-pagar/informe -> 200 con conteos y totales")
+        @DisplayName("POST /api/v1/reportes/cobranza/informe -> 200 con conteos")
         void enviar_returns200() throws Exception {
-                var r = new CuentasPagarEnvioResponse(LocalDate.of(2026, 10, 5), 2, 2, 1,
+                var r = new CobranzaEnvioResponse(LocalDate.of(2026, 10, 5), 2, 2, 1,
                                 1, 1, new BigDecimal("500.00"), new BigDecimal("300.00"));
-                when(cuentasService.enviar()).thenReturn(r);
+                when(cobranzaService.enviar()).thenReturn(r);
 
-                mvc.perform(post("/api/v1/reportes/cuentas-pagar/informe"))
+                mvc.perform(post("/api/v1/reportes/cobranza/informe"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.destinatarios").value(2))
@@ -64,15 +64,15 @@ class CuentasPagarInformeControllerTest {
         }
 
         @Test
-        @DisplayName("GET /api/v1/reportes/cuentas-pagar/informe/estado -> 200 con yaEnviado")
+        @DisplayName("GET /api/v1/reportes/cobranza/informe/estado -> 200 con yaEnviado")
         void estado_returns200() throws Exception {
-                var r = new CuentasPagarEstadoResponse(LocalDate.of(2026, 10, 5), true,
-                                "ENVIADA", java.time.Instant.now());
-                when(cuentasService.estado()).thenReturn(r);
+                var r = new CobranzaEstadoResponse(LocalDate.of(2026, 10, 5), false,
+                                null, null);
+                when(cobranzaService.estado()).thenReturn(r);
 
-                mvc.perform(get("/api/v1/reportes/cuentas-pagar/informe/estado"))
+                mvc.perform(get("/api/v1/reportes/cobranza/informe/estado"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
-                                .andExpect(jsonPath("$.data.yaEnviado").value(true));
+                                .andExpect(jsonPath("$.data.yaEnviado").value(false));
         }
 }

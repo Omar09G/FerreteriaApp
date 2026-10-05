@@ -45,6 +45,16 @@ public class CreditoService {
                 return toResponsePage(cuentaRepo.filtrar(clienteId, estado, desde, hasta, pageable));
         }
 
+        /**
+         * Cuentas abiertas con saldo (recordatorio diario de cobranza).
+         * Mapeo individual como la ruta unitaria (sin pagos al final).
+         */
+        @Transactional(readOnly = true)
+        public List<VenDtos.CuentaCobrarResponse> cuentasAbiertas() {
+                return cuentaRepo.cuentasAbiertasConSaldo().stream()
+                                .map(this::toCuentaResponse).toList();
+        }
+
         private Page<VenDtos.CuentaCobrarResponse> toResponsePage(Page<CuentaCobrar> page) {
                 if (page.isEmpty() || page.getContent().size() == 1) {
                         return page.map(this::toCuentaResponse);

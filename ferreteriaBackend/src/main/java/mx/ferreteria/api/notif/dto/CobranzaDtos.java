@@ -4,11 +4,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-public final class CuentasPagarDtos {
-    private CuentasPagarDtos() {
+public final class CobranzaDtos {
+    private CobranzaDtos() {
     }
 
-    public record CuentasPagarEnvioResponse(
+    public record CobranzaEnvioResponse(
             LocalDate fecha,
             int destinatarios,
             int emailsEnviados,
@@ -19,7 +19,7 @@ public final class CuentasPagarDtos {
             BigDecimal totalPendiente) {
     }
 
-    public record CuentasPagarEstadoResponse(
+    public record CobranzaEstadoResponse(
             LocalDate fecha,
             boolean yaEnviado,
             String estado,

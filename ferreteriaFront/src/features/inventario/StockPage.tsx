@@ -4,6 +4,7 @@ import {
 	AlertTriangle,
 	ArrowDownCircle,
 	ArrowUpCircle,
+	Send,
 	Sliders,
 	Warehouse,
 } from "lucide-react";
@@ -12,17 +13,23 @@ import { useSearchParams } from "react-router-dom";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
 import { apiAlmacenes } from "@/lib/api/catalogo";
-import { apiStock } from "@/lib/api/reportes";
+import {
+	apiEnviarStockBajoInforme,
+	apiEstadoStockBajoInforme,
+	apiStock,
+} from "@/lib/api/reportes";
 import { apiCrearMovimiento } from "@/lib/api/inventario";
 import {
 	MOTIVOS_MOVIMIENTO,
 	type Inventario,
 	type MovimientoInventarioRequest,
+	type StockBajoInformeEstado,
 } from "@/lib/api/types";
-import { formatoNumero } from "@/lib/format";
+import { formatoFechaHora, formatoNumero } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
@@ -30,6 +37,7 @@ import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
+import { useTieneRol } from "@/store/auth";
 
 interface AjusteTarget {
 	productoId: number;
@@ -267,7 +275,50 @@ function AjusteDialog({
 
 export default function StockPage() {
 	useDocumentTitle("Existencias");
-	const { error: mostrarError } = useToast();
+	const {
+		error: mostrarError,
+		success: mostrarExito,
+		loading: mostrarCarga,
+	} = useToast();
+	const puedeEnviar = useTieneRol(["ADMINISTRADOR", "GERENTE"]);
+	const [enviando, setEnviando] = useState(false);
+	const [confirmarReenvio, setConfirmarReenvio] =
+		useState<StockBajoInformeEstado | null>(null);
+
+	async function enviarRecordatorio() {
+		if (enviando) return;
+		const cerrarCarga = mostrarCarga("Verificando recordatorio…");
+		try {
+			const estadoInforme = await apiEstadoStockBajoInforme();
+			if (estadoInforme.yaEnviado) {
+				setConfirmarReenvio(estadoInforme);
+				return;
+			}
+			await ejecutarEnvio();
+		} catch (e) {
+			mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+		} finally {
+			cerrarCarga();
+		}
+	}
+
+	async function ejecutarEnvio() {
+		if (enviando) return;
+		setEnviando(true);
+		const cerrarCarga = mostrarCarga("Enviando recordatorio…");
+		try {
+			const r = await apiEnviarStockBajoInforme();
+			setConfirmarReenvio(null);
+			mostrarExito(
+				`Recordatorio enviado a ${r.destinatarios} destinatarios (${r.emailsEnviados} correos, ${r.whatsappsEnviados} WhatsApp): ${r.productos} productos en bajo stock.`,
+			);
+		} catch (e) {
+			mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+		} finally {
+			cerrarCarga();
+			setEnviando(false);
+		}
+	}
 	const [searchParams] = useSearchParams();
 	const [almacenId, setAlmacenId] = useState<number | "">(() => {
 		const v = Number(searchParams.get("almacen"));
@@ -432,27 +483,40 @@ export default function StockPage() {
 						o salidas manuales.
 					</p>
 				</div>
-				<Button
-					variant="secondary"
-					onClick={() => {
-						const primera = data?.data[0];
-						if (!primera) {
-							mostrarError("No hay filas en la página actual para ajustar.");
-							return;
-						}
-						setAjusteTarget({
-							productoId: primera.productoId,
-							productoNombre: primera.productoNombre,
-							almacenId: primera.almacenId,
-							almacenNombre: primera.almacenNombre,
-							stockActual: primera.stock,
-						});
-					}}
-					disabled={!data?.data?.length}
-					title="Ajustar la primera fila visible"
-				>
-					<Sliders className="h-4 w-4" /> Ajuste rápido
-				</Button>
+				<div className="flex flex-wrap items-center gap-2">
+					{puedeEnviar && (
+						<Button
+							variant="primary"
+							size="sm"
+							disabled={enviando}
+							onClick={enviarRecordatorio}
+						>
+							<Send className="h-4 w-4" aria-hidden />
+							{enviando ? "Enviando…" : "Enviar recordatorio"}
+						</Button>
+					)}
+					<Button
+						variant="secondary"
+						onClick={() => {
+							const primera = data?.data[0];
+							if (!primera) {
+								mostrarError("No hay filas en la página actual para ajustar.");
+								return;
+							}
+							setAjusteTarget({
+								productoId: primera.productoId,
+								productoNombre: primera.productoNombre,
+								almacenId: primera.almacenId,
+								almacenNombre: primera.almacenNombre,
+								stockActual: primera.stock,
+							});
+						}}
+						disabled={!data?.data?.length}
+						title="Ajustar la primera fila visible"
+					>
+						<Sliders className="h-4 w-4" /> Ajuste rápido
+					</Button>
+				</div>
 			</header>
 
 			<Card>
@@ -519,6 +583,25 @@ export default function StockPage() {
 				target={ajusteTarget}
 				onClose={() => setAjusteTarget(null)}
 			/>
+
+			<ConfirmDialog
+				open={confirmarReenvio !== null}
+				title="Recordatorio ya enviado"
+				confirmLabel="Sí, reenviar"
+				tone="primary"
+				busy={enviando}
+				onCancel={() => !enviando && setConfirmarReenvio(null)}
+				onConfirm={ejecutarEnvio}
+			>
+				<p className="text-sm text-ink">
+					El recordatorio de hoy ya se envió
+					{confirmarReenvio?.enviadoEn
+						? ` el ${formatoFechaHora(confirmarReenvio.enviadoEn)}`
+						: ""}
+					. ¿Desea enviarlo nuevamente por correo y WhatsApp a gerentes y
+					administradores?
+				</p>
+			</ConfirmDialog>
 		</div>
 	);
 }

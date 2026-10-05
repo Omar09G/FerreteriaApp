@@ -8,6 +8,8 @@ vi.mock("@/lib/api/venta", () => ({
 	apiCrearRenta: vi.fn(),
 	apiDevolucionRenta: vi.fn(),
 	apiCancelarRenta: vi.fn(),
+	apiEnviarRentasInforme: vi.fn(),
+	apiEstadoRentasInforme: vi.fn(),
 }));
 vi.mock("@/lib/api/catalogo", async (importOriginal) => ({
 	...((await importOriginal()) as Record<string, unknown>),
@@ -38,10 +40,13 @@ import {
 	apiCancelarRenta,
 	apiCrearRenta,
 	apiDevolucionRenta,
+	apiEnviarRentasInforme,
+	apiEstadoRentasInforme,
 	apiRentas,
 } from "@/lib/api/venta";
 import { apiAlmacenes, apiClientes, apiProductos } from "@/lib/api/catalogo";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
+import { useAuthStore } from "@/store/auth";
 import RentasPage from "@/features/ventas/RentasPage";
 import {
 	ALMACEN,
@@ -411,5 +416,88 @@ describe("RentasPage (profundización)", () => {
 				expect.objectContaining({ text: expect.stringContaining("sin conexión") }),
 			),
 		);
+	});
+});
+
+describe("RentasPage (recordatorio manual)", () => {
+	function comoAdmin() {
+		useAuthStore.setState({
+			autenticado: true,
+			usuario: { roles: ["GERENTE"] } as never,
+		});
+	}
+
+	function comoSinRol() {
+		useAuthStore.setState({ autenticado: false, usuario: null });
+	}
+
+	it("oculta el botón sin rol GERENTE/ADMINISTRADOR", async () => {
+		comoSinRol();
+		renderPagina(<RentasPage />);
+		await screen.findByRole("heading", { name: "Rentas" });
+		expect(
+			screen.queryByRole("button", { name: /recordatorio/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("envía directo cuando hoy aún no se envió", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoRentasInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: false,
+			estado: null,
+			enviadoEn: null,
+		});
+		vi.mocked(apiEnviarRentasInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 2,
+			emailsEnviados: 2,
+			whatsappsEnviados: 2,
+			vencidas: 1,
+			proximas: 1,
+		});
+		renderPagina(<RentasPage />);
+		await screen.findByRole("heading", { name: "Rentas" });
+		await user.click(screen.getByRole("button", { name: /recordatorio/i }));
+		await waitFor(() => {
+			expect(apiEstadoRentasInforme).toHaveBeenCalledOnce();
+			expect(apiEnviarRentasInforme).toHaveBeenCalledOnce();
+		});
+		await waitFor(() =>
+			expect(vi.mocked(Swal.fire)).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: expect.stringContaining("Recordatorio enviado a 2 destinatarios"),
+				}),
+			),
+		);
+	});
+
+	it("avisa si ya se envió y reenvía solo al confirmar", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoRentasInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: true,
+			estado: "ENVIADA",
+			enviadoEn: "2026-10-05T09:10:00",
+		});
+		vi.mocked(apiEnviarRentasInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 1,
+			emailsEnviados: 1,
+			whatsappsEnviados: 0,
+			vencidas: 1,
+			proximas: 0,
+		});
+		renderPagina(<RentasPage />);
+		await screen.findByRole("heading", { name: "Rentas" });
+		await user.click(screen.getByRole("button", { name: /recordatorio/i }));
+		expect(await screen.findByText("Recordatorio ya enviado")).toBeInTheDocument();
+		expect(apiEnviarRentasInforme).not.toHaveBeenCalled();
+		await user.click(screen.getByRole("button", { name: /reenviar/i }));
+		await waitFor(() => {
+			expect(apiEnviarRentasInforme).toHaveBeenCalledOnce();
+		});
 	});
 });

@@ -52,16 +52,31 @@ public class InventarioService {
 
     public Page<InventarioResponse> listBajoStock(Pageable pageable) {
         Page<Inventario> page = repo.findBajoStock(pageable);
-        List<Long> productoIds = page.getContent().stream()
+        List<InventarioResponse> mapped = completar(page.getContent());
+        return new org.springframework.data.domain.PageImpl<>(mapped,
+                page.getPageable(), page.getTotalElements());
+    }
+
+    /**
+     * Bajo stock completo (recordatorio diario + Excel adjunto): sin paginar.
+     */
+    public List<InventarioResponse> bajoStockCompleto() {
+        return completar(repo.findTodoBajoStock());
+    }
+
+    private List<InventarioResponse> completar(List<Inventario> filas) {
+        List<Long> productoIds = filas.stream()
                 .map(Inventario::getProductoId).distinct().toList();
-        List<Integer> almacenIds = page.getContent().stream()
+        List<Integer> almacenIds = filas.stream()
                 .map(Inventario::getAlmacenId).distinct().toList();
-        Map<Long, Producto> productos = productoRepo.findAllById(productoIds).stream()
-                .collect(Collectors.toMap(Producto::getProductoId, p -> p));
-        Map<Integer, Almacen> almacenes = almacenRepo.findAllById(almacenIds).stream()
-                .collect(Collectors.toMap(Almacen::getAlmacenId, a -> a));
-        return page.map(i -> toResponse(i, productos.get(i.getProductoId()),
-                almacenes.get(i.getAlmacenId())));
+        Map<Long, Producto> productos = productoIds.isEmpty() ? Map.of()
+                : productoRepo.findAllById(productoIds).stream()
+                        .collect(Collectors.toMap(Producto::getProductoId, p -> p));
+        Map<Integer, Almacen> almacenes = almacenIds.isEmpty() ? Map.of()
+                : almacenRepo.findAllById(almacenIds).stream()
+                        .collect(Collectors.toMap(Almacen::getAlmacenId, a -> a));
+        return filas.stream().map(i -> toResponse(i, productos.get(i.getProductoId()),
+                almacenes.get(i.getAlmacenId()))).toList();
     }
 
     public List<InventarioResponse> getStockByProducto(Long productoId) {

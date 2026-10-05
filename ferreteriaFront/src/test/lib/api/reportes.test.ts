@@ -4,6 +4,8 @@ import {
   apiCierreDiario,
   apiDashboard,
   apiEnviarInforme,
+  apiEnviarStockBajoInforme,
+  apiEstadoStockBajoInforme,
   apiHorasPico,
   apiInformeEstado,
   apiMejoresCategorias,
@@ -247,6 +249,40 @@ describe("apiInformeEstado", () => {
     expect(mock.get).toHaveBeenCalledWith(
       "/reportes/dashboard/informe/estado",
       { params: RANGO },
+    );
+  });
+});
+
+describe("recordatorio de stock bajo", () => {
+  it("apiEnviarStockBajoInforme hace POST al informe", async () => {
+    const r = {
+      fecha: "2026-10-05",
+      destinatarios: 2,
+      emailsEnviados: 2,
+      whatsappsEnviados: 1,
+      productos: 10,
+      agotados: 3,
+      almacenes: 2,
+    };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: r } });
+    await expect(apiEnviarStockBajoInforme()).resolves.toEqual(r);
+    expect(mock.post).toHaveBeenCalledWith(
+      "/reportes/stock-bajo/informe",
+      {},
+    );
+  });
+
+  it("apiEstadoStockBajoInforme pide GET al estado", async () => {
+    const r = {
+      fecha: "2026-10-05",
+      yaEnviado: false,
+      estado: null,
+      enviadoEn: null,
+    };
+    mock.get.mockResolvedValueOnce({ data: { success: true, data: r } });
+    await expect(apiEstadoStockBajoInforme()).resolves.toEqual(r);
+    expect(mock.get).toHaveBeenCalledWith(
+      "/reportes/stock-bajo/informe/estado",
     );
   });
 });

@@ -29,4 +29,16 @@ public interface CuentaCobrarRepository extends JpaRepository<CuentaCobrar, Long
             """)
     Page<CuentaCobrar> filtrar(Long clienteId, String estado,
             LocalDate desde, LocalDate hasta, Pageable pageable);
+
+    /**
+     * Cuentas abiertas con saldo (recordatorio diario): vencidas y pendientes
+     * se separan en servicio por fecha de vencimiento.
+     */
+    @Query("""
+            SELECT c FROM CuentaCobrar c
+            WHERE c.estado IN ('VIGENTE', 'PARCIAL')
+              AND (c.montoTotal - c.montoPagado) > 0
+            ORDER BY c.fechaVencimiento ASC
+            """)
+    List<CuentaCobrar> cuentasAbiertasConSaldo();
 }

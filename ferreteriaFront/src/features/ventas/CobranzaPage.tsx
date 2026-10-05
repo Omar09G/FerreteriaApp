@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ReceiptText, Wallet } from "lucide-react";
+import { ReceiptText, Send, Wallet } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
 import { apiClientes } from "@/lib/api/catalogo";
-import { apiCuentasCobrar, apiPagoCliente } from "@/lib/api/venta";
-import type { CuentaCobrar, PagoClienteRequest } from "@/lib/api/types";
+import {
+	apiCuentasCobrar,
+	apiEnviarCobranzaInforme,
+	apiEstadoCobranzaInforme,
+	apiPagoCliente,
+} from "@/lib/api/venta";
+import type {
+	CobranzaInformeEstado,
+	CuentaCobrar,
+	PagoClienteRequest,
+} from "@/lib/api/types";
 import { ESTADO_COBRANZA, FORMAS_PAGO } from "@/lib/api/types";
-import { formatoFecha, formatoMoneda } from "@/lib/format";
+import { formatoFecha, formatoFechaHora, formatoMoneda } from "@/lib/format";
 import {rangoFechas, type RangoFechas} from "@/lib/rango";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
@@ -21,6 +31,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { RangoFiltro } from "@/components/ui/RangoFiltro";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
+import { useTieneRol } from "@/store/auth";
 
 const diasVencido = (vencimiento: string) => {
   const hoy = new Date();
@@ -171,7 +182,11 @@ function EstadoCuenta({ cuenta }: { cuenta: CuentaCobrar }) {
 
 export default function CobranzaPage() {
   useDocumentTitle("Cobranza");
-  const { error: mostrarError, success: mostrarExito } = useToast();
+  const {
+    error: mostrarError,
+    success: mostrarExito,
+    loading: mostrarCarga,
+  } = useToast();
   const queryClient = useQueryClient();
 
   const [estado, setEstado] = useState<string>("");
@@ -180,6 +195,45 @@ export default function CobranzaPage() {
   const [page, setPage] = useState(0);
   const [abonando, setAbonando] = useState<CuentaCobrar | null>(null);
   const [historial, setHistorial] = useState<CuentaCobrar | null>(null);
+  const puedeEnviar = useTieneRol(["ADMINISTRADOR", "GERENTE"]);
+  const [enviando, setEnviando] = useState(false);
+  const [confirmarReenvio, setConfirmarReenvio] =
+    useState<CobranzaInformeEstado | null>(null);
+
+  async function enviarRecordatorio() {
+    if (enviando) return;
+    const cerrarCarga = mostrarCarga("Verificando recordatorio…");
+    try {
+      const estadoInforme = await apiEstadoCobranzaInforme();
+      if (estadoInforme.yaEnviado) {
+        setConfirmarReenvio(estadoInforme);
+        return;
+      }
+      await ejecutarEnvio();
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      cerrarCarga();
+    }
+  }
+
+  async function ejecutarEnvio() {
+    if (enviando) return;
+    setEnviando(true);
+    const cerrarCarga = mostrarCarga("Enviando recordatorio…");
+    try {
+      const r = await apiEnviarCobranzaInforme();
+      setConfirmarReenvio(null);
+      mostrarExito(
+        `Recordatorio enviado a ${r.destinatarios} destinatarios (${r.emailsEnviados} correos, ${r.whatsappsEnviados} WhatsApp): ${r.vencidas} vencidas, ${r.pendientes} pendientes.`,
+      );
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      cerrarCarga();
+      setEnviando(false);
+    }
+  }
 
   const clientes = useQuery({
     queryKey: ["clientes-cobranza"],
@@ -381,13 +435,26 @@ export default function CobranzaPage() {
             vigila vencimientos.
           </p>
         </div>
-        <RangoFiltro
-          valor={rango}
-          onChange={(siguiente) => {
-            setRango(siguiente);
-            setPage(0);
-          }}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <RangoFiltro
+            valor={rango}
+            onChange={(siguiente) => {
+              setRango(siguiente);
+              setPage(0);
+            }}
+          />
+          {puedeEnviar && (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={enviando}
+              onClick={enviarRecordatorio}
+            >
+              <Send className="h-4 w-4" aria-hidden />
+              {enviando ? "Enviando…" : "Enviar recordatorio"}
+            </Button>
+          )}
+        </div>
       </header>
 
       <Card>
@@ -471,6 +538,25 @@ export default function CobranzaPage() {
           />
         )}
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmarReenvio !== null}
+        title="Recordatorio ya enviado"
+        confirmLabel="Sí, reenviar"
+        tone="primary"
+        busy={enviando}
+        onCancel={() => !enviando && setConfirmarReenvio(null)}
+        onConfirm={ejecutarEnvio}
+      >
+        <p className="text-sm text-ink">
+          El recordatorio de hoy ya se envió
+          {confirmarReenvio?.enviadoEn
+            ? ` el ${formatoFechaHora(confirmarReenvio.enviadoEn)}`
+            : ""}
+          . ¿Desea enviarlo nuevamente por correo y WhatsApp a gerentes y
+          administradores?
+        </p>
+      </ConfirmDialog>
 
       <Dialog
         open={historial !== null}

@@ -69,17 +69,24 @@ En dev el OTP por WhatsApp cae a la bandeja mock en memoria y el email a
 Mailpit (`MAIL_HOST:1025`); en prod configurar SMTP real y Evolution API
 (`WHATSAPP_*` + `APP_NOTIF_ENABLED=true`).
 
-## Recordatorio de cuentas por pagar (JOB 09:00 + botón manual)
+## Recordatorios diarios (JOBs + botón manual)
 
-Todos los días a las 09:00 (`CUENTAS_PAGAR_CRON`, zona `America/Mexico_City`)
-se envía a GERENTES y ADMINISTRADORES un correo con las facturas vencidas
-(prioridad de pago) y pendientes, con saldos y totales —mismos datos de
-`GET /cuentas-pagar`, `/reportes/facturas-vencidas` y `/reportes/facturas-pendientes`.
-Auditoría en `notif.notificacion_jobs` (tipo `CUENTAS_PAGAR`, un registro por día).
+| Recordatorio | Hora | Datos | Canales |
+|---|---|---|---|
+| Cuentas por pagar | 09:00 | facturas vencidas + pendientes (`GET /cuentas-pagar`, `/reportes/facturas-*`) | correo (detalle) + WhatsApp (resumen) |
+| Cobranza | 09:05 | cuentas vencidas + pendientes (`GET /creditos/cobranza`) | correo (detalle) + WhatsApp (resumen) |
+| Rentas | 09:10 | vencidas + próximas a devolver ≤3 días (`GET /rentas`) | correo (detalle) + WhatsApp (resumen) |
+| Stock bajo | 09:15 | productos con stock ≤ mínimo (`GET /inventario?soloBajoStock=1`) | correo (resumen + Excel) + WhatsApp (totales) |
 
-- Envío manual: botón "Enviar recordatorio" en Compras → Cuentas por pagar
-  (`POST /api/v1/reportes/cuentas-pagar/informe`); antes pregunta
-  (`GET .../estado`) si hoy ya se envió y pide confirmación para reenviar.
-- Sin adeudos no se envía correo (se audita el job como ENVIADA).
-- Requiere `APP_NOTIF_ENABLED=true`; el JOB se apaga con
-  `CUENTAS_PAGAR_JOB_ENABLED=false`.
+Todos van a GERENTES y ADMINISTRADORES, con auditoría en
+`notif.notificacion_jobs` (un registro por día por tipo) y la misma regla:
+**solo se notifica si hay registros** (sin registros se audita sin enviar).
+
+- Envío manual: botón "Enviar recordatorio" en Compras → Cuentas por pagar,
+  Ventas → Cobranza, Ventas → Rentas e Inventario → Existencias
+  (`POST /api/v1/reportes/{cuentas-pagar,cobranza,rentas,stock-bajo}/informe`);
+  antes pregunta (`GET .../estado`) si hoy ya se envió y pide confirmación
+  para reenviar.
+- Requiere `APP_NOTIF_ENABLED=true`; cada JOB se apaga con
+  `CUENTAS_PAGAR_JOB_ENABLED` / `COBRANZA_JOB_ENABLED` / `RENTAS_JOB_ENABLED` /
+  `STOCK_JOB_ENABLED=false`.

@@ -46,6 +46,9 @@ public enum ErrorCode {
     ARCHIVO_MUY_GRANDE("error.negocio.archivo-muy-grande", HttpStatus.BAD_REQUEST),
     INFORME_SIN_DESTINATARIOS("error.negocio.informe-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
     CUENTAS_SIN_DESTINATARIOS("error.negocio.cuentas-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
+    COBRANZA_SIN_DESTINATARIOS("error.negocio.cobranza-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
+    RENTAS_SIN_DESTINATARIOS("error.negocio.rentas-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
+    STOCK_SIN_DESTINATARIOS("error.negocio.stock-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
 
     // genéricas / internas
     ERROR_INTERNO("error.interno.inesperado", HttpStatus.INTERNAL_SERVER_ERROR),

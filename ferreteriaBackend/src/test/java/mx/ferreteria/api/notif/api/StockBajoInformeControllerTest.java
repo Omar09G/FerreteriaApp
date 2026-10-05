@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.DisplayName;
@@ -21,23 +20,23 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import mx.ferreteria.api.common.error.DbErrorTranslator;
 import mx.ferreteria.api.common.web.WebMvcTestProps;
-import mx.ferreteria.api.notif.dto.CuentasPagarDtos.CuentasPagarEnvioResponse;
-import mx.ferreteria.api.notif.dto.CuentasPagarDtos.CuentasPagarEstadoResponse;
-import mx.ferreteria.api.notif.service.CuentasPagarInformeService;
+import mx.ferreteria.api.notif.dto.StockBajoDtos.StockBajoEnvioResponse;
+import mx.ferreteria.api.notif.dto.StockBajoDtos.StockBajoEstadoResponse;
+import mx.ferreteria.api.notif.service.StockBajoInformeService;
 
-@WebMvcTest(controllers = CuentasPagarInformeController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(controllers = StockBajoInformeController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({ DbErrorTranslator.class, WebMvcTestProps.class, CuentasPagarInformeControllerTest.SliceConfig.class })
+@Import({ DbErrorTranslator.class, WebMvcTestProps.class, StockBajoInformeControllerTest.SliceConfig.class })
 @MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
                 mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
                 mx.ferreteria.api.common.security.JwtService.class })
-class CuentasPagarInformeControllerTest {
+class StockBajoInformeControllerTest {
 
         @Autowired
         MockMvc mvc;
 
         @MockitoBean
-        CuentasPagarInformeService cuentasService;
+        StockBajoInformeService stockService;
 
         @org.springframework.boot.test.context.TestConfiguration
         static class SliceConfig {
@@ -49,30 +48,29 @@ class CuentasPagarInformeControllerTest {
         }
 
         @Test
-        @DisplayName("POST /api/v1/reportes/cuentas-pagar/informe -> 200 con conteos y totales")
+        @DisplayName("POST /api/v1/reportes/stock-bajo/informe -> 200 con conteos")
         void enviar_returns200() throws Exception {
-                var r = new CuentasPagarEnvioResponse(LocalDate.of(2026, 10, 5), 2, 2, 1,
-                                1, 1, new BigDecimal("500.00"), new BigDecimal("300.00"));
-                when(cuentasService.enviar()).thenReturn(r);
+                var r = new StockBajoEnvioResponse(LocalDate.of(2026, 10, 5), 2, 2, 1, 10, 3, 2);
+                when(stockService.enviar()).thenReturn(r);
 
-                mvc.perform(post("/api/v1/reportes/cuentas-pagar/informe"))
+                mvc.perform(post("/api/v1/reportes/stock-bajo/informe"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.destinatarios").value(2))
-                                .andExpect(jsonPath("$.data.vencidas").value(1))
-                                .andExpect(jsonPath("$.data.pendientes").value(1));
+                                .andExpect(jsonPath("$.data.productos").value(10))
+                                .andExpect(jsonPath("$.data.agotados").value(3));
         }
 
         @Test
-        @DisplayName("GET /api/v1/reportes/cuentas-pagar/informe/estado -> 200 con yaEnviado")
+        @DisplayName("GET /api/v1/reportes/stock-bajo/informe/estado -> 200 con yaEnviado")
         void estado_returns200() throws Exception {
-                var r = new CuentasPagarEstadoResponse(LocalDate.of(2026, 10, 5), true,
-                                "ENVIADA", java.time.Instant.now());
-                when(cuentasService.estado()).thenReturn(r);
+                var r = new StockBajoEstadoResponse(LocalDate.of(2026, 10, 5), false,
+                                null, null);
+                when(stockService.estado()).thenReturn(r);
 
-                mvc.perform(get("/api/v1/reportes/cuentas-pagar/informe/estado"))
+                mvc.perform(get("/api/v1/reportes/stock-bajo/informe/estado"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
-                                .andExpect(jsonPath("$.data.yaEnviado").value(true));
+                                .andExpect(jsonPath("$.data.yaEnviado").value(false));
         }
 }

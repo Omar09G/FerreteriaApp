@@ -13,6 +13,8 @@ import type {
   PageEnvelope,
   ProductosSinMovimiento,
   ResumenDashboard,
+  StockBajoInformeEnvio,
+  StockBajoInformeEstado,
   TopProducto,
   VentaPorHora,
   VentaTotal,
@@ -52,6 +54,23 @@ export async function apiInformeEstado(
   const { data } = await http.get<Envelope<InformeEstado>>(
     "/reportes/dashboard/informe/estado",
     { params: rango(inicio, fin) },
+  );
+  return data.data;
+}
+
+/** Recordatorio manual de stock bajo (mismo contenido del JOB 09:15). */
+export async function apiEnviarStockBajoInforme(): Promise<StockBajoInformeEnvio> {
+  const { data } = await http.post<Envelope<StockBajoInformeEnvio>>(
+    "/reportes/stock-bajo/informe",
+    {},
+  );
+  return data.data;
+}
+
+/** Estado del recordatorio de stock bajo de hoy (avisa si ya se envió). */
+export async function apiEstadoStockBajoInforme(): Promise<StockBajoInformeEstado> {
+  const { data } = await http.get<Envelope<StockBajoInformeEstado>>(
+    "/reportes/stock-bajo/informe/estado",
   );
   return data.data;
 }

@@ -25,4 +25,12 @@ public interface InventarioRepository extends JpaRepository<Inventario, Inventar
 
     @Query("SELECT i FROM Inventario i WHERE i.stock <= i.stockMinimo")
     Page<Inventario> findBajoStock(Pageable pageable);
+
+    /**
+     * Bajo stock completo (recordatorio diario + Excel): sin paginar,
+     * ordenado por almacén para agrupar el detalle.
+     */
+    @Query("SELECT i FROM Inventario i WHERE i.stock <= i.stockMinimo "
+            + "ORDER BY i.almacenId ASC, i.productoId ASC")
+    List<Inventario> findTodoBajoStock();
 }

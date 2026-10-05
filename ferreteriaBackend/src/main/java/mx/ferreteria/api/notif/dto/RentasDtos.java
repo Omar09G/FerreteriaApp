@@ -1,25 +1,22 @@
 package mx.ferreteria.api.notif.dto;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-public final class CuentasPagarDtos {
-    private CuentasPagarDtos() {
+public final class RentasDtos {
+    private RentasDtos() {
     }
 
-    public record CuentasPagarEnvioResponse(
+    public record RentasEnvioResponse(
             LocalDate fecha,
             int destinatarios,
             int emailsEnviados,
             int whatsappsEnviados,
             int vencidas,
-            int pendientes,
-            BigDecimal totalVencido,
-            BigDecimal totalPendiente) {
+            int proximas) {
     }
 
-    public record CuentasPagarEstadoResponse(
+    public record RentasEstadoResponse(
             LocalDate fecha,
             boolean yaEnviado,
             String estado,

@@ -6,6 +6,8 @@ import Swal from "sweetalert2";
 vi.mock("@/lib/api/venta", () => ({
 	apiCuentasCobrar: vi.fn(),
 	apiPagoCliente: vi.fn(),
+	apiEnviarCobranzaInforme: vi.fn(),
+	apiEstadoCobranzaInforme: vi.fn(),
 }));
 vi.mock("@/lib/api/catalogo", async (importOriginal) => ({
 	...((await importOriginal()) as Record<string, unknown>),
@@ -25,8 +27,14 @@ vi.mock("xlsx", () => ({
 	writeFile: (...args: unknown[]) => writeFile(...args),
 }));
 
-import { apiCuentasCobrar, apiPagoCliente } from "@/lib/api/venta";
+import {
+	apiCuentasCobrar,
+	apiEnviarCobranzaInforme,
+	apiEstadoCobranzaInforme,
+	apiPagoCliente,
+} from "@/lib/api/venta";
 import { apiClientes } from "@/lib/api/catalogo";
+import { useAuthStore } from "@/store/auth";
 import CobranzaPage from "@/features/ventas/CobranzaPage";
 import {
 	CLIENTE,
@@ -390,5 +398,92 @@ describe("CobranzaPage (profundización)", () => {
 				expect.objectContaining({ text: expect.stringContaining("sin conexión") }),
 			),
 		);
+	});
+});
+
+describe("CobranzaPage (recordatorio manual)", () => {
+	function comoAdmin() {
+		useAuthStore.setState({
+			autenticado: true,
+			usuario: { roles: ["ADMINISTRADOR"] } as never,
+		});
+	}
+
+	function comoSinRol() {
+		useAuthStore.setState({ autenticado: false, usuario: null });
+	}
+
+	it("oculta el botón sin rol GERENTE/ADMINISTRADOR", async () => {
+		comoSinRol();
+		renderPagina(<CobranzaPage />);
+		await screen.findByText("V-0001");
+		expect(
+			screen.queryByRole("button", { name: /recordatorio/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("envía directo cuando hoy aún no se envió", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoCobranzaInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: false,
+			estado: null,
+			enviadoEn: null,
+		});
+		vi.mocked(apiEnviarCobranzaInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 2,
+			emailsEnviados: 2,
+			whatsappsEnviados: 1,
+			vencidas: 1,
+			pendientes: 1,
+			totalVencido: 500,
+			totalPendiente: 300,
+		});
+		renderPagina(<CobranzaPage />);
+		await screen.findByText("V-0001");
+		await user.click(screen.getByRole("button", { name: /recordatorio/i }));
+		await waitFor(() => {
+			expect(apiEstadoCobranzaInforme).toHaveBeenCalledOnce();
+			expect(apiEnviarCobranzaInforme).toHaveBeenCalledOnce();
+		});
+		await waitFor(() =>
+			expect(vi.mocked(Swal.fire)).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: expect.stringContaining("Recordatorio enviado a 2 destinatarios"),
+				}),
+			),
+		);
+	});
+
+	it("avisa si ya se envió y reenvía solo al confirmar", async () => {
+		const user = userEvent.setup();
+		comoAdmin();
+		vi.mocked(apiEstadoCobranzaInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: true,
+			estado: "ENVIADA",
+			enviadoEn: "2026-10-05T09:05:00",
+		});
+		vi.mocked(apiEnviarCobranzaInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 1,
+			emailsEnviados: 1,
+			whatsappsEnviados: 0,
+			vencidas: 0,
+			pendientes: 2,
+			totalVencido: 0,
+			totalPendiente: 800,
+		});
+		renderPagina(<CobranzaPage />);
+		await screen.findByText("V-0001");
+		await user.click(screen.getByRole("button", { name: /recordatorio/i }));
+		expect(await screen.findByText("Recordatorio ya enviado")).toBeInTheDocument();
+		expect(apiEnviarCobranzaInforme).not.toHaveBeenCalled();
+		await user.click(screen.getByRole("button", { name: /reenviar/i }));
+		await waitFor(() => {
+			expect(apiEnviarCobranzaInforme).toHaveBeenCalledOnce();
+		});
 	});
 });

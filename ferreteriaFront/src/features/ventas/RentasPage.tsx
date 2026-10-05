@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RotateCcw, Search, Plus, Trash2, X, Eye } from "lucide-react";
+import { RotateCcw, Search, Plus, Send, Trash2, X, Eye } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -10,6 +10,8 @@ import {
   apiCancelarRenta,
   apiCrearRenta,
   apiDevolucionRenta,
+  apiEnviarRentasInforme,
+  apiEstadoRentasInforme,
   apiRentas,
 } from "@/lib/api/venta";
 import {
@@ -18,6 +20,7 @@ import {
   type Renta,
   type RentaDevolucionRequest,
   type RentaRequest,
+  type RentasInformeEstado,
 } from "@/lib/api/types";
 import {
   aLocalDate,
@@ -41,6 +44,7 @@ import { RangoFiltro } from "@/components/ui/RangoFiltro";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { FotoMiniatura } from "@/components/ui/ImagenUpload";
+import { useTieneRol } from "@/store/auth";
 
 const TONO_RENTA: Record<
   string,
@@ -510,8 +514,51 @@ function DevolucionForm({
 
 export default function RentasPage() {
   useDocumentTitle("Rentas");
-  const { error: mostrarError, success: mostrarExito } = useToast();
+  const {
+    error: mostrarError,
+    success: mostrarExito,
+    loading: mostrarCarga,
+  } = useToast();
   const queryClient = useQueryClient();
+  const puedeEnviar = useTieneRol(["ADMINISTRADOR", "GERENTE"]);
+  const [enviando, setEnviando] = useState(false);
+  const [confirmarReenvio, setConfirmarReenvio] =
+    useState<RentasInformeEstado | null>(null);
+
+  async function enviarRecordatorio() {
+    if (enviando) return;
+    const cerrarCarga = mostrarCarga("Verificando recordatorio…");
+    try {
+      const estadoInforme = await apiEstadoRentasInforme();
+      if (estadoInforme.yaEnviado) {
+        setConfirmarReenvio(estadoInforme);
+        return;
+      }
+      await ejecutarEnvio();
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      cerrarCarga();
+    }
+  }
+
+  async function ejecutarEnvio() {
+    if (enviando) return;
+    setEnviando(true);
+    const cerrarCarga = mostrarCarga("Enviando recordatorio…");
+    try {
+      const r = await apiEnviarRentasInforme();
+      setConfirmarReenvio(null);
+      mostrarExito(
+        `Recordatorio enviado a ${r.destinatarios} destinatarios (${r.emailsEnviados} correos, ${r.whatsappsEnviados} WhatsApp): ${r.vencidas} vencidas, ${r.proximas} próximas.`,
+      );
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      cerrarCarga();
+      setEnviando(false);
+    }
+  }
 
   const [estado, setEstado] = useState("");
   const [rango, setRango] = useState<RangoFechas | null>(() => rangoFechas());
@@ -704,6 +751,17 @@ export default function RentasPage() {
               setPage(0);
             }}
           />
+          {puedeEnviar && (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={enviando}
+              onClick={enviarRecordatorio}
+            >
+              <Send className="h-4 w-4" aria-hidden />
+              {enviando ? "Enviando…" : "Enviar recordatorio"}
+            </Button>
+          )}
           <Button hotkey="F4" onClick={() => setNuevaAbierta(true)}>
             <Plus className="h-4 w-4" /> Nueva renta
           </Button>
@@ -808,6 +866,25 @@ export default function RentasPage() {
           ¿Cancelar la renta{" "}
           <span className="font-semibold">{cancelarConfirmacion?.folio}</span>?
           Se devuelve el depósito de garantía y se libera el artículo.
+        </p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={confirmarReenvio !== null}
+        title="Recordatorio ya enviado"
+        confirmLabel="Sí, reenviar"
+        tone="primary"
+        busy={enviando}
+        onCancel={() => !enviando && setConfirmarReenvio(null)}
+        onConfirm={ejecutarEnvio}
+      >
+        <p className="text-sm text-ink">
+          El recordatorio de hoy ya se envió
+          {confirmarReenvio?.enviadoEn
+            ? ` el ${formatoFechaHora(confirmarReenvio.enviadoEn)}`
+            : ""}
+          . ¿Desea enviarlo nuevamente por correo y WhatsApp a gerentes y
+          administradores?
         </p>
       </ConfirmDialog>
 

@@ -39,21 +39,55 @@ public class EmailNotificacionSender {
      */
     public void send(String to, String tipo, String asunto, BigDecimal total,
             byte[] pdf, String clave) {
+        String nombre = clave != null && clave.contains("/")
+                ? clave.substring(clave.lastIndexOf('/') + 1)
+                : clave;
+        enviarConAdjunto(to, asunto != null ? asunto : "Notificación Ferretería",
+                textoPlano(tipo, asunto, total), html(tipo, asunto, total),
+                pdf, nombre, "application/pdf");
+        log.info("email enviado to={} tipo={}", to, tipo);
+    }
+
+    /**
+     * Recordatorio de stock bajo: resumen en el cuerpo + Excel con el detalle.
+     */
+    public void sendStockBajo(String to, java.time.LocalDate fecha, int totalProductos,
+            int agotados, int almacenes, byte[] xlsx, String nombreArchivo) {
+        String titulo = "Stock bajo al " + fechaCorta(fecha);
+        String intro = "Productos en riesgo de desabasto. El detalle completo va en el "
+                + "Excel adjunto; priorice la recompra desde "
+                + "<strong>Inventario → Existencias</strong>.";
+        String detalle = EmailPlantilla.detalles(
+                EmailPlantilla.fila("Productos en bajo stock", String.valueOf(totalProductos))
+                        + EmailPlantilla.fila("Agotados (existencia 0)", String.valueOf(agotados))
+                        + EmailPlantilla.fila("Almacenes afectados", String.valueOf(almacenes)));
+        String plano = "Hola,\n\nStock bajo al " + fechaCorta(fecha) + ".\n\n"
+                + "Productos en bajo stock: " + totalProductos + "\n"
+                + "Agotados: " + agotados + "\n"
+                + "Almacenes afectados: " + almacenes + "\n\n"
+                + "Detalle en el Excel adjunto.\n\n— " + EmailPlantilla.MARCA;
+        enviarConAdjunto(to, "Stock bajo — " + totalProductos + " productos ("
+                + agotados + " agotados)", plano,
+                EmailPlantilla.documento(titulo, intro, detalle,
+                        "Si tiene alguna duda, contacte a su sucursal."),
+                xlsx, nombreArchivo,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        log.info("email stock-bajo enviado to={} productos={} agotados={}",
+                to, totalProductos, agotados);
+    }
+
+    private void enviarConAdjunto(String to, String asunto, String textoPlano, String html,
+            byte[] adjunto, String nombreArchivo, String contentType) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setTo(to);
-            helper.setSubject(asunto != null ? asunto : "Notificación Ferretería");
-            helper.setText(textoPlano(tipo, asunto, total),
-                    html(tipo, asunto, total));
-            if (pdf != null && clave != null) {
-                String nombre = clave.contains("/")
-                        ? clave.substring(clave.lastIndexOf('/') + 1)
-                        : clave;
-                helper.addAttachment(nombre, new ByteArrayResource(pdf), "application/pdf");
+            helper.setSubject(asunto);
+            helper.setText(textoPlano, html);
+            if (adjunto != null && nombreArchivo != null) {
+                helper.addAttachment(nombreArchivo, new ByteArrayResource(adjunto), contentType);
             }
             mailSender.send(message);
-            log.info("email enviado to={} tipo={}", to, tipo);
         } catch (Exception e) {
             throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
         }
@@ -66,19 +100,146 @@ public class EmailNotificacionSender {
     public void sendCuentasPagar(String to, java.time.LocalDate fecha,
             java.util.List<mx.ferreteria.api.com.dto.ComDtos.FacturaVencidaResponse> vencidas,
             java.util.List<mx.ferreteria.api.com.dto.ComDtos.FacturaPendienteResponse> pendientes) {
+        enviarTablas(to, asuntoCuentas(vencidas, pendientes),
+                "Cuentas por pagar al " + fechaCorta(fecha),
+                "Recordatorio de compromisos con proveedores. Revise los saldos y programe "
+                        + "los pagos desde <strong>Compras → Cuentas por pagar</strong>.",
+                vencidas, pendientes,
+                () -> seccionTabla("Vencidas — prioridad de pago", true,
+                        new String[] { "Proveedor", "Detalle", "Saldo" },
+                        filasVencidas(vencidas)),
+                () -> seccionTabla("Pendientes", false,
+                        new String[] { "Proveedor", "Detalle", "Saldo" },
+                        filasPendientes(pendientes)),
+                textoPlanoCuentas(fecha, vencidas, pendientes));
+    }
+
+    /**
+     * Recordatorio de cobranza a clientes (sin PDF): vencidas (rojo) y
+     * pendientes con saldos y totales.
+     */
+    public void sendCobranza(String to, java.time.LocalDate fecha,
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse> vencidas,
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse> pendientes) {
+        enviarTablas(to, asuntoCobranza(vencidas, pendientes),
+                "Cuentas por cobrar al " + fechaCorta(fecha),
+                "Recordatorio de saldos de clientes a crédito. Dé seguimiento a la "
+                        + "cobranza desde <strong>Ventas → Cobranza</strong>.",
+                vencidas, pendientes,
+                () -> seccionTabla("Vencidas — prioridad de cobro", true,
+                        new String[] { "Cliente", "Detalle", "Saldo" },
+                        filasCobranza(vencidas, true)),
+                () -> seccionTabla("Pendientes", false,
+                        new String[] { "Cliente", "Detalle", "Saldo" },
+                        filasCobranza(pendientes, false)),
+                textoPlanoTablas("Cuentas por cobrar", fecha, vencidas, pendientes));
+    }
+
+    /**
+     * Recordatorio de rentas (sin PDF): vencidas (rojo) y próximas a devolver.
+     */
+    public void sendRentas(String to, java.time.LocalDate fecha,
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.RentaResponse> vencidas,
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.RentaResponse> proximas) {
+        enviarTablas(to, asuntoRentas(vencidas, proximas),
+                "Rentas al " + fechaCorta(fecha),
+                "Herramientas rentadas por devolver. Contacte al cliente y registre la "
+                        + "devolución desde <strong>Ventas → Rentas</strong>.",
+                vencidas, proximas,
+                () -> seccionTabla("Vencidas — devolución pendiente", true,
+                        new String[] { "Cliente", "Detalle", "Depósito" },
+                        filasRentas(vencidas, true)),
+                () -> seccionTabla("Próximas a devolver", false,
+                        new String[] { "Cliente", "Detalle", "Depósito" },
+                        filasRentas(proximas, false)),
+                textoPlanoTablas("Rentas", fecha, vencidas, proximas));
+    }
+
+    private void enviarTablas(String to, String asunto, String titulo, String intro,
+            java.util.List<?> vencidas, java.util.List<?> pendientes,
+            java.util.function.Supplier<String> seccionVencidas,
+            java.util.function.Supplier<String> seccionPendientes, String textoPlano) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setTo(to);
-            helper.setSubject(asuntoCuentas(vencidas, pendientes));
-            helper.setText(textoPlanoCuentas(fecha, vencidas, pendientes),
-                    htmlCuentas(fecha, vencidas, pendientes));
+            helper.setSubject(asunto);
+            StringBuilder bloque = new StringBuilder();
+            if (!vencidas.isEmpty()) {
+                bloque.append(seccionVencidas.get());
+            }
+            if (!pendientes.isEmpty()) {
+                bloque.append(seccionPendientes.get());
+            }
+            helper.setText(textoPlano, EmailPlantilla.documento(titulo, intro,
+                    bloque.toString(), "Si tiene alguna duda, contacte a su sucursal."));
             mailSender.send(message);
-            log.info("email cuentas-pagar enviado to={} vencidas={} pendientes={}",
-                    to, vencidas.size(), pendientes.size());
+            log.info("email recordatorio enviado to={} asunto={}", to, asunto);
         } catch (Exception e) {
             throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
         }
+    }
+
+    static String asuntoCobranza(
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse> vencidas,
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse> pendientes) {
+        return "Cobranza — " + vencidas.size() + " vencidas (" + moneda(totalSaldosCobranza(vencidas))
+                + ") · " + pendientes.size() + " pendientes ("
+                + moneda(totalSaldosCobranza(pendientes)) + ")";
+    }
+
+    static String asuntoRentas(
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.RentaResponse> vencidas,
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.RentaResponse> proximas) {
+        return "Rentas — " + vencidas.size() + " vencidas · " + proximas.size()
+                + " próximas a devolver";
+    }
+
+    static BigDecimal totalSaldosCobranza(
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse> cuentas) {
+        return cuentas.stream()
+                .map(c -> c.saldo() == null ? BigDecimal.ZERO : c.saldo())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static String filasCobranza(
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse> cuentas,
+            boolean alerta) {
+        StringBuilder sb = new StringBuilder();
+        cuentas.stream().limit(MAX_FILAS_CORREO).forEach(c -> sb.append(
+                EmailPlantilla.filaTabla(
+                        c.clienteNombre() == null ? "—" : c.clienteNombre(),
+                        (c.ventaFolio() == null ? "" : c.ventaFolio() + " · ")
+                                + "vence " + fechaCorta(c.fechaVencimiento()),
+                        moneda(c.saldo()), alerta)));
+        if (cuentas.size() > MAX_FILAS_CORREO) {
+            sb.append(EmailPlantilla.filaResto(cuentas.size() - MAX_FILAS_CORREO));
+        }
+        return sb.toString();
+    }
+
+    private static String filasRentas(
+            java.util.List<mx.ferreteria.api.ven.dto.VenDtos.RentaResponse> rentas,
+            boolean alerta) {
+        StringBuilder sb = new StringBuilder();
+        rentas.stream().limit(MAX_FILAS_CORREO).forEach(r -> sb.append(
+                EmailPlantilla.filaTabla(
+                        r.clienteNombre() == null ? "—" : r.clienteNombre(),
+                        (r.folio() == null ? "" : r.folio() + " · ")
+                                + "dev. " + fechaCorta(r.fechaDevEsperada()),
+                        moneda(r.deposito()), alerta)));
+        if (rentas.size() > MAX_FILAS_CORREO) {
+            sb.append(EmailPlantilla.filaResto(rentas.size() - MAX_FILAS_CORREO));
+        }
+        return sb.toString();
+    }
+
+    private static String textoPlanoTablas(String tema, java.time.LocalDate fecha,
+            java.util.List<?> vencidas, java.util.List<?> pendientes) {
+        return "Hola,\n\n" + tema + " al " + fechaCorta(fecha) + ".\n\n"
+                + "Vencidas: " + vencidas.size() + ". Pendientes/próximas: "
+                + pendientes.size() + ".\n\nRevise el detalle en el sistema.\n\n— "
+                + EmailPlantilla.MARCA;
     }
 
     static final int MAX_FILAS_CORREO = 50;
@@ -101,28 +262,6 @@ public class EmailNotificacionSender {
             return "—";
         }
         return fecha.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-    }
-
-    private static String htmlCuentas(java.time.LocalDate fecha,
-            java.util.List<mx.ferreteria.api.com.dto.ComDtos.FacturaVencidaResponse> vencidas,
-            java.util.List<mx.ferreteria.api.com.dto.ComDtos.FacturaPendienteResponse> pendientes) {
-        StringBuilder bloque = new StringBuilder();
-        if (!vencidas.isEmpty()) {
-            bloque.append(seccionTabla("Vencidas — prioridad de pago", true,
-                    new String[] { "Proveedor", "Detalle", "Saldo" },
-                    filasVencidas(vencidas)));
-        }
-        if (!pendientes.isEmpty()) {
-            bloque.append(seccionTabla("Pendientes", false,
-                    new String[] { "Proveedor", "Detalle", "Saldo" },
-                    filasPendientes(pendientes)));
-        }
-        return EmailPlantilla.documento(
-                "Cuentas por pagar al " + fechaCorta(fecha),
-                "Recordatorio de compromisos con proveedores. Revise los saldos y programe "
-                        + "los pagos desde <strong>Compras → Cuentas por pagar</strong>.",
-                bloque.toString(),
-                "Si tiene alguna duda, contacte a su sucursal.");
     }
 
     private static String seccionTabla(String titulo, boolean alerta, String[] encabezados,

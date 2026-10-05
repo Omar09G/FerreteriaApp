@@ -54,6 +54,27 @@ public class NotificacionJobService {
                 fecha.toEpochDay());
     }
 
+    /** Job del recordatorio de cobranza: un registro por día. */
+    @Transactional
+    public NotificacionJob crearCobranza(java.time.LocalDate fecha) {
+        return crear(NotificacionJob.TIPO_COBRANZA, NotificacionJob.REF_COBRANZA,
+                fecha.toEpochDay());
+    }
+
+    /** Job del recordatorio de rentas: un registro por día. */
+    @Transactional
+    public NotificacionJob crearRentas(java.time.LocalDate fecha) {
+        return crear(NotificacionJob.TIPO_RENTAS, NotificacionJob.REF_RENTAS,
+                fecha.toEpochDay());
+    }
+
+    /** Job del recordatorio de stock bajo: un registro por día. */
+    @Transactional
+    public NotificacionJob crearStockBajo(java.time.LocalDate fecha) {
+        return crear(NotificacionJob.TIPO_STOCK_BAJO, NotificacionJob.REF_STOCK,
+                fecha.toEpochDay());
+    }
+
     private NotificacionJob crear(String tipo, String refTipo, Long refId) {
         Optional<NotificacionJob> existente = repo.findByTipoAndRefId(tipo, refId);
         if (existente.isPresent()) {
