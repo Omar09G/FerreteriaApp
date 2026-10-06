@@ -85,7 +85,7 @@ public class TurnoAbiertoInformeService {
                         emails++;
                     } catch (RuntimeException e) {
                         log.warn("turnos email fallo to={} err={}",
-                                mx.ferreteria.api.common.mail.EmailPlantilla
+                                mx.ferreteria.api.common.privacy.DatosSensibles
                                         .enmascararEmail(d.email()),
                                 e.getMessage());
                     }

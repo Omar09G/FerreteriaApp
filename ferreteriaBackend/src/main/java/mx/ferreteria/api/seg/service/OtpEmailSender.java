@@ -43,7 +43,7 @@ public class OtpEmailSender {
     }
 
     static String enmascarar(String email) {
-        return EmailPlantilla.enmascararEmail(email);
+        return mx.ferreteria.api.common.privacy.DatosSensibles.enmascararEmail(email);
     }
 
     private static String textoPlano(String codigo, int ttlMinutos) {

@@ -17,16 +17,10 @@ public final class EmailPlantilla {
 
     /**
      * Enmascara un correo para logs (`ca***@dominio`): evita PII en claro.
+     * Delega en {@link mx.ferreteria.api.common.privacy.DatosSensibles}.
      */
     public static String enmascararEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return "***";
-        }
-        String local = email.substring(0, email.indexOf('@'));
-        String dominio = email.substring(email.indexOf('@'));
-        String visible = local.length() <= 2 ? local.charAt(0) + "*"
-                : local.substring(0, 2) + "***";
-        return visible + dominio;
+        return mx.ferreteria.api.common.privacy.DatosSensibles.enmascararEmail(email);
     }
 
     /** Escapa texto para interpolarlo en HTML sin romper el layout. */

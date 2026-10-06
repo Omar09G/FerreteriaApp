@@ -217,11 +217,7 @@ public class AuthService {
     }
 
     static String enmascararTelefono(String telefono) {
-        String digitos = telefono.replaceAll("\\D", "");
-        if (digitos.length() <= 3) {
-            return "***";
-        }
-        return "***" + digitos.substring(digitos.length() - 3);
+        return mx.ferreteria.api.common.privacy.DatosSensibles.enmascararTelefono(telefono);
     }
 
     /**
