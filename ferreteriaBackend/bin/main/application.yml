@@ -47,6 +47,28 @@ spring:
       max-request-size: ${MULTIPART_MAX_REQUEST:6MB}
   jackson:
     default-property-inclusion: non_null
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:ferreteria}
+    password: ${RABBITMQ_PASSWORD:ferreteria}
+    listener:
+      simple:
+        # No conectar al broker en local/tests salvo que APP_NOTIF_ENABLED=true
+        # (compose lo setea). Evita fallo de arranque sin RabbitMQ.
+        auto-startup: ${APP_NOTIF_ENABLED:false}
+        default-requeue-rejected: false
+        acknowledge-mode: auto
+        prefetch: 5
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
+    protocol: smtp
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
 
 server:
   port: ${SERVER_PORT:8080}
@@ -64,6 +86,19 @@ app:
     access-minutes: ${ACCESS_MINUTES:15}  # 15 min (antes 480 = 8h, ventana de exposición excesiva)
     refresh-hours: ${REFRESH_HOURS:8}     # 8h (antes 72h); refresh rotativo ya gestiona sesión larga
   zona: ${ZONA:America/Mexico_City}
+  # Proveedor de fotos: minio (default) o floci (S3 local). El bean activo
+  # se elige con @ConditionalOnProperty; MinIO sigue vivo como rollback.
+  storage:
+    proveedor: ${STORAGE_PROVEEDOR:minio}
+    floci:
+      endpoint: ${FLOCI_ENDPOINT:http://localhost:4566}
+      public-url: ${FLOCI_PUBLIC_URL:http://localhost:4566}
+      region: ${FLOCI_REGION:us-east-1}
+      access-key: ${FLOCI_ACCESS_KEY:test}
+      secret-key: ${FLOCI_SECRET_KEY:test}
+      bucket: ${FLOCI_BUCKET:ferreteria-fotos}
+      bucket-documentos: ${FLOCI_DOCS_BUCKET:ferreteria-tickets}
+      max-mb: ${FLOCI_MAX_MB:5}
   # Fotos de entidades (clientes, proveedores, empleados, productos).
   # ENDPOINT lo usa el backend en red interna; PUBLIC_URL es lo que se
   # guarda en foto_url/imagen_url y resuelve el browser.
@@ -73,6 +108,7 @@ app:
     access-key: ${MINIO_ACCESS_KEY:minioadmin}
     secret-key: ${MINIO_SECRET_KEY:minioadmin}
     bucket: ${MINIO_BUCKET:ferreteria-fotos}
+    bucket-documentos: ${MINIO_DOCS_BUCKET:ferreteria-tickets}
     max-mb: ${MINIO_MAX_MB:5}
   # CORS restrictivo por origen configurado (PLAN M7)
   cors:
@@ -94,6 +130,81 @@ app:
       path: ${AUTH_COOKIE_PATH:/}
       refresh-name: ${AUTH_COOKIE_REFRESH_NAME:rt}
       access-name: ${AUTH_COOKIE_ACCESS_NAME:at}
+    # Segundo factor OTP por email/WhatsApp (TTL 5 min, máx 5 intentos,
+    # reenvío mínimo cada 60 s). Código de 6 dígitos, un solo uso.
+    otp:
+      ttl-minutos: ${OTP_TTL_MINUTOS:5}
+      max-intentos: ${OTP_MAX_INTENTOS:5}
+      reenvio-segundos: ${OTP_REENVIO_SEGUNDOS:60}
+      longitud: 6
+    # Login con Google (redirect iniciado por el backend; el secret nunca
+    # llega al frontend). Sin estas vars el botón Google responde OAUTH_FALLIDO.
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/auth/oauth2/google/callback}
+      frontend-callback-url: ${GOOGLE_FRONTEND_CALLBACK:http://localhost:5173/auth/callback}
+  # Notificaciones (ticket PDF + nómina pagada). false = no publica/consume
+  # RabbitMQ; el job queda PENDIENTE y el reconciler lo reintenta al habilitar.
+  notif:
+    enabled: ${APP_NOTIF_ENABLED:false}
+    rabbit:
+      exchange: ${RABBITMQ_EXCHANGE:ferreteria.events}
+      routing-key: ${RABBITMQ_ROUTING_KEY:notificacion.job}
+      queue: ${RABBITMQ_QUEUE:notificacion.jobs}
+      dlq: ${RABBITMQ_DLQ:notificacion.jobs.dlq}
+    max-intentos: ${NOTIF_MAX_INTENTOS:5}
+    telegram:
+      bot-token: ${TELEGRAM_BOT_TOKEN:}
+      chat-id: ${TELEGRAM_CHAT_ID:}
+    whatsapp:
+      # enabled=false: no-op. enabled=true + proveedor=mock (default):
+      # captura en WhatsAppMockBandeja (cero infra, par de Mailpit).
+      # proveedor=evolution + base-url/instancia/api-key: envío real
+      # Evolution API (sendText/sendMedia) sin cambiar código.
+      enabled: ${WHATSAPP_ENABLED:false}
+      proveedor: ${WHATSAPP_PROVEEDOR:mock}
+      base-url: ${WHATSAPP_BASE_URL:}
+      instancia: ${WHATSAPP_INSTANCIA:ferreteria}
+      api-key: ${WHATSAPP_API_KEY:}
+      prefijo-por-defecto: ${WHATSAPP_PREFIJO:521}
+  # Informe diario del dashboard (KPIs + cierre) por correo y WhatsApp.
+  # dashboard-job-enabled=false (default): solo envío manual (botón).
+  # =true: además el JOB lo envía 1 vez al día a dashboard-cron en dashboard-zona.
+  # Requiere app.notif.enabled=true (APP_NOTIF_ENABLED), si no el JOB no arranca
+  # y el botón responde 503 SERVICIO_NO_DISPONIBLE.
+  informes:
+    dashboard-cron: ${INFORME_DASHBOARD_CRON:0 0 7 * * *}
+    dashboard-zona: ${INFORME_DASHBOARD_ZONA:America/Mexico_City}
+    dashboard-job-enabled: ${INFORME_DASHBOARD_JOB_ENABLED:false}
+    # Recordatorio diario de cuentas por pagar (vencidas + pendientes) a
+    # GERENTES y ADMINISTRADORES, 09:00 por defecto. Activo salvo que se
+    # apague explícito; requiere app.notif.enabled=true (APP_NOTIF_ENABLED).
+    cuentas-pagar-cron: ${CUENTAS_PAGAR_CRON:0 0 9 * * *}
+    cuentas-pagar-zona: ${CUENTAS_PAGAR_ZONA:America/Mexico_City}
+    cuentas-pagar-job-enabled: ${CUENTAS_PAGAR_JOB_ENABLED:true}
+    # Cobranza (cuentas vencidas + pendientes) 09:05 y rentas (vencidas +
+    # próximas a devolver) 09:10, a GERENTES y ADMINISTRADORES por correo
+    # (detalle) y WhatsApp (resumen). Activos salvo apagado explícito;
+    # requieren app.notif.enabled=true (APP_NOTIF_ENABLED).
+    cobranza-cron: ${COBRANZA_CRON:0 5 9 * * *}
+    cobranza-zona: ${COBRANZA_ZONA:America/Mexico_City}
+    cobranza-job-enabled: ${COBRANZA_JOB_ENABLED:true}
+    rentas-cron: ${RENTAS_CRON:0 10 9 * * *}
+    rentas-zona: ${RENTAS_ZONA:America/Mexico_City}
+    rentas-job-enabled: ${RENTAS_JOB_ENABLED:true}
+    # Stock bajo (resumen + Excel del detalle) 09:15, a GERENTES y
+    # ADMINISTRADORES. Activo salvo apagado explícito; requiere
+    # app.notif.enabled=true (APP_NOTIF_ENABLED).
+    stock-cron: ${STOCK_CRON:0 15 9 * * *}
+    stock-zona: ${STOCK_ZONA:America/Mexico_City}
+    stock-job-enabled: ${STOCK_JOB_ENABLED:true}
+    # Aviso nocturno de turnos abiertos (corte sin cerrar) 21:00, a GERENTES
+    # y ADMINISTRADORES. Activo salvo apagado explícito; requiere
+    # app.notif.enabled=true (APP_NOTIF_ENABLED).
+    turno-cron: ${TURNO_CRON:0 0 21 * * *}
+    turno-zona: ${TURNO_ZONA:America/Mexico_City}
+    turno-job-enabled: ${TURNO_JOB_ENABLED:true}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

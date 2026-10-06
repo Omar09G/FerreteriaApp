@@ -47,6 +47,7 @@ CREATE SCHEMA IF NOT EXISTS com;   -- compras
 CREATE SCHEMA IF NOT EXISTS ven;   -- ventas
 CREATE SCHEMA IF NOT EXISTS fin;   -- finanzas / caja
 CREATE SCHEMA IF NOT EXISTS fis;   -- fiscal (catálogos SAT e impuestos)
+CREATE SCHEMA IF NOT EXISTS notif; -- notificaciones (jobs ticket/nómina)
 
 -- ----------------------------------------------------------------------------
 -- 4. Extensiones
@@ -206,6 +207,7 @@ CREATE TABLE IF NOT EXISTS rh.empleados (
     nss           VARCHAR(11)  UNIQUE,
     telefono      VARCHAR(20),
     email         VARCHAR(120) UNIQUE,
+    whatsapp      VARCHAR(20), -- V21: notificación de nómina pagada
     foto_url      TEXT CHECK (foto_url IS NULL OR foto_url ~ '^https?://|^data:image/'),
     calle         VARCHAR(150),
     colonia       VARCHAR(100),
@@ -253,8 +255,33 @@ CREATE TABLE IF NOT EXISTS seg.usuarios (
     locked_until          TIMESTAMPTZ,
     ultimo_login  TIMESTAMPTZ,
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    eliminado_en  TIMESTAMPTZ
+    eliminado_en  TIMESTAMPTZ,
+    -- V23: login con Google (redirect) + OTP de segundo factor.
+    auth_provider VARCHAR(10) NOT NULL DEFAULT 'local'
+        CHECK (auth_provider IN ('local', 'google')),
+    google_sub    VARCHAR(255) UNIQUE,
+    email_verificado_en TIMESTAMPTZ
 );
+
+-- V23: desafíos OTP de un solo uso (TTL 5 min, máx 5 intentos).
+CREATE TABLE IF NOT EXISTS seg.otp_desafios (
+    otp_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    challenge_id VARCHAR(64) NOT NULL UNIQUE,
+    usuario_id   INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id) ON DELETE CASCADE,
+    proposito    VARCHAR(16) NOT NULL DEFAULT 'login'
+                 CHECK (proposito IN ('login')),
+    canal        VARCHAR(16) NOT NULL DEFAULT 'email'
+                 CHECK (canal IN ('email', 'whatsapp')),
+    codigo_hash  VARCHAR(100),
+    intentos     INTEGER NOT NULL DEFAULT 0 CHECK (intentos >= 0),
+    expira_en    TIMESTAMPTZ NOT NULL DEFAULT now() + interval '5 minutes',
+    enviado_en   TIMESTAMPTZ,
+    consumido_en TIMESTAMPTZ,
+    revocado_en  TIMESTAMPTZ,
+    creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_otp_usuario
+    ON seg.otp_desafios(usuario_id, proposito, creado_en DESC);
 
 CREATE TABLE IF NOT EXISTS seg.usuario_roles (
     usuario_id INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id) ON DELETE CASCADE,
@@ -344,6 +371,9 @@ CREATE TABLE IF NOT EXISTS inv.productos (
 CREATE INDEX IF NOT EXISTS idx_productos_categoria ON inv.productos(categoria_id);
 CREATE INDEX IF NOT EXISTS idx_productos_marca     ON inv.productos(marca_id);
 CREATE INDEX IF NOT EXISTS idx_productos_nombre_trgm ON inv.productos USING GIN (nombre gin_trgm_ops);
+-- V27: búsqueda difusa del POS (word_similarity <% sobre nombre insensible a mayúsculas).
+CREATE INDEX IF NOT EXISTS idx_productos_nombre_lower_trgm
+    ON inv.productos USING GIN (lower(nombre) gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_productos_activos ON inv.productos(categoria_id) WHERE activo;
 
 CREATE TABLE IF NOT EXISTS inv.producto_codigos_barras (
@@ -692,6 +722,9 @@ CREATE TABLE IF NOT EXISTS ven.cotizaciones (
     estado            VARCHAR(12) NOT NULL DEFAULT 'VIGENTE'
                       CHECK (estado IN ('VIGENTE','CONVERTIDA','EXPIRADA','CANCELADA')),
     venta_generada_id BIGINT,
+    -- V29: foto del cliente como evidencia (misma regla que foto_url).
+    evidencia_url     TEXT
+                      CHECK (evidencia_url IS NULL OR evidencia_url ~ '^https?://|^data:image/'),
     usuario_id        INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id)
 );
 CREATE INDEX IF NOT EXISTS idx_cotizaciones_fecha_local
@@ -732,7 +765,9 @@ CREATE TABLE IF NOT EXISTS ven.ventas (
     usuario_id      INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     turno_caja_id   BIGINT,
     PRIMARY KEY (venta_id, fecha_local), -- PK compuesta requerida por PARTITION BY RANGE
-    notas           TEXT
+    notas           TEXT,
+    motivo_cancelacion TEXT, -- V20: motivo informado en PATCH /ventas/{id}/cancelar (NULL = no cancelada)
+    pdf_url         TEXT -- V21: URL/key del ticket PDF tras subida a object storage
 ) PARTITION BY RANGE (fecha_local);
 -- Particiones default: ven.ventas_antigua (todo lo previo) + mes actual.
 -- Para prod, crear particiones mensuales via pg_partman:
@@ -747,6 +782,33 @@ CREATE INDEX IF NOT EXISTS idx_ventas_cliente_fecha ON ven.ventas(cliente_id, fe
 -- PASO 3: índices para filtros por fecha_local (rango por día sin desfase TZ)
 CREATE INDEX IF NOT EXISTS idx_ventas_fecha_local ON ven.ventas(fecha_local DESC);
 CREATE INDEX IF NOT EXISTS idx_ventas_almacen_fecha_local ON ven.ventas(almacen_id, fecha_local DESC);
+
+-- V21: cola de trabajos de notificación (ticket PDF / nómina pagada).
+-- V22: + informe diario del dashboard (INFORME_DASHBOARD / INFORME).
+-- V24: + recordatorio diario de cuentas por pagar (CUENTAS_PAGAR / CUENTAS).
+-- V25: + recordatorios diarios de cobranza y rentas (COBRANZA/RENTAS).
+-- V26: + recordatorio diario de stock bajo (STOCK_BAJO / STOCK).
+-- V28: + aviso nocturno de turnos abiertos (TURNO_ABIERTO / TURNO).
+CREATE TABLE IF NOT EXISTS notif.notificacion_jobs (
+    job_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    tipo         VARCHAR(32) NOT NULL
+                 CHECK (tipo IN ('VENTA_TICKET','NOMINA_PAGADA','INFORME_DASHBOARD','CUENTAS_PAGAR',
+                                'COBRANZA','RENTAS','STOCK_BAJO','TURNO_ABIERTO')),
+    ref_tipo     VARCHAR(16) NOT NULL
+                 CHECK (ref_tipo IN ('VENTA','NOMINA','INFORME','CUENTAS','COBRANZA','RENTAS','STOCK',
+                                    'TURNO')),
+    ref_id       BIGINT NOT NULL,
+    estado       VARCHAR(16) NOT NULL DEFAULT 'PENDIENTE'
+                 CHECK (estado IN ('PENDIENTE','PROCESANDO','ENVIADA','ERROR')),
+    pdf_url      TEXT,
+    intentos     INTEGER NOT NULL DEFAULT 0 CHECK (intentos >= 0),
+    ultimo_error TEXT,
+    creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    enviado_en   TIMESTAMPTZ,
+    CONSTRAINT uq_notif_job_ref UNIQUE (tipo, ref_id)
+);
+CREATE INDEX IF NOT EXISTS idx_notif_jobs_estado
+    ON notif.notificacion_jobs(estado, creado_en);
 
 CREATE TABLE IF NOT EXISTS ven.venta_detalles (
     venta_detalle_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
