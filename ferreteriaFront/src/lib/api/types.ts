@@ -277,6 +277,19 @@ export interface RentasInformeEstado {
   enviadoEn: string | null;
 }
 
+/** Narrativa del día: hoy vs ayer + producto estrella. */
+export interface Narrativa {
+  fecha: string;
+  ventasHoy: number;
+  ventasAyer: number;
+  cambioPct: number | null;
+  ticketsHoy: number;
+  ticketPromedioHoy: number;
+  productoEstrella: string | null;
+  estrellaIngreso: number | null;
+  estrellaUnidades: number | null;
+}
+
 /** Recordatorio diario de stock bajo (JOB + botón manual). */
 export interface StockBajoInformeEnvio {
   fecha: string;
@@ -289,6 +302,26 @@ export interface StockBajoInformeEnvio {
 }
 
 export interface StockBajoInformeEstado {
+  fecha: string;
+  yaEnviado: boolean;
+  estado: string | null;
+  enviadoEn: string | null;
+}
+
+export interface TicketWhatsappResponse {
+  enviado: boolean;
+}
+
+/** Aviso nocturno de turnos abiertos (JOB + botón manual). */
+export interface TurnoAbiertoInformeEnvio {
+  fecha: string;
+  destinatarios: number;
+  emailsEnviados: number;
+  whatsappsEnviados: number;
+  turnos: number;
+}
+
+export interface TurnoAbiertoInformeEstado {
   fecha: string;
   yaEnviado: boolean;
   estado: string | null;
@@ -1188,6 +1221,7 @@ export interface Cotizacion {
   estado: string;
   ventaGeneradaId: number | null;
   usuarioId: number;
+  evidenciaUrl?: string | null;
   detalles: CotizacionDetalle[];
 }
 
@@ -1195,6 +1229,7 @@ export interface CotizacionRequest {
   clienteId?: number;
   vigenciaHasta?: string;
   detalles: { productoId: number; cantidad: number; precioUnitario: number }[];
+  evidenciaUrl?: string;
 }
 
 /* ── Devoluciones ───────────────────────────────────────────────── */

@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.web.PageQuery;
+import mx.ferreteria.api.common.web.RateLimited;
 import mx.ferreteria.api.ven.dto.VenDtos;
 import mx.ferreteria.api.ven.service.VentaService;
 
@@ -73,5 +74,14 @@ public class VentaController {
             @PathVariable Long id,
             @Valid @RequestBody VenDtos.VentaCancelRequest req) {
         return service.cancel(id, req.motivo());
+    }
+
+    @PostMapping("/{id}/ticket-whatsapp")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA')")
+    @RateLimited("auth")
+    public VenDtos.TicketWhatsappResponse ticketWhatsapp(
+            @PathVariable Long id,
+            @Valid @RequestBody VenDtos.TicketWhatsappRequest req) {
+        return service.enviarTicketWhatsapp(id, req.telefono());
     }
 }

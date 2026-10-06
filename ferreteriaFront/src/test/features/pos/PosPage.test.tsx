@@ -22,6 +22,7 @@ vi.mock("@/lib/api/caja", async (importOriginal) => ({
 }));
 vi.mock("@/lib/api/venta", () => ({
 	apiCheckout: vi.fn(),
+	apiEnviarTicketWhatsapp: vi.fn(),
 	apiVentas: vi.fn(),
 }));
 vi.mock("@/lib/api/promociones", async (importOriginal) => ({
@@ -87,7 +88,11 @@ import {
 	apiProductos,
 } from "@/lib/api/catalogo";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
-import { apiCheckout, apiVentas } from "@/lib/api/venta";
+import {
+  apiCheckout,
+  apiEnviarTicketWhatsapp,
+  apiVentas,
+} from "@/lib/api/venta";
 import { apiEvaluarPromociones } from "@/lib/api/promociones";
 import { apiGetTicketConfig } from "@/lib/api/ticketConfig";
 import { getSilentEnabled, printViaSerial } from "@/lib/print/serial";
@@ -890,6 +895,70 @@ describe("PosPage (profundización)", () => {
 		expect(String(writeFile.mock.calls[0][1])).toMatch(
 			/^pos-venta-\d{4}-\d{2}-\d{2}\.xlsx$/,
 		);
+	});
+});
+
+describe("PosPage (ticket por WhatsApp)", () => {
+	async function venderHastaDialogo(
+		user: ReturnType<typeof userEvent.setup>,
+	) {
+		vi.mocked(apiCheckout).mockResolvedValue(VENTA);
+		apiProductosMock.mockResolvedValue(pageOf([PRODUCTO]));
+		renderPagina(<PosPage />);
+		await screen.findByRole("option", { name: "Matriz" });
+		await user.selectOptions(
+			screen.getByLabelText(/Almacén \/ punto de venta/),
+			"1",
+		);
+		await screen.findByRole("option", { name: "Caja 1 · Matriz" });
+		await user.selectOptions(screen.getByLabelText(/Caja donde operas/), "1");
+		await screen.findByText(/abierto desde/);
+		await user.type(screen.getByLabelText(/Buscar producto/), "Martillo{enter}");
+		const lista = await screen.findByRole("listbox", {
+			name: "Resultados de búsqueda",
+		});
+		await user.click(within(lista).getByRole("button", { name: /Martillo/ }));
+		await user.type(screen.getByLabelText("Recibido"), "100");
+		await user.click(screen.getByRole("button", { name: /Cobrar/ }));
+		await user.click(
+			within(await screen.findByRole("dialog", { name: "Confirmar venta" })).getByRole(
+				"button",
+				{ name: /Confirmar y cobrar/ },
+			),
+		);
+		expect(
+			await screen.findByRole("dialog", { name: "Venta registrada" }),
+		).toBeInTheDocument();
+	}
+
+	it("envía el ticket al número capturado", async () => {
+		const user = userEvent.setup();
+		vi.mocked(apiEnviarTicketWhatsapp).mockResolvedValue({ enviado: true });
+		await venderHastaDialogo(user);
+		await user.type(
+			screen.getByLabelText(/WhatsApp del cliente/),
+			"5215500000001",
+		);
+		await user.click(screen.getByRole("button", { name: "WhatsApp" }));
+		await waitFor(() => {
+			expect(apiEnviarTicketWhatsapp).toHaveBeenCalledWith(
+				1,
+				"5215500000001",
+			);
+		});
+		await waitFor(() =>
+			expect(vi.mocked(Swal.fire)).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: expect.stringContaining("Ticket enviado por WhatsApp"),
+				}),
+			),
+		);
+	});
+
+	it("exige capturar el número antes de enviar", async () => {
+		const user = userEvent.setup();
+		await venderHastaDialogo(user);
+		expect(screen.getByRole("button", { name: "WhatsApp" })).toBeDisabled();
 	});
 });
 

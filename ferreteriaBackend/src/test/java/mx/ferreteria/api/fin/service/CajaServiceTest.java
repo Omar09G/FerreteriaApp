@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -106,6 +107,32 @@ class CajaServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result.get(0).nombre()).isEqualTo("Caja Central");
         assertThat(result.get(0).almacenNombre()).isEqualTo("Almacen Central");
+    }
+
+    // ─── turnosAbiertos ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("turnosAbiertos: retorna abiertos con nombre de caja en lote")
+    void turnosAbiertos_ok() {
+        when(turnoRepo.findByEstadoOrderByAperturaEnAsc("ABIERTO")).thenReturn(List.of(
+                sampleTurno(10L, "ABIERTO"), sampleTurno(11L, "ABIERTO")));
+        when(cajaRepo.findAllById(any())).thenReturn(List.of(
+                sampleCaja(1, "Caja Central")));
+
+        var result = service.turnosAbiertos();
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).cajaNombre()).isEqualTo("Caja Central");
+        assertThat(result.get(0).estado()).isEqualTo("ABIERTO");
+    }
+
+    @Test
+    @DisplayName("turnosAbiertos: sin abiertos retorna vacío sin tocar cajas")
+    void turnosAbiertos_vacio() {
+        when(turnoRepo.findByEstadoOrderByAperturaEnAsc("ABIERTO")).thenReturn(List.of());
+
+        assertThat(service.turnosAbiertos()).isEmpty();
+        verify(cajaRepo, never()).findAllById(any());
     }
 
     // ─── abrirTurno ─────────────────────────────────────────────────

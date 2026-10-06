@@ -122,7 +122,7 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
 ### Backend (`ferreteriaBackend/`)
 
 ```bash
-./gradlew test                                         # suite completa (~1168 tests)
+./gradlew test                                         # suite completa (~1195 tests)
 ./gradlew test --tests "mx.ferreteria.api.ven.service.VentaServiceTest"  # uno solo
 ./gradlew build                                        # compila + tests + gates JaCoCo
 ```

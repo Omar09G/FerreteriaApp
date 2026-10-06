@@ -14,6 +14,7 @@ import {
   apiDevolucionesDeVenta,
   apiEnviarCobranzaInforme,
   apiEnviarRentasInforme,
+  apiEnviarTicketWhatsapp,
   apiEstadoCobranzaInforme,
   apiEstadoRentasInforme,
   apiPagoCliente,
@@ -300,6 +301,20 @@ describe("devoluciones", () => {
     const err = apiError("DEVOLUCION_FUERA_PLAZO");
     mock.get.mockRejectedValueOnce(err);
     await expect(apiDevolucionesDeVenta(1)).rejects.toBe(err);
+  });
+});
+
+describe("ticket por WhatsApp", () => {
+  it("apiEnviarTicketWhatsapp hace POST con el teléfono", async () => {
+    mock.post.mockResolvedValueOnce({
+      data: { success: true, data: { enviado: true } },
+    });
+    await expect(
+      apiEnviarTicketWhatsapp(1, "5215500000001"),
+    ).resolves.toEqual({ enviado: true });
+    expect(mock.post).toHaveBeenCalledWith("/ventas/1/ticket-whatsapp", {
+      telefono: "5215500000001",
+    });
   });
 });
 

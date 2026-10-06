@@ -145,6 +145,59 @@ class ReporteServiceTest {
     }
 
     @Test
+    @DisplayName("narrativa: compara hoy vs ayer y rescata la estrella")
+    void narrativa() {
+        var hoy = new ResumenDashboardResponse(
+                new BigDecimal("12300.00"), 23L, new BigDecimal("534.78"),
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L, 0L, 0L,
+                BigDecimal.ZERO);
+        var ayer = new ResumenDashboardResponse(
+                new BigDecimal("10000.00"), 20L, new BigDecimal("500.00"),
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L, 0L, 0L,
+                BigDecimal.ZERO);
+        var estrella = new TopProductoResponse(
+                LocalDate.of(2026, 10, 5), 1L, "CEM-01", "Cemento Tolteca",
+                "Materiales", new BigDecimal("40.000"), new BigDecimal("5000.00"),
+                new BigDecimal("4000.00"), new BigDecimal("1000.00"), 1L, 1L);
+        doReturn(hoy).when(reportRepo).findResumenDashboard(LocalDate.of(2026, 10, 5),
+                LocalDate.of(2026, 10, 5));
+        doReturn(ayer).when(reportRepo).findResumenDashboard(LocalDate.of(2026, 10, 4),
+                LocalDate.of(2026, 10, 4));
+        doReturn(java.util.List.of(estrella)).when(reportRepo)
+                .findTopProductos(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 5));
+
+        var result = service.narrativa(LocalDate.of(2026, 10, 5));
+
+        assertThat(result.ventasHoy()).isEqualByComparingTo("12300.00");
+        assertThat(result.ventasAyer()).isEqualByComparingTo("10000.00");
+        assertThat(result.cambioPct()).isEqualByComparingTo("23.0");
+        assertThat(result.ticketsHoy()).isEqualTo(23L);
+        assertThat(result.productoEstrella()).isEqualTo("Cemento Tolteca");
+        assertThat(result.estrellaIngreso()).isEqualByComparingTo("5000.00");
+    }
+
+    @Test
+    @DisplayName("narrativa sin ventas ayer: cambioPct null; sin ventas hoy: sin estrella")
+    void narrativa_bordes() {
+        var cero = new ResumenDashboardResponse(
+                BigDecimal.ZERO, 0L, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, 0L, 0L, 0L,
+                BigDecimal.ZERO);
+        doReturn(cero).when(reportRepo).findResumenDashboard(
+                LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 5));
+        doReturn(cero).when(reportRepo).findResumenDashboard(
+                LocalDate.of(2026, 10, 4), LocalDate.of(2026, 10, 4));
+        doReturn(java.util.List.of()).when(reportRepo)
+                .findTopProductos(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 5));
+
+        var result = service.narrativa(LocalDate.of(2026, 10, 5));
+
+        assertThat(result.cambioPct()).isNull();
+        assertThat(result.productoEstrella()).isNull();
+        assertThat(result.ventasHoy()).isEqualByComparingTo("0");
+    }
+
+    @Test
     @DisplayName("cierreDiario: mapea vista acotada por rango")
     void cierreDiario() {
         CierreDiarioResponse r = new CierreDiarioResponse(

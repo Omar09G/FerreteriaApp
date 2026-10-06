@@ -6,6 +6,7 @@ import {
   Banknote,
   BarChart3,
   Lock,
+  Send,
   Settings2,
   Unlock,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
 } from "recharts";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useT } from "@/i18n";
 import { useNavigate } from "react-router-dom";
 import { useTieneRol } from "@/store/auth";
 import { esApiError } from "@/lib/api/client";
@@ -29,7 +31,9 @@ import {
   apiCajas,
   apiCerrarTurno,
   apiCortes,
+  apiEnviarTurnoAbiertoInforme,
   apiEsperadoTurno,
+  apiEstadoTurnoAbiertoInforme,
   apiMovimientosTurno,
   apiRegistrarMovimiento,
   apiTurnos,
@@ -38,12 +42,14 @@ import type {
   CorteCaja,
   CorteRequest,
   MovimientoCajaRequest,
+  TurnoAbiertoInformeEstado,
   TurnoCaja,
 } from "@/lib/api/types";
 import { formatoFechaHora, formatoMoneda, formatoNumero } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -759,10 +765,65 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
 
 export default function CajaPage() {
   useDocumentTitle("Caja y cortes");
-  const { error: mostrarError, success: mostrarExito } = useToast();
+  const t = useT();
+  const {
+    error: mostrarError,
+    success: mostrarExito,
+    loading: mostrarCarga,
+  } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const puedeAdministrar = useTieneRol(["ADMINISTRADOR"]);
+  const puedeAvisar = useTieneRol(["ADMINISTRADOR", "GERENTE"]);
+  const [enviando, setEnviando] = useState(false);
+  const [confirmarReenvio, setConfirmarReenvio] =
+    useState<TurnoAbiertoInformeEstado | null>(null);
+
+  // Un solo toast de carga por flujo: se cierra el de verificación antes de
+  // abrir el de envío (si no, se apilan) y `enviando` cubre ambas fases para
+  // que un doble clic no dispare dos verificaciones.
+  async function enviarAviso() {
+    if (enviando) return;
+    setEnviando(true);
+    const cerrarCarga = mostrarCarga(t("caja.avisoTurnos.verificando"));
+    try {
+      const estadoInforme = await apiEstadoTurnoAbiertoInforme();
+      cerrarCarga();
+      if (estadoInforme.yaEnviado) {
+        setConfirmarReenvio(estadoInforme);
+        return;
+      }
+      await ejecutarEnvio();
+    } catch (e) {
+      cerrarCarga();
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function ejecutarEnvio() {
+    if (enviando) return;
+    setEnviando(true);
+    const cerrarCarga = mostrarCarga(t("caja.avisoTurnos.enviandoAviso"));
+    try {
+      const r = await apiEnviarTurnoAbiertoInforme();
+      setConfirmarReenvio(null);
+      mostrarExito(
+        t("caja.avisoTurnos.exito", {
+          destinatarios: r.destinatarios,
+          correos: r.emailsEnviados,
+          whatsapp: r.whatsappsEnviados,
+          turnos: r.turnos,
+        }),
+      );
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      cerrarCarga();
+      setEnviando(false);
+    }
+  }
 
   const hoyLocal = () => {
     const d = new Date();
@@ -922,14 +983,29 @@ export default function CajaPage() {
             cortes.
           </p>
         </div>
-        {puedeAdministrar && (
-          <Button
-            variant="secondary"
-            onClick={() => navigate("/caja/cajas/admin")}
-          >
-            <Settings2 className="h-4 w-4" /> Administrar cajas
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {puedeAvisar && (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={enviando}
+              onClick={enviarAviso}
+            >
+              <Send className="h-4 w-4" aria-hidden />
+              {enviando
+                ? t("caja.avisoTurnos.enviando")
+                : t("caja.avisoTurnos.boton")}
+            </Button>
+          )}
+          {puedeAdministrar && (
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/caja/cajas/admin")}
+            >
+              <Settings2 className="h-4 w-4" /> Administrar cajas
+            </Button>
+          )}
+        </div>
       </header>
 
       <Card>
@@ -1353,6 +1429,24 @@ export default function CajaPage() {
       >
         {cortes.data && <GraficaCortes cortes={cortes.data.data} />}
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmarReenvio !== null}
+        title={t("caja.avisoTurnos.yaEnviado")}
+        confirmLabel={t("caja.avisoTurnos.reenviar")}
+        tone="primary"
+        busy={enviando}
+        onCancel={() => !enviando && setConfirmarReenvio(null)}
+        onConfirm={ejecutarEnvio}
+      >
+        <p className="text-sm text-ink">
+          {t("caja.avisoTurnos.confirmar", {
+            cuando: confirmarReenvio?.enviadoEn
+              ? ` el ${formatoFechaHora(confirmarReenvio.enviadoEn)}`
+              : "",
+          })}
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }

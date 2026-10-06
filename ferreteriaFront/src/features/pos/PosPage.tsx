@@ -12,6 +12,7 @@ import {
   Minus,
   Plus,
   Search,
+  Send,
   ShoppingBasket,
   Store,
   Tag,
@@ -22,8 +23,10 @@ import {
 import { Link } from "react-router-dom";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useT } from "@/i18n";
 import { useHotkey } from "@/hooks/useHotkey";
 import { useDebounce } from "@/hooks/useDebounce";
+import { resumenVenta } from "@/lib/pos";
 import { esApiError } from "@/lib/api/client";
 import {
   apiBuscarProductos,
@@ -33,7 +36,11 @@ import {
   apiGetCliente,
 } from "@/lib/api/catalogo";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
-import { apiCheckout, apiVentas } from "@/lib/api/venta";
+import {
+  apiCheckout,
+  apiEnviarTicketWhatsapp,
+  apiVentas,
+} from "@/lib/api/venta";
 import { apiEvaluarPromociones } from "@/lib/api/promociones";
 import { useAuthStore } from "@/store/auth";
 import {
@@ -87,8 +94,6 @@ function lineaDeProducto(p: Producto): Linea {
   };
 }
 
-const IVA_TASA = 0.16;
-
 /** Heurística: sólo dígitos, ≥6 caracteres. Cubre EAN-8/13, UPC, code128 numéricos y códigos internos. */
 const PATRON_CODIGO_BARRAS = /^\d{6,}$/;
 
@@ -123,32 +128,46 @@ function cargarPreferencias(): PosPreferencias {
   }
 }
 
-interface Resumen {
-  total: number;
-  subtotalSinIva: number;
-  ivaEstimado: number;
-}
-
-function resumenVenta(lineas: Linea[]): Resumen {
-  let total = 0;
-  let subtotalSinIva = 0;
-  let ivaEstimado = 0;
-  for (const l of lineas) {
-    const importe = l.cantidad * l.precioUnitario;
-    total += importe;
-    if (l.aplicaIva) {
-      const base = importe / (1 + IVA_TASA);
-      subtotalSinIva += base;
-      ivaEstimado += importe - base;
-    } else {
-      subtotalSinIva += importe;
-    }
-  }
-  return { total, subtotalSinIva, ivaEstimado };
+function TicketWhatsappForm({
+  telefonoInicial,
+  enviando,
+  onEnviar,
+}: {
+  telefonoInicial: string;
+  enviando: boolean;
+  onEnviar: (telefono: string) => void;
+}) {
+  // Estado local a propósito: si viviera en PosPage, cada tecla re-renderiza
+  // el diálogo y su efecto de foco roba el cursor a mitad del tipeo.
+  const t = useT();
+  const [telefono, setTelefono] = useState(telefonoInicial);
+  return (
+    <>
+      <Input
+        label={t("pos.ticketWhatsapp.telefono")}
+        value={telefono}
+        onChange={(e) => setTelefono(e.target.value.replace(/[^\d+]/g, "").slice(0, 16))}
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder="5215500000000"
+        maxLength={16}
+        className="w-44"
+      />
+      <Button
+        onClick={() => onEnviar(telefono.trim())}
+        disabled={enviando || telefono.trim() === ""}
+        variant="secondary"
+      >
+        <Send className="h-4 w-4" />
+        {enviando ? t("pos.ticketWhatsapp.enviando") : t("pos.ticketWhatsapp.enviar")}
+      </Button>
+    </>
+  );
 }
 
 export default function PosPage() {
   useDocumentTitle("Punto de venta");
+  const t = useT();
   const { error: mostrarError, success: mostrarExito } = useToast();
   const queryClient = useQueryClient();
   const usuario = useAuthStore((s) => s.usuario);
@@ -176,6 +195,21 @@ export default function PosPage() {
   const [ventasDiaAbierto, setVentasDiaAbierto] = useState(false);
   const [ventaResultado, setVentaResultado] = useState<Venta | null>(null);
   const [ultimoEntregado, setUltimoEntregado] = useState<number | null>(null);
+  const [waEnviando, setWaEnviando] = useState(false);
+
+  const enviarTicketWhatsapp = async (telefono: string) => {
+    if (!ventaResultado || waEnviando) return;
+    setWaEnviando(true);
+    try {
+      await apiEnviarTicketWhatsapp(ventaResultado.ventaId, telefono);
+      const cola = telefono.length > 4 ? telefono.slice(-4) : telefono;
+      mostrarExito(t("pos.ticketWhatsapp.exito", { telefono: `***${cola}` }));
+    } catch (e) {
+      mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
+    } finally {
+      setWaEnviando(false);
+    }
+  };
   const ticketConfig = useQuery({
     queryKey: ["ticket-config-pos", almacenId],
     queryFn: () =>
@@ -1682,7 +1716,23 @@ export default function PosPage() {
                 </div>
               </div>
             )}
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap items-end justify-center gap-2">
+              {ventaResultado &&
+                (() => {
+                  const waInicial =
+                    ventaResultado.cliente?.whatsapp ??
+                    (clienteTicket.data?.clienteId === ventaResultado.clienteId
+                      ? (clienteTicket.data.whatsapp ?? "")
+                      : "");
+                  return (
+                    <TicketWhatsappForm
+                      key={`${ventaResultado.ventaId}|${waInicial}`}
+                      telefonoInicial={waInicial}
+                      enviando={waEnviando}
+                      onEnviar={enviarTicketWhatsapp}
+                    />
+                  );
+                })()}
               <Button
                 onClick={() => printTicketById("ticket-print-venta")}
                 variant="primary"

@@ -94,6 +94,8 @@ class VentaServiceTest {
         @Mock
         mx.ferreteria.api.ven.pdf.TicketPdfService ticketPdfService;
         @Mock
+        mx.ferreteria.api.ven.service.VentaTicketPort ticketPort;
+        @Mock
         jakarta.persistence.EntityManager em;
 
         @InjectMocks
@@ -1235,6 +1237,29 @@ class VentaServiceTest {
                 assertThatThrownBy(() -> service.ticketPdf(99L))
                                 .isInstanceOf(RecursoNoEncontradoException.class)
                                 .extracting("errorCode").isEqualTo(ErrorCode.RECURSO_NO_ENCONTRADO);
+                verify(ticketPdfService, never()).generarTicketPdf(anyLong());
+        }
+
+        // ── ticket-whatsapp ─────────────────────────────────────────────
+
+        @Test
+        @DisplayName("enviarTicketWhatsapp ok: delega al puerto y responde enviado")
+        void ticketWhatsapp_ok() {
+                when(ventaRepo.existsById(1L)).thenReturn(true);
+
+                var r = service.enviarTicketWhatsapp(1L, "5215500000001");
+
+                assertThat(r.enviado()).isTrue();
+                verify(ticketPort).enviarWhatsapp(1L, "5215500000001");
+        }
+
+        @Test
+        @DisplayName("enviarTicketWhatsapp delega la existencia+envío al puerto (404 único)")
+        void ticketWhatsapp_delegaExistencia() {
+                var r = service.enviarTicketWhatsapp(99L, "5215500000001");
+
+                assertThat(r.enviado()).isTrue();
+                verify(ticketPort).enviarWhatsapp(99L, "5215500000001");
                 verify(ticketPdfService, never()).generarTicketPdf(anyLong());
         }
 

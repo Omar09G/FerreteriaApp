@@ -61,8 +61,12 @@ src/
 - Reportes y cortes por rango de fechas (default = hoy).
 - POS con sugerencias difusas en vivo (`GET /productos/buscar`, tolera typos,
   debounce 200 ms, clic agrega al ticket; Enter/F3 conservan la búsqueda manual).
-- Recordatorios diarios: botón "Enviar recordatorio" en Compras → Cuentas por
-  pagar, Ventas → Cobranza, Ventas → Rentas e Inventario → Existencias
-  (`POST /reportes/{cuentas-pagar,cobranza,rentas,stock-bajo}/informe`); antes
-  pregunta `GET .../estado` y, si hoy ya se envió, pide confirmación con
-  `ConfirmDialog` (mismo patrón del informe del dashboard).
+- Recordatorios diarios: botón "Enviar recordatorio"/"Avisar" en Compras →
+  Cuentas por pagar, Ventas → Cobranza, Ventas → Rentas, Inventario →
+  Existencias y Caja (`POST /reportes/{cuentas-pagar,cobranza,rentas,
+  stock-bajo,turnos}/informe`); antes pregunta `GET .../estado` y, si hoy ya
+  se envió, pide confirmación con `ConfirmDialog` (mismo patrón del informe
+  del dashboard).
+- POS: sugerencias difusas en vivo, ticket por WhatsApp desde el diálogo de
+  venta registrada, dashboard con banner narrativo (hoy vs ayer + estrella),
+  cotizaciones con foto de evidencia.

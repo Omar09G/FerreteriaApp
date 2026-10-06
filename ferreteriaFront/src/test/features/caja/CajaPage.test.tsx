@@ -13,7 +13,9 @@ import {
 	apiCajas,
 	apiCerrarTurno,
 	apiCortes,
+	apiEnviarTurnoAbiertoInforme,
 	apiEsperadoTurno,
+	apiEstadoTurnoAbiertoInforme,
 	apiMovimientosTurno,
 	apiRegistrarMovimiento,
 	apiTurnos,
@@ -128,6 +130,8 @@ vi.mock("@/lib/api/caja", () => ({
 	apiAbrirTurno: vi.fn(),
 	apiRegistrarMovimiento: vi.fn(),
 	apiCerrarTurno: vi.fn(),
+	apiEnviarTurnoAbiertoInforme: vi.fn(),
+	apiEstadoTurnoAbiertoInforme: vi.fn(),
 }));
 
 function renderPage() {
@@ -830,5 +834,83 @@ describe("CajaPage (profundización)", () => {
 				}),
 			),
 		);
+	});
+});
+
+describe("CajaPage (aviso de turnos)", () => {
+	function comoGerente() {
+		useAuthStore.setState({
+			autenticado: true,
+			usuario: { roles: ["GERENTE"] } as never,
+		});
+	}
+
+	it("oculta el botón sin rol GERENTE/ADMINISTRADOR", async () => {
+		renderPage();
+		expect(screen.getByRole("heading", { name: "Caja" })).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /turnos abiertos/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("envía directo cuando hoy aún no se avisó", async () => {
+		const user = userEvent.setup();
+		comoGerente();
+		vi.mocked(apiEstadoTurnoAbiertoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: false,
+			estado: null,
+			enviadoEn: null,
+		});
+		vi.mocked(apiEnviarTurnoAbiertoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 2,
+			emailsEnviados: 2,
+			whatsappsEnviados: 1,
+			turnos: 3,
+		});
+		renderPage();
+		await user.click(
+			screen.getByRole("button", { name: /turnos abiertos/i }),
+		);
+		await waitFor(() => {
+			expect(apiEstadoTurnoAbiertoInforme).toHaveBeenCalledOnce();
+			expect(apiEnviarTurnoAbiertoInforme).toHaveBeenCalledOnce();
+		});
+		await waitFor(() =>
+			expect(vi.mocked(Swal.fire)).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: expect.stringContaining("Aviso enviado a 2 destinatarios"),
+				}),
+			),
+		);
+	});
+
+	it("avisa si ya se envió y reenvía solo al confirmar", async () => {
+		const user = userEvent.setup();
+		comoGerente();
+		vi.mocked(apiEstadoTurnoAbiertoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			yaEnviado: true,
+			estado: "ENVIADA",
+			enviadoEn: "2026-10-05T21:00:00",
+		});
+		vi.mocked(apiEnviarTurnoAbiertoInforme).mockResolvedValueOnce({
+			fecha: "2026-10-05",
+			destinatarios: 1,
+			emailsEnviados: 1,
+			whatsappsEnviados: 0,
+			turnos: 1,
+		});
+		renderPage();
+		await user.click(
+			screen.getByRole("button", { name: /turnos abiertos/i }),
+		);
+		expect(await screen.findByText("Aviso ya enviado")).toBeInTheDocument();
+		expect(apiEnviarTurnoAbiertoInforme).not.toHaveBeenCalled();
+		await user.click(screen.getByRole("button", { name: /reenviar/i }));
+		await waitFor(() => {
+			expect(apiEnviarTurnoAbiertoInforme).toHaveBeenCalledOnce();
+		});
 	});
 });

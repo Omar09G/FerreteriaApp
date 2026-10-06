@@ -15,6 +15,20 @@ public final class EmailPlantilla {
     private EmailPlantilla() {
     }
 
+    /**
+     * Enmascara un correo para logs (`ca***@dominio`): evita PII en claro.
+     */
+    public static String enmascararEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        String local = email.substring(0, email.indexOf('@'));
+        String dominio = email.substring(email.indexOf('@'));
+        String visible = local.length() <= 2 ? local.charAt(0) + "*"
+                : local.substring(0, 2) + "***";
+        return visible + dominio;
+    }
+
     /** Escapa texto para interpolarlo en HTML sin romper el layout. */
     public static String escapar(String texto) {
         if (texto == null) {

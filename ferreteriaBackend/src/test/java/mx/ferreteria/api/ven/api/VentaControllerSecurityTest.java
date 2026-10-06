@@ -53,4 +53,14 @@ class VentaControllerSecurityTest {
         assertThat(ann).isNotNull();
         assertThat(ann.value()).contains("VENDEDOR").contains("GERENTE").contains("ADMINISTRADOR");
     }
+
+    @Test
+    @DisplayName("ticketWhatsapp requiere VENDEDOR/GERENTE/ADMINISTRADOR (no solo authenticated)")
+    void ticketWhatsappRequiereRol() throws Exception {
+        var m = VentaController.class.getMethod("ticketWhatsapp", Long.class,
+                mx.ferreteria.api.ven.dto.VenDtos.TicketWhatsappRequest.class);
+        PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).contains("VENDEDOR").contains("GERENTE").contains("ADMINISTRADOR");
+    }
 }

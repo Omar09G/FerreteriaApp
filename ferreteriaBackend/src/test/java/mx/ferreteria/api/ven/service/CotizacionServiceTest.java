@@ -167,13 +167,50 @@ class CotizacionServiceTest {
 
         VenDtos.CotizacionRequest req = new VenDtos.CotizacionRequest(
                 null, null,
-                List.of(new VenDtos.CotizacionDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("30.00"))));
+                List.of(new VenDtos.CotizacionDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("30.00"))),
+                null);
 
         var resp = service.create(req);
 
         assertThat(resp.cotizacionId()).isEqualTo(5L);
         verify(repo).save(any(Cotizacion.class));
         verify(detalleRepo).save(any(CotizacionDetalle.class));
+    }
+
+    @Test
+    @DisplayName("create con evidencia: persiste la URL y la devuelve")
+    void create_conEvidencia() {
+        Cotizacion saved = sampleCotizacion(5L, "COT-005", "VIGENTE");
+        when(repo.save(any(Cotizacion.class))).thenReturn(saved);
+        stubToResponse();
+
+        var resp = service.create(new VenDtos.CotizacionRequest(
+                null, null,
+                List.of(new VenDtos.CotizacionDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("30.00"))),
+                "https://minio.local/fotos/llave.jpg"));
+
+        ArgumentCaptor<Cotizacion> captor = ArgumentCaptor.forClass(Cotizacion.class);
+        verify(repo).save(captor.capture());
+        assertThat(captor.getValue().getEvidenciaUrl())
+                .isEqualTo("https://minio.local/fotos/llave.jpg");
+        assertThat(resp.cotizacionId()).isEqualTo(5L);
+    }
+
+    @Test
+    @DisplayName("create sin evidencia: guarda null")
+    void create_sinEvidencia() {
+        Cotizacion saved = sampleCotizacion(5L, "COT-005", "VIGENTE");
+        when(repo.save(any(Cotizacion.class))).thenReturn(saved);
+        stubToResponse();
+
+        service.create(new VenDtos.CotizacionRequest(
+                null, null,
+                List.of(new VenDtos.CotizacionDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("30.00"))),
+                "  "));
+
+        ArgumentCaptor<Cotizacion> captor = ArgumentCaptor.forClass(Cotizacion.class);
+        verify(repo).save(captor.capture());
+        assertThat(captor.getValue().getEvidenciaUrl()).isNull();
     }
 
     // ── convertirAVenta ─────────────────────────────────────────────
@@ -372,7 +409,8 @@ class CotizacionServiceTest {
 
         var resp = service.create(new VenDtos.CotizacionRequest(
                 null, vigencia,
-                List.of(new VenDtos.CotizacionDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("30.00")))));
+                List.of(new VenDtos.CotizacionDetalleRequest(1L, new BigDecimal("2.000"), new BigDecimal("30.00"))),
+                null));
 
         ArgumentCaptor<Cotizacion> captor = ArgumentCaptor.forClass(Cotizacion.class);
         verify(repo).save(captor.capture());
@@ -396,7 +434,8 @@ class CotizacionServiceTest {
                 null, null,
                 List.of(
                         new VenDtos.CotizacionDetalleRequest(1L, new BigDecimal("3.000"), new BigDecimal("25.00")),
-                        new VenDtos.CotizacionDetalleRequest(2L, new BigDecimal("2.000"), new BigDecimal("30.00")))));
+                        new VenDtos.CotizacionDetalleRequest(2L, new BigDecimal("2.000"), new BigDecimal("30.00"))),
+                null));
 
         ArgumentCaptor<CotizacionDetalle> captor = ArgumentCaptor.forClass(CotizacionDetalle.class);
         verify(detalleRepo, org.mockito.Mockito.times(2)).save(captor.capture());

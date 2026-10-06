@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -62,5 +63,26 @@ describe("Dialog", () => {
 		const overlay = container.firstElementChild as HTMLElement;
 		fireEvent.mouseDown(overlay);
 		expect(onClose).toHaveBeenCalledTimes(1);
+	});
+
+	it("no roba el foco al escribir si el padre re-renderiza (inputs usables)", async () => {
+		const user = userEvent.setup();
+		function Padre() {
+			const [v, setV] = React.useState("");
+			return (
+				<Dialog open onClose={() => {}} title="T">
+					<label>
+						Monto
+						<input value={v} onChange={(e) => setV(e.target.value)} />
+					</label>
+				</Dialog>
+			);
+		}
+		render(<Padre />);
+		const input = screen.getByLabelText("Monto");
+		await user.click(input);
+		await user.keyboard("500");
+		expect(input).toHaveValue("500");
+		expect(document.activeElement).toBe(input);
 	});
 });

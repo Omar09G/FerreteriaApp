@@ -70,6 +70,7 @@ public class VentaService {
     private final PromocionService promocionService;
     private final ApplicationEventPublisher events;
     private final TicketPdfService ticketPdfService;
+    private final VentaTicketPort ticketPort;
 
     @PersistenceContext
     private EntityManager em;
@@ -256,6 +257,16 @@ public class VentaService {
             throw new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO);
         }
         return ticketPdfService.generarTicketPdf(id);
+    }
+
+    /**
+     * Envía el ticket por WhatsApp al momento (mostrador). El envío vive
+     * tras {@link VentaTicketPort} para no acoplar {@code ven} con notif;
+     * el adapter valida la existencia (404 único, sin doble lectura).
+     */
+    public VenDtos.TicketWhatsappResponse enviarTicketWhatsapp(Long id, String telefono) {
+        ticketPort.enviarWhatsapp(id, telefono);
+        return new VenDtos.TicketWhatsappResponse(true);
     }
 
     private Map<Long, BigDecimal> distribuirDescuento(mx.ferreteria.api.ven.entity.Promocion promo,

@@ -15,6 +15,7 @@ import type {
 	RentaRequest,
 	RentasInformeEnvio,
 	RentasInformeEstado,
+	TicketWhatsappResponse,
 	Venta,
 	VentaCancelRequest,
 	VentaRequest,
@@ -51,6 +52,18 @@ export async function apiCancelarVenta(
 	const { data } = await http.patch<Envelope<Venta>>(
 		`/ventas/${id}/cancelar`,
 		body,
+	);
+	return data.data;
+}
+
+/** Envía el ticket de la venta por WhatsApp al número indicado. */
+export async function apiEnviarTicketWhatsapp(
+	ventaId: number,
+	telefono: string,
+): Promise<TicketWhatsappResponse> {
+	const { data } = await http.post<Envelope<TicketWhatsappResponse>>(
+		`/ventas/${ventaId}/ticket-whatsapp`,
+		{ telefono },
 	);
 	return data.data;
 }

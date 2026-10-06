@@ -43,14 +43,7 @@ public class OtpEmailSender {
     }
 
     static String enmascarar(String email) {
-        if (email == null || !email.contains("@")) {
-            return "***";
-        }
-        String local = email.substring(0, email.indexOf('@'));
-        String dominio = email.substring(email.indexOf('@'));
-        String visible = local.length() <= 2 ? local.charAt(0) + "*"
-                : local.substring(0, 2) + "***";
-        return visible + dominio;
+        return EmailPlantilla.enmascararEmail(email);
     }
 
     private static String textoPlano(String codigo, int ttlMinutos) {

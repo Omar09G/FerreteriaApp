@@ -50,6 +50,22 @@ public final class ReportDtos {
                         Long devolucionesEnRango, BigDecimal totalDevueltoEnRango) {
         }
 
+        /**
+         * Narrativa del día para el dashboard ("hoy vs ayer + estrella"):
+         * ventas y tickets de hoy y ayer, cambio porcentual (null si ayer
+         * fue 0) y producto con más ingreso del día (null si no hubo ventas).
+         */
+        public record NarrativaResponse(
+                        LocalDate fecha,
+                        BigDecimal ventasHoy, BigDecimal ventasAyer,
+                        BigDecimal cambioPct,
+                        Long ticketsHoy,
+                        BigDecimal ticketPromedioHoy,
+                        String productoEstrella,
+                        BigDecimal estrellaIngreso,
+                        BigDecimal estrellaUnidades) {
+        }
+
         public record CierreDiarioResponse(
                         LocalDate fecha, Long numCortes, Long tickets,
                         BigDecimal totalVendido, BigDecimal utilidadBruta,

@@ -242,6 +242,51 @@ public class EmailNotificacionSender {
                 + EmailPlantilla.MARCA;
     }
 
+    /**
+     * Aviso de turnos abiertos (corte sin cerrar): tabla con caja, apertura
+     * y monto. Sin PDF: el corte se hace en el sistema.
+     */
+    public void sendTurnoAbierto(String to, java.time.LocalDate fecha,
+            java.util.List<mx.ferreteria.api.fin.dto.FinDtos.TurnoCajaResponse> turnos) {
+        StringBuilder filas = new StringBuilder();
+        turnos.stream().limit(MAX_FILAS_CORREO).forEach(t -> filas.append(
+                EmailPlantilla.filaTabla(
+                        t.cajaNombre() == null ? "—" : t.cajaNombre(),
+                        "Apertura " + fechaHoraCorta(t.aperturaEn()),
+                        moneda(t.montoApertura()), true)));
+        if (turnos.size() > MAX_FILAS_CORREO) {
+            filas.append(EmailPlantilla.filaResto(turnos.size() - MAX_FILAS_CORREO));
+        }
+        String titulo = "Turnos abiertos al " + fechaCorta(fecha);
+        String intro = turnos.size() == 1
+                ? "Hay <strong>1 caja sin cerrar</strong>. Realice el corte desde "
+                        + "<strong>Caja</strong> antes de terminar el día."
+                : "Hay <strong>" + turnos.size() + " cajas sin cerrar</strong>. Realice "
+                        + "los cortes desde <strong>Caja</strong> antes de terminar el día.";
+        String plano = "Hola,\n\nTurnos abiertos al " + fechaCorta(fecha) + ":\n\n"
+                + turnos.stream().limit(MAX_FILAS_CORREO)
+                        .map(t -> "- " + (t.cajaNombre() == null ? "—" : t.cajaNombre())
+                                + " (apertura " + fechaHoraCorta(t.aperturaEn()) + ", "
+                                + monedaOGuion(t.montoApertura()) + ")")
+                        .collect(java.util.stream.Collectors.joining("\n"))
+                + "\n\nRealice los cortes en Caja.\n\n— " + EmailPlantilla.MARCA;
+        enviarTablas(to,
+                "Corte pendiente — " + turnos.size()
+                        + (turnos.size() == 1 ? " caja abierta" : " cajas abiertas"),
+                titulo, intro, turnos, java.util.List.of(),
+                () -> seccionTabla("Cajas sin cerrar", true,
+                        new String[] { "Caja", "Detalle", "Monto" }, filas.toString()),
+                () -> "", plano);
+    }
+
+    static String fechaHoraCorta(java.time.Instant instante) {
+        if (instante == null) {
+            return "—";
+        }
+        return instante.atZone(mx.ferreteria.api.common.time.ZonaHoraria.ZONA)
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"));
+    }
+
     static final int MAX_FILAS_CORREO = 50;
 
     static String asuntoCuentas(
@@ -312,7 +357,7 @@ public class EmailNotificacionSender {
             sb.append("VENCIDAS (prioridad de pago):\n");
             vencidas.stream().limit(MAX_FILAS_CORREO).forEach(v -> sb.append("- ")
                     .append(v.proveedor()).append(" — ").append(v.compraFolio())
-                    .append(" — ").append(moneda(v.saldo()))
+                    .append(" — ").append(monedaOGuion(v.saldo()))
                     .append(" (").append(v.diasVencido()).append("d de retraso)\n"));
             sb.append("\n");
         }
@@ -320,7 +365,7 @@ public class EmailNotificacionSender {
             sb.append("PENDIENTES:\n");
             pendientes.stream().limit(MAX_FILAS_CORREO).forEach(p -> sb.append("- ")
                     .append(p.proveedor()).append(" — ").append(p.compraFolio())
-                    .append(" — ").append(moneda(p.saldo()))
+                    .append(" — ").append(monedaOGuion(p.saldo()))
                     .append(" (vence ").append(fechaCorta(p.fechaVencimiento())).append(")\n"));
         }
         sb.append("\nRevise los saldos en Compras → Cuentas por pagar.\n\n— ")
@@ -333,6 +378,12 @@ public class EmailNotificacionSender {
             return null;
         }
         return NumberFormat.getCurrencyInstance(new Locale("es", "MX")).format(total);
+    }
+
+    /** Moneda para texto plano: nunca "null", usa em-dash. */
+    private static String monedaOGuion(BigDecimal total) {
+        String monto = moneda(total);
+        return monto == null ? "—" : monto;
     }
 
     private static String titulo(String tipo) {

@@ -24,7 +24,10 @@ public final class VenDtos {
     public record CotizacionRequest(
         @Positive Long clienteId,
         LocalDate vigenciaHasta,
-        @NotNull @NotEmpty @Valid List<CotizacionDetalleRequest> detalles
+        @NotNull @NotEmpty @Valid List<CotizacionDetalleRequest> detalles,
+        // Solo URLs de /archivos (https://): data:image/ se rechaza para no
+        // almacenar blobs gigantes ni SVG con script. Ver V29 + CHECK en BD.
+        @Pattern(regexp = "^$|^https?://.*") @Size(max = 2000) String evidenciaUrl
     ) {}
     public record CotizacionDetalleRequest(
         @NotNull @Positive Long productoId,
@@ -38,6 +41,7 @@ public final class VenDtos {
         BigDecimal subtotal, BigDecimal iva, BigDecimal total,
         String estado, Long ventaGeneradaId,
         Integer usuarioId,
+        String evidenciaUrl,
         List<CotizacionDetalleResponse> detalles
     ) {}
     public record CotizacionDetalleResponse(
@@ -102,6 +106,12 @@ public final class VenDtos {
     ) {}
     public record VentaCancelRequest(
         @NotBlank @Size(max = 500) String motivo
+    ) {}
+    public record TicketWhatsappRequest(
+        @NotBlank @Pattern(regexp = "^\\+?[0-9]{7,15}$") String telefono
+    ) {}
+    public record TicketWhatsappResponse(
+        boolean enviado
     ) {}
 
     // ─── Devolución ─────────────────────────────────────────────────

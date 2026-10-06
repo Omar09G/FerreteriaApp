@@ -1,5 +1,6 @@
 package mx.ferreteria.api.ven.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -57,6 +58,38 @@ public class ReporteService {
     @RegisterReflectionForBinding(ReportDtos.ResumenDashboardResponse.class)
     public ReportDtos.ResumenDashboardResponse resumenDashboard(LocalDate inicio, LocalDate fin) {
         return reportRepo.findResumenDashboard(inicio, fin);
+    }
+
+    /**
+     * Narrativa del día: compara hoy contra ayer y rescata el producto con
+     * más ingreso del día. Reutiliza los reportes existentes (mismos
+     * números que el dashboard y el top).
+     */
+    @RegisterReflectionForBinding(ReportDtos.NarrativaResponse.class)
+    public ReportDtos.NarrativaResponse narrativa(LocalDate fecha) {
+        LocalDate dia = fecha != null ? fecha
+                : mx.ferreteria.api.common.time.ZonaHoraria.hoy();
+        var hoy = reportRepo.findResumenDashboard(dia, dia);
+        var ayer = reportRepo.findResumenDashboard(dia.minusDays(1), dia.minusDays(1));
+        var estrella = reportRepo.findTopProductos(dia, dia).stream().findFirst();
+        BigDecimal ventasHoy = nuloCero(hoy.ventasEnRango());
+        BigDecimal ventasAyer = nuloCero(ayer.ventasEnRango());
+        BigDecimal cambio = null;
+        if (ventasAyer.signum() != 0) {
+            cambio = ventasHoy.subtract(ventasAyer)
+                    .multiply(new java.math.BigDecimal("100"))
+                    .divide(ventasAyer.abs(), 1, java.math.RoundingMode.HALF_UP);
+        }
+        return new ReportDtos.NarrativaResponse(dia, ventasHoy, ventasAyer, cambio,
+                hoy.ticketsEnRango() == null ? 0L : hoy.ticketsEnRango(),
+                nuloCero(hoy.ticketPromedioEnRango()),
+                estrella.map(ReportDtos.TopProductoResponse::producto).orElse(null),
+                estrella.map(ReportDtos.TopProductoResponse::ingresoTotal).orElse(null),
+                estrella.map(ReportDtos.TopProductoResponse::unidadesVendidas).orElse(null));
+    }
+
+    private static BigDecimal nuloCero(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     @RegisterReflectionForBinding(ReportDtos.CierreDiarioResponse.class)

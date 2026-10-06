@@ -18,12 +18,14 @@ import mx.ferreteria.api.ven.service.ReporteService;
  * fechaInicio/fechaFin (default: hoy) para ver un día o rango en particular.
  * Las consultas quedan acotadas por fecha (índices del día, mejor performance)
  * y los rankings se recalculan dentro del rango (ver INC-33).
+ *
+ * <p>Cada método declara sus propios roles (sin {@code PreAuthorize} a nivel
+ * clase: Spring los evaluaría en AND y el de clase recortaría a los demás).
  */
 @RestController
 @RequestMapping("/api/v1/reportes")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
 public class ReporteController {
 
     private final ReporteService service;
@@ -89,6 +91,13 @@ public class ReporteController {
             @RequestParam(name = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
         var rango = rango(fechaInicio, fechaFin);
         return service.resumenDashboard(rango.inicio(), rango.fin());
+    }
+
+    @GetMapping("/narrativa")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
+    public ReportDtos.NarrativaResponse narrativa(
+            @RequestParam(name = "fecha", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return service.narrativa(fecha);
     }
 
     @GetMapping("/cierre-diario")

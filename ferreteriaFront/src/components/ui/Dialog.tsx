@@ -32,13 +32,24 @@ export function Dialog({
 	const t = useT();
 	const sectionRef = useRef<HTMLElement>(null);
 	const previouslyFocused = useRef<HTMLElement | null>(null);
+	// El callback en ref + deps [open] hacen el efecto independiente del
+	// memoizado del React Compiler: solo corre al abrir/cerrar, nunca en
+	// re-renders del padre (antes, un onClose inline re-enfocaba el primer
+	// elemento a cada tecla, robando el cursor en inputs del diálogo).
+	const onCloseRef = useRef(onClose);
+	useEffect(() => {
+		onCloseRef.current = onClose;
+	});
+	const fueAbierto = useRef(false);
 
 	useEffect(() => {
 		if (!open) return;
+		if (fueAbierto.current) return;
+		fueAbierto.current = true;
 		previouslyFocused.current = document.activeElement as HTMLElement | null;
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
-				onClose();
+				onCloseRef.current();
 				return;
 			}
 			if (e.key === "Tab" && sectionRef.current) {
@@ -79,8 +90,9 @@ export function Dialog({
 			document.removeEventListener("keydown", onKey);
 			document.body.style.overflow = prev;
 			previouslyFocused.current?.focus();
+			fueAbierto.current = false;
 		};
-	}, [open, onClose]);
+	}, [open]);
 
 	if (!open) return null;
 

@@ -5,10 +5,12 @@ import {
   Banknote,
   Boxes,
   ClipboardList,
+  Minus,
   ReceiptText,
   Send,
   ShoppingBag,
   Store,
+  TrendingDown,
   TrendingUp,
   Undo2,
 } from "lucide-react";
@@ -17,17 +19,57 @@ import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
-import { formatoFechaHora, formatoMoneda } from "@/lib/format";
-import { apiDashboard, apiEnviarInforme, apiInformeEstado } from "@/lib/api/reportes";
+import { formatoFechaHora, formatoMoneda, hoyLocal } from "@/lib/format";
+import {
+  apiDashboard,
+  apiEnviarInforme,
+  apiInformeEstado,
+  apiNarrativa,
+} from "@/lib/api/reportes";
 import { esApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Spinner } from "@/components/ui/Spinner";
 import { useTieneRol } from "@/store/auth";
-import type { InformeEstado } from "@/lib/api/types";
+import { useT } from "@/i18n";
+import type { InformeEstado, Narrativa } from "@/lib/api/types";
 
 import { useToast } from "@/components/ui/Toast";
+
+function fraseNarrativa(
+  t: (clave: string, vars?: Record<string, string | number>) => string,
+  n: Narrativa,
+): { icono: "up" | "down" | "flat"; lineas: string[] } {
+  const lineas: string[] = [];
+  let icono: "up" | "down" | "flat" = "flat";
+  if (n.ticketsHoy === 0) {
+    lineas.push(t("dashboard.narrativa.sinVentas"));
+  } else if (n.cambioPct === null) {
+    lineas.push(t("dashboard.narrativa.sinAyer"));
+  } else if (n.cambioPct > 0) {
+    icono = "up";
+    lineas.push(
+      t("dashboard.narrativa.masQueAyer", { pct: String(n.cambioPct) }),
+    );
+  } else if (n.cambioPct < 0) {
+    icono = "down";
+    lineas.push(
+      t("dashboard.narrativa.menosQueAyer", { pct: String(Math.abs(n.cambioPct)) }),
+    );
+  } else {
+    lineas.push(t("dashboard.narrativa.igualQueAyer"));
+  }
+  if (n.productoEstrella) {
+    lineas.push(
+      t("dashboard.narrativa.estrella", {
+        producto: n.productoEstrella,
+        ingreso: formatoMoneda(n.estrellaIngreso ?? 0),
+      }),
+    );
+  }
+  return { icono, lineas };
+}
 
 function KPI({
   icono,
@@ -68,6 +110,7 @@ function KPI({
 
 export default function DashboardPage() {
   useDocumentTitle("Inicio");
+  const t = useT();
   const { success: mostrarExito, error: mostrarError, loading: mostrarCarga } = useToast();
   const [rango] = useState<RangoFechas>(() => rangoFechas());
   const puedeEnviar = useTieneRol(["ADMINISTRADOR", "GERENTE"]);
@@ -78,6 +121,17 @@ export default function DashboardPage() {
     queryKey: ["dashboard", rango.inicio, rango.fin],
     queryFn: () => apiDashboard(rango.inicio, rango.fin),
   });
+
+  // Narrativa solo cuando el rango es hoy (banner "hoy vs ayer + estrella").
+  const esHoy = rango.inicio === rango.fin && rango.fin === hoyLocal();
+  const narrativa = useQuery({
+    queryKey: ["narrativa"],
+    queryFn: apiNarrativa,
+    enabled: esHoy,
+    staleTime: 60_000,
+  });
+  const relato =
+    esHoy && narrativa.data ? fraseNarrativa(t, narrativa.data) : null;
 
   useEffect(() => {
     if (error)
@@ -144,6 +198,42 @@ export default function DashboardPage() {
       </header>
 
       {isLoading && <Spinner label="Cargando indicadores…" />}
+
+      {relato && (
+        <Card
+          className="border-l-4 border-l-primary"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-3">
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                relato.icono === "down"
+                  ? "bg-red-100 text-red-700"
+                  : relato.icono === "up"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-orange-100 text-primary"
+              }`}
+              aria-hidden
+            >
+              {relato.icono === "down" ? (
+                <TrendingDown className="h-5 w-5" />
+              ) : relato.icono === "up" ? (
+                <TrendingUp className="h-5 w-5" />
+              ) : (
+                <Minus className="h-5 w-5" />
+              )}
+            </span>
+            <div className="min-w-0 space-y-1">
+              {relato.lineas.map((linea) => (
+                <p key={linea} className="text-sm font-medium text-ink">
+                  {linea}
+                </p>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {data && (
         <>

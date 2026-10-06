@@ -41,6 +41,9 @@ public class Cotizacion {
 
     private Long ventaGeneradaId;
 
+    /** Foto del cliente como evidencia (URL de /archivos/imagen). */
+    private String evidenciaUrl;
+
     @Column(nullable = false)
     private Integer usuarioId;
 }

@@ -22,6 +22,10 @@ vi.mock("@/lib/api/caja", async (importOriginal) => ({
 	apiCajas: vi.fn(),
 	apiTurnoActual: vi.fn(),
 }));
+vi.mock("@/lib/api/archivos", async (importOriginal) => ({
+	...((await importOriginal()) as Record<string, unknown>),
+	apiSubirImagen: vi.fn(),
+}));
 
 const writeFile = vi.fn();
 vi.mock("xlsx", () => ({
@@ -38,6 +42,7 @@ import {
 	apiCotizaciones,
 	apiCrearCotizacion,
 } from "@/lib/api/venta";
+import { apiSubirImagen } from "@/lib/api/archivos";
 import { apiAlmacenes, apiClientes, apiProductos } from "@/lib/api/catalogo";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
 import CotizacionesPage from "@/features/ventas/CotizacionesPage";
@@ -61,6 +66,16 @@ vi.mocked(apiTurnoActual);
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	Object.defineProperty(URL, "createObjectURL", {
+		value: vi.fn(() => "blob:mock"),
+		writable: true,
+		configurable: true,
+	});
+	Object.defineProperty(URL, "revokeObjectURL", {
+		value: vi.fn(),
+		writable: true,
+		configurable: true,
+	});
 	apiCotizacionesMock.mockResolvedValue(pageOf([COTIZACION]));
 	apiAlmacenesMock.mockResolvedValue([ALMACEN]);
 	apiClientesMock.mockResolvedValue(pageOf([CLIENTE]));
@@ -108,6 +123,25 @@ describe("CotizacionesPage", () => {
 		).toBeInTheDocument();
 		expect(screen.getByText("Martillo")).toBeInTheDocument();
 		expect(screen.getByText("Cant.")).toBeInTheDocument();
+	});
+
+	it("muestra la foto de evidencia en el detalle cuando existe", async () => {
+		const user = userEvent.setup();
+		apiCotizacionesMock.mockResolvedValueOnce(
+			pageOf([
+				{ ...COTIZACION, evidenciaUrl: "https://cdn.tienda.com/llave.jpg" },
+			]),
+		);
+		renderPagina(<CotizacionesPage />);
+		await user.click(
+			await screen.findByRole("button", { name: "Ver detalles" }),
+		);
+		expect(
+			await screen.findByText("Detalles de cotización"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("img", { name: "Foto de evidencia del cliente" }),
+		).toHaveAttribute("src", "https://cdn.tienda.com/llave.jpg");
 	});
 
 	it("filtra por estado y muestra Limpiar para quitar el filtro", async () => {
@@ -252,6 +286,60 @@ describe("CotizacionesPage (profundización)", () => {
 			expect.objectContaining({
 				text: expect.stringContaining("Cotización creada"),
 			}),
+		);
+	});
+
+	it("muestra el campo de foto de evidencia en el formulario", async () => {
+		const user = userEvent.setup();
+		renderPagina(<CotizacionesPage />);
+		await user.click(screen.getByRole("button", { name: /Nueva cotización/ }));
+		const dialogo = await screen.findByRole("dialog", {
+			name: "Nueva cotización",
+		});
+		expect(
+			within(dialogo).getByText("Foto de evidencia (opcional)"),
+		).toBeInTheDocument();
+	});
+
+	it("sube la foto y la liga a la cotización creada", async () => {
+		const user = userEvent.setup();
+		const apiCrearMock = vi.mocked(apiCrearCotizacion);
+		apiCrearMock.mockResolvedValue({ ...COTIZACION, cotizacionId: 9 } as never);
+		vi.mocked(apiSubirImagen).mockResolvedValue("https://cdn.tienda.com/llave.jpg");
+		apiProductosMock.mockResolvedValue(pageOf([PRODUCTO]));
+		renderPagina(<CotizacionesPage />);
+		await user.click(screen.getByRole("button", { name: /Nueva cotización/ }));
+		const dialogo = await screen.findByRole("dialog", {
+			name: "Nueva cotización",
+		});
+		const inputFile = dialogo.querySelector(
+			'input[type="file"]',
+		) as HTMLInputElement;
+		expect(inputFile).not.toBeNull();
+		await user.upload(
+			inputFile,
+			new File(["x"], "llave.jpg", { type: "image/jpeg" }),
+		);
+		await waitFor(() =>
+			expect(apiSubirImagen).toHaveBeenCalledTimes(1),
+		);
+		await user.type(
+			within(dialogo).getByLabelText(/Buscar producto/),
+			"Martillo",
+		);
+		await user.click(within(dialogo).getByRole("button", { name: /Buscar/ }));
+		await user.click(
+			await within(dialogo).findByRole("button", { name: /Martillo/ }),
+		);
+		await user.click(
+			within(dialogo).getByRole("button", { name: /Registrar cotización/ }),
+		);
+		await waitFor(() =>
+			expect(apiCrearMock).toHaveBeenCalledWith(
+				expect.objectContaining({
+					evidenciaUrl: "https://cdn.tienda.com/llave.jpg",
+				}),
+			),
 		);
 	});
 

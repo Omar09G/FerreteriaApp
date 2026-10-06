@@ -176,6 +176,27 @@ public class CajaService {
         }
 
         /**
+         * Turnos actualmente ABIERTOS en todas las cajas (aviso nocturno de
+         * corte sin cerrar), con nombre de caja en lote.
+         */
+        @Transactional(readOnly = true)
+        public List<FinDtos.TurnoCajaResponse> turnosAbiertos() {
+                List<TurnoCaja> turnos = turnoRepo.findByEstadoOrderByAperturaEnAsc(ESTADO_ABIERTO);
+                if (turnos.isEmpty()) {
+                        return List.of();
+                }
+                Set<Integer> cajaIds = turnos.stream().map(TurnoCaja::getCajaId)
+                                .collect(Collectors.toSet());
+                Map<Integer, Caja> cajas = cajaRepo.findAllById(cajaIds).stream()
+                                .collect(Collectors.toMap(Caja::getCajaId, Function.identity()));
+                return turnos.stream().map(t -> toTurnoResponse(t,
+                                cajas.containsKey(t.getCajaId())
+                                                ? cajas.get(t.getCajaId()).getNombre()
+                                                : null))
+                                .toList();
+        }
+
+        /**
          * Devuelve el turno actualmente ABIERTO de la caja. Si no existe, lanza
          * {@link ErrorCode#RECURSO_NO_ENCONTRADO} (404) — útil para que el POS
          * pregunte antes de permitir ventas.

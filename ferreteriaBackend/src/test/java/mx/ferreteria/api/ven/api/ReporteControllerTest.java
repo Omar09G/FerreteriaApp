@@ -82,6 +82,25 @@ class ReporteControllerTest {
         }
 
         @Test
+        @DisplayName("GET /api/v1/reportes/narrativa -> 200 con comparativa y estrella")
+        void narrativa_returns200() throws Exception {
+                var r = new mx.ferreteria.api.ven.dto.ReportDtos.NarrativaResponse(
+                                LocalDate.of(2026, 10, 5),
+                                new BigDecimal("12300.00"), new BigDecimal("10000.00"),
+                                new BigDecimal("23.0"), 23L, new BigDecimal("534.78"),
+                                "Cemento Tolteca", new BigDecimal("5000.00"),
+                                new BigDecimal("40.000"));
+                when(service.narrativa(any())).thenReturn(r);
+
+                mvc.perform(get("/api/v1/reportes/narrativa"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.cambioPct").value(23.0))
+                                .andExpect(jsonPath("$.data.productoEstrella")
+                                                .value("Cemento Tolteca"));
+        }
+
+        @Test
         @DisplayName("GET /api/v1/reportes/top-productos con rango invertido -> 400 VALOR_INVALIDO")
         void topProductos_rangoInvalido_400() throws Exception {
                 mvc.perform(get("/api/v1/reportes/top-productos")

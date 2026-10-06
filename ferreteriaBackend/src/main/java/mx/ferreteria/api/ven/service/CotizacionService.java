@@ -135,7 +135,7 @@ public class CotizacionService {
                     c.getFecha(), c.getVigenciaHasta(),
                     totales.subtotal(), totales.iva(), totales.total(),
                     c.getEstado(), c.getVentaGeneradaId(),
-                    c.getUsuarioId(), detalles);
+                    c.getUsuarioId(), c.getEvidenciaUrl(), detalles);
         }).toList();
     }
 
@@ -165,6 +165,8 @@ public class CotizacionService {
                 .subtotal(totales.subtotal())
                 .iva(totales.iva())
                 .total(totales.total())
+                .evidenciaUrl(req.evidenciaUrl() == null || req.evidenciaUrl().isBlank()
+                        ? null : req.evidenciaUrl())
                 .usuarioId(UserPrincipal.actual().usuarioId())
                 .build();
         Cotizacion saved = repo.save(entity);
@@ -242,6 +244,6 @@ public class CotizacionService {
                 c.getFecha(), c.getVigenciaHasta(),
                 totales.subtotal(), totales.iva(), totales.total(),
                 c.getEstado(), c.getVentaGeneradaId(),
-                c.getUsuarioId(), detalles);
+                c.getUsuarioId(), c.getEvidenciaUrl(), detalles);
     }
 }

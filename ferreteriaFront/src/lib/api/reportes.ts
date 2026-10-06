@@ -10,6 +10,7 @@ import type {
   MejoresCategorias,
   MejorVendedor,
   MovimientoInventario,
+  Narrativa,
   PageEnvelope,
   ProductosSinMovimiento,
   ResumenDashboard,
@@ -32,6 +33,12 @@ export async function apiDashboard(
     "/reportes/dashboard",
     { params: rango(inicio, fin) },
   );
+  return data.data;
+}
+
+/** Narrativa del día (hoy vs ayer + producto estrella) para el dashboard. */
+export async function apiNarrativa(): Promise<Narrativa> {
+  const { data } = await http.get<Envelope<Narrativa>>("/reportes/narrativa");
   return data.data;
 }
 

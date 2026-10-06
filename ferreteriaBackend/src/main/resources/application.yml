@@ -199,6 +199,12 @@ app:
     stock-cron: ${STOCK_CRON:0 15 9 * * *}
     stock-zona: ${STOCK_ZONA:America/Mexico_City}
     stock-job-enabled: ${STOCK_JOB_ENABLED:true}
+    # Aviso nocturno de turnos abiertos (corte sin cerrar) 21:00, a GERENTES
+    # y ADMINISTRADORES. Activo salvo apagado explícito; requiere
+    # app.notif.enabled=true (APP_NOTIF_ENABLED).
+    turno-cron: ${TURNO_CRON:0 0 21 * * *}
+    turno-zona: ${TURNO_ZONA:America/Mexico_City}
+    turno-job-enabled: ${TURNO_JOB_ENABLED:true}
   # Rate limit bucket4j por controller (PLAN M7)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

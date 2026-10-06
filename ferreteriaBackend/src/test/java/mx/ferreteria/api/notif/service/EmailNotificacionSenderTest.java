@@ -159,6 +159,32 @@ class EmailNotificacionSenderTest {
     }
 
     @Test
+    @DisplayName("turnos abiertos: tabla de cajas sin PDF")
+    void turnos_tabla() throws Exception {
+        var sesion = jakarta.mail.Session.getInstance(new java.util.Properties());
+        when(mailSender.createMimeMessage()).thenReturn(new MimeMessage(sesion));
+        var turnos = java.util.List.of(
+                new mx.ferreteria.api.fin.dto.FinDtos.TurnoCajaResponse(1L, 1, "Caja 1",
+                        7, java.time.Instant.now().minusSeconds(7200),
+                        new java.math.BigDecimal("1000.00"), null, null, null, null,
+                        "ABIERTO", null));
+        new EmailNotificacionSender(mailSender).sendTurnoAbierto("g@x.mx",
+                java.time.LocalDate.of(2026, 10, 5), turnos);
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(captor.capture());
+        var bytes = new java.io.ByteArrayOutputStream();
+        captor.getValue().writeTo(bytes);
+        MimeMessage m = new MimeMessage(sesion,
+                new java.io.ByteArrayInputStream(bytes.toByteArray()));
+
+        assertThat(m.getSubject()).contains("1 caja abierta");
+        String html = htmlDe(m);
+        assertThat(html).contains("Caja 1");
+        assertThat(html).contains("1,000");
+        assertThat(tieneAdjuntoPdf(m)).isFalse();
+    }
+
+    @Test
     @DisplayName("tipo desconocido: cuerpo genérico; sin PDF no hay adjunto")
     void generico_sinPdf_ok() throws Exception {
         MimeMessage m = enviado("cte@acme.mx", "OTRO", "Aviso", null, null);

@@ -49,6 +49,7 @@ public enum ErrorCode {
     COBRANZA_SIN_DESTINATARIOS("error.negocio.cobranza-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
     RENTAS_SIN_DESTINATARIOS("error.negocio.rentas-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
     STOCK_SIN_DESTINATARIOS("error.negocio.stock-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
+    TURNO_SIN_DESTINATARIOS("error.negocio.turno-sin-destinatarios", HttpStatus.UNPROCESSABLE_ENTITY),
 
     // genéricas / internas
     ERROR_INTERNO("error.interno.inesperado", HttpStatus.INTERNAL_SERVER_ERROR),

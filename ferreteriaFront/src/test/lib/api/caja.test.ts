@@ -14,7 +14,9 @@ import {
   apiCrearIngreso,
   apiEliminarGasto,
   apiEliminarIngreso,
+  apiEnviarTurnoAbiertoInforme,
   apiEsperadoTurno,
+  apiEstadoTurnoAbiertoInforme,
   apiGastos,
   apiIngresosOtros,
   apiMovimientosTurno,
@@ -143,6 +145,31 @@ describe("caja: turnos", () => {
       cajaId: 1,
       montoApertura: 500,
     });
+  });
+
+  it("apiEnviarTurnoAbiertoInforme hace POST al informe", async () => {
+    const r = {
+      fecha: "2026-10-05",
+      destinatarios: 2,
+      emailsEnviados: 2,
+      whatsappsEnviados: 1,
+      turnos: 3,
+    };
+    mock.post.mockResolvedValueOnce({ data: { success: true, data: r } });
+    await expect(apiEnviarTurnoAbiertoInforme()).resolves.toEqual(r);
+    expect(mock.post).toHaveBeenCalledWith("/reportes/turnos/informe", {});
+  });
+
+  it("apiEstadoTurnoAbiertoInforme pide GET al estado", async () => {
+    const r = {
+      fecha: "2026-10-05",
+      yaEnviado: true,
+      estado: "ENVIADA",
+      enviadoEn: "2026-10-05T21:00:00",
+    };
+    mock.get.mockResolvedValueOnce({ data: { success: true, data: r } });
+    await expect(apiEstadoTurnoAbiertoInforme()).resolves.toEqual(r);
+    expect(mock.get).toHaveBeenCalledWith("/reportes/turnos/informe/estado");
   });
 
   it("apiMovimientosTurno pide GET anidado", async () => {

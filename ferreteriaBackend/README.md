@@ -77,16 +77,30 @@ Mailpit (`MAIL_HOST:1025`); en prod configurar SMTP real y Evolution API
 | Cobranza | 09:05 | cuentas vencidas + pendientes (`GET /creditos/cobranza`) | correo (detalle) + WhatsApp (resumen) |
 | Rentas | 09:10 | vencidas + próximas a devolver ≤3 días (`GET /rentas`) | correo (detalle) + WhatsApp (resumen) |
 | Stock bajo | 09:15 | productos con stock ≤ mínimo (`GET /inventario?soloBajoStock=1`) | correo (resumen + Excel) + WhatsApp (totales) |
+| Turnos abiertos | 21:00 | turnos sin cerrar del día | correo (detalle) + WhatsApp (resumen) |
 
 Todos van a GERENTES y ADMINISTRADORES, con auditoría en
 `notif.notificacion_jobs` (un registro por día por tipo) y la misma regla:
 **solo se notifica si hay registros** (sin registros se audita sin enviar).
 
-- Envío manual: botón "Enviar recordatorio" en Compras → Cuentas por pagar,
-  Ventas → Cobranza, Ventas → Rentas e Inventario → Existencias
-  (`POST /api/v1/reportes/{cuentas-pagar,cobranza,rentas,stock-bajo}/informe`);
+- Envío manual: botón "Enviar recordatorio"/"Avisar" en Compras → Cuentas por
+  pagar, Ventas → Cobranza, Ventas → Rentas, Inventario → Existencias y Caja
+  (`POST /api/v1/reportes/{cuentas-pagar,cobranza,rentas,stock-bajo,turnos}/informe`);
   antes pregunta (`GET .../estado`) si hoy ya se envió y pide confirmación
   para reenviar.
 - Requiere `APP_NOTIF_ENABLED=true`; cada JOB se apaga con
   `CUENTAS_PAGAR_JOB_ENABLED` / `COBRANZA_JOB_ENABLED` / `RENTAS_JOB_ENABLED` /
-  `STOCK_JOB_ENABLED=false`.
+  `STOCK_JOB_ENABLED` / `TURNO_JOB_ENABLED=false`.
+
+## POS y ventas
+
+- Búsqueda difusa (`GET /api/v1/productos/buscar?q=&limite=&almacenId=`):
+  tolera typos con ranking (barras exacto > código > prefijo > substring >
+  trigram), índice `GIN(lower(nombre))` (V27).
+- Ticket por WhatsApp (`POST /api/v1/ventas/{id}/ticket-whatsapp {telefono}`):
+  genera el PDF al momento y lo envía como documento (vía puerto
+  `VentaTicketPort`, implementación en `notif` para no ciclar módulos).
+- Narrativa del día (`GET /api/v1/reportes/narrativa?fecha=`): ventas hoy vs
+  ayer (% con 1 decimal) + producto estrella por ingreso.
+- Cotización con foto (`evidencia_url` en `ven.cotizaciones`, V29): URL de
+  `/archivos/imagen` ligada al crear (misma regla que `foto_url`).

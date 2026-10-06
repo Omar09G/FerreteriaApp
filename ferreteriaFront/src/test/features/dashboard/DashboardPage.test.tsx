@@ -9,6 +9,7 @@ import {
   apiDashboard,
   apiEnviarInforme,
   apiInformeEstado,
+  apiNarrativa,
 } from "@/lib/api/reportes";
 import { useAuthStore } from "@/store/auth";
 
@@ -20,6 +21,7 @@ vi.mock("@/lib/api/reportes", () => ({
   apiDashboard: vi.fn(),
   apiEnviarInforme: vi.fn(),
   apiInformeEstado: vi.fn(),
+  apiNarrativa: vi.fn(),
 }));
 
 const RESUMEN = {
@@ -74,6 +76,17 @@ beforeEach(() => {
     destinatarios: 2,
     emailsEnviados: 1,
     whatsappEnviados: 1,
+  } as never);
+  vi.mocked(apiNarrativa).mockResolvedValue({
+    fecha: "2026-10-05",
+    ventasHoy: 12300,
+    ventasAyer: 10000,
+    cambioPct: 23,
+    ticketsHoy: 23,
+    ticketPromedioHoy: 534.78,
+    productoEstrella: "Cemento Tolteca",
+    estrellaIngreso: 5000,
+    estrellaUnidades: 40,
   } as never);
 });
 
@@ -151,5 +164,32 @@ describe("DashboardPage (smoke)", () => {
     expect(
       screen.queryByRole("button", { name: /Enviar informe/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it("muestra la narrativa hoy vs ayer con estrella", async () => {
+    renderPage();
+    expect(
+      await screen.findByText("Hoy vendiste 23% más que ayer."),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/El producto estrella fue Cemento Tolteca/),
+    ).toBeInTheDocument();
+    expect(apiNarrativa).toHaveBeenCalledOnce();
+  });
+
+  it("muestra aviso cuando no hay ventas hoy", async () => {
+    vi.mocked(apiNarrativa).mockResolvedValueOnce({
+      fecha: "2026-10-05",
+      ventasHoy: 0,
+      ventasAyer: 0,
+      cambioPct: null,
+      ticketsHoy: 0,
+      ticketPromedioHoy: 0,
+      productoEstrella: null,
+      estrellaIngreso: null,
+      estrellaUnidades: null,
+    } as never);
+    renderPage();
+    expect(await screen.findByText("Aún no hay ventas hoy. ¡A vender!")).toBeInTheDocument();
   });
 });

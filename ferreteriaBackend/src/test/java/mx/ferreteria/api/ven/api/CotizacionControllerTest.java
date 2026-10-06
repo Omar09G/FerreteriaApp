@@ -59,7 +59,7 @@ class CotizacionControllerTest {
                                 1L, "CT-001", null, null, Instant.now(),
                                 LocalDate.now().plusDays(30),
                                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                                "VIGENTE", null, 1, List.of());
+                                "VIGENTE", null, 1, null, List.of());
         }
 
         // ── GET /api/v1/cotizaciones ────────────────────────────────────

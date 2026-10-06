@@ -206,18 +206,21 @@ export default function CuentasPagarPage() {
 
 	async function enviarRecordatorio() {
 		if (enviando) return;
+		setEnviando(true);
 		const cerrarCarga = mostrarCarga("Verificando recordatorio…");
 		try {
 			const estado = await apiEstadoCuentasPagarInforme();
+			cerrarCarga();
 			if (estado.yaEnviado) {
 				setConfirmarReenvio(estado);
 				return;
 			}
 			await ejecutarEnvio();
 		} catch (e) {
+			cerrarCarga();
 			mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
 		} finally {
-			cerrarCarga();
+			setEnviando(false);
 		}
 	}
 

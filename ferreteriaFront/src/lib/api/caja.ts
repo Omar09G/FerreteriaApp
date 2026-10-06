@@ -13,6 +13,8 @@ import type {
 	MovimientoCaja,
 	MovimientoCajaRequest,
 	PageEnvelope,
+	TurnoAbiertoInformeEnvio,
+	TurnoAbiertoInformeEstado,
 	TurnoCaja,
 } from "./types";
 
@@ -132,6 +134,23 @@ export async function apiCortes(
 		params: { page, size, desde, hasta },
 	});
 	return data;
+}
+
+/** Aviso manual de turnos abiertos (mismo contenido del JOB 21:00). */
+export async function apiEnviarTurnoAbiertoInforme(): Promise<TurnoAbiertoInformeEnvio> {
+	const { data } = await http.post<Envelope<TurnoAbiertoInformeEnvio>>(
+		"/reportes/turnos/informe",
+		{},
+	);
+	return data.data;
+}
+
+/** Estado del aviso de turnos de hoy (avisa si ya se envió). */
+export async function apiEstadoTurnoAbiertoInforme(): Promise<TurnoAbiertoInformeEstado> {
+	const { data } = await http.get<Envelope<TurnoAbiertoInformeEstado>>(
+		"/reportes/turnos/informe/estado",
+	);
+	return data.data;
 }
 
 export async function apiGastos(

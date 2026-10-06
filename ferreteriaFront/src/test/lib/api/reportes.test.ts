@@ -8,6 +8,7 @@ import {
   apiEstadoStockBajoInforme,
   apiHorasPico,
   apiInformeEstado,
+  apiNarrativa,
   apiMejoresCategorias,
   apiMejoresClientes,
   apiMejoresDias,
@@ -250,6 +251,25 @@ describe("apiInformeEstado", () => {
       "/reportes/dashboard/informe/estado",
       { params: RANGO },
     );
+  });
+});
+
+describe("apiNarrativa", () => {
+  it("hace GET /reportes/narrativa y devuelve comparativa", async () => {
+    const r = {
+      fecha: "2026-10-05",
+      ventasHoy: 12300,
+      ventasAyer: 10000,
+      cambioPct: 23,
+      ticketsHoy: 23,
+      ticketPromedioHoy: 534.78,
+      productoEstrella: "Cemento Tolteca",
+      estrellaIngreso: 5000,
+      estrellaUnidades: 40,
+    };
+    mock.get.mockResolvedValueOnce({ data: { success: true, data: r } });
+    await expect(apiNarrativa()).resolves.toEqual(r);
+    expect(mock.get).toHaveBeenCalledWith("/reportes/narrativa");
   });
 });
 

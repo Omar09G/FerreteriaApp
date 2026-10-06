@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, ShoppingCart, Trash2, Eye } from "lucide-react";
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useT } from "@/i18n";
 import { esApiError } from "@/lib/api/client";
 import { apiCajas, apiTurnoActual } from "@/lib/api/caja";
 import { apiAlmacenes, apiClientes, apiProductos } from "@/lib/api/catalogo";
@@ -23,6 +24,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodigosBarras } from "@/components/ui/CodigosBarras";
+import { FotoMiniatura, ImagenUpload } from "@/components/ui/ImagenUpload";
 import { DataTable, type Columna } from "@/components/ui/DataTable";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import { Dialog } from "@/components/ui/Dialog";
@@ -48,6 +50,7 @@ function CotizacionForm({
 	onGuardar: (payload: CotizacionRequest) => void;
 	onClose: () => void;
 }) {
+	const t = useT();
 	const clientes = useQuery({
 		queryKey: ["clientes-cotizacion"],
 		queryFn: () => apiClientes({ page: 0, size: 50 }),
@@ -58,6 +61,7 @@ function CotizacionForm({
 	const [busqueda, setBusqueda] = useState("");
 	const [q, setQ] = useState("");
 	const [intento, setIntento] = useState(false);
+	const [evidenciaUrl, setEvidenciaUrl] = useState<string | null>(null);
 
 	const resultados = useQuery({
 		queryKey: ["productos-cotizacion", q],
@@ -101,6 +105,7 @@ function CotizacionForm({
 				cantidad: x.cantidad,
 				precioUnitario: x.precioUnitario,
 			})),
+			evidenciaUrl: evidenciaUrl ?? undefined,
 		});
 	};
 
@@ -126,6 +131,13 @@ function CotizacionForm({
 					onChange={(e) => setVigenciaHasta(e.target.value)}
 				/>
 			</div>
+
+			<ImagenUpload
+				label={t("ventas.cotizacionFoto.campo")}
+				hint={t("ventas.cotizacionFoto.ayuda")}
+				value={evidenciaUrl}
+				onChange={setEvidenciaUrl}
+			/>
 
 			<div className="flex flex-wrap items-end gap-2">
 				<Input hotkey="F3"
@@ -408,6 +420,7 @@ const toneCotizacion = (estado: string) =>
 
 export default function CotizacionesPage() {
 	useDocumentTitle("Cotizaciones");
+	const t = useT();
 	const { error: mostrarError, success: mostrarExito } = useToast();
 	const queryClient = useQueryClient();
 
@@ -680,6 +693,18 @@ export default function CotizacionesPage() {
 			>
 				{vistaDetalle && (
 					<div className="space-y-2">
+						{vistaDetalle.evidenciaUrl && (
+							<div className="flex items-center gap-3 rounded-md border border-line bg-warmbg px-3 py-2">
+								<FotoMiniatura
+									url={vistaDetalle.evidenciaUrl}
+									alt={t("ventas.cotizacionFoto.detalle")}
+									redonda={false}
+								/>
+								<span className="text-xs text-muted">
+									{t("ventas.cotizacionFoto.detalle")}
+								</span>
+							</div>
+						)}
 						{/* Encabezados de la Lista - Total exacto: 6 + 2 + 2 + 2 = 12 */}
 						<div className="grid grid-cols-12 gap-2 px-3 py-2 bg-surface-muted rounded-md text-xs font-semibold text-ink-muted tracking-wider uppercase">
 							<div className="col-span-6">Producto</div>

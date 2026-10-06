@@ -200,20 +200,25 @@ export default function CobranzaPage() {
   const [confirmarReenvio, setConfirmarReenvio] =
     useState<CobranzaInformeEstado | null>(null);
 
+  // Un solo toast de carga por flujo (ver CajaPage): se cierra el de
+  // verificación antes de abrir el de envío y `enviando` cubre ambas fases.
   async function enviarRecordatorio() {
     if (enviando) return;
+    setEnviando(true);
     const cerrarCarga = mostrarCarga("Verificando recordatorio…");
     try {
       const estadoInforme = await apiEstadoCobranzaInforme();
+      cerrarCarga();
       if (estadoInforme.yaEnviado) {
         setConfirmarReenvio(estadoInforme);
         return;
       }
       await ejecutarEnvio();
     } catch (e) {
+      cerrarCarga();
       mostrarError(esApiError(e) ? e.mensajeParaUsuario() : String(e));
     } finally {
-      cerrarCarga();
+      setEnviando(false);
     }
   }
 

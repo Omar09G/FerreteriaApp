@@ -1,6 +1,7 @@
 package mx.ferreteria.api.ven.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -129,6 +130,42 @@ class VentaControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
                                 .andExpect(content().bytes(pdf));
+        }
+
+        // ── POST /api/v1/ventas/{id}/ticket-whatsapp ──────────────────
+
+        @Test
+        @DisplayName("POST /api/v1/ventas/1/ticket-whatsapp -> 200 enviado:true")
+        void ticketWhatsapp_ok() throws Exception {
+                when(service.enviarTicketWhatsapp(eq(1L), eq("5215500000001")))
+                                .thenReturn(new VenDtos.TicketWhatsappResponse(true));
+
+                mvc.perform(post("/api/v1/ventas/1/ticket-whatsapp")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"telefono\":\"5215500000001\"}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.enviado").value(true));
+        }
+
+        @Test
+        @DisplayName("POST /api/v1/ventas/1/ticket-whatsapp sin teléfono -> 400")
+        void ticketWhatsapp_sinTelefono_400() throws Exception {
+                mvc.perform(post("/api/v1/ventas/1/ticket-whatsapp")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"telefono\":\"\"}"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false));
+        }
+
+        @Test
+        @DisplayName("POST /api/v1/ventas/1/ticket-whatsapp con letras -> 400")
+        void ticketWhatsapp_telefonoInvalido_400() throws Exception {
+                mvc.perform(post("/api/v1/ventas/1/ticket-whatsapp")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"telefono\":\"abc\"}"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false));
         }
 
         // ── PATCH /api/v1/ventas/{id}/cancelar ──────────────────────────
