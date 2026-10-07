@@ -133,3 +133,23 @@ Todos van a GERENTES y ADMINISTRADORES, con auditoría en
   ayer (% con 1 decimal) + producto estrella por ingreso.
 - Cotización con foto (`evidencia_url` en `ven.cotizaciones`, V29): URL de
   `/archivos/imagen` ligada al crear (misma regla que `foto_url`).
+
+## PDFs que viajan por correo (diseño legible)
+
+- **Estilo único** (`common/pdf/PdfEstilo`, sin estado): paleta de marca
+  (`#C2410C`, la misma del correo), tablas con encabezado oscuro y filas
+  alternadas, moneda `es-MX` (`$1,234.56`), encabezado de marca + título +
+  periodo, pie con `Página N` y metadata. Los 3 PDFs que van por correo lo
+  usan; un cambio visual se hace una vez ahí.
+- **Ticket** (`ven/pdf/TicketPdfService`): tabla `Cant. | Producto | P. unitario
+  | Importe` con **nombre de producto** (resuelto por `ProductoRepository`,
+  fallback `Producto #id`), importe por línea (`total_linea` de BD), ficha
+  Folio/Fecha/Estado/Cliente y totales con `TOTAL` destacado. Formato A4 para
+  correo (legible en pantalla, no 80 mm).
+- **Informe diario** (`ven/pdf/DashboardInformePdfService`): KPIs en tabla
+  `Indicador | Valor` (vencidas/agotados/cajas abiertas en rojo) y cierre en
+  tabla `Fecha/Tickets/Total/Utilidad/Margen/Caja` con semáforo
+  (`Cuadró` verde / `Diferencia $X` rojo).
+- **Nómina** (`notif/service/NominaPdfService`): ficha
+  Empleado/Periodo/Días/Estado/Fecha de pago + tabla
+  Percepciones/Deducciones (− en rojo)/Neto destacado.

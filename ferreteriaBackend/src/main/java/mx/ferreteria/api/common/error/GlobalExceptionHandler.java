@@ -27,6 +27,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.security.UserPrincipal;
 
 /**
  * Único handler global (PLAN §4.6). Errores como Map con envelope
@@ -45,8 +46,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApi(ApiException ex, HttpServletRequest req) {
-        return ResponseEntity.status(ex.errorCode().http())
-                .body(errorBody(ex.errorCode(), ex.args(), currentLocale(req), req));
+        ErrorCode code = ex.errorCode();
+        if (code.http().is5xxServerError()) {
+            log.error("Error de negocio 5xx codigo={} metodo={} path={} usuario={}",
+                    code, metodo(req), path(req), usuario(), ex);
+        } else {
+            log.warn("Error de negocio codigo={} metodo={} path={} usuario={}",
+                    code, metodo(req), path(req), usuario());
+        }
+        return ResponseEntity.status(code.http())
+                .body(errorBody(code, ex.args(), currentLocale(req), req));
     }
 
     @ExceptionHandler(DataAccessException.class)
@@ -54,13 +63,15 @@ public class GlobalExceptionHandler {
                                                                HttpServletRequest req) {
         return dbTranslator.translate(ex)
                 .map(code -> {
-                    log.warn("DB error traducido a código de negocio: {} path={}", code, req.getRequestURI());
+                    log.warn("DB error traducido a código de negocio: {} metodo={} path={} usuario={}",
+                            code, metodo(req), path(req), usuario());
                     return ResponseEntity.status(code.http())
                             .<Map<String, Object>>body(errorBody(code, new Object[0], currentLocale(req), req));
                 })
                 .orElseGet(() -> {
                     // BACK-SEC-012: el mensaje crudo de PostgreSQL puede incluir esquema,
-                    log.error("DataAccessException sin contrato path={}", req.getRequestURI(), ex);
+                    log.error("DataAccessException sin contrato metodo={} path={} usuario={}",
+                            metodo(req), path(req), usuario(), ex);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(req), req));
                 });
@@ -78,6 +89,8 @@ public class GlobalExceptionHandler {
             details.add(d);
         }
         body.put("details", details);
+        log.warn("Validación fallida campos={} metodo={} path={} usuario={}",
+                ex.getBindingResult().getFieldErrors().size(), metodo(req), path(req), usuario());
         return ResponseEntity.badRequest().body(body);
     }
 
@@ -90,7 +103,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
     public ResponseEntity<Map<String, Object>> handleNoHandler(Exception ex, HttpServletRequest req) {
-        log.warn("Ruta no definida path={} metodo={}", req.getRequestURI(), req.getMethod());
+        log.warn("Ruta no definida metodo={} path={} usuario={}", metodo(req), path(req), usuario());
         return ResponseEntity.status(ErrorCode.ACCESO_DENEGADO.http())
                 .body(errorBody(ErrorCode.ACCESO_DENEGADO, new Object[0], currentLocale(req), req));
     }
@@ -104,14 +117,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleDenied(AuthorizationDeniedException ex,
                                                             HttpServletRequest req) {
-        log.warn("Acceso denegado por rol path={} metodo={}", req.getRequestURI(), req.getMethod());
+        log.warn("Acceso denegado por rol metodo={} path={} usuario={}",
+                metodo(req), path(req), usuario());
         return ResponseEntity.status(ErrorCode.ACCESO_DENEGADO.http())
                 .body(errorBody(ErrorCode.ACCESO_DENEGADO, new Object[0], currentLocale(req), req));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex, HttpServletRequest req) {
-        log.error("Error no controlado en {}", req.getRequestURI(), ex);
+        log.error("Error no controlado metodo={} path={} usuario={}",
+                metodo(req), path(req), usuario(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .<Map<String, Object>>body(errorBody(ErrorCode.ERROR_INTERNO, requestIdArg(), currentLocale(req), req));
     }
@@ -131,8 +146,33 @@ public class GlobalExceptionHandler {
         if (req != null && req.getRequestURI() != null) {
             body.put("instance", req.getRequestURI());
         }
-        log.warn("Error response: {} path={}", body, req != null ? req.getRequestURI() : "N/A");
         return body;
+    }
+
+    /** Método HTTP nulo-seguro (los tests invocan handlers con request mockeado). */
+    private static String metodo(HttpServletRequest req) {
+        return req == null || req.getMethod() == null ? "?" : req.getMethod();
+    }
+
+    /** Path nulo-seguro. */
+    private static String path(HttpServletRequest req) {
+        return req == null || req.getRequestURI() == null ? "?" : req.getRequestURI();
+    }
+
+    /**
+     * Quién provocó el error, sin PII (solo id + username; nunca email ni
+     * tokens). "anonimo" si no hay sesión (el filtro de auth ya respondió).
+     */
+    private static String usuario() {
+        try {
+            UserPrincipal up = UserPrincipal.actual();
+            if (up == null || up.usuarioId() == 0) {
+                return "anonimo";
+            }
+            return "u" + up.usuarioId() + ":" + up.username();
+        } catch (Exception e) {
+            return "desconocido";
+        }
     }
 
     private Locale currentLocale(jakarta.servlet.http.HttpServletRequest req) {

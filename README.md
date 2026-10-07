@@ -223,6 +223,11 @@ Notas:
   `Cliente.email/whatsapp`; nómina = `rh.empleados.email/whatsapp` (columna V21).
   Fallos → job en `ERROR` + reconciler cada 30 s (cola durable + DLQ
   `notificacion.jobs.dlq`).
+- **Diseño de los PDFs** — estilo único `common/pdf/PdfEstilo` (paleta de
+  marca, tablas, moneda `es-MX`, pie con paginación): ticket con nombres de
+  producto en tabla, informe con KPIs y semáforo de caja, nómina con ficha +
+  desglose. Detalle en `ferreteriaBackend/README.md` (sección "PDFs que viajan
+  por correo").
 - **Endpoint** — `GET /api/v1/ventas/{id}/ticket.pdf` (`application/pdf`, mismos
   roles de lectura que ventas).
 - **Informe diario del dashboard** — PDF con los 11 KPIs (`GET /reportes/dashboard`)
