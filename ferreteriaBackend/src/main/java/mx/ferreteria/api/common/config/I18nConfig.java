@@ -1,5 +1,6 @@
 package mx.ferreteria.api.common.config;
 
+import java.util.List;
 import java.util.Locale;
 
 import org.springframework.context.MessageSource;
@@ -26,7 +27,7 @@ public class I18nConfig {
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver resolver = new AcceptHeaderLocaleResolver();
         resolver.setDefaultLocale(Locale.of("es", "MX"));
-        resolver.setSupportedLocales(java.util.List.of(Locale.of("es", "MX"), Locale.ENGLISH));
+        resolver.setSupportedLocales(List.of(Locale.of("es", "MX"), Locale.ENGLISH));
         return resolver;
     }
 }

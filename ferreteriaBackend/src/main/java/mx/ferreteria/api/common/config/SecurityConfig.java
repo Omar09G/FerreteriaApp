@@ -15,10 +15,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import lombok.RequiredArgsConstructor;
-
 import mx.ferreteria.api.common.security.JwtAuthFilter;
 import mx.ferreteria.api.common.security.RestAuthEntryPoint;
 import mx.ferreteria.api.common.web.CorsConfigurationFactory;
@@ -43,13 +43,18 @@ public class SecurityConfig {
         }
 
         /**
-         * PASO 30 BACK-SEC-009 + CORS hardening fino — verificacion sin cambio de comportamiento:
+         * PASO 30 BACK-SEC-009 + CORS hardening fino — verificacion sin cambio de
+         * comportamiento:
          * <ul>
-         *   <li>BACK-SEC-009 sort whitelist ya en {@link mx.ferreteria.api.common.web.PageQuery}
-         *       (PASO 20, DEFAULT_SORT_FIELDS). Sin pendiente aqui.</li>
-         *   <li>Headers HSTS/CSP/frameOptions/referrerPolicy presentes via {@code http.headers(...)}.</li>
-         *   <li>CORS via {@link CorsConfigurationFactory#source(CorsProperties)} registrado como
-         *       {@code CorsConfigurationSource} @Bean y consumido por {@code http.cors(Customizer.withDefaults())}.</li>
+         * <li>BACK-SEC-009 sort whitelist ya en
+         * {@link mx.ferreteria.api.common.web.PageQuery}
+         * (PASO 20, DEFAULT_SORT_FIELDS). Sin pendiente aqui.</li>
+         * <li>Headers HSTS/CSP/frameOptions/referrerPolicy presentes via
+         * {@code http.headers(...)}.</li>
+         * <li>CORS via {@link CorsConfigurationFactory#source(CorsProperties)}
+         * registrado como
+         * {@code CorsConfigurationSource} @Bean y consumido por
+         * {@code http.cors(Customizer.withDefaults())}.</li>
          * </ul>
          */
         @Bean
@@ -80,13 +85,14 @@ public class SecurityConfig {
                 return http
                                 // Cabeceras de seguridad (defensa en profundidad).
                                 .headers(h -> h
-                                                .contentTypeOptions(c -> {})
+                                                .contentTypeOptions(c -> {
+                                                })
                                                 .frameOptions(f -> f.deny())
                                                 .httpStrictTransportSecurity(hsts -> hsts
                                                                 .includeSubDomains(true)
                                                                 .maxAgeInSeconds(31536000))
                                                 .referrerPolicy(r -> r
-                                                                .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                                                                .policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                                                 .contentSecurityPolicy(csp -> csp.policyDirectives(
                                                                 "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")))
                                 .csrf(csrf -> csrf
@@ -119,7 +125,7 @@ public class SecurityConfig {
                                                                 "/api/v1/auth/otp/verificar")
                                                 .permitAll()
                                                 .requestMatchers("/actuator/health", "/actuator/health/**",
-                                                                                "/actuator/prometheus")
+                                                                "/actuator/prometheus")
                                                 .permitAll()
                                                 // info/metrics y docs requieren auth (prometheus va sin auth:
                                                 // Prometheus raspa sin JWT y solo expone contadores, sin PII)

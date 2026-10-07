@@ -1,5 +1,8 @@
 package mx.ferreteria.api.common.web;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -8,9 +11,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * Envuelve respuestas exitosas en {success:true, data, meta?} (PLAN §4.6).
@@ -23,10 +24,10 @@ public class EnvelopeAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(@NonNull MethodParameter returnType,
-                            @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
+            @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
         // El stream SSE escribe directo al response (eventos text/event-stream):
         // envolverlo en {success,data} rompería el protocolo.
-        if (org.springframework.web.servlet.mvc.method.annotation.SseEmitter.class
+        if (SseEmitter.class
                 .isAssignableFrom(returnType.getParameterType())) {
             return false;
         }
@@ -35,16 +36,17 @@ public class EnvelopeAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public Object beforeBodyWrite(Object body,
-                                  @NonNull MethodParameter returnType,
-                                  @NonNull MediaType selectedContentType,
-                                  @NonNull Class<? extends HttpMessageConverter<?>> selectedConverterType,
-                                  @NonNull ServerHttpRequest request,
-                                  @NonNull ServerHttpResponse response) {
+            @NonNull MethodParameter returnType,
+            @NonNull MediaType selectedContentType,
+            @NonNull Class<? extends HttpMessageConverter<?>> selectedConverterType,
+            @NonNull ServerHttpRequest request,
+            @NonNull ServerHttpResponse response) {
         if (body instanceof Map<?, ?> m && m.containsKey("success")) {
             return body;
         }
         // Respuestas raw que no son de la API se devuelven sin envolver:
-        // springdoc devuelve byte[] (o el advice romperia ByteArrayHttpMessageConverter)
+        // springdoc devuelve byte[] (o el advice romperia
+        // ByteArrayHttpMessageConverter)
         // y actuator (health/probes/metrics) mantiene su formato estandar.
         String path = request.getURI().getPath();
         if (body instanceof byte[] || path.startsWith("/actuator")
