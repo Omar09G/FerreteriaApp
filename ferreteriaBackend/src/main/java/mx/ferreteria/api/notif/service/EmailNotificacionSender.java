@@ -373,7 +373,8 @@ public class EmailNotificacionSender {
         return sb.toString();
     }
 
-    static String moneda(BigDecimal total) {
+    /** Moneda es-MX para textos de avisos (bandeja, WhatsApp, correo). */
+    public static String moneda(BigDecimal total) {
         if (total == null) {
             return null;
         }

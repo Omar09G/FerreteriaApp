@@ -92,6 +92,35 @@ Todos van a GERENTES y ADMINISTRADORES, con auditoría en
   `CUENTAS_PAGAR_JOB_ENABLED` / `COBRANZA_JOB_ENABLED` / `RENTAS_JOB_ENABLED` /
   `STOCK_JOB_ENABLED` / `TURNO_JOB_ENABLED=false`.
 
+## Tiempo real (SSE) + bandeja + chat
+
+- **Bandeja** (`notif.notificacion_bandeja`, V30): una fila por destinatario y
+  evento, idempotente por `(usuario_id, tipo, ref_tipo, ref_id)`, retención 90
+  días (purga 03:00 `America/Mexico_City`). Tipos: los 8 jobs + `VENTA_CANCELADA`,
+  `COMPRA_CREADA`, `TURNO_APERTURA`, `CORTE_CAJA`, `NOMINA_CREADA`, `CHAT_MENSAJE`.
+- **Eventos de dominio** (publican dentro de la tx, hook `AFTER_COMMIT` con
+  `fallbackExecution` + `REQUIRES_NEW` en `RealtimeBandejaListener`): venta
+  creada/cancelada (`ven`), compra creada (`com`), turno abierto/cerrado
+  (`fin`), nómina creada/pagada/lote (`rh`). Destinatarios: GERENTES +
+  ADMINISTRADORES (`InformeDestinatarioRepository.findGerenteAdminIds`) + el
+  usuario propio (vendedor, cajero apertura/cierre, empleado de la nómina).
+  Los 6 recordatorios publican a gerencia tras `marcarEnviada` (solo si hay
+  registros).
+- **SSE** (`RealtimePushService`, sin RabbitMQ): `GET /api/v1/notificaciones/stream`
+  por usuario autenticado (el `usuarioId` sale del principal, nunca de params),
+  latido cada 30 s, timeout 5 min (el front reconecta y reanuda desde el
+  historial). El push se difiere a `AFTER_COMMIT`: un rollback nunca notifica.
+  Endpoints: `GET /api/v1/notificaciones` (paginado `PageQuery`),
+  `GET /no-leidas`, `PATCH /{id}/leida`, `PATCH /leidas` (todo `isAuthenticated()`).
+  Con N réplicas el push solo llega a los conectados a la misma réplica
+  (fase 2 = fanout por `ferreteria.events`).
+- **Chat** (`mx.ferreteria.api.chat`, V31): directas idempotentes + grupos,
+  pertenencia exigida en cada lectura (ajeno = 404), cuerpo 1–2000
+  (`@Valid` + CHECK). Endpoints bajo `/api/v1/chat` (`isAuthenticated()`).
+  Cada mensaje deja `CHAT_MENSAJE` en la bandeja de los demás participantes.
+- **Decisión SSE vs WebSocket**: ver README raíz (sección Notificaciones).
+  No añadir `spring-boot-starter-websocket` sin pasar por esa revisión.
+
 ## POS y ventas
 
 - Búsqueda difusa (`GET /api/v1/productos/buscar?q=&limite=&almacenId=`):

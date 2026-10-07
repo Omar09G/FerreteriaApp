@@ -84,6 +84,10 @@ public class NominaService {
                 .build();
         Nomina saved = nominaRepo.save(n);
         nominaRepo.flush();
+        // Aviso al módulo de notificaciones (evento de dominio: nómina no
+        // depende de notif). Sin transacción propia: el hook lo consume con
+        // fallback inmediato (datos ya commiteados por el flush).
+        events.publishEvent(new NominaCreadaEvent(saved.getNominaId()));
         return toResponse(saved);
     }
 
@@ -171,6 +175,10 @@ public class NominaService {
             fresh = freshEntities.stream()
                     .map(n -> toResponse(n, nombres))
                     .toList();
+        }
+        // Un solo aviso del lote (no una fila por empleado en la bandeja).
+        if (creadas > 0) {
+            events.publishEvent(new NominaLoteCreadoEvent(creadas, ini, fin));
         }
         return new RhDtos.GenerarQuincenaResponse(creadas, omitidas, ini, fin, fresh);
     }

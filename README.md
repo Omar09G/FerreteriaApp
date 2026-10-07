@@ -241,6 +241,33 @@ Notas:
   Vars: `RABBITMQ_*`, `NOTIF_MAX_INTENTOS`, `MAIL_HOST/PORT` (dev: Mailpit),
   `TELEGRAM_BOT_TOKEN/CHAT_ID`, `WHATSAPP_ENABLED=false`,
   `WHATSAPP_PROVEEDOR=mock` (mock) o `evolution` (real).
+- **Tiempo real (SSE) + bandeja + chat** — cada evento de dominio y cada
+  recordatorio deja una fila por destinatario en `notif.notificacion_bandeja`
+  (V30, idempotente por usuario+tipo+ref, retención 90 días con purga 03:00) y
+  empuja por **Server-Sent Events** a los conectados
+  (`GET /api/v1/notificaciones/stream`, `text/event-stream`, auth por cookie
+  HttpOnly como cualquier endpoint). El desconectado lo ve como contador +
+  historial al entrar (`GET /api/v1/notificaciones`, `GET /no-leidas`,
+  `PATCH /{id}/leida`, `PATCH /leidas`; campana en el header + página
+  `/notificaciones`). Eventos: venta creada/cancelada, compra creada,
+  apertura/corte de caja, nómina creada/pagada y los 7 recordatorios
+  (GERENTES/ADMINISTRADORES + el usuario propio: vendedor, cajero, empleado).
+  El **chat interno** (`/chat`, 1 a 1 idempotente + grupos, V31) reutiliza el
+  mismo stream (tipo `CHAT_MENSAJE`): enviar es `POST /api/v1/chat/{id}/mensajes`
+  y el hilo se refresca por SSE con polling de 5 s como respaldo.
+- **Decisión SSE vs WebSocket (registrada)** — se usa SSE porque el flujo es
+  unidireccional (servidor→navegador; el envío va por POST), reusa la auth por
+  cookies sin handshake custom, no añade dependencias (`SseEmitter` viene en
+  `spring-boot-starter-web`; nada de `socket.io`/`stomp` en el front),
+  reconecta solo (`EventSource` + `Last-Event-ID` + historial) y nginx ya trae
+  `proxy_buffering off`. **Futura migración a WebSocket**: revisar solo si se
+  pide algo realmente bidireccional (p. ej. "X está escribiendo…" en vivo o
+  edición colaborativa); implicaría `spring-boot-starter-websocket` + STOMP +
+  auth propia del handshake + cliente STOMP en el front. El contrato no
+  cambiaría: mismos eventos, misma bandeja (`notificacion_bandeja` es
+  agnóstica al transporte) y mismo `RealtimePushService` como punto de
+  sustitución (hoy emisores en memoria por réplica; con N réplicas, fanout por
+  el exchange `ferreteria.events` existente antes de pensar en WS).
 - **Buckets** — `ferreteria-fotos` (público, fotos de entidades) vs
   `ferreteria-tickets` (privado, PDFs de ticket/nómina con claves
   `tickets/`/`nominas/`). Separados a propósito: las fotos se sirven por URL

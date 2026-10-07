@@ -14,6 +14,7 @@ import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.notif.dto.CobranzaDtos;
+import mx.ferreteria.api.notif.entity.NotificacionBandeja;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
@@ -38,6 +39,7 @@ public class CobranzaInformeService {
     private final NotificacionJobRepository jobRepo;
     private final ObjectProvider<EmailNotificacionSender> emailSender;
     private final ObjectProvider<WhatsAppNotificacionSender> whatsappSender;
+    private final BandejaService bandejaService;
 
     @Transactional(readOnly = true)
     public CobranzaDtos.CobranzaEstadoResponse estado() {
@@ -110,6 +112,10 @@ public class CobranzaInformeService {
                 throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
             }
             jobService.marcarEnviada(job, null);
+            bandejaService.publicarParaGerencia(NotificacionBandeja.TIPO_COBRANZA,
+                    NotificacionBandeja.REF_COBRANZA, hoy.toEpochDay(),
+                    "Cobranza: " + vencidas.size() + " vencidas",
+                    resumenWhatsApp(vencidas, pendientes));
             log.info("cobranza enviada fecha={} destinatarios={} emails={} whatsapps={} "
                     + "vencidas={} pendientes={}",
                     hoy, destinatarios.size(), emails, whatsapps,

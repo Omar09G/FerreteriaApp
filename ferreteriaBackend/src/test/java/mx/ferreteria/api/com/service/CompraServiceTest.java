@@ -60,6 +60,7 @@ class CompraServiceTest {
     @Mock ProductoRepository productoRepo;
     @Mock CompraReportRepository reportRepo;
     @Mock CajaService cajaService;
+    @Mock org.springframework.context.ApplicationEventPublisher events;
     @Mock jakarta.persistence.EntityManager em;
 
     @InjectMocks

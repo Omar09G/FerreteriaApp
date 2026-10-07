@@ -27,6 +27,7 @@ import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
+import mx.ferreteria.api.notif.service.BandejaService;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository.DestinatarioInforme;
 import mx.ferreteria.api.ven.dto.VenDtos.CuentaCobrarResponse;
@@ -52,10 +53,12 @@ class CobranzaInformeServiceTest {
     EmailNotificacionSender emailSender;
     @Mock
     WhatsAppNotificacionSender whatsappSender;
+    @Mock
+    BandejaService bandejaService;
 
     private CobranzaInformeService service() {
         return new CobranzaInformeService(creditoService, destinatarioRepo,
-                jobService, jobRepo, emailProvider, whatsappProvider);
+                jobService, jobRepo, emailProvider, whatsappProvider, bandejaService);
     }
 
     private static CuentaCobrarResponse cuenta(String cliente, String saldo, LocalDate vto) {

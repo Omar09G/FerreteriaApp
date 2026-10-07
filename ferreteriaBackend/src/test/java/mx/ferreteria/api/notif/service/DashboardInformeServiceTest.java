@@ -26,6 +26,7 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.storage.DocumentoStoragePort;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
+import mx.ferreteria.api.notif.service.BandejaService;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository.DestinatarioInforme;
 import mx.ferreteria.api.ven.dto.ReportDtos;
@@ -55,6 +56,8 @@ class DashboardInformeServiceTest {
     EmailNotificacionSender emailSender;
     @Mock
     WhatsAppNotificacionSender whatsappSender;
+    @Mock
+    BandejaService bandejaService;
 
     DashboardInformeService service;
 
@@ -63,7 +66,7 @@ class DashboardInformeServiceTest {
     @BeforeEach
     void setUp() {
         service = new DashboardInformeService(reporteService, pdfService, destinatarioRepo,
-                jobService, jobRepo, documentoStorage, emailProvider, whatsappProvider);
+                jobService, jobRepo, documentoStorage, emailProvider, whatsappProvider, bandejaService);
     }
 
     private static final LocalDate HOY = LocalDate.of(2026, 10, 2);

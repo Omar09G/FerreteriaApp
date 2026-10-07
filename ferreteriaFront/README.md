@@ -44,6 +44,8 @@ src/
 ├─ components/     # UI kit propio (design system de ferretería + Tailwind)
 └─ hooks/          # useToast, useDocumentTitle, etc.
 ```
+Campana e historial viven en `components/layout/NotificacionBell.tsx` +
+`features/notificaciones/`; el chat en `features/chat/`.
 
 ## Contratos con el backend (resumen)
 
@@ -70,3 +72,12 @@ src/
 - POS: sugerencias difusas en vivo, ticket por WhatsApp desde el diálogo de
   venta registrada, dashboard con banner narrativo (hoy vs ayer + estrella),
   cotizaciones con foto de evidencia.
+- Tiempo real (SSE, no WebSocket — decisión registrada en el README raíz):
+  `useNotificacionesStream` (en `AppShell`, solo con sesión) abre
+  `EventSource` a `/api/v1/notificaciones/stream` (las cookies HttpOnly viajan
+  solas por mismo origen/proxy), hidrata contador + recientes, y por evento:
+  actualiza el store (`store/notificaciones.ts`, deduplica por `bandejaId`),
+  toast (salvo mensaje de chat estando en `/chat`) e invalida queries por
+  `refTipo`. Campana con badge en el header + `/notificaciones` (historial) +
+  `/chat` (1 a 1 y grupos; el hilo revalida por SSE con polling de 5 s como
+  respaldo). Sin dependencias nuevas: nada de `socket.io`/`stomp`.

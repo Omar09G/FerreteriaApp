@@ -29,6 +29,7 @@ import mx.ferreteria.api.fin.dto.FinDtos.TurnoCajaResponse;
 import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
+import mx.ferreteria.api.notif.service.BandejaService;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository.DestinatarioInforme;
 
@@ -52,10 +53,12 @@ class TurnoAbiertoInformeServiceTest {
     EmailNotificacionSender emailSender;
     @Mock
     WhatsAppNotificacionSender whatsappSender;
+    @Mock
+    BandejaService bandejaService;
 
     private TurnoAbiertoInformeService service() {
         return new TurnoAbiertoInformeService(cajaService, destinatarioRepo,
-                jobService, jobRepo, emailProvider, whatsappProvider);
+                jobService, jobRepo, emailProvider, whatsappProvider, bandejaService);
     }
 
     private static TurnoCajaResponse turno(Long id, String caja) {

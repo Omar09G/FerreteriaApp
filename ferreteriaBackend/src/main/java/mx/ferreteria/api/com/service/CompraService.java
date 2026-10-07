@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.cat.entity.FormaPago;
@@ -55,6 +56,7 @@ public class CompraService {
         private final ProductoRepository productoRepo;
         private final CompraReportRepository reportRepo;
         private final CajaService cajaService;
+        private final ApplicationEventPublisher events;
 
         @PersistenceContext
         private EntityManager em;
@@ -217,6 +219,10 @@ public class CompraService {
 
                 compraRepo.flush();
                 Compra refreshed = compraRepo.findById(saved.getCompraId()).orElse(saved);
+                // Aviso al módulo de notificaciones (evento de dominio: compras
+                // no depende de notif). El hook AFTER_COMMIT avisa a gerencia
+                // fuera de esta transacción.
+                events.publishEvent(new CompraCreadaEvent(refreshed.getCompraId()));
                 return toResponse(refreshed);
         }
 

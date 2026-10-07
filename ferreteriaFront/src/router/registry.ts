@@ -1,7 +1,9 @@
 import type { RouteObject } from "react-router-dom";
 
 import { authRoutes } from "./routes/auth";
+import { chatRoutes } from "./routes/chat";
 import { dashboardRoutes } from "./routes/dashboard";
+import { notificacionesRoutes } from "./routes/notificaciones";
 import { reportesRoutes } from "./routes/reportes";
 import { catalogoRoutes } from "./routes/catalogo";
 import { inventarioRoutes } from "./routes/inventario";
@@ -21,6 +23,8 @@ export const publicRoutes: RouteObject[] = [...authRoutes];
 
 export const privateRoutes: RouteObject[] = [
   ...dashboardRoutes,
+  ...notificacionesRoutes,
+  ...chatRoutes,
   ...reportesRoutes,
   ...catalogoRoutes,
   ...inventarioRoutes,

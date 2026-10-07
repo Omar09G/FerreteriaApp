@@ -15,6 +15,7 @@ import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.fin.dto.FinDtos.TurnoCajaResponse;
 import mx.ferreteria.api.fin.service.CajaService;
 import mx.ferreteria.api.notif.dto.TurnoAbiertoDtos;
+import mx.ferreteria.api.notif.entity.NotificacionBandeja;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
@@ -37,6 +38,7 @@ public class TurnoAbiertoInformeService {
     private final NotificacionJobRepository jobRepo;
     private final ObjectProvider<EmailNotificacionSender> emailSender;
     private final ObjectProvider<WhatsAppNotificacionSender> whatsappSender;
+    private final BandejaService bandejaService;
 
     @Transactional(readOnly = true)
     public TurnoAbiertoDtos.TurnoAbiertoEstadoResponse estado() {
@@ -105,6 +107,10 @@ public class TurnoAbiertoInformeService {
                 throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
             }
             jobService.marcarEnviada(job, null);
+            bandejaService.publicarParaGerencia(NotificacionBandeja.TIPO_TURNO_ABIERTO,
+                    NotificacionBandeja.REF_TURNO, hoy.toEpochDay(),
+                    turnos.size() == 1 ? "1 caja sin cerrar" : turnos.size() + " cajas sin cerrar",
+                    resumenWhatsApp(turnos));
             log.info("turnos avisados fecha={} destinatarios={} emails={} whatsapps={} turnos={}",
                     hoy, destinatarios.size(), emails, whatsapps, turnos.size());
             return new TurnoAbiertoDtos.TurnoAbiertoEnvioResponse(hoy, destinatarios.size(),

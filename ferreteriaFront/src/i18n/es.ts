@@ -17,6 +17,8 @@ import reportes from "./es/reportes";
 import rrhh from "./es/rrhh";
 import seguridad from "./es/seguridad";
 import ventas from "./es/ventas";
+import notificaciones from "./es/notificaciones";
+import chat from "./es/chat";
 
 const diccionario: Record<string, unknown> = {
 	alerta,
@@ -38,6 +40,8 @@ const diccionario: Record<string, unknown> = {
 	rrhh,
 	seguridad,
 	ventas,
+	notificaciones,
+	chat,
 };
 
 export default diccionario;

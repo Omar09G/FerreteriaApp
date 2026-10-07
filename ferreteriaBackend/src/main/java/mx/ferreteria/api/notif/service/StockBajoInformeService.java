@@ -16,6 +16,7 @@ import mx.ferreteria.api.inv.dto.InvDtos.InventarioResponse;
 import mx.ferreteria.api.inv.service.InventarioService;
 import mx.ferreteria.api.inv.service.StockBajoExcel;
 import mx.ferreteria.api.notif.dto.StockBajoDtos;
+import mx.ferreteria.api.notif.entity.NotificacionBandeja;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
@@ -38,6 +39,7 @@ public class StockBajoInformeService {
     private final NotificacionJobRepository jobRepo;
     private final ObjectProvider<EmailNotificacionSender> emailSender;
     private final ObjectProvider<WhatsAppNotificacionSender> whatsappSender;
+    private final BandejaService bandejaService;
 
     @Transactional(readOnly = true)
     public StockBajoDtos.StockBajoEstadoResponse estado() {
@@ -109,6 +111,10 @@ public class StockBajoInformeService {
                 throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
             }
             jobService.marcarEnviada(job, null);
+            bandejaService.publicarParaGerencia(NotificacionBandeja.TIPO_STOCK_BAJO,
+                    NotificacionBandeja.REF_STOCK, hoy.toEpochDay(),
+                    "Stock bajo: " + filas.size() + " productos (" + agotados + " agotados)",
+                    resumenWhatsApp(filas.size(), agotados, almacenes));
             log.info("stock-bajo enviado fecha={} destinatarios={} emails={} whatsapps={} "
                     + "productos={} agotados={}",
                     hoy, destinatarios.size(), emails, whatsapps, filas.size(), agotados);

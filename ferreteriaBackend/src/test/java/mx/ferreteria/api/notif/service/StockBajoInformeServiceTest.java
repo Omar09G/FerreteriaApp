@@ -29,6 +29,7 @@ import mx.ferreteria.api.inv.dto.InvDtos.InventarioResponse;
 import mx.ferreteria.api.inv.service.InventarioService;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
+import mx.ferreteria.api.notif.service.BandejaService;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository.DestinatarioInforme;
 
@@ -52,10 +53,12 @@ class StockBajoInformeServiceTest {
     EmailNotificacionSender emailSender;
     @Mock
     WhatsAppNotificacionSender whatsappSender;
+    @Mock
+    BandejaService bandejaService;
 
     private StockBajoInformeService service() {
         return new StockBajoInformeService(inventarioService, destinatarioRepo,
-                jobService, jobRepo, emailProvider, whatsappProvider);
+                jobService, jobRepo, emailProvider, whatsappProvider, bandejaService);
     }
 
     private static InventarioResponse fila(String codigo, String stock, String minimo) {

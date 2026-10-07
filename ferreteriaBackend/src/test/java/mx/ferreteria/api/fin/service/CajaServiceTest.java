@@ -60,6 +60,7 @@ class CajaServiceTest {
     @Mock CorteCajaRepository corteRepo;
     @Mock AlmacenRepository almacenRepo;
     @Mock CajaReportRepository reportRepo;
+    @Mock org.springframework.context.ApplicationEventPublisher events;
 
     @InjectMocks
     CajaService service;

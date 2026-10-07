@@ -14,6 +14,7 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.storage.DocumentoStoragePort;
 import mx.ferreteria.api.common.web.RangoFechas;
 import mx.ferreteria.api.notif.dto.InformeDtos;
+import mx.ferreteria.api.notif.entity.NotificacionBandeja;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
@@ -42,6 +43,7 @@ public class DashboardInformeService {
     private final DocumentoStoragePort documentoStorage;
     private final ObjectProvider<EmailNotificacionSender> emailSender;
     private final ObjectProvider<WhatsAppNotificacionSender> whatsappSender;
+    private final BandejaService bandejaService;
 
     @Transactional(readOnly = true)
     public InformeDtos.InformeEstadoResponse estadoInforme(LocalDate fechaInicio, LocalDate fechaFin) {
@@ -70,7 +72,12 @@ public class DashboardInformeService {
 
         String clave = "informes/informe-dashboard-" + rango.fin() + ".pdf";
         String pdfUrl = documentoStorage.subirPdf(clave, pdf);
-        String asunto = "Informe diario Ferreteria - " + rango.fin();
+        java.time.format.DateTimeFormatter corta =
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String asunto = rango.inicio().equals(rango.fin())
+                ? "Informe diario Ferretería — " + corta.format(rango.fin())
+                : "Informe Ferretería — " + corta.format(rango.inicio())
+                        + " al " + corta.format(rango.fin());
 
         NotificacionJob job = jobService.crearInformeDashboard(rango.fin());
         jobService.marcarProcesando(job);
@@ -104,6 +111,11 @@ public class DashboardInformeService {
                 throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
             }
             jobService.marcarEnviada(job, pdfUrl);
+            bandejaService.publicarParaGerencia(NotificacionBandeja.TIPO_INFORME_DASHBOARD,
+                    NotificacionBandeja.REF_INFORME, rango.fin().toEpochDay(),
+                    "Informe diario listo",
+                    "Periodo " + rango.inicio() + " al " + rango.fin()
+                            + ". Detalle en su correo.");
             log.info("informe diario enviado rango={}/{} destinatarios={} emails={} whatsapps={}",
                     rango.inicio(), rango.fin(), destinatarios.size(), emails, whatsapps);
             return new InformeDtos.InformeEnvioResponse(

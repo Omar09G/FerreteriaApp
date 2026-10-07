@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.cat.entity.FormaPago;
@@ -70,6 +71,7 @@ public class CajaService {
         private final CorteCajaRepository corteRepo;
         private final AlmacenRepository almacenRepo;
         private final CajaReportRepository reportRepo;
+        private final ApplicationEventPublisher events;
 
         // ─── Cajas ──────────────────────────────────────────────────────
 
@@ -146,6 +148,12 @@ public class CajaService {
                                 .estado(ESTADO_ABIERTO)
                                 .build();
                 TurnoCaja saved = turnoRepo.save(turno);
+                // Aviso al módulo de notificaciones (evento de dominio: caja no
+                // depende de notif). El hook AFTER_COMMIT publica en la bandeja
+                // y empuja por SSE fuera de esta transacción.
+                events.publishEvent(new TurnoAbiertoEvent(saved.getTurnoCajaId(),
+                                saved.getCajaId(), caja.getNombre(), saved.getUsuarioId(),
+                                saved.getMontoApertura()));
                 return toTurnoResponse(saved, caja.getNombre());
         }
 
@@ -314,6 +322,17 @@ public class CajaService {
 
                 CorteCaja corte = corteRepo.findById(corteId)
                                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));
+                Integer usuarioAperturaId = turnoRepo.findById(turnoId)
+                                .map(TurnoCaja::getUsuarioId).orElse(null);
+                String cajaNombre = cajaRepo.findById(corte.getCajaId())
+                                .map(Caja::getNombre).orElse(null);
+                String resultado;
+                if (corte.getDiferencia().compareTo(BigDecimal.ZERO) == 0) resultado = "CUADRADO";
+                else if (corte.getDiferencia().compareTo(BigDecimal.ZERO) > 0) resultado = "SOBRANTE";
+                else resultado = "FALTANTE";
+                // Aviso al módulo de notificaciones (evento de dominio, ver abrirTurno).
+                events.publishEvent(new TurnoCerradoEvent(turnoId, cajaNombre, resultado,
+                                corte.getDiferencia(), usuarioAperturaId, usuarioCierreId));
                 return toCorteResponse(corte);
         }
 

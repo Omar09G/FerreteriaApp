@@ -24,6 +24,12 @@ public class EnvelopeAdvice implements ResponseBodyAdvice<Object> {
     @Override
     public boolean supports(@NonNull MethodParameter returnType,
                             @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
+        // El stream SSE escribe directo al response (eventos text/event-stream):
+        // envolverlo en {success,data} rompería el protocolo.
+        if (org.springframework.web.servlet.mvc.method.annotation.SseEmitter.class
+                .isAssignableFrom(returnType.getParameterType())) {
+            return false;
+        }
         return true;
     }
 

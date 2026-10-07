@@ -36,4 +36,36 @@ public class InformeDestinatarioRepository {
                 .query((rs, n) -> new DestinatarioInforme(rs.getString("email"), rs.getString("whatsapp")))
                 .list();
     }
+
+    /**
+     * IDs de GERENTES y ADMINISTRADORES activos para la bandeja en tiempo
+     * real (SSE). Sin filtro de contacto: la bandeja no necesita email ni
+     * WhatsApp, solo el usuario.
+     */
+    public List<Integer> findGerenteAdminIds() {
+        return jdbc.sql("""
+                        SELECT DISTINCT u.usuario_id
+                        FROM seg.usuarios u
+                        JOIN seg.usuario_roles ur ON ur.usuario_id = u.usuario_id
+                        JOIN seg.roles r ON r.rol_id = ur.rol_id
+                        WHERE r.clave IN ('GERENTE', 'ADMINISTRADOR')
+                          AND u.activo AND u.eliminado_en IS NULL
+                        ORDER BY u.usuario_id
+                        """)
+                .query((rs, n) -> rs.getInt("usuario_id"))
+                .list();
+    }
+
+    /** Usuario activo ligado a un empleado (para avisos propios: nómina). */
+    public java.util.Optional<Integer> findUsuarioIdByEmpleadoId(Integer empleadoId) {
+        return jdbc.sql("""
+                        SELECT u.usuario_id
+                        FROM seg.usuarios u
+                        WHERE u.empleado_id = :empleadoId
+                          AND u.activo AND u.eliminado_en IS NULL
+                        """)
+                .param("empleadoId", empleadoId)
+                .query((rs, n) -> rs.getInt("usuario_id"))
+                .optional();
+    }
 }

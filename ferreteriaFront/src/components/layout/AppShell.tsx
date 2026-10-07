@@ -2,6 +2,7 @@ import { Suspense, useState, type ReactNode } from "react";
 import {
   Boxes,
   BarChart3,
+  Bell,
   Building2,
   CalendarCheck2,
   CircleDollarSign,
@@ -14,6 +15,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessagesSquare,
   Monitor,
   Moon,
   Percent,
@@ -41,6 +43,11 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { useInactivityTimeout } from "@/hooks/useInactivityTimeout";
+import { NotificacionBell } from "@/components/layout/NotificacionBell";
+import {
+  useAutenticadoParaStream,
+  useNotificacionesStream,
+} from "@/store/notificaciones";
 
 interface Usuario {
   username: string;
@@ -63,6 +70,16 @@ const GRUPOS: { clave: string; items: Item[] }[] = [
         clave: "inicio",
         a: "/dashboard",
         icono: <LayoutDashboard className="h-4 w-4" />,
+      },
+      {
+        clave: "notificaciones",
+        a: "/notificaciones",
+        icono: <Bell className="h-4 w-4" />,
+      },
+      {
+        clave: "chat",
+        a: "/chat",
+        icono: <MessagesSquare className="h-4 w-4" />,
       },
       {
         clave: "puntoVenta",
@@ -453,6 +470,8 @@ export function AppShell() {
   const appVersion = import.meta.env.VITE_APP_VERSION ?? "1.0.0";
   // Logout automático por inactividad.
   useInactivityTimeout();
+  // Stream SSE de notificaciones (vive mientras haya sesión).
+  useNotificacionesStream(useAutenticadoParaStream());
 
   const cerrarSesion = async () => {
     // El refresh vive en cookie HttpOnly; basta con llamar a /auth/logout
@@ -587,7 +606,8 @@ export function AppShell() {
 
         {/* Contenedor Principal */}
         <main className="min-w-0 flex-1 px-4 pb-10 pt-16 lg:ml-60 lg:pt-3">
-          <div className="mx-auto mb-3 flex max-w-350 items-center justify-end">
+          <div className="mx-auto mb-3 flex max-w-350 items-center justify-end gap-2">
+            <NotificacionBell />
             <Preferencias />
           </div>
           <div className="mx-auto max-w-350">

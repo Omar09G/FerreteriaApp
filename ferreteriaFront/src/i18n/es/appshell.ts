@@ -8,6 +8,8 @@ export default {
   },
   items: {
     inicio: "Inicio",
+    notificaciones: "Notificaciones",
+    chat: "Chat",
     puntoVenta: "Punto de venta",
     productos: "Productos",
     clientes: "Clientes",

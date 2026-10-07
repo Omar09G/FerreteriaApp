@@ -13,6 +13,7 @@ import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.notif.dto.RentasDtos;
+import mx.ferreteria.api.notif.entity.NotificacionBandeja;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
@@ -40,6 +41,7 @@ public class RentasInformeService {
     private final NotificacionJobRepository jobRepo;
     private final ObjectProvider<EmailNotificacionSender> emailSender;
     private final ObjectProvider<WhatsAppNotificacionSender> whatsappSender;
+    private final BandejaService bandejaService;
 
     @Transactional(readOnly = true)
     public RentasDtos.RentasEstadoResponse estado() {
@@ -114,6 +116,10 @@ public class RentasInformeService {
                 throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
             }
             jobService.marcarEnviada(job, null);
+            bandejaService.publicarParaGerencia(NotificacionBandeja.TIPO_RENTAS,
+                    NotificacionBandeja.REF_RENTAS, hoy.toEpochDay(),
+                    "Rentas: " + vencidas.size() + " vencidas",
+                    resumenWhatsApp(vencidas, proximas));
             log.info("rentas enviadas fecha={} destinatarios={} emails={} whatsapps={} "
                     + "vencidas={} proximas={}",
                     hoy, destinatarios.size(), emails, whatsapps,

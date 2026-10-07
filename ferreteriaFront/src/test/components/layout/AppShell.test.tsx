@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -45,15 +46,21 @@ function usuarioCon(over: Partial<MeResponse> = {}): MeResponse {
 }
 
 function renderShell(ruta = "/dashboard") {
+	// QueryClientProvider como en main.tsx (el stream de notificaciones lo exige).
+	const qc = new QueryClient({
+		defaultOptions: { queries: { retry: false, staleTime: 0 } },
+	});
 	render(
-		<MemoryRouter initialEntries={[ruta]}>
-			<Routes>
-				<Route element={<AppShell />}>
-					<Route path="/dashboard" element={<div>ContenidoDash</div>} />
-					<Route path="/login" element={<div>PaginaLogin</div>} />
-				</Route>
-			</Routes>
-		</MemoryRouter>,
+		<QueryClientProvider client={qc}>
+			<MemoryRouter initialEntries={[ruta]}>
+				<Routes>
+					<Route element={<AppShell />}>
+						<Route path="/dashboard" element={<div>ContenidoDash</div>} />
+						<Route path="/login" element={<div>PaginaLogin</div>} />
+					</Route>
+				</Routes>
+			</MemoryRouter>
+		</QueryClientProvider>,
 	);
 }
 

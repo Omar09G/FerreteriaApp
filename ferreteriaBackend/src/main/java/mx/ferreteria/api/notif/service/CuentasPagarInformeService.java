@@ -17,6 +17,7 @@ import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.notif.dto.CuentasPagarDtos;
+import mx.ferreteria.api.notif.entity.NotificacionBandeja;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 import mx.ferreteria.api.notif.repo.NotificacionJobRepository;
 import mx.ferreteria.api.seg.repo.InformeDestinatarioRepository;
@@ -40,6 +41,7 @@ public class CuentasPagarInformeService {
     private final NotificacionJobRepository jobRepo;
     private final ObjectProvider<EmailNotificacionSender> emailSender;
     private final ObjectProvider<WhatsAppNotificacionSender> whatsappSender;
+    private final BandejaService bandejaService;
 
     @Transactional(readOnly = true)
     public CuentasPagarDtos.CuentasPagarEstadoResponse estado() {
@@ -109,6 +111,10 @@ public class CuentasPagarInformeService {
                 throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
             }
             jobService.marcarEnviada(job, null);
+            bandejaService.publicarParaGerencia(NotificacionBandeja.TIPO_CUENTAS_PAGAR,
+                    NotificacionBandeja.REF_CUENTAS, hoy.toEpochDay(),
+                    "Cuentas por pagar: " + vencidas.size() + " vencidas",
+                    resumenWhatsApp(vencidas, pendientes));
             log.info("cuentas-pagar enviado fecha={} destinatarios={} emails={} whatsapps={} "
                     + "vencidas={} pendientes={}",
                     hoy, destinatarios.size(), emails, whatsapps,

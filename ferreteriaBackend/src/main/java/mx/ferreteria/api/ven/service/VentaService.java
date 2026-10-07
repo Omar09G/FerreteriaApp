@@ -363,6 +363,8 @@ public class VentaService {
         v.setEstado("CANCELADA");
         v.setMotivoCancelacion(motivo);
         ventaRepo.save(v);
+        // Aviso al módulo de notificaciones (evento de dominio, ver checkout).
+        events.publishEvent(new VentaCanceladaEvent(v.getVentaId()));
         return toResponse(v);
     }
 

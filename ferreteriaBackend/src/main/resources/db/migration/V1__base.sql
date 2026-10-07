@@ -810,6 +810,66 @@ CREATE TABLE IF NOT EXISTS notif.notificacion_jobs (
 CREATE INDEX IF NOT EXISTS idx_notif_jobs_estado
     ON notif.notificacion_jobs(estado, creado_en);
 
+-- V30: bandeja de notificaciones en tiempo real (SSE): una fila por
+-- destinatario y evento (conectado = push instantáneo; desconectado =
+-- contador + historial al entrar). Espejo: V30__bandeja_notificaciones.sql y
+-- migrations/delta_bandeja_notificaciones.sql.
+CREATE TABLE IF NOT EXISTS notif.notificacion_bandeja (
+    bandeja_id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    usuario_id   INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id) ON DELETE CASCADE,
+    tipo         VARCHAR(32) NOT NULL
+                 CHECK (tipo IN ('VENTA_TICKET','NOMINA_PAGADA','INFORME_DASHBOARD','CUENTAS_PAGAR',
+                                'COBRANZA','RENTAS','STOCK_BAJO','TURNO_ABIERTO',
+                                'VENTA_CANCELADA','COMPRA_CREADA','TURNO_APERTURA','CORTE_CAJA',
+                                'NOMINA_CREADA','CHAT_MENSAJE')),
+    titulo       VARCHAR(140) NOT NULL,
+    detalle      TEXT,
+    ref_tipo     VARCHAR(16) NOT NULL
+                 CHECK (ref_tipo IN ('VENTA','NOMINA','INFORME','CUENTAS','COBRANZA','RENTAS','STOCK',
+                                    'TURNO','COMPRA','CORTE','CHAT')),
+    ref_id       BIGINT NOT NULL,
+    leida_en     TIMESTAMPTZ,
+    creada_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_bandeja_usuario_ref UNIQUE (usuario_id, tipo, ref_tipo, ref_id)
+);
+CREATE INDEX IF NOT EXISTS idx_bandeja_usuario
+    ON notif.notificacion_bandeja(usuario_id, leida_en, creada_en DESC);
+
+-- V31: chat interno 1 a 1 y por grupos. Espejo: V31__chat_interno.sql y
+-- migrations/delta_chat_interno.sql.
+CREATE TABLE IF NOT EXISTS notif.chat_conversacion (
+    conversacion_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    tipo           VARCHAR(16) NOT NULL
+                   CHECK (tipo IN ('DIRECTA','GRUPO')),
+    titulo         VARCHAR(120),
+    creada_por     INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
+    creada_en      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS notif.chat_participante (
+    participante_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    conversacion_id  BIGINT NOT NULL
+                     REFERENCES notif.chat_conversacion(conversacion_id) ON DELETE CASCADE,
+    usuario_id       INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id) ON DELETE CASCADE,
+    ultimo_leido_en  TIMESTAMPTZ,
+    creado_en        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_chat_participante UNIQUE (conversacion_id, usuario_id)
+);
+CREATE INDEX IF NOT EXISTS idx_chat_participante_usuario
+    ON notif.chat_participante(usuario_id, conversacion_id);
+
+CREATE TABLE IF NOT EXISTS notif.chat_mensaje (
+    mensaje_id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    conversacion_id BIGINT NOT NULL
+                    REFERENCES notif.chat_conversacion(conversacion_id) ON DELETE CASCADE,
+    autor_id        INTEGER NOT NULL,
+    cuerpo          TEXT NOT NULL CHECK (char_length(cuerpo) BETWEEN 1 AND 2000),
+    creada_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    eliminada_en    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_chat_mensaje_conversacion
+    ON notif.chat_mensaje(conversacion_id, creada_en DESC);
+
 CREATE TABLE IF NOT EXISTS ven.venta_detalles (
     venta_detalle_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     venta_id         BIGINT NOT NULL REFERENCES ven.ventas(venta_id) ON DELETE CASCADE,
