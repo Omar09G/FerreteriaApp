@@ -22,6 +22,7 @@ import org.mockito.quality.Strictness;
 
 import mx.ferreteria.api.cat.entity.Cliente;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
+import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.cfg.entity.TicketConfig;
 import mx.ferreteria.api.cfg.repo.TicketConfigRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
@@ -43,6 +44,9 @@ class TicketPdfServiceTest {
 
     @Mock
     ClienteRepository clienteRepo;
+
+    @Mock
+    ProductoRepository productoRepo;
 
     @Mock
     TicketConfigRepository ticketConfigRepo;

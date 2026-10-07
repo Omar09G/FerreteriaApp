@@ -2,10 +2,12 @@ package mx.ferreteria.api.ven.pdf;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -13,27 +15,30 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 
 import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.cat.entity.Cliente;
+import mx.ferreteria.api.cat.entity.Producto;
 import mx.ferreteria.api.cat.repo.ClienteRepository;
+import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.cfg.entity.TicketConfig;
 import mx.ferreteria.api.cfg.repo.TicketConfigRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.pdf.PdfEstilo;
 import mx.ferreteria.api.ven.entity.Venta;
 import mx.ferreteria.api.ven.entity.VentaDetalle;
 import mx.ferreteria.api.ven.repo.VentaDetalleRepository;
 import mx.ferreteria.api.ven.repo.VentaRepository;
 
 /**
- * Genera el PDF del ticket de venta (80 mm) con OpenPDF. Totales y folio
+ * Genera el PDF del ticket de venta con OpenPDF. Totales y folio
  * se leen solo de BD (triggers/columnas generadas), nunca del cliente.
+ * Tabla de partidas con nombre de producto, importes por línea y
+ * totales alineados para lectura rápida en correo.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,6 +54,7 @@ public class TicketPdfService {
     private final VentaDetalleRepository detalleRepo;
     private final ClienteRepository clienteRepo;
     private final TicketConfigRepository ticketConfigRepo;
+    private final ProductoRepository productoRepo;
 
     @Transactional(readOnly = true)
     public byte[] generarTicketPdf(Long ventaId) {
@@ -59,92 +65,82 @@ public class TicketPdfService {
                 ? clienteRepo.findById(v.getClienteId()).orElse(null)
                 : null;
         TicketConfig cfg = resolverConfig(v.getAlmacenId());
+        Map<Long, Producto> productos = resolverProductos(detalles);
+        String tituloDoc = Optional.ofNullable(cfg.getTituloDocumento()).orElse("Factura simplificada");
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            // 80 mm ≈ 226.77 pt; alto suficiente para ticket POS.
-            Document doc = new Document(PageSize.A4, 14, 14, 14, 14);
-            PdfWriter.getInstance(doc, out);
+            Document doc = new Document(PageSize.A4, 36, 36, 40, 44);
+            PdfWriter writer = PdfWriter.getInstance(doc, out);
+            PdfEstilo.preparar(doc, writer, tituloDoc + " " + v.getFolio());
             doc.open();
 
-            Font fuenteTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-            Font fuenteNormal = FontFactory.getFont(FontFactory.HELVETICA, 9);
-            Font fuentePequena = FontFactory.getFont(FontFactory.HELVETICA, 8);
-
-            Paragraph titulo = new Paragraph(cfg.getNombreNegocio(), fuenteTitulo);
-            titulo.setAlignment(Element.ALIGN_CENTER);
-            doc.add(titulo);
-
+            PdfEstilo.encabezado(doc, cfg.getNombreNegocio(), tituloDoc);
             if (cfg.getDireccion() != null && !cfg.getDireccion().isBlank()) {
-                Paragraph dir = new Paragraph(cfg.getDireccion(), fuentePequena);
-                dir.setAlignment(Element.ALIGN_CENTER);
-                doc.add(dir);
+                doc.add(PdfEstilo.nota(cfg.getDireccion()));
             }
             if (cfg.getRfc() != null && !cfg.getRfc().isBlank()) {
-                Paragraph rfc = new Paragraph("RFC: " + cfg.getRfc(), fuentePequena);
-                rfc.setAlignment(Element.ALIGN_CENTER);
-                doc.add(rfc);
+                doc.add(PdfEstilo.nota("RFC: " + cfg.getRfc()));
             }
-            doc.add(new Paragraph(" ", fuenteNormal));
+            doc.add(PdfEstilo.espacio());
 
-            Paragraph docTitulo = new Paragraph(
-                    Optional.ofNullable(cfg.getTituloDocumento()).orElse("Factura simplificada"),
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10));
-            docTitulo.setAlignment(Element.ALIGN_CENTER);
-            doc.add(docTitulo);
+            PdfEstilo.ficha(doc, new String[][] {
+                    { "Folio", PdfEstilo.texto(v.getFolio(), "—") },
+                    { "Fecha", v.getFecha() != null ? FECHA.format(v.getFecha().atZone(ZONA)) : "—" },
+                    { "Estado", PdfEstilo.texto(v.getEstado(), "—") },
+                    { "Cliente", nombreCliente(cliente, cfg) },
+            });
 
-            doc.add(new Paragraph("Folio: " + v.getFolio(), fuenteNormal));
-            if (v.getFecha() != null) {
-                doc.add(new Paragraph("Fecha: " + FECHA.format(v.getFecha().atZone(ZONA)), fuenteNormal));
-            }
-            doc.add(new Paragraph("Estado: " + v.getEstado(), fuenteNormal));
-            if (Boolean.TRUE.equals(cfg.getMostrarDatosCliente())) {
-                if (cliente != null) {
-                    doc.add(new Paragraph("Cliente: " + cliente.getRazonSocial(), fuenteNormal));
-                    if (cliente.getRfc() != null && !cliente.getRfc().isBlank()) {
-                        doc.add(new Paragraph("RFC: " + cliente.getRfc(), fuenteNormal));
-                    }
-                } else {
-                    doc.add(new Paragraph("Cliente: Consumidor final", fuenteNormal));
-                }
-            }
-            doc.add(new Paragraph(" ", fuenteNormal));
-
+            PdfEstilo.seccion(doc, "Productos (" + detalles.size() + ")");
+            PdfPTable tabla = PdfEstilo.tabla(
+                    new float[] { 12f, 48f, 20f, 20f },
+                    new String[] { "Cant.", "Producto", "P. unitario", "Importe" });
+            boolean par = false;
             for (VentaDetalle d : detalles) {
-                String linea = String.format("%s  x%s  $%s",
-                        truncar(String.valueOf(d.getProductoId()), 18),
-                        d.getCantidad(),
-                        money(d.getPrecioUnitario()));
-                // nombre de producto no está en VentaDetalle; productoId es suficiente
-                // para el ticket mínimo; el front ya renderiza nombre en preview.
-                Paragraph p = new Paragraph(linea, fuentePequena);
-                doc.add(p);
+                Objects.requireNonNull(d, "detalle de venta nulo");
+                Producto p = d.getProductoId() != null ? productos.get(d.getProductoId()) : null;
+                tabla.addCell(PdfEstilo.celdaDatoCentrada(PdfEstilo.cantidad(d.getCantidad()), par));
+                tabla.addCell(PdfEstilo.celda(descripcionProducto(d, p),
+                        PdfEstilo.fuentePequenaOscura(), Element.ALIGN_LEFT,
+                        par ? PdfEstilo.FONDO_FILA_ALT : null,
+                        com.lowagie.text.Rectangle.BOX, 4, 2));
+                tabla.addCell(PdfEstilo.celdaMoneda(d.getPrecioUnitario(), par));
+                tabla.addCell(PdfEstilo.celdaMoneda(importeLinea(d), par));
+                par = !par;
             }
-            doc.add(new Paragraph(" ", fuenteNormal));
+            if (detalles.isEmpty()) {
+                tabla.addCell(PdfEstilo.celdaDato("Sin productos registrados en esta venta.", false));
+                tabla.addCell(PdfEstilo.celdaDato("", false));
+                tabla.addCell(PdfEstilo.celdaDato("", false));
+                tabla.addCell(PdfEstilo.celdaDato("", false));
+            }
+            doc.add(tabla);
 
-            if (cfg.getMostrarDesgloseIva() != null && cfg.getMostrarDesgloseIva()) {
-                doc.add(new Paragraph("Subtotal: " + money(v.getSubtotal()), fuenteNormal));
-                doc.add(new Paragraph("IVA (" + money(v.getIvaTasa()) + "%): " + money(v.getIva()), fuenteNormal));
+            PdfEstilo.seccion(doc, "Totales");
+            PdfPTable totales = PdfEstilo.tabla(new float[] { 60f, 40f }, null);
+            if (Boolean.TRUE.equals(cfg.getMostrarDesgloseIva())) {
+                agregarTotal(totales, "Subtotal", v.getSubtotal(), false);
+                agregarTotal(totales, "IVA (" + PdfEstilo.cantidad(v.getIvaTasa()) + "%)",
+                        v.getIva(), false);
             }
-            if (cfg.getMostrarDescuento() != null && cfg.getMostrarDescuento()
+            if (Boolean.TRUE.equals(cfg.getMostrarDescuento())
                     && v.getDescuentoTotal() != null
                     && v.getDescuentoTotal().compareTo(BigDecimal.ZERO) > 0) {
-                doc.add(new Paragraph("Descuento: -" + money(v.getDescuentoTotal()), fuenteNormal));
+                agregarTotal(totales, "Descuento", v.getDescuentoTotal().negate(), false);
             }
-            Paragraph total = new Paragraph("TOTAL: " + money(v.getTotal()),
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11));
-            total.setAlignment(Element.ALIGN_RIGHT);
-            doc.add(total);
+            doc.add(totales);
+            doc.add(PdfEstilo.totalDestacado("TOTAL", v.getTotal()));
+
+            if (v.getNotas() != null && !v.getNotas().isBlank()) {
+                PdfEstilo.seccion(doc, "Notas");
+                doc.add(new com.lowagie.text.Paragraph(v.getNotas(), PdfEstilo.fuenteNormal()));
+            }
 
             if (cfg.getMensajePie() != null && !cfg.getMensajePie().isBlank()) {
-                doc.add(new Paragraph(" ", fuenteNormal));
-                Paragraph pie = new Paragraph(cfg.getMensajePie(), fuentePequena);
-                pie.setAlignment(Element.ALIGN_CENTER);
-                doc.add(pie);
+                doc.add(PdfEstilo.espacio());
+                doc.add(PdfEstilo.nota(cfg.getMensajePie()));
             }
             if (cfg.getPieSecundario() != null && !cfg.getPieSecundario().isBlank()) {
-                Paragraph pie2 = new Paragraph(cfg.getPieSecundario(), fuentePequena);
-                pie2.setAlignment(Element.ALIGN_CENTER);
-                doc.add(pie2);
+                doc.add(PdfEstilo.nota(cfg.getPieSecundario()));
             }
 
             doc.close();
@@ -152,6 +148,69 @@ public class TicketPdfService {
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo generar el PDF del ticket", e);
         }
+    }
+
+    private void agregarTotal(PdfPTable totales, String etiqueta, BigDecimal monto, boolean par) {
+        totales.addCell(PdfEstilo.celda(etiqueta, PdfEstilo.fuenteNormal(),
+                Element.ALIGN_RIGHT, null, com.lowagie.text.Rectangle.NO_BORDER, 3, 2));
+        totales.addCell(PdfEstilo.celda(PdfEstilo.moneda(monto),
+                com.lowagie.text.FontFactory.getFont(
+                        com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, PdfEstilo.GRIS_TEXTO),
+                Element.ALIGN_RIGHT, null, com.lowagie.text.Rectangle.NO_BORDER, 3, 2));
+    }
+
+    private Map<Long, Producto> resolverProductos(List<VentaDetalle> detalles) {
+        List<Long> ids = detalles == null ? List.of()
+                : detalles.stream()
+                        .filter(Objects::nonNull)
+                        .map(VentaDetalle::getProductoId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Producto> mapa = new HashMap<>();
+        for (Producto p : productoRepo.findAllById(ids)) {
+            if (p != null && p.getProductoId() != null) {
+                mapa.put(p.getProductoId(), p);
+            }
+        }
+        return mapa;
+    }
+
+    private static String descripcionProducto(VentaDetalle d, Producto p) {
+        if (p != null && p.getNombre() != null && !p.getNombre().isBlank()) {
+            String codigo = p.getCodigo() != null && !p.getCodigo().isBlank()
+                    ? " · " + p.getCodigo()
+                    : "";
+            return p.getNombre() + codigo;
+        }
+        return "Producto #" + d.getProductoId();
+    }
+
+    private static BigDecimal importeLinea(VentaDetalle d) {
+        BigDecimal cant = d.getCantidad() == null ? BigDecimal.ZERO : d.getCantidad();
+        BigDecimal precio = d.getPrecioUnitario() == null ? BigDecimal.ZERO : d.getPrecioUnitario();
+        BigDecimal desc = d.getDescuentoLinea() == null ? BigDecimal.ZERO : d.getDescuentoLinea();
+        if (d.getTotalLinea() != null) {
+            return d.getTotalLinea();
+        }
+        return cant.multiply(precio).subtract(desc);
+    }
+
+    private static String nombreCliente(Cliente cliente, TicketConfig cfg) {
+        if (!Boolean.TRUE.equals(cfg.getMostrarDatosCliente())) {
+            return "—";
+        }
+        if (cliente == null) {
+            return "Consumidor final";
+        }
+        String razon = PdfEstilo.texto(cliente.getRazonSocial(), "Consumidor final");
+        if (cliente.getRfc() != null && !cliente.getRfc().isBlank()) {
+            return razon + " · RFC " + cliente.getRfc();
+        }
+        return razon;
     }
 
     private TicketConfig resolverConfig(Integer almacenId) {
@@ -173,19 +232,5 @@ public class TicketPdfService {
             def.setFontSizePt((short) 9);
             return def;
         });
-    }
-
-    private static String money(BigDecimal n) {
-        if (n == null) {
-            return "0.00";
-        }
-        return String.format(java.util.Locale.US, "%.2f", n);
-    }
-
-    private static String truncar(String s, int max) {
-        if (s == null) {
-            return "";
-        }
-        return s.length() <= max ? s : s.substring(0, max);
     }
 }
