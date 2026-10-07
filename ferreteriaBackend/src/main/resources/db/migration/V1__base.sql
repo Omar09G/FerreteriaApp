@@ -834,6 +834,9 @@ CREATE TABLE IF NOT EXISTS notif.notificacion_bandeja (
 );
 CREATE INDEX IF NOT EXISTS idx_bandeja_usuario
     ON notif.notificacion_bandeja(usuario_id, leida_en, creada_en DESC);
+-- Convención del módulo (igual que delta_notificacion_jobs.sql): las tablas
+-- notif pertenecen al rol de aplicación.
+ALTER TABLE notif.notificacion_bandeja OWNER TO ferreteria_app;
 
 -- V31: chat interno 1 a 1 y por grupos. Espejo: V31__chat_interno.sql y
 -- migrations/delta_chat_interno.sql.
@@ -869,6 +872,9 @@ CREATE TABLE IF NOT EXISTS notif.chat_mensaje (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_mensaje_conversacion
     ON notif.chat_mensaje(conversacion_id, creada_en DESC);
+ALTER TABLE notif.chat_conversacion OWNER TO ferreteria_app;
+ALTER TABLE notif.chat_participante OWNER TO ferreteria_app;
+ALTER TABLE notif.chat_mensaje OWNER TO ferreteria_app;
 
 CREATE TABLE IF NOT EXISTS ven.venta_detalles (
     venta_detalle_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

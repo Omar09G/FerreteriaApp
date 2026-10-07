@@ -19,13 +19,23 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Long> 
     ChatMensaje findFirstByConversacionIdAndEliminadaEnIsNullOrderByCreadaEnDesc(
             Long conversacionId);
 
-    /** No leídos para un usuario desde su marca de lectura. */
+    /**
+     * No leídos para un usuario desde su marca de lectura. Dos variantes
+     * porque PostgreSQL no infiere el tipo de un parámetro temporal nulo
+     * en `(:leido is null or ...)` (42P18): sin marca se cuenta todo.
+     */
+    @Query("""
+            select count(m) from ChatMensaje m
+            where m.conversacionId = :conv and m.eliminadaEn is null
+              and m.autorId <> :usuario and m.creadaEn > :leido
+            """)
+    long contarNoLeidosDesde(@Param("conv") Long conv, @Param("usuario") Integer usuario,
+            @Param("leido") Instant leido);
+
     @Query("""
             select count(m) from ChatMensaje m
             where m.conversacionId = :conv and m.eliminadaEn is null
               and m.autorId <> :usuario
-              and (:leido is null or m.creadaEn > :leido)
             """)
-    long contarNoLeidos(@Param("conv") Long conv, @Param("usuario") Integer usuario,
-            @Param("leido") Instant leido);
+    long contarNoLeidosTodos(@Param("conv") Long conv, @Param("usuario") Integer usuario);
 }

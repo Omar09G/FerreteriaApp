@@ -80,7 +80,6 @@ public class ChatService {
             ChatMensaje ultimo = mensajeRepo
                     .findFirstByConversacionIdAndEliminadaEnIsNullOrderByCreadaEnDesc(id);
             ChatParticipante propio = propios.get(id);
-            Instant leido = propio == null ? null : propio.getUltimoLeidoEn();
             out.add(new ConversacionResponse(id, c.getTipo(),
                     tituloPara(c, ps, usuarioId),
                     ps,
@@ -88,7 +87,8 @@ public class ChatService {
                             : new UltimoMensajeResponse(truncar(ultimo.getCuerpo(), 80),
                                     nombres.getOrDefault(ultimo.getAutorId(), "usuario"),
                                     ultimo.getCreadaEn()),
-                    mensajeRepo.contarNoLeidos(id, usuarioId, leido)));
+                    noLeidos(id, usuarioId,
+                            propio == null ? null : propio.getUltimoLeidoEn())));
         }
         return out;
     }
@@ -189,14 +189,23 @@ public class ChatService {
         ChatMensaje ultimo = mensajeRepo
                 .findFirstByConversacionIdAndEliminadaEnIsNullOrderByCreadaEnDesc(conversacionId);
         ChatParticipante propio = exigirMiembro(usuarioId, conversacionId);
-        Instant leido = propio.getUltimoLeidoEn();
         return new ConversacionResponse(conversacionId, c.getTipo(),
                 tituloPara(c, parts, usuarioId), parts,
                 ultimo == null ? null
                         : new UltimoMensajeResponse(truncar(ultimo.getCuerpo(), 80),
                                 nombres.getOrDefault(ultimo.getAutorId(), "usuario"),
                                 ultimo.getCreadaEn()),
-                mensajeRepo.contarNoLeidos(conversacionId, usuarioId, leido));
+                noLeidos(conversacionId, usuarioId, propio.getUltimoLeidoEn()));
+    }
+
+    /**
+     * Sin marca de lectura se cuenta todo (nunca se pasa null a JPQL:
+     * PostgreSQL no infiere el tipo del parámetro y falla con 42P18).
+     */
+    private long noLeidos(long conversacionId, int usuarioId, Instant leido) {
+        return leido == null
+                ? mensajeRepo.contarNoLeidosTodos(conversacionId, usuarioId)
+                : mensajeRepo.contarNoLeidosDesde(conversacionId, usuarioId, leido);
     }
 
     private ChatParticipante exigirMiembro(int usuarioId, long conversacionId) {
