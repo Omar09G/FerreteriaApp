@@ -40,3 +40,7 @@ CREATE TABLE IF NOT EXISTS notif.chat_mensaje (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_mensaje_conversacion
     ON notif.chat_mensaje(conversacion_id, creada_en DESC);
+
+ALTER TABLE notif.chat_conversacion OWNER TO ferreteria_app;
+ALTER TABLE notif.chat_participante OWNER TO ferreteria_app;
+ALTER TABLE notif.chat_mensaje OWNER TO ferreteria_app;

@@ -31,3 +31,6 @@ CREATE TABLE IF NOT EXISTS notif.notificacion_bandeja (
 
 CREATE INDEX IF NOT EXISTS idx_bandeja_usuario
     ON notif.notificacion_bandeja(usuario_id, leida_en, creada_en DESC);
+
+-- Convención del módulo (igual que delta_notificacion_jobs.sql).
+ALTER TABLE notif.notificacion_bandeja OWNER TO ferreteria_app;
