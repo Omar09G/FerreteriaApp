@@ -60,6 +60,6 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;    -- búsqueda parcial de nombres (POS)
 -- ----------------------------------------------------------------------------
 -- 5. Acceso básico al rol de aplicación (GRANTs finos al final de 02_tablas.sql)
 -- ----------------------------------------------------------------------------
-GRANT USAGE ON SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis TO ferreteria_app;
+GRANT USAGE ON SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis, notif TO ferreteria_app;
 
 SELECT 'PASO 1 COMPLETO: base, rol y esquemas listos.' AS resultado;

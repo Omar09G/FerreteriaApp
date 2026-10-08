@@ -1,7 +1,6 @@
 import {
 	forwardRef,
 	useCallback,
-	useEffect,
 	useRef,
 	type InputHTMLAttributes,
 	type ReactNode,
@@ -72,9 +71,6 @@ export const Input = forwardRef<
 		},
 		[ref],
 	);
-	useEffect(() => {
-		// Sync disabled state no necesita handler
-	}, [disabled]);
 	const focusInput = useCallback(() => {
 		if (disabled) return;
 		innerRef.current?.focus();

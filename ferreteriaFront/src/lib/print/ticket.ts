@@ -9,6 +9,10 @@ export function printTicketById(id: string = "ticket-preview") {
 
   // Intento iframe oculto: no bloquea la ventana principal y no requiere popup.
   // Si el navegador bloquea iframe print, fallback a window.open con cierre seguro.
+  // PRECONDICIÓN XSS: el HTML inyectado abajo es `el.outerHTML` del DOM ya
+  // renderizado por React (escapa texto por defecto) + imágenes con allowlist.
+  // No usar dangerouslySetInnerHTML dentro de nodos imprimibles: rompería
+  // esta garantía y ambos doc.write() pasarían a ser sinks.
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ticket</title><style>
     @page { size: 80mm; margin: 2mm; }
     * { box-sizing: border-box; }

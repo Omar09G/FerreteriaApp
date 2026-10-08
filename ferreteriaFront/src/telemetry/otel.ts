@@ -40,6 +40,8 @@ import {
 } from "@opentelemetry/semantic-conventions";
 import { onCLS, onFCP, onINP, onLCP, onTTFB } from "web-vitals";
 
+import { env } from "@/config/env";
+
 // ─── Guard global: debe correr SIEMPRE, incluso con OTel desactivado ────
 // El bug "Cannot read properties of undefined (reading 'startTime')
 // at reportAllChanges" se dispara vía requestIdleCallback con
@@ -90,10 +92,8 @@ window.onerror = function (msg, src, line, col, err) {
 	return false;
 };
 
-const enabled = import.meta.env.VITE_OTEL_ENABLED === "true";
-const endpoint =
-	import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT ||
-	`${window.location.protocol}//${window.location.hostname}:4318`;
+const enabled = env.otelEnabled;
+const endpoint = env.otelEndpoint;
 
 if (!enabled) {
 	// Modo noop: el tracer/meter global queda sin exporter, los spans son
@@ -103,7 +103,7 @@ if (!enabled) {
 	// ─── Recurso común: identifica al servicio en el collector ─────────
 	const resource = resourceFromAttributes({
 		[ATTR_SERVICE_NAME]: "ferreteria-frontend",
-		[ATTR_SERVICE_VERSION]: import.meta.env.VITE_APP_VERSION || "0.0.0",
+		[ATTR_SERVICE_VERSION]: env.appVersion,
 		"deployment.environment": "docker",
 		"browser.user_agent": navigator.userAgent,
 	});

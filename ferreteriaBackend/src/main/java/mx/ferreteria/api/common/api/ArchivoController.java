@@ -39,7 +39,7 @@ public class ArchivoController {
 
     @PostMapping(value = "/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA','AUDITOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE','VENDEDOR','ENCARGADO_CAJA','ALMACENISTA')")
     public ImagenResponse subirImagen(@RequestParam("archivo") MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new ValidacionException(ErrorCode.CAMPO_REQUERIDO, "archivo");

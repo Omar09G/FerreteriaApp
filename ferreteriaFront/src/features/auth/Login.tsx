@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Languages, Lock, Monitor, Moon, Sun, User } from "lucide-react";
 
 import { ensureCsrfCookie, mensajeError } from "@/lib/api/client";
@@ -35,6 +35,10 @@ export default function Login() {
   const [googleCargando, setGoogleCargando] = useState(false);
 
   const registro = location.state as { from?: string } | null;
+  const [params] = useSearchParams();
+  // Aviso de sesión expirada: el interceptor redirige aquí con ?expired=1
+  // cuando el refresh falla (contrato client-base → /login?expired=1).
+  const avisoExpirada = params.get("expired") === "1" ? t("errores.sesionExpirada") : null;
   const destinoCrudo = registro?.from ?? "/dashboard";
   // Allowlist de redirect interno: solo rutas absolutas del SPA (bloquea
   // //evil, https: y javascript: forjados en location.state).
@@ -125,6 +129,14 @@ export default function Login() {
         {error && (
           <p className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-400">
             {error}
+          </p>
+        )}
+        {!error && avisoExpirada && (
+          <p
+            role="status"
+            className="mb-3 rounded-md bg-amber-50 p-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+          >
+            {avisoExpirada}
           </p>
         )}
         <div className="flex w-full flex-col gap-5">

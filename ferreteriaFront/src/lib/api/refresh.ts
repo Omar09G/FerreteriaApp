@@ -43,10 +43,12 @@ export function puedeRefrescar(
 	original: InternalAxiosRequestConfig & { _retry?: RetryMeta },
 	meta: RetryMeta,
 ): boolean {
+	const codigo = error.response?.data?.codigo;
+	// Credenciales erróneas no se curan con refresh (p. ej. password actual
+	// incorrecta en /auth/change-password): no gastar el único reintento.
+	if (codigo === "CREDENCIALES_INVALIDAS") return false;
 	const es401 =
-		error.response?.status === 401 ||
-		error.response?.data?.codigo === "TOKEN_EXPIRADO" ||
-		error.response?.data?.codigo === "CREDENCIALES_INVALIDAS";
+		error.response?.status === 401 || codigo === "TOKEN_EXPIRADO";
 
 	return (
 		es401 &&

@@ -5,9 +5,9 @@ import userEvent from "@testing-library/user-event";
 import { ExportarExcel } from "@/components/ui/ExportarExcel";
 import type { Columna } from "@/components/ui/DataTable";
 
-const writeFile = vi.fn();
-const book_append_sheet = vi.fn();
-const aoa_to_sheet = vi.fn(() => ({}));
+const writeFile = vi.fn((...args: unknown[]) => { void args; });
+const book_append_sheet = vi.fn((...args: unknown[]) => { void args; });
+const aoa_to_sheet = vi.fn((...args: unknown[]) => { void args; return {}; });
 
 vi.mock("xlsx", () => ({
   utils: {

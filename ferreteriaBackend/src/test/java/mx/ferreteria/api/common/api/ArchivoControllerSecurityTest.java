@@ -19,4 +19,14 @@ class ArchivoControllerSecurityTest {
         assertThat(ann).isNotNull();
         assertThat(ann.value()).contains("ADMINISTRADOR").contains("GERENTE");
     }
+
+    @Test
+    @DisplayName("subirImagen no admite AUDITOR (rol de solo lectura)")
+    void subirImagenExcluyeAuditor() throws Exception {
+        Method subir = ArchivoController.class.getDeclaredMethod("subirImagen",
+                org.springframework.web.multipart.MultipartFile.class);
+        PreAuthorize ann = subir.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).doesNotContain("AUDITOR");
+    }
 }

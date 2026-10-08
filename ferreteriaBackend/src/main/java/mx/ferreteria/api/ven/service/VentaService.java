@@ -30,6 +30,7 @@ import mx.ferreteria.api.cat.repo.ClienteRepository;
 import mx.ferreteria.api.cat.repo.FormaPagoRepository;
 import mx.ferreteria.api.cat.repo.ProductoRepository;
 import mx.ferreteria.api.common.error.RecursoNoEncontradoException;
+import mx.ferreteria.api.common.error.DbErrorTranslator;
 import mx.ferreteria.api.common.error.ReglaNegocioException;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
@@ -71,6 +72,7 @@ public class VentaService {
     private final ApplicationEventPublisher events;
     private final TicketPdfService ticketPdfService;
     private final VentaTicketPort ticketPort;
+    private final DbErrorTranslator dbTranslator;
 
     @PersistenceContext
     private EntityManager em;
@@ -221,10 +223,12 @@ public class VentaService {
                         .setParameter("p_usuario", UserPrincipal.actual().usuarioId())
                         .getSingleResult();
                 em.flush();
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 // Si la promo ya agotó límite entre evaluación y registro (concurrencia), el
-                // trigger lanza P0400/P0401
-                throw new ReglaNegocioException(ErrorCode.REGISTRO_NO_MODIFICABLE);
+                // trigger lanza P0400/P0401 → código específico; cualquier otro fallo
+                // conserva el genérico anterior (sin enmascarar el diagnóstico en logs).
+                ErrorCode code = dbTranslator.translate(e).orElse(ErrorCode.REGISTRO_NO_MODIFICABLE);
+                throw new ReglaNegocioException(code);
             }
         }
 

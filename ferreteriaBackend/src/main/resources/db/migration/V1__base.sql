@@ -58,7 +58,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;    -- búsqueda parcial de nombres (POS)
 -- ----------------------------------------------------------------------------
 -- 5. Acceso básico al rol de aplicación (GRANTs finos al final de 02_tablas.sql)
 -- ----------------------------------------------------------------------------
-GRANT USAGE ON SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis TO ferreteria_app;
+GRANT USAGE ON SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis, notif TO ferreteria_app;
 
 SELECT 'PASO 1 COMPLETO: base, rol y esquemas listos.' AS resultado;
 
@@ -734,19 +734,16 @@ CREATE TABLE IF NOT EXISTS ven.cotizacion_detalles (
     cotizacion_id   BIGINT NOT NULL REFERENCES ven.cotizaciones(cotizacion_id) ON DELETE CASCADE,
     producto_id     BIGINT NOT NULL REFERENCES inv.productos(producto_id),
     cantidad        NUMERIC(12,3) NOT NULL CHECK (cantidad > 0),
-    precio_unitario NUMERIC(12,2) NOT NULL,
+    precio_unitario NUMERIC(12,2) NOT NULL CHECK (precio_unitario >= 0),
     importe_linea   NUMERIC(14,2) GENERATED ALWAYS AS (cantidad * precio_unitario) STORED,
     PRIMARY KEY (cotizacion_id, producto_id)
 );
 
 CREATE TABLE IF NOT EXISTS ven.ventas (
-    -- BACK-ESC-001 / DB-ESC-001: ven.ventas particionada por fecha (RANGE mensual).
-    -- En installs nuevos: PARTITION BY RANGE (fecha_local).
-    -- En DBs existentes: ejecutar delta_partitioning_escalabilidad.sql en ventana.
-    PARTITION BY RANGE (fecha_local),
-    venta_id         BIGINT GENERATED ALWAYS AS IDENTITY,
-    folio            TEXT NOT NULL, -- UNIQUE se aplica por particion (folio, fecha_local)
-    folio_unico      TEXT GENERATED ALWAYS AS (folio) STORED, -- helper para UNIQUE constraint
+    -- Particionado mensual vía delta_partitioning_escalabilidad.sql en ventana
+    -- (tablas simples aquí: JPA usa PK simple venta_id + folio UNIQUE).
+    venta_id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    folio            TEXT NOT NULL UNIQUE,
     cliente_id      BIGINT REFERENCES ven.clientes(cliente_id),
     almacen_id      INTEGER NOT NULL REFERENCES inv.almacenes(almacen_id),
     cotizacion_id   BIGINT REFERENCES ven.cotizaciones(cotizacion_id),
@@ -764,17 +761,12 @@ CREATE TABLE IF NOT EXISTS ven.ventas (
                     CHECK (estado IN ('COMPLETADA','CANCELADA','DEVUELTA_PARCIAL','DEVUELTA_TOTAL')),
     usuario_id      INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     turno_caja_id   BIGINT,
-    PRIMARY KEY (venta_id, fecha_local), -- PK compuesta requerida por PARTITION BY RANGE
     notas           TEXT,
     motivo_cancelacion TEXT, -- V20: motivo informado en PATCH /ventas/{id}/cancelar (NULL = no cancelada)
     pdf_url         TEXT -- V21: URL/key del ticket PDF tras subida a object storage
-) PARTITION BY RANGE (fecha_local);
--- Particiones default: ven.ventas_antigua (todo lo previo) + mes actual.
--- Para prod, crear particiones mensuales via pg_partman:
---   SELECT partman.create_parent('ven.ventas','fecha_local','native','monthly');
--- o manual:
---   CREATE TABLE ven.ventas_2026_09 PARTITION OF ven.ventas
---     FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+);
+-- Particiones mensuales (si se requieren) vía delta_partitioning_escalabilidad.sql
+-- en ventana de mantenimiento, no en instalación fresca.
 CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ven.ventas(fecha DESC);
 CREATE INDEX IF NOT EXISTS idx_ventas_turno ON ven.ventas(turno_caja_id);
 CREATE INDEX IF NOT EXISTS idx_ventas_cliente_fecha ON ven.ventas(cliente_id, fecha DESC)
@@ -809,6 +801,7 @@ CREATE TABLE IF NOT EXISTS notif.notificacion_jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_notif_jobs_estado
     ON notif.notificacion_jobs(estado, creado_en);
+ALTER TABLE notif.notificacion_jobs OWNER TO ferreteria_app;
 
 -- V30: bandeja de notificaciones en tiempo real (SSE): una fila por
 -- destinatario y evento (conectado = push instantáneo; desconectado =
@@ -908,7 +901,7 @@ CREATE TABLE IF NOT EXISTS ven.devolucion_detalles (
     venta_detalle_id BIGINT REFERENCES ven.venta_detalles(venta_detalle_id),
     producto_id      BIGINT NOT NULL REFERENCES inv.productos(producto_id),
     cantidad         NUMERIC(12,3) NOT NULL CHECK (cantidad > 0),
-    precio_unitario  NUMERIC(12,2) NOT NULL,
+    precio_unitario  NUMERIC(12,2) NOT NULL CHECK (precio_unitario >= 0),
     importe_linea    NUMERIC(14,2) GENERATED ALWAYS AS (cantidad * precio_unitario) STORED,
     PRIMARY KEY (devolucion_id, producto_id)
 );
@@ -936,8 +929,8 @@ CREATE TABLE IF NOT EXISTS ven.renta_detalles (
     renta_id      BIGINT NOT NULL REFERENCES ven.rentas(renta_id) ON DELETE CASCADE,
     producto_id   BIGINT NOT NULL REFERENCES inv.productos(producto_id),
     cantidad      NUMERIC(12,3) NOT NULL CHECK (cantidad > 0),
-    costo_dia     NUMERIC(12,2) NOT NULL,
-    dias_cobrados NUMERIC(6,1) NOT NULL DEFAULT 0,
+    costo_dia     NUMERIC(12,2) NOT NULL CHECK (costo_dia >= 0),
+    dias_cobrados NUMERIC(6,1) NOT NULL DEFAULT 0 CHECK (dias_cobrados >= 0),
     subtotal      NUMERIC(12,2) GENERATED ALWAYS AS (costo_dia * dias_cobrados) STORED,
     PRIMARY KEY (renta_id, producto_id)
 );
@@ -959,6 +952,7 @@ CREATE TABLE IF NOT EXISTS ven.cuentas_cobrar (
 );
 CREATE INDEX IF NOT EXISTS idx_cc_vencimiento ON ven.cuentas_cobrar(fecha_vencimiento)
     WHERE estado <> 'LIQUIDADA';
+CREATE INDEX IF NOT EXISTS idx_cc_cliente ON ven.cuentas_cobrar(cliente_id);
 
 CREATE TABLE IF NOT EXISTS ven.pagos_cliente (
     pago_cliente_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -1018,13 +1012,10 @@ CREATE TABLE IF NOT EXISTS com.compras (
                        CHECK (estado IN ('PENDIENTE','RECIBIDA','CANCELADA')),
     usuario_id         INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     turno_caja_id      BIGINT,
-notas           TEXT
-) PARTITION BY RANGE (fecha_local);
--- Particiones default: ven.ventas_antigua (todo lo previo) + mes actual.
--- Para prod, crear particiones mensuales:
---   CREATE TABLE ven.ventas_2026_09 PARTITION OF ven.ventas
---     FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
--- O usar pg_partman (recomendado) con retention_keep_tables=24.
+    notas           TEXT
+);
+-- Particionado mensual de com.compras (si se requiere) vía delta en ventana,
+-- no en instalación fresca (JPA usa PK simple compra_id + folio UNIQUE).
 CREATE INDEX IF NOT EXISTS idx_compras_fecha_local ON com.compras(fecha_local DESC);
 
 CREATE TABLE IF NOT EXISTS com.compra_detalles (
@@ -1035,6 +1026,7 @@ CREATE TABLE IF NOT EXISTS com.compra_detalles (
     costo_unitario    NUMERIC(12,2) NOT NULL CHECK (costo_unitario >= 0),
     importe_linea     NUMERIC(14,2) GENERATED ALWAYS AS (cantidad * costo_unitario) STORED
 );
+CREATE INDEX IF NOT EXISTS idx_compra_det_compra ON com.compra_detalles(compra_id);
 CREATE INDEX IF NOT EXISTS idx_compra_det_producto ON com.compra_detalles(producto_id);
 
 CREATE TABLE IF NOT EXISTS com.devoluciones_compra (
@@ -1054,7 +1046,7 @@ CREATE TABLE IF NOT EXISTS com.devolucion_compra_detalles (
     devolucion_id  BIGINT NOT NULL REFERENCES com.devoluciones_compra(devolucion_id) ON DELETE CASCADE,
     producto_id    BIGINT NOT NULL REFERENCES inv.productos(producto_id),
     cantidad       NUMERIC(12,3) NOT NULL CHECK (cantidad > 0),
-    costo_unitario NUMERIC(12,2) NOT NULL,
+    costo_unitario NUMERIC(12,2) NOT NULL CHECK (costo_unitario >= 0),
     importe_linea  NUMERIC(14,2) GENERATED ALWAYS AS (cantidad * costo_unitario) STORED,
     PRIMARY KEY (devolucion_id, producto_id)
 );
@@ -2732,15 +2724,15 @@ ORDER BY fecha DESC;
 -- Ñ. PERMISOS DEL ROL DE APLICACIÓN
 -- ============================================================================
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES
-    IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis TO ferreteria_app;
+    IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis, notif TO ferreteria_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES
-    IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis TO ferreteria_app;
+    IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis, notif TO ferreteria_app;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
     TO ferreteria_app;
 
-ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
+ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis, notif
     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ferreteria_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis
+ALTER DEFAULT PRIVILEGES IN SCHEMA cat, cfg, rh, seg, inv, com, ven, fin, fis, notif
     GRANT USAGE, SELECT ON SEQUENCES TO ferreteria_app;
 
 -- Endurecimiento: ledger append-only y auditoría sin borrado ni modificación

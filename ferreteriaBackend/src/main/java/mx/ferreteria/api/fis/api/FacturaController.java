@@ -19,7 +19,6 @@ import mx.ferreteria.api.fis.service.FacturaFisService;
 @RequestMapping("/api/v1/facturas")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("hasAnyRole('ADMINISTRADOR','GERENTE')")
 public class FacturaController {
 
     private final FacturaFisService service;

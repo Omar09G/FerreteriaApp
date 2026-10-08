@@ -9,6 +9,8 @@ import org.springframework.data.domain.Sort;
 import mx.ferreteria.api.common.error.PaginacionInvalidException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Validación centralizada de parámetros de paginación (PLAN §4.1).
  * <p>
@@ -19,6 +21,7 @@ import mx.ferreteria.api.common.i18n.ErrorCode;
  * Si el caller pide una columna no permitida, se ignora (sin error) y se usa
  * el sort por defecto del repositorio — esto preserva UX sin abrir superficie.
  */
+@Slf4j
 public record PageQuery(int page, int size, String sort) {
 
     /**
@@ -104,6 +107,8 @@ public record PageQuery(int page, int size, String sort) {
                 Sort.Direction dir = parts.length > 1 && "desc".equalsIgnoreCase(parts[1].trim())
                         ? Sort.Direction.DESC : Sort.Direction.ASC;
                 s = Sort.by(dir, prop);
+            } else {
+                log.debug("sort ignorado (fuera de whitelist): {}", prop);
             }
             // Si no esta en whitelist, sort queda unsorted (UX: peticiones
             // malformadas devuelven resultados validos en orden por defecto).

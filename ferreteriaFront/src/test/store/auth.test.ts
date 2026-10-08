@@ -60,10 +60,10 @@ describe("auth store: acciones", () => {
 	});
 
 	it("setTokens solo mueve el marcador (tokens viven en cookie HttpOnly)", () => {
-		useAuthStore.getState().setTokens("nuevo-access", null);
+		useAuthStore.getState().setTokens("nuevo-access");
 		expect(useAuthStore.getState().autenticado).toBe(true);
 		expect(useAuthStore.getState().usuario).toBeNull();
-		useAuthStore.getState().setTokens(null, null);
+		useAuthStore.getState().setTokens(null);
 		expect(useAuthStore.getState().autenticado).toBe(false);
 	});
 

@@ -198,6 +198,26 @@ class ExceptionsAndHandlerTest {
         assertThat(details.get(0).get("error")).isEqualTo("requerido");
     }
 
+    @Test
+    @DisplayName("handleValidation: @Pattern/@Size -> 400 VALOR_INVALIDO con campo en mensaje")
+    void handleValidation_patronInvalido() throws Exception {
+        class Holder {
+            @SuppressWarnings("unused")
+            void crear(String folio) {
+            }
+        }
+        var metodo = Holder.class.getDeclaredMethod("crear", String.class);
+        var parameter = new org.springframework.core.MethodParameter(metodo, 0);
+        var binding = new org.springframework.validation.BeanPropertyBindingResult(new Dto(), "dto");
+        binding.rejectValue("nombre", "Pattern.dto.nombre", "debe seguir el formato");
+        var ex = new MethodArgumentNotValidException(parameter, binding);
+
+        var response = handler.handleValidation(ex, request);
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody().get("codigo")).isEqualTo("VALOR_INVALIDO");
+        assertThat(String.valueOf(response.getBody().get("errorMessage"))).contains("nombre");
+    }
+
     static final class Dto {
         private String nombre;
 

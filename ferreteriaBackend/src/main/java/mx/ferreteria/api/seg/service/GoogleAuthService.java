@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
+import mx.ferreteria.api.common.privacy.DatosSensibles;
 import mx.ferreteria.api.common.security.GoogleAuthProperties;
 import mx.ferreteria.api.common.time.ZonaHoraria;
 import mx.ferreteria.api.rh.service.EmpleadoGateway;
@@ -112,7 +113,7 @@ public class GoogleAuthService {
             // Anti-takeover: solo vincular si el email local coincide con el
             // verificado por Google (ya validado arriba).
             usuarios.linkGoogleAccount(u.usuarioId(), sub);
-            log.info("google vinculado usuario_id={} email={}", u.usuarioId(), email);
+            log.info("google vinculado usuario_id={} email={}", u.usuarioId(), DatosSensibles.enmascararEmail(email));
             return u.usuarioId();
         }
         return crearUsuario(sub, email, nombre);

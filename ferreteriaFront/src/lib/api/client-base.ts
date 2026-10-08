@@ -124,6 +124,10 @@ http.interceptors.response.use(
         return http(original);
       } catch {
         useAuthStore.getState().clearSession();
+        // Contrato: sesión irrecuperable → /login?expired=1 para avisar.
+        if (typeof window !== "undefined") {
+          window.location.href = "/login?expired=1";
+        }
         return Promise.reject(
           new ApiError({
             success: false,

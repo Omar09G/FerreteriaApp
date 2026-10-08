@@ -24,11 +24,6 @@ interface ImagenUploadProps {
  * allowlist (https:/data:image/); si no, un bloque neutro. Nunca hace fetch
  * de esquemas inseguros (javascript:, file:).
  */
-/**
- * Miniatura para tablas y detalles. Solo renderiza la imagen si pasa la
- * allowlist (https:/data:image/); si no, un bloque neutro. Nunca hace fetch
- * de esquemas inseguros (javascript:, file:).
- */
 export function FotoMiniatura({
   url,
   alt,

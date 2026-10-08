@@ -96,6 +96,8 @@ class VentaServiceTest {
         @Mock
         mx.ferreteria.api.ven.service.VentaTicketPort ticketPort;
         @Mock
+        mx.ferreteria.api.common.error.DbErrorTranslator dbTranslator;
+        @Mock
         jakarta.persistence.EntityManager em;
 
         @InjectMocks
@@ -1214,6 +1216,33 @@ class VentaServiceTest {
                 assertThatThrownBy(() -> service.checkout(req))
                                 .isInstanceOf(ReglaNegocioException.class)
                                 .extracting("errorCode").isEqualTo(ErrorCode.REGISTRO_NO_MODIFICABLE);
+                verify(events, never()).publishEvent(any());
+        }
+
+        @Test
+        @DisplayName("checkout promo con P0400 real: traduce a PROMOCION_AGOTADA")
+        void checkout_promoAgotada_traduceSqlState() {
+                Venta saved = sampleVenta(10L, "V-010", "COMPLETADA");
+                stubCheckoutOk(saved);
+                Promocion promo = Promocion.builder().promocionId(9L).nombre("P9")
+                                .tipo("DESCUENTO_TOTAL_VENTA").build();
+                stubPromoEvaluada(9L, promo, true, new BigDecimal("10.00"));
+                var q = mock(jakarta.persistence.Query.class);
+                doReturn(q).when(em).createNativeQuery(anyString());
+                doReturn(q).when(q).setParameter(anyString(), any());
+                // SQLSTATE P0400 en la cadena de causas, como lo lanza PostgreSQL.
+                when(q.getSingleResult()).thenThrow(new jakarta.persistence.PersistenceException(
+                                new java.sql.SQLException("Promocion agotada", "P0400")));
+                // Traductor real (no mock) para probar la especificidad de punta a punta.
+                org.springframework.test.util.ReflectionTestUtils.setField(service, "dbTranslator",
+                                new mx.ferreteria.api.common.error.DbErrorTranslator());
+
+                var req = ventaRequest(1, null, null, 9L,
+                                List.of(linea(1L, "1.000", "60.00"), linea(2L, "1.000", "40.00")));
+
+                assertThatThrownBy(() -> service.checkout(req))
+                                .isInstanceOf(ReglaNegocioException.class)
+                                .extracting("errorCode").isEqualTo(ErrorCode.PROMOCION_AGOTADA);
                 verify(events, never()).publishEvent(any());
         }
 

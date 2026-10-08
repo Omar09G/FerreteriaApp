@@ -12,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mx.ferreteria.api.common.privacy.DatosSensibles;
 import mx.ferreteria.api.notif.config.NotificacionProperties;
 
 /**
@@ -77,7 +78,7 @@ public class WhatsAppNotificacionSender {
     public boolean sendTexto(String telefono, String texto) {
         NotificacionProperties.WhatsApp cfg = props.whatsapp();
         if (cfg == null || !cfg.enabled()) {
-            log.debug("whatsapp omitido (deshabilitado) to={}", telefono);
+            log.debug("whatsapp omitido (deshabilitado) to={}", DatosSensibles.enmascararTelefono(telefono));
             return false;
         }
         String numero = normalizar(telefono);
@@ -90,7 +91,7 @@ public class WhatsAppNotificacionSender {
             return enviarTextoEvolution(cfg, numero, texto);
         }
         bandeja.registrar(numero, texto, null, null);
-        log.info("whatsapp mock to={}", numero);
+        log.info("whatsapp mock to={}", DatosSensibles.enmascararTelefono(numero));
         return true;
     }
 
@@ -111,10 +112,10 @@ public class WhatsAppNotificacionSender {
                     .body(body)
                     .retrieve()
                     .toBodilessEntity();
-            log.info("whatsapp evolution enviado to={}", numero);
+            log.info("whatsapp evolution enviado to={}", DatosSensibles.enmascararTelefono(numero));
             return true;
         } catch (Exception e) {
-            log.warn("whatsapp evolution fallo to={} err={}", numero, e.getMessage());
+            log.warn("whatsapp evolution fallo to={} err={}", DatosSensibles.enmascararTelefono(numero), e.getMessage());
             return false;
         }
     }
@@ -122,7 +123,7 @@ public class WhatsAppNotificacionSender {
     public boolean send(String telefono, String asunto, byte[] pdf) {
         NotificacionProperties.WhatsApp cfg = props.whatsapp();
         if (cfg == null || !cfg.enabled()) {
-            log.debug("whatsapp omitido (deshabilitado) to={}", telefono);
+            log.debug("whatsapp omitido (deshabilitado) to={}", DatosSensibles.enmascararTelefono(telefono));
             return false;
         }
         String numero = normalizar(telefono);
@@ -135,7 +136,7 @@ public class WhatsAppNotificacionSender {
             return enviarEvolution(cfg, numero, asunto, pdf);
         }
         bandeja.registrar(numero, asunto, "documento.pdf", pdf);
-        log.info("whatsapp mock to={} asunto={}", numero, asunto);
+        log.info("whatsapp mock to={} asunto={}", DatosSensibles.enmascararTelefono(numero), asunto);
         return true;
     }
 
@@ -171,10 +172,10 @@ public class WhatsAppNotificacionSender {
                         .retrieve()
                         .toBodilessEntity();
             }
-            log.info("whatsapp evolution enviado to={}", numero);
+            log.info("whatsapp evolution enviado to={}", DatosSensibles.enmascararTelefono(numero));
             return true;
         } catch (Exception e) {
-            log.warn("whatsapp evolution fallo to={} err={}", numero, e.getMessage());
+            log.warn("whatsapp evolution fallo to={} err={}", DatosSensibles.enmascararTelefono(numero), e.getMessage());
             return false;
         }
     }

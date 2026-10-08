@@ -129,14 +129,14 @@ class AuthControllerTest {
         }
 
         @Test
-        @DisplayName("POST /auth/otp/enviar con canal inválido -> 400 CAMPO_REQUERIDO")
+        @DisplayName("POST /auth/otp/enviar con canal inválido -> 400 VALOR_INVALIDO")
         void otpEnviar_canalInvalido_badRequest() throws Exception {
                 mvc.perform(post("/api/v1/auth/otp/enviar")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"challengeId\":\"ch-1\",\"canal\":\"sms\"}"))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.success").value(false))
-                                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+                                .andExpect(jsonPath("$.codigo").value("VALOR_INVALIDO"));
         }
 
         @Test
@@ -171,14 +171,14 @@ class AuthControllerTest {
         }
 
         @Test
-        @DisplayName("POST /auth/otp/verificar con código corto -> 400 CAMPO_REQUERIDO")
+        @DisplayName("POST /auth/otp/verificar con código corto -> 400 VALOR_INVALIDO")
         void otpVerificar_codigoCorto_badRequest() throws Exception {
                 mvc.perform(post("/api/v1/auth/otp/verificar")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"challengeId\":\"ch-1\",\"codigo\":\"123\"}"))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.success").value(false))
-                                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+                                .andExpect(jsonPath("$.codigo").value("VALOR_INVALIDO"));
         }
 
         @Test
@@ -345,7 +345,7 @@ class AuthControllerTest {
         }
 
         @Test
-        @DisplayName("POST /auth/register con password corta -> 400 CAMPO_REQUERIDO")
+        @DisplayName("POST /auth/register con password corta -> 400 VALOR_INVALIDO")
         void register_shortPassword_rejectedByValidation() throws Exception {
                 mvc.perform(post("/api/v1/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -354,7 +354,7 @@ class AuthControllerTest {
                                                 + "\"apellidoPaterno\":\"Pérez\",\"puestoId\":3}"))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.success").value(false))
-                                .andExpect(jsonPath("$.codigo").value("CAMPO_REQUERIDO"));
+                                .andExpect(jsonPath("$.codigo").value("VALOR_INVALIDO"));
         }
 
         @Test

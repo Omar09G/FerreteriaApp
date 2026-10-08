@@ -2,6 +2,7 @@ package mx.ferreteria.api.cat.catalogo;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,16 +27,19 @@ public class CatalogoController {
     private final CatalogoService service;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public List<Catalogo> paneles() {
         return service.paneles();
     }
 
     @GetMapping("/{clave}")
+    @PreAuthorize("isAuthenticated()")
     public Catalogo porClave(@PathVariable String clave) {
         return service.porClave(clave);
     }
 
     @GetMapping("/{clave}/opciones")
+    @PreAuthorize("isAuthenticated()")
     public List<OpcionesCatalogoService.OpcionFk> opciones(
             @PathVariable String clave,
             @RequestParam String campo) {

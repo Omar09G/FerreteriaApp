@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import mx.ferreteria.api.common.error.ValidacionException;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.mail.EmailPlantilla;
+import mx.ferreteria.api.common.privacy.DatosSensibles;
 import mx.ferreteria.api.notif.entity.NotificacionJob;
 
 /**
@@ -45,7 +46,7 @@ public class EmailNotificacionSender {
         enviarConAdjunto(to, asunto != null ? asunto : "Notificación Ferretería",
                 textoPlano(tipo, asunto, total), html(tipo, asunto, total),
                 pdf, nombre, "application/pdf");
-        log.info("email enviado to={} tipo={}", to, tipo);
+        log.info("email enviado to={} tipo={}", DatosSensibles.enmascararEmail(to), tipo);
     }
 
     /**
@@ -73,7 +74,7 @@ public class EmailNotificacionSender {
                 xlsx, nombreArchivo,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         log.info("email stock-bajo enviado to={} productos={} agotados={}",
-                to, totalProductos, agotados);
+                DatosSensibles.enmascararEmail(to), totalProductos, agotados);
     }
 
     private void enviarConAdjunto(String to, String asunto, String textoPlano, String html,
@@ -174,7 +175,7 @@ public class EmailNotificacionSender {
             helper.setText(textoPlano, EmailPlantilla.documento(titulo, intro,
                     bloque.toString(), "Si tiene alguna duda, contacte a su sucursal."));
             mailSender.send(message);
-            log.info("email recordatorio enviado to={} asunto={}", to, asunto);
+            log.info("email recordatorio enviado to={} asunto={}", DatosSensibles.enmascararEmail(to), asunto);
         } catch (Exception e) {
             throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
         }

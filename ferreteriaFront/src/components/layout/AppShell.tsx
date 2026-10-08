@@ -35,6 +35,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuthStore, tieneRol } from "@/store/auth";
 import { useUiStore, type Tema } from "@/store/ui";
 import { useT } from "@/i18n";
+import { env } from "@/config/env";
 import { spinners } from "@/components/router-utils";
 import { apiCambiarPassword, apiLogout } from "@/lib/api/endpoints";
 import { esApiError } from "@/lib/api/client";
@@ -467,7 +468,7 @@ export function AppShell() {
   const usuario = useAuthStore((s) => s.usuario);
   const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
-  const appVersion = import.meta.env.VITE_APP_VERSION ?? "1.0.0";
+  const appVersion = env.appVersion;
   // Logout automático por inactividad.
   useInactivityTimeout();
   // Stream SSE de notificaciones (vive mientras haya sesión).

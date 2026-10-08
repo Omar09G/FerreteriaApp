@@ -80,18 +80,53 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex,
                                                                HttpServletRequest req) {
-        Map<String, Object> body = errorBody(ErrorCode.CAMPO_REQUERIDO, new Object[0], currentLocale(req), req);
+        // Especificidad: faltantes (null/vacío) → CAMPO_REQUERIDO; formato/rango
+        // (@Pattern/@Size/@DecimalMin/...) → VALOR_INVALIDO con el campo en {0}.
+        List<FieldError> errores = ex.getBindingResult().getFieldErrors();
+        boolean formatoORango = errores.stream().anyMatch(GlobalExceptionHandler::esFormatoORango);
+        ErrorCode code = formatoORango ? ErrorCode.VALOR_INVALIDO : ErrorCode.CAMPO_REQUERIDO;
+        Object[] args = formatoORango && !errores.isEmpty()
+                ? new Object[] {errores.get(0).getField()}
+                : new Object[0];
+        Locale locale = currentLocale(req);
+        Map<String, Object> body = errorBody(code, args, locale, req);
         List<Map<String, String>> details = new ArrayList<>();
-        for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
+        for (FieldError fe : errores) {
             Map<String, String> d = new LinkedHashMap<>();
             d.put("field", fe.getField());
-            d.put("error", fe.getDefaultMessage());
+            d.put("error", mensajeDetalle(fe, locale));
             details.add(d);
         }
         body.put("details", details);
-        log.warn("Validación fallida campos={} metodo={} path={} usuario={}",
-                ex.getBindingResult().getFieldErrors().size(), metodo(req), path(req), usuario());
+        log.warn("Validación fallida codigo={} campos={} metodo={} path={} usuario={}",
+                code, errores.size(), metodo(req), path(req), usuario());
         return ResponseEntity.badRequest().body(body);
+    }
+
+    /** Códigos Bean Validation de formato/rango (vs. faltante null/vacío). */
+    private static boolean esFormatoORango(FieldError fe) {
+        String[] codes = fe.getCodes();
+        if (codes == null) {
+            return false;
+        }
+        for (String c : codes) {
+            for (String pref : new String[] {"Pattern", "Size", "Min", "Max", "Decimal",
+                    "Digits", "Email", "Positive", "Negative", "Past", "Future", "Length"}) {
+                if (c.startsWith(pref)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Mensaje del campo en el locale actual; si no hay clave, el default. */
+    private String mensajeDetalle(FieldError fe, Locale locale) {
+        try {
+            return messages.getMessage(fe, locale);
+        } catch (Exception e) {
+            return fe.getDefaultMessage();
+        }
     }
 
     /**

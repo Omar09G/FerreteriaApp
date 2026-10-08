@@ -38,4 +38,15 @@ export const env = {
   /** Timeout por request individual (ms). Sin esto, una conexión colgada
    * bloquea el ciclo de reintentos indefinidamente. */
   apiTimeoutMs: num("VITE_API_TIMEOUT_MS", 30_000),
+  /** Telemetría OpenTelemetry del browser (ver telemetry/otel). */
+  otelEnabled: bool("VITE_OTEL_ENABLED", false),
+  /** Endpoint OTLP HTTP del collector (default: mismo host, puerto 4318). */
+  otelEndpoint:
+    (import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT as string | undefined) ||
+    (typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.hostname}:4318`
+      : "http://localhost:4318"),
+  /** Versión visible en la UI y como resource de OTel. */
+  appVersion:
+    (import.meta.env.VITE_APP_VERSION as string | undefined) || "1.0.0",
 };

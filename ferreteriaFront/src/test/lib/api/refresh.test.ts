@@ -99,10 +99,10 @@ describe("puedeRefrescar", () => {
     expect(puedeRefrescar(error401(), config(), meta())).toBe(true);
   });
 
-  it("401 con CREDENCIALES_INVALIDAS → true", () => {
+  it("401 con CREDENCIALES_INVALIDAS → false (no se cura con refresh)", () => {
     expect(
       puedeRefrescar(error401("CREDENCIALES_INVALIDAS"), config(), meta()),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("codigo TOKEN_EXPIRADO sin status 401 → true", () => {

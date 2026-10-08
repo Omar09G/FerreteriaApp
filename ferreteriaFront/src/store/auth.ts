@@ -41,7 +41,7 @@ interface AuthState {
 	/** Marca de la última interacción del usuario (epoch ms). */
 	lastActivityAt: number;
 	setSession: (token: TokenResponse) => void;
-	setTokens: (accessToken: string | null, refreshToken: string | null) => void;
+	setTokens: (accessToken: string | null) => void;
 	setMe: (me: MeResponse) => void;
 	clearSession: () => void;
 	setChallenge: (challenge: OtpChallenge | null) => void;
