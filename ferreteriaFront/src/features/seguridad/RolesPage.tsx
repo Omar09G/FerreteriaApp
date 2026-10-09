@@ -323,7 +323,7 @@ export default function RolesPage() {
 					<button
 						type="button"
 						aria-label={`Eliminar ${v.nombre}`}
-						className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
+						className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
 						onClick={() => setEliminarConfirmacion(v)}
 					>
 						<Trash2 className="h-4 w-4" />

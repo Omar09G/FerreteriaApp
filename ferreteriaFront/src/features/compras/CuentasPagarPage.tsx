@@ -392,7 +392,7 @@ export default function CuentasPagarPage() {
 	const resumenVencida = (v: FacturaVencida) => (
 		<div
 			key={v.cuentaPagarId}
-			className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm"
+			className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-400"
 		>
 			<span className="min-w-0">
 				<span className="block truncate font-medium text-red-900">

@@ -6,7 +6,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { esApiError } from "@/lib/api/client";
 import { apiAlmacenes } from "@/lib/api/catalogo";
 import { apiCancelarVenta, apiVentas } from "@/lib/api/venta";
-import type { Venta } from "@/lib/api/types";
+import type { Venta, VentaDetalle } from "@/lib/api/types";
 import { FORMAS_PAGO } from "@/lib/api/types";
 import { formatoFecha, formatoFechaHora, formatoMoneda } from "@/lib/format";
 import { rangoFechas, type RangoFechas } from "@/lib/rango";
@@ -80,6 +80,51 @@ function CancelarForm({
 	);
 }
 
+const COLUMNAS_DETALLE: Columna<VentaDetalle>[] = [
+	{
+		key: "producto",
+		header: "Producto",
+		render: (d) => (
+			<div className="flex flex-wrap items-center gap-1">
+				<span>{d.productoNombre}</span>
+				{d.promocionId && (
+					<span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400">
+						promo #{d.promocionId}
+					</span>
+				)}
+			</div>
+		),
+	},
+	{ key: "cantidad", header: "Cant.", align: "right", render: (d) => d.cantidad },
+	{
+		key: "precio",
+		header: "Precio",
+		align: "right",
+		render: (d) => formatoMoneda(d.precioUnitario),
+	},
+	{
+		key: "descuento",
+		header: "Desc.",
+		align: "right",
+		render: (d) =>
+			Number(d.descuentoLinea) > 0 ? (
+				<span className="text-green-700 dark:text-green-400">
+					−{formatoMoneda(d.descuentoLinea)}
+				</span>
+			) : (
+				<span className="text-muted">—</span>
+			),
+	},
+	{
+		key: "importe",
+		header: "Importe",
+		align: "right",
+		render: (d) => (
+			<span className="font-medium">{formatoMoneda(d.totalLinea)}</span>
+		),
+	},
+];
+
 function DetalleVenta({ venta }: { venta: Venta }) {
 	const forma =
 		FORMAS_PAGO.find((f) => f.id === venta.formaPagoId)?.nombre ??
@@ -124,55 +169,14 @@ function DetalleVenta({ venta }: { venta: Venta }) {
 				<p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
 					Artículos
 				</p>
-				<div className="overflow-x-auto rounded-md border border-line">
-					<table className="w-full text-sm">
-						<thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
-							<tr>
-								<th scope="col" className="px-2 py-1 text-left">
-									Producto
-								</th>
-								<th scope="col" className="px-2 py-1 text-right">
-									Cant.
-								</th>
-								<th scope="col" className="px-2 py-1 text-right">
-									Precio
-								</th>
-								<th scope="col" className="px-2 py-1 text-right">
-									Desc.
-								</th>
-								<th scope="col" className="px-2 py-1 text-right">
-									Importe
-								</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-line">
-							{venta.detalles.map((d) => (
-								<tr key={d.ventaDetalleId}>
-									<td className="px-2 py-1.5">
-										<div className="flex flex-wrap items-center gap-1">
-											<span>{d.productoNombre}</span>
-											{d.promocionId && (
-												<span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400">promo #{d.promocionId}</span>
-											)}
-										</div>
-									</td>
-									<td className="px-2 py-1.5 text-right tabular-nums">
-										{d.cantidad}
-									</td>
-									<td className="px-2 py-1.5 text-right tabular-nums">
-										{formatoMoneda(d.precioUnitario)}
-									</td>
-									<td className="px-2 py-1.5 text-right tabular-nums">
-										{Number(d.descuentoLinea) > 0 ? <span className="text-green-700">−{formatoMoneda(d.descuentoLinea)}</span> : <span className="text-muted">—</span>}
-									</td>
-									<td className="px-2 py-1.5 text-right font-medium tabular-nums">
-										{formatoMoneda(d.totalLinea)}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+			<div className="rounded-md border border-line">
+				<DataTable
+					columnas={COLUMNAS_DETALLE}
+					items={venta.detalles}
+					rowKey={(d) => d.ventaDetalleId}
+					caption={`Artículos de la venta ${venta.folio}`}
+				/>
+			</div>
 			</div>
 
 			<div className="grid grid-cols-2 gap-2 rounded-md bg-canvas p-3 text-sm sm:grid-cols-4">
@@ -408,7 +412,7 @@ export default function VentasPage() {
 							type="button"
 							aria-label={`Cancelar venta ${v.folio}`}
 							title="Cancelar venta"
-							className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
+							className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
 							onClick={() => setCancelando(v)}
 						>
 							<X className="h-4 w-4" />

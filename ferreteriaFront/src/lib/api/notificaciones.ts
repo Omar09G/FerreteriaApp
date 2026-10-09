@@ -36,6 +36,13 @@ export async function apiMarcarTodasLeidas(): Promise<void> {
 	await http.patch("/notificaciones/leidas");
 }
 
+export async function apiEliminarLeidas(): Promise<number> {
+	const { data } = await http.delete<Envelope<{ eliminadas: number }>>(
+		"/notificaciones/leidas",
+	);
+	return data.data.eliminadas;
+}
+
 /**
  * URL del stream SSE. Espeja la resolución de client-base: path relativo
  * (mismo origen, las cookies HttpOnly viajan solas) salvo dev sin proxy.

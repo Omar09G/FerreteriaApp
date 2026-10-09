@@ -63,3 +63,9 @@ export async function apiMarcarChatLeida(
 ): Promise<void> {
 	await http.patch(`/chat/${conversacionId}/leida`);
 }
+
+export async function apiSalirConversacion(
+	conversacionId: number,
+): Promise<void> {
+	await http.delete(`/chat/${conversacionId}`);
+}

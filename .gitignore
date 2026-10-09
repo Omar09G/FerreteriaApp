@@ -32,3 +32,6 @@ skills-lock.json
 .vscode/
 node_modules/
 .codex/
+# UI generados localmente (design-system persistido y brand local, no versionar)
+ferreteriaFront/design-system/
+ferreteriaFront/docs/brand-guidelines.md

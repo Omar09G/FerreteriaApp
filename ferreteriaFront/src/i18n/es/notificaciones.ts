@@ -4,6 +4,11 @@ export default {
 	sinAvisos: "Sin avisos por ahora.",
 	verTodas: "Ver todas",
 	marcarTodas: "Marcar todas como leídas",
+	eliminarLeidas: "Eliminar leídas",
+	confirmarEliminar: "Eliminar avisos leídos",
+	eliminarDesc: "Se borrarán los avisos ya leídos. Esta acción no se puede deshacer.",
+	eliminadas: "Avisos leídos eliminados.",
+	errorEliminar: "No se pudieron eliminar los avisos.",
 	cargando: "Cargando avisos…",
 	tipos: {
 		VENTA_TICKET: "Venta",

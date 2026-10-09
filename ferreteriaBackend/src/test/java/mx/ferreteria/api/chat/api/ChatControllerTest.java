@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -97,5 +98,12 @@ class ChatControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"cuerpo\":\"   \"}"))
                                 .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("DELETE /api/v1/chat/{id} -> 204")
+        void salir_returns204() throws Exception {
+                mvc.perform(delete("/api/v1/chat/1"))
+                                .andExpect(status().isNoContent());
         }
 }

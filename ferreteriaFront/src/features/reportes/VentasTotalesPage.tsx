@@ -113,19 +113,19 @@ export default function VentasTotalesPage() {
 							<AreaChart data={data} margin={{ left: 8, right: 8 }}>
 								<defs>
 									<linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1">
-										<stop offset="5%" stopColor="#ea580c" stopOpacity={0.25} />
-										<stop offset="95%" stopColor="#ea580c" stopOpacity={0} />
+										<stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.25} />
+										<stop offset="95%" stopColor="var(--color-chart-1)" stopOpacity={0} />
 									</linearGradient>
 								</defs>
-								<CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+								<CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
 								<XAxis
 									dataKey="fecha"
 									tickFormatter={formatoFecha}
-									stroke="#57534e"
+									stroke="var(--color-muted)"
 									fontSize={12}
 								/>
 								<YAxis
-									stroke="#57534e"
+									stroke="var(--color-muted)"
 									fontSize={12}
 									tickFormatter={(v: number) => formatoMoneda(v)}
 									width={90}
@@ -140,15 +140,16 @@ export default function VentasTotalesPage() {
 								<Area
 									type="monotone"
 									dataKey="totalVendido"
-									stroke="#ea580c"
+									stroke="var(--color-chart-1)"
 									fill="url(#gTotal)"
 									name="Total vendido"
 								/>
 								<Area
 									type="monotone"
 									dataKey="utilidadBruta"
-									stroke="#16a34a"
-									fill="#16a34a22"
+									stroke="var(--color-chart-2)"
+									fill="var(--color-chart-2)"
+									fillOpacity={0.13}
 									name="Utilidad bruta"
 								/>
 							</AreaChart>

@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.notif.dto.BandejaDtos.BandejaResponse;
+import mx.ferreteria.api.notif.dto.BandejaDtos.EliminadasResponse;
 import mx.ferreteria.api.notif.dto.BandejaDtos.NoLeidasResponse;
 import mx.ferreteria.api.notif.service.BandejaService;
 import mx.ferreteria.api.notif.service.RealtimePushService;
@@ -73,5 +75,13 @@ public class BandejaController {
     public NoLeidasResponse marcarTodasLeidas() {
         bandejaService.marcarTodasLeidas(UserPrincipal.actual().usuarioId());
         return new NoLeidasResponse(0);
+    }
+
+    /** Borra el historial ya leído del usuario autenticado. */
+    @DeleteMapping("/leidas")
+    @PreAuthorize("isAuthenticated()")
+    public EliminadasResponse eliminarLeidas() {
+        return new EliminadasResponse(
+                bandejaService.eliminarLeidas(UserPrincipal.actual().usuarioId()));
     }
 }

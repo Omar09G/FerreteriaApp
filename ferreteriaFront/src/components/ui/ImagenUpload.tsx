@@ -44,7 +44,7 @@ export function FotoMiniatura({
     return (
       <span
         aria-label={`Sin foto: ${alt}`}
-        className={`${clasesBase} border border-slate-200 bg-slate-50 shadow-inner flex items-center justify-center`}
+        className={`${clasesBase} border border-line bg-canvas shadow-inner flex items-center justify-center`}
       >
         {/* Icono minimalista opcional de reemplazo (placeholder) */}
         <svg
@@ -190,7 +190,7 @@ export function ImagenUpload({
             {/* Spinner de carga superpuesto si está subiendo */}
             {subiendo && (
               <div className="absolute inset-0 bg-warmbg/70 flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
               </div>
             )}
           </label>
@@ -231,7 +231,7 @@ export function ImagenUpload({
             {/* Spinner de carga superpuesto si está subiendo */}
             {subiendo && (
               <div className="absolute inset-0 bg-warmbg/70 flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
               </div>
             )}
           </div>

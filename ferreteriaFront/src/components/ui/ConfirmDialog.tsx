@@ -15,7 +15,7 @@ interface ConfirmDialogProps {
 const CONFIRM_CLASS: Record<NonNullable<ConfirmDialogProps["tone"]>, string> = {
 	danger: "bg-red-600 text-white hover:bg-red-700",
 	success: "bg-green-600 text-white hover:bg-green-700",
-	primary: "bg-blue-600 text-white hover:bg-blue-700",
+	primary: "bg-primary text-on-primary hover:bg-primary-hover",
 };
 
 export function ConfirmDialog({

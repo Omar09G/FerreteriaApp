@@ -82,14 +82,14 @@ export default function HorasPicoPage() {
 					<Card titulo="Número de ventas por hora">
 						<ResponsiveContainer width="100%" height={280}>
 							<BarChart data={data} margin={{ left: 8, right: 8 }}>
-								<CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+								<CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
 								<XAxis
 									dataKey="hora"
 									tickFormatter={(h: number) => `${h}:00`}
-									stroke="#57534e"
+									stroke="var(--color-muted)"
 									fontSize={12}
 								/>
-								<YAxis stroke="#57534e" fontSize={12} />
+								<YAxis stroke="var(--color-muted)" fontSize={12} />
 								<Tooltip
 									formatter={(value, name) => [
 										formatoNumero(Number(value)),
@@ -97,7 +97,7 @@ export default function HorasPicoPage() {
 									]}
 									labelFormatter={(label) => `${String(label)}:00 hrs`}
 								/>
-								<Bar dataKey="numVentas" fill="#ea580c" radius={[3, 3, 0, 0]} />
+								<Bar dataKey="numVentas" fill="var(--color-chart-1)" radius={[3, 3, 0, 0]} />
 							</BarChart>
 						</ResponsiveContainer>
 					</Card>

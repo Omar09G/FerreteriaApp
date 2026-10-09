@@ -43,7 +43,7 @@ export default function GoogleCallback() {
   }, [params, setChallenge, navigate]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-orange-700 via-primary to-orange-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-orange-700 via-primary to-orange-900 p-4 dark:from-stone-950 dark:via-sidebar dark:to-stone-950">
       <div className="w-full max-w-sm rounded-xl border border-white/20 bg-surface p-6 text-center shadow-2xl">
         {error ? (
           <>

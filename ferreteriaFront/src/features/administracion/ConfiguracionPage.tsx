@@ -186,7 +186,7 @@ export default function ConfiguracionPage() {
           <Card titulo="Impresora POS USB (background)">
             <div className="space-y-3">
               {!isSerialSupported() ? (
-                <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400">
                   Web Serial no soportado. Usa Chrome/Edge desktop en HTTPS o localhost para impresión silenciosa USB.
                 </p>
               ) : (

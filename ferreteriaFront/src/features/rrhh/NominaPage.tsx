@@ -386,7 +386,7 @@ export default function NominaPage() {
 							type="button"
 							title="Pagar"
 							aria-label={`Pagar nómina de ${v.empleado}`}
-							className="rounded p-1.5 text-muted hover:bg-green-50 hover:text-green-600"
+							className="rounded p-1.5 text-muted hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-950/40 dark:hover:text-green-400"
 							onClick={() => setPagarConfirmacion(v)}
 						>
 							<Banknote className="h-4 w-4" />
@@ -395,7 +395,7 @@ export default function NominaPage() {
 							type="button"
 							title="Cancelar"
 							aria-label={`Cancelar nómina de ${v.empleado}`}
-							className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
+							className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
 							onClick={() => setCancelarConfirmacion(v)}
 						>
 							<XCircle className="h-4 w-4" />

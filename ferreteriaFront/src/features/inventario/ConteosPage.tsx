@@ -8,6 +8,7 @@ import { apiAlmacenes, apiProductos } from "@/lib/api/catalogo";
 import { apiConteos, apiCrearConteo } from "@/lib/api/inventario";
 import type {
 	ConteoFisico,
+	ConteoFisicoDetalle,
 	ConteoFisicoRequest,
 	Producto,
 } from "@/lib/api/types";
@@ -235,6 +236,45 @@ function tonoDiferencia(diferencia: number | null | undefined) {
 	if (diferencia === 0) return "default";
 	return diferencia > 0 ? "success" : "danger";
 }
+
+const COLUMNAS_DETALLE: Columna<ConteoFisicoDetalle>[] = [
+	{
+		key: "producto",
+		header: "Producto",
+		render: (d) => (
+			<>
+				<span className="block font-medium text-ink">
+					{d.productoNombre ?? `#${d.productoId}`}
+				</span>
+				<span className="text-xs text-muted">
+					{d.productoCodigo ?? "—"}
+				</span>
+			</>
+		),
+	},
+	{
+		key: "sistema",
+		header: "Sistema",
+		align: "right",
+		render: (d) => formatoNumero(d.cantidadSistema),
+	},
+	{
+		key: "fisica",
+		header: "Física",
+		align: "right",
+		render: (d) => formatoNumero(d.cantidadFisica),
+	},
+	{
+		key: "diferencia",
+		header: "Diferencia",
+		align: "right",
+		render: (d) => (
+			<Badge tone={tonoDiferencia(d.diferencia)}>
+				{formatoNumero(d.diferencia)}
+			</Badge>
+		),
+	},
+];
 
 export default function ConteosPage() {
 	useDocumentTitle("Conteos físicos");
@@ -509,42 +549,13 @@ export default function ConteosPage() {
 								{vistaDetalle.observaciones}
 							</p>
 						)}
-						<div className="overflow-x-auto rounded-md border border-line">
-							<table className="w-full min-w-full border-collapse text-sm">
-								<thead>
-									<tr className="border-b border-line bg-warmbg text-left text-xs uppercase tracking-wide text-muted">
-										<th scope="col" className="px-3 py-2 font-medium">Producto</th>
-										<th scope="col" className="px-3 py-2 text-right font-medium">Sistema</th>
-										<th scope="col" className="px-3 py-2 text-right font-medium">Física</th>
-										<th scope="col" className="px-3 py-2 text-right font-medium">Diferencia</th>
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-line">
-									{vistaDetalle.detalles.map((d) => (
-										<tr key={d.productoId} className="hover:bg-orange-50/40">
-											<td className="px-3 py-2">
-												<span className="block font-medium text-ink">
-													{d.productoNombre ?? `#${d.productoId}`}
-												</span>
-												<span className="text-xs text-muted">
-													{d.productoCodigo ?? "—"}
-												</span>
-											</td>
-											<td className="px-3 py-2 text-right tabular-nums">
-												{formatoNumero(d.cantidadSistema)}
-											</td>
-											<td className="px-3 py-2 text-right tabular-nums">
-												{formatoNumero(d.cantidadFisica)}
-											</td>
-											<td className="px-3 py-2 text-right tabular-nums">
-												<Badge tone={tonoDiferencia(d.diferencia)}>
-													{formatoNumero(d.diferencia)}
-												</Badge>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
+						<div className="rounded-md border border-line">
+							<DataTable
+								columnas={COLUMNAS_DETALLE}
+								items={vistaDetalle.detalles}
+								rowKey={(d) => d.productoId}
+								caption={`Partidas del conteo #${vistaDetalle.conteoId}`}
+							/>
 						</div>
 					</div>
 				)}

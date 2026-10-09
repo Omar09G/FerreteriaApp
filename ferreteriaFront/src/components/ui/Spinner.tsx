@@ -10,7 +10,7 @@ export function Spinner({ label }: { label?: string }) {
 			role="status"
 			aria-live="polite"
 		>
-			<Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+			<Loader2 className="h-5 w-5 animate-spin text-primary motion-reduce:animate-none" aria-hidden />
 			<span className="text-sm">{label ?? t("comun.cargando")}</span>
 		</div>
 	);

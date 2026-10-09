@@ -176,6 +176,20 @@ public class ChatService {
         participanteRepo.save(propio);
     }
 
+    /**
+     * Salir de la conversación: quita al participante. Si no queda nadie,
+     * borra mensajes y conversación (nadie puede verla ya).
+     */
+    @Transactional
+    public void salir(int usuarioId, long conversacionId) {
+        ChatParticipante propio = exigirMiembro(usuarioId, conversacionId);
+        participanteRepo.delete(propio);
+        if (participanteRepo.findByConversacionId(conversacionId).isEmpty()) {
+            mensajeRepo.deleteByConversacionId(conversacionId);
+            conversacionRepo.deleteById(conversacionId);
+        }
+    }
+
     private ConversacionResponse conversacion(int usuarioId, long conversacionId) {
         ChatConversacion c = conversacionRepo.findById(conversacionId)
                 .orElseThrow(() -> new RecursoNoEncontradoException(ErrorCode.RECURSO_NO_ENCONTRADO));

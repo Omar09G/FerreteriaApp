@@ -1,6 +1,7 @@
 package mx.ferreteria.api.notif.api;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -103,5 +104,16 @@ class BandejaControllerTest {
                 mvc.perform(patch("/api/v1/notificaciones/leidas"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.data.noLeidas").value(0));
+        }
+
+        @Test
+        @DisplayName("DELETE /api/v1/notificaciones/leidas -> 200 con eliminadas")
+        void eliminarLeidas_returns200() throws Exception {
+                when(bandejaService.eliminarLeidas(org.mockito.ArgumentMatchers.anyInt()))
+                                .thenReturn(4L);
+
+                mvc.perform(delete("/api/v1/notificaciones/leidas"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.eliminadas").value(4));
         }
 }

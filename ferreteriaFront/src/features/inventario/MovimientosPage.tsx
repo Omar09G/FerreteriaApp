@@ -173,7 +173,7 @@ export default function MovimientosPage() {
 							<button
 								type="button"
 								onClick={quitarFiltros}
-								className="ml-1 rounded-full px-1 hover:bg-blue-100"
+								className="ml-1 rounded-full px-1 hover:bg-blue-100 dark:hover:bg-blue-950/40"
 								aria-label="Quitar filtros"
 							>
 								✕

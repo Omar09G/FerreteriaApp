@@ -5,6 +5,7 @@
 :root {
   --primary: #c2410c;
   --primary-hover: #9a3412;
+  --on-primary: #ffffff;
   --accent: #f97316;
   --warmbg: #fff7ed;
   --canvas: #fafaf9;
@@ -12,11 +13,25 @@
   --ink: #1c1917;
   --muted: #57534e;
   --line: #e7e5e4;
+  /* Semánticos (estados, no UI base) */
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
+  /* Sidebar: siempre oscuro cálido (no sigue a primary en dark) */
+  --sidebar: #7c2d12;
+  /* Paleta de gráficos (series de datos, no UI) */
+  --chart-1: #ea580c;
+  --chart-2: #16a34a;
+  --chart-3: #2563eb;
+  --chart-4: #9333ea;
+  --chart-5: #0ea5e9;
+  --chart-6: #f59e0b;
 }
 
 .dark {
   --primary: #fb923c;
   --primary-hover: #f97316;
+  --on-primary: #1c1917;
   --accent: #fb923c;
   --warmbg: #2a2522;
   --canvas: #15130f;
@@ -24,12 +39,23 @@
   --ink: #f2efec;
   --muted: #a8a29e;
   --line: #44403c;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --sidebar: #221610;
+  --chart-1: #fb923c;
+  --chart-2: #4ade80;
+  --chart-3: #60a5fa;
+  --chart-4: #c084fc;
+  --chart-5: #38bdf8;
+  --chart-6: #fbbf24;
 }
 
 /* Tokens semánticos → consumen variables que cambian con .dark */
 @theme inline {
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
   --color-accent: var(--accent);
   --color-warmbg: var(--warmbg);
   --color-canvas: var(--canvas);
@@ -37,6 +63,16 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-sidebar: var(--sidebar);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
 }
 
 @layer base {

@@ -85,7 +85,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-orange-700 via-primary to-orange-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-orange-700 via-primary to-orange-900 p-4 dark:from-stone-950 dark:via-sidebar dark:to-stone-950">
       <form
         onSubmit={enviar}
         className="w-full max-w-sm rounded-xl border border-white/20 bg-surface p-6 shadow-2xl"
@@ -94,7 +94,7 @@ export default function Login() {
         <div className="mb-6 flex items-start justify-between">
           <div className="flex-1 text-center">
             <span
-              className="mb-2 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-2xl font-black text-white"
+              className="mb-2 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-2xl font-black text-on-primary"
               aria-hidden
             >
               T

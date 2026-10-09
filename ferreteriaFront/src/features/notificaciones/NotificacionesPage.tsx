@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 
 import { useT } from "@/i18n";
 import {
+	apiEliminarLeidas,
 	apiMarcarLeida,
 	apiNotificaciones,
 } from "@/lib/api/notificaciones";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import { Spinner } from "@/components/ui/Spinner";
@@ -23,15 +25,19 @@ import {
 export default function NotificacionesPage() {
 	const t = useT();
 	const navigate = useNavigate();
-	const { error: mostrarError } = useToast();
+	const { error: mostrarError, success: mostrarExito } = useToast();
 	const queryClient = useQueryClient();
 	const [page, setPage] = useState(0);
+	const [eliminarAbierto, setEliminarAbierto] = useState(false);
+	const [eliminando, setEliminando] = useState(false);
 	const marcarLeidaLocal = useNotificacionesStore((s) => s.marcarLeidaLocal);
 
 	const { data, isFetching, isError } = useQuery({
 		queryKey: ["notificaciones", page],
 		queryFn: () => apiNotificaciones({ page, size: 20 }),
 	});
+
+	const leidas = (data?.data ?? []).filter((n) => n.leidaEn).length;
 
 	if (isError) {
 		mostrarError(t("notificaciones.cargando"));
@@ -49,21 +55,45 @@ export default function NotificacionesPage() {
 		navigate(rutaNotificacion({ refTipo }));
 	};
 
+	const eliminarLeidas = () => {
+		if (eliminando) return;
+		setEliminando(true);
+		void apiEliminarLeidas()
+			.then(() => {
+				setEliminarAbierto(false);
+				setPage(0);
+				mostrarExito(t("notificaciones.eliminadas"));
+				void queryClient.invalidateQueries({ queryKey: ["notificaciones"] });
+			})
+			.catch(() => mostrarError(t("notificaciones.errorEliminar")))
+			.finally(() => setEliminando(false));
+	};
+
 	return (
 		<Card
 			titulo={t("notificaciones.titulo")}
 			actions={
-				<Button
-					variant="secondary"
-					size="sm"
-					onClick={() => {
-						void marcarTodoLeido().then(() => {
-							void queryClient.invalidateQueries({ queryKey: ["notificaciones"] });
-						});
-					}}
-				>
-					{t("notificaciones.marcarTodas")}
-				</Button>
+				<div className="flex gap-2">
+					<Button
+						variant="secondary"
+						size="sm"
+						onClick={() => {
+							void marcarTodoLeido().then(() => {
+								void queryClient.invalidateQueries({ queryKey: ["notificaciones"] });
+							});
+						}}
+					>
+						{t("notificaciones.marcarTodas")}
+					</Button>
+					<Button
+						variant="danger"
+						size="sm"
+						disabled={leidas === 0}
+						onClick={() => setEliminarAbierto(true)}
+					>
+						{t("notificaciones.eliminarLeidas")}
+					</Button>
+				</div>
 			}
 		>
 			{isFetching && <Spinner />}
@@ -116,6 +146,16 @@ export default function NotificacionesPage() {
 					/>
 				</>
 			)}
+			<ConfirmDialog
+				open={eliminarAbierto}
+				title={t("notificaciones.confirmarEliminar")}
+				confirmLabel={t("notificaciones.eliminarLeidas")}
+				busy={eliminando}
+				onCancel={() => setEliminarAbierto(false)}
+				onConfirm={eliminarLeidas}
+			>
+				<p className="text-sm text-muted">{t("notificaciones.eliminarDesc")}</p>
+			</ConfirmDialog>
 		</Card>
 	);
 }

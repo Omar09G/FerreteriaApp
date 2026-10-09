@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { EmptyState } from "./EmptyState";
-import { Spinner } from "./Spinner";
+import { TableSkeleton } from "./Skeleton";
 
 export interface Columna<T> {
 	key: string;
@@ -38,7 +38,7 @@ export function DataTable<T>({
 	caption,
 }: DataTableProps<T>) {
 	if (loading) {
-		return <Spinner />;
+		return <TableSkeleton />;
 	}
 
 	if (!items || items.length === 0) {
@@ -64,7 +64,7 @@ export function DataTable<T>({
 				</thead>
 				<tbody className="divide-y divide-line">
 					{items.map((item) => (
-						<tr key={rowKey(item)} className="hover:bg-orange-50/40">
+						<tr key={rowKey(item)} className="hover:bg-warmbg">
 							{columnas.map((c) => (
 								<td
 									key={c.key}

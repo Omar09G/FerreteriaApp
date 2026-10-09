@@ -293,7 +293,7 @@ function RentaForm({
               key={p.productoId}
               type="button"
               onClick={() => agregar(p)}
-              className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-1.5 text-left hover:bg-orange-50"
+              className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-1.5 text-left hover:bg-warmbg"
             >
               <span className="min-w-0">
                 <FotoMiniatura url={p.imagenUrl} alt={p.nombre} />
@@ -706,7 +706,7 @@ export default function RentasPage() {
             type="button"
             aria-label="Ver detalles"
             title="Ver detalles"
-            className="rounded p-1.5 text-muted hover:bg-orange-50 hover:text-ink"
+            className="rounded p-1.5 text-muted hover:bg-warmbg hover:text-ink"
             onClick={() => setVistaDetalle(v)}
           >
             <Eye className="h-4 w-4" />
@@ -717,7 +717,7 @@ export default function RentasPage() {
               type="button"
               aria-label="Registrar devolución"
               title="Registrar devolución"
-              className="rounded p-1.5 text-primary hover:bg-orange-50"
+              className="rounded p-1.5 text-primary hover:bg-warmbg"
               onClick={() => setDevolviendo(v)}
             >
               <RotateCcw className="h-4 w-4" />
@@ -728,7 +728,7 @@ export default function RentasPage() {
               type="button"
               aria-label="Cancelar renta"
               title="Cancelar renta"
-              className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600"
+              className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
               onClick={() => setCancelarConfirmacion(v)}
             >
               <X className="h-4 w-4" />

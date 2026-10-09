@@ -48,7 +48,7 @@ export default function CatalogosIndexPage() {
 							className="group rounded-lg border border-line bg-surface p-4 transition-colors hover:border-primary hover:bg-warmbg"
 						>
 							<div className="flex items-center gap-3">
-								<span className="rounded-md bg-orange-100 p-2 text-primary">
+								<span className="rounded-md bg-orange-100 p-2 text-primary dark:bg-orange-950/40">
 									{ICONOS[p.clave] ?? <Boxes className="h-5 w-5" />}
 								</span>
 								<div className="min-w-0">

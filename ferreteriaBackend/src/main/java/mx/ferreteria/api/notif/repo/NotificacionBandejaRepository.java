@@ -30,4 +30,11 @@ public interface NotificacionBandejaRepository extends JpaRepository<Notificacio
     @Modifying
     @Query("delete from NotificacionBandeja b where b.creadaEn < :corte")
     int purgarAnterioresA(@Param("corte") Instant corte);
+
+    @Modifying
+    @Query("""
+            delete from NotificacionBandeja b
+            where b.usuarioId = :usuarioId and b.leidaEn is not null
+            """)
+    int eliminarLeidas(@Param("usuarioId") Integer usuarioId);
 }

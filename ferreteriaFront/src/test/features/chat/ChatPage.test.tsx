@@ -8,6 +8,9 @@ import type { ChatConversacion, ChatMensaje } from "@/lib/api/types";
 import { renderConProviders } from "@/test/helpers/renderProveedores";
 
 vi.mock("@/lib/api/chat");
+vi.mock("sweetalert2", () => ({
+	default: { fire: vi.fn(), showLoading: vi.fn(), close: vi.fn() },
+}));
 vi.mock("@/lib/api/admin", () => ({
 	apiUsuarios: vi.fn().mockResolvedValue({ data: [], meta: { page: 0, size: 50, totalElements: 0, totalPages: 0 } }),
 }));
@@ -57,5 +60,17 @@ describe("ChatPage", () => {
 		const campo = await screen.findByPlaceholderText("Escribe un mensaje…");
 		await user.type(campo, "Hola{enter}");
 		expect(apiChat.apiEnviarMensaje).toHaveBeenCalledWith(1, { cuerpo: "Hola" });
+	});
+
+	it("elimina la conversación activa tras confirmar", async () => {
+		const user = userEvent.setup();
+		vi.mocked(apiChat.apiSalirConversacion).mockResolvedValue(undefined);
+		renderConProviders(<ChatPage />);
+		await user.click(await screen.findByRole("button", { name: /cajero/ }));
+		await user.click(await screen.findByRole("button", { name: "Eliminar chat" }));
+		expect(await screen.findByText("Eliminar conversación")).toBeInTheDocument();
+		const confirmar = screen.getAllByRole("button", { name: "Eliminar chat" });
+		await user.click(confirmar[confirmar.length - 1]);
+		expect(apiChat.apiSalirConversacion).toHaveBeenCalledWith(1);
 	});
 });

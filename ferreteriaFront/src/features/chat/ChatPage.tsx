@@ -9,11 +9,13 @@ import {
 	apiEnviarMensaje,
 	apiHistorial,
 	apiMarcarChatLeida,
+	apiSalirConversacion,
 } from "@/lib/api/chat";
 import { apiUsuarios } from "@/lib/api/admin";
 import type { ChatConversacion, Usuario } from "@/lib/api/types";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input, Select } from "@/components/ui/Input";
@@ -33,6 +35,8 @@ export default function ChatPage() {
 	const [tituloGrupo, setTituloGrupo] = useState("");
 	const [miembrosGrupo, setMiembrosGrupo] = useState<number[]>([]);
 	const [texto, setTexto] = useState("");
+	const [eliminarAbierto, setEliminarAbierto] = useState(false);
+	const [eliminando, setEliminando] = useState(false);
 	const fondoRef = useRef<HTMLDivElement>(null);
 
 	const conversacionesQ = useQuery({
@@ -115,6 +119,20 @@ export default function ChatPage() {
 			});
 	};
 
+	const eliminar = () => {
+		if (activaId === null || eliminando) return;
+		setEliminando(true);
+		void apiSalirConversacion(activaId)
+			.then(() => {
+				setActivaId(null);
+				setEliminarAbierto(false);
+				mostrarExito(t("chat.eliminada"));
+				void queryClient.invalidateQueries({ queryKey: ["chat"] });
+			})
+			.catch(() => mostrarError(t("chat.errorEliminar")))
+			.finally(() => setEliminando(false));
+	};
+
 	return (
 		<div className="grid gap-3 lg:grid-cols-[280px_1fr]">
 			<Card titulo={t("chat.conversaciones")}>
@@ -182,13 +200,22 @@ export default function ChatPage() {
 
 			<Card
 				titulo={activa ? activa.titulo : t("chat.titulo")}
-				actions={
-					activa && (
+			actions={
+				activa && (
+					<div className="flex gap-2">
+						<Button
+							variant="danger"
+							size="sm"
+							onClick={() => setEliminarAbierto(true)}
+						>
+							{t("chat.eliminar")}
+						</Button>
 						<Button variant="ghost" size="sm" onClick={() => setActivaId(null)}>
 							{t("chat.cerrar")}
 						</Button>
-					)
-				}
+					</div>
+				)
+			}
 			>
 				{!activa && (
 					<EmptyState title={t("chat.titulo")} descripcion={t("chat.eligirConversacion")} />
@@ -244,8 +271,19 @@ export default function ChatPage() {
 				)}
 			</Card>
 
-			<Dialog
-				title={t("chat.nuevoGrupo")}
+		<ConfirmDialog
+			open={eliminarAbierto}
+			title={t("chat.confirmarEliminar")}
+			confirmLabel={t("chat.eliminar")}
+			busy={eliminando}
+			onCancel={() => setEliminarAbierto(false)}
+			onConfirm={eliminar}
+		>
+			<p className="text-sm text-muted">{t("chat.eliminarDesc")}</p>
+		</ConfirmDialog>
+
+		<Dialog
+			title={t("chat.nuevoGrupo")}
 				open={grupoAbierto}
 				onClose={() => setGrupoAbierto(false)}
 			>

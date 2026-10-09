@@ -52,4 +52,13 @@ class BandejaControllerSecurityTest {
         assertThat(ann).isNotNull();
         assertThat(ann.value()).contains("isAuthenticated()");
     }
+
+    @Test
+    @DisplayName("eliminar leídas requiere autenticación")
+    void eliminarLeidasRequiereAuth() throws Exception {
+        var m = BandejaController.class.getMethod("eliminarLeidas");
+        PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).contains("isAuthenticated()");
+    }
 }

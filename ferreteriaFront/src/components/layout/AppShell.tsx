@@ -375,7 +375,7 @@ function SidebarNav() {
         if (visibles.length === 0) return null;
         return (
           <div key={grupo.clave}>
-            <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-orange-200/70">
+            <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-white/60">
               {t(`appshell.grupos.${grupo.clave}`)}
             </p>
             <ul className="space-y-0.5">
@@ -386,8 +386,8 @@ function SidebarNav() {
                     className={({ isActive }) =>
                       `flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
                         isActive
-                          ? "bg-orange-900/60 font-medium text-white"
-                          : "text-orange-100 hover:bg-orange-900/40"
+                          ? "bg-white/15 font-medium text-white"
+                          : "text-white/80 hover:bg-white/10"
                       }`
                     }
                   >
@@ -446,16 +446,16 @@ function UsuarioPerfil({ usuario }: { usuario: Usuario }) {
   const roles = usuario.roles?.length ? usuario.roles.join(", ") : "Sin rol";
 
   return (
-      <div className="flex items-center gap-2 text-sm text-orange-100">
+      <div className="flex items-center gap-2 text-sm text-white/80">
       <span
-          className="flex h-8 w-8 select-none items-center justify-center rounded-full bg-orange-900/60 font-semibold uppercase"
+          className="flex h-8 w-8 select-none items-center justify-center rounded-full bg-white/15 font-semibold uppercase"
           aria-hidden="true"
       >
         {inicial}
       </span>
         <div className="min-w-0 leading-tight">
           <p className="truncate font-medium text-white">{nombre}</p>
-          <p className="truncate text-[11px] text-orange-200">{roles}</p>
+          <p className="truncate text-[11px] text-white/60">{roles}</p>
         </div>
       </div>
   );
@@ -489,11 +489,11 @@ export function AppShell() {
   return (
       <div className="flex min-h-screen">
         {/* Sidebar escritorio */}
-        <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col bg-primary lg:flex">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col bg-sidebar lg:flex">
           {/* Cabecera Sidebar */}
-          <div className="flex h-14 items-center gap-2 border-b border-orange-900/40 px-4">
+          <div className="flex h-14 items-center gap-2 border-b border-white/10 px-4">
           <span
-              className="flex h-7 w-7 select-none items-center justify-center rounded bg-white text-lg font-black text-primary"
+              className="flex h-7 w-7 select-none items-center justify-center rounded bg-white text-lg font-black text-sidebar"
               aria-hidden="true"
           >
             T
@@ -502,7 +502,7 @@ export function AppShell() {
               <p className="text-sm font-semibold text-white">
                 {t("appshell.marca")} - {appVersion}
               </p>
-              <p className="text-[11px] text-orange-200">
+              <p className="text-[11px] text-white/60">
                 {t("appshell.subtitulo")}
               </p>
             </div>
@@ -512,7 +512,7 @@ export function AppShell() {
           <SidebarNav />
 
           {/* Footer Sidebar (Fijo abajo con mt-auto) */}
-          <div className="mt-auto border-t border-orange-900/40 p-3">
+          <div className="mt-auto border-t border-white/10 p-3">
             {usuario && <UsuarioPerfil usuario={usuario} />}
 
             <div className="mt-2 flex flex-col gap-1">
@@ -520,7 +520,7 @@ export function AppShell() {
                   variant="ghost"
                   size="sm"
                   onClick={cerrarSesion}
-                  className="w-full justify-start text-white hover:bg-orange-900/40"
+                  className="w-full justify-start text-white hover:bg-white/10"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 {t("appshell.cerrarSesion")}
@@ -529,7 +529,7 @@ export function AppShell() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setPasswordAbierto(true)}
-                  className="w-full justify-start text-white hover:bg-orange-900/40"
+                  className="w-full justify-start text-white hover:bg-white/10"
                   aria-label="Cambiar contraseña"
               >
                 <KeyRound className="mr-2 h-4 w-4" />
@@ -540,12 +540,12 @@ export function AppShell() {
         </aside>
 
         {/* Topbar móvil */}
-        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-primary px-3 lg:hidden">
+        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-sidebar px-3 lg:hidden">
           <button
               type="button"
               onClick={() => setMenuAbierto(true)}
               aria-label={t("appshell.abrirMenu")}
-              className="rounded p-1 text-white hover:bg-orange-900/40 transition-colors"
+              className="rounded p-1 text-white hover:bg-white/10 transition-colors"
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -556,7 +556,7 @@ export function AppShell() {
               type="button"
               onClick={cerrarSesion}
               aria-label={t("appshell.cerrarSesion")}
-              className="rounded p-1 text-white hover:bg-orange-900/40 transition-colors"
+              className="rounded p-1 text-white hover:bg-white/10 transition-colors"
           >
             <LogOut className="h-5 w-5" />
           </button>
@@ -575,8 +575,8 @@ export function AppShell() {
                   onClick={() => setMenuAbierto(false)}
                   aria-hidden="true"
               />
-              <aside className="flex w-72 flex-col bg-primary shadow-xl">
-                <div className="flex h-14 items-center justify-between border-b border-orange-900/40 px-4">
+              <aside className="flex w-72 flex-col bg-sidebar shadow-xl">
+                <div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
                   <p className="text-sm font-semibold text-white">
                     {t("appshell.menu")}
                   </p>
@@ -584,7 +584,7 @@ export function AppShell() {
                       type="button"
                       onClick={() => setMenuAbierto(false)}
                       aria-label={t("appshell.cerrarMenu")}
-                      className="rounded p-1 text-orange-100 hover:bg-orange-900/40 transition-colors"
+                      className="rounded p-1 text-white/80 hover:bg-white/10 transition-colors"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -597,7 +597,7 @@ export function AppShell() {
 
                 {/* Perfil opcional en la parte baja del móvil */}
                 {usuario && (
-                    <div className="border-t border-orange-900/40 p-4">
+                    <div className="border-t border-white/10 p-4">
                       <UsuarioPerfil usuario={usuario} />
                     </div>
                 )}

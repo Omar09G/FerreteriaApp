@@ -15,7 +15,7 @@ export function NotFound() {
 			<p className="text-sm text-muted">{t("paginas.noEncontradaDesc")}</p>
 			<Link
 				to="/dashboard"
-				className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
+				className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-hover"
 			>
 				{t("paginas.irInicio")}
 			</Link>

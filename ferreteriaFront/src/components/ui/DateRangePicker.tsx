@@ -50,7 +50,7 @@ export function DateRangePicker({ valor, onChange }: DateRangePickerProps) {
 					onClick={() => aplicarPreset(p.id)}
 					className={`h-9 rounded-md border px-2.5 text-xs font-medium transition-colors ${
 						presetPropio === p.id
-							? "border-primary bg-primary text-white"
+							? "border-primary bg-primary text-on-primary"
 							: "border-line bg-surface text-muted hover:bg-warmbg"
 					}`}
 				>

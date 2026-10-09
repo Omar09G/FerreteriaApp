@@ -44,7 +44,7 @@ export function Pagination({ meta, onPage }: PaginationProps) {
 						type="button"
 						onClick={() => onPage(n)}
 						aria-current={n === page ? "page" : undefined}
-						className={`min-w-8 rounded border px-2 py-1 ${n === page ? "border-primary bg-primary text-white" : "border-line hover:bg-warmbg"}`}
+						className={`min-w-8 rounded border px-2 py-1 ${n === page ? "border-primary bg-primary text-on-primary" : "border-line hover:bg-warmbg"}`}
 					>
 						{n + 1}
 					</button>

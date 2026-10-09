@@ -81,6 +81,44 @@ interface Linea {
   aplicaIva: boolean;
 }
 
+const COLUMNAS_REVISION: Columna<Linea>[] = [
+  {
+    key: "producto",
+    header: "Producto",
+    render: (l) => (
+      <>
+        <span className="font-medium text-ink">{l.nombre}</span>
+        {l.codigo && (
+          <span className="ml-2 font-mono text-xs text-muted">{l.codigo}</span>
+        )}
+        <CodigosBarras codigos={l.codigosBarras} max={1} />
+        {!l.aplicaIva && (
+          <Badge tone="info" className="ml-2">
+            Sin IVA
+          </Badge>
+        )}
+      </>
+    ),
+  },
+  { key: "cantidad", header: "Cant.", align: "right", render: (l) => l.cantidad },
+  {
+    key: "precio",
+    header: "Precio",
+    align: "right",
+    render: (l) => formatoMoneda(l.precioUnitario),
+  },
+  {
+    key: "importe",
+    header: "Importe",
+    align: "right",
+    render: (l) => (
+      <span className="font-medium">
+        {formatoMoneda(l.cantidad * l.precioUnitario)}
+      </span>
+    ),
+  },
+];
+
 function lineaDeProducto(p: Producto): Linea {
   return {
     productoId: p.productoId,
@@ -809,10 +847,10 @@ export default function PosPage() {
                 aria-live="polite"
                 className={`mt-3 flex items-start gap-2 rounded-md border p-2.5 text-sm ${
                   turnoFalta
-                    ? "border-amber-300 bg-amber-50 text-amber-900"
+                    ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400"
                     : turnoCargando
                       ? "border-line bg-canvas text-muted"
-                      : "border-green-200 bg-green-50 text-green-800"
+                      : "border-green-200 bg-green-50 text-green-800 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-400"
                 }`}
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
@@ -846,7 +884,7 @@ export default function PosPage() {
                 {turnoFalta && (
                   <Link
                     to="/caja/cajas"
-                    className="shrink-0 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+                    className="shrink-0 rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400 dark:hover:bg-amber-950/60"
                   >
                     Abrir turno
                   </Link>
@@ -920,7 +958,7 @@ export default function PosPage() {
                       key={p.productoId}
                       type="button"
                       onClick={() => agregar(p)}
-                      className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2 text-left last:border-b-0 hover:bg-orange-50 focus:bg-orange-50 focus:outline-none"
+                      className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2 text-left last:border-b-0 hover:bg-warmbg focus:bg-warmbg focus:outline-none"
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium text-ink">
@@ -968,7 +1006,7 @@ export default function PosPage() {
                     key={p.productoId}
                     type="button"
                     onClick={() => agregar(p)}
-                    className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2 text-left hover:bg-orange-50 focus:bg-orange-50 focus:outline-none"
+                    className="flex w-full items-center justify-between gap-3 border-b border-line px-3 py-2 text-left hover:bg-warmbg focus:bg-warmbg focus:outline-none"
                   >
                     <span className="min-w-0">
                       <FotoMiniatura url={p.imagenUrl} alt={p.nombre} />
@@ -1395,59 +1433,15 @@ export default function PosPage() {
                   <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
                     Artículos ({lineas.reduce((n, l) => n + l.cantidad, 0)})
                   </p>
-                  <div className="overflow-x-auto rounded-md border border-line">
-                    <table className="w-full text-sm">
-                      <thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
-                        <tr>
-                          <th scope="col" className="px-2 py-1 text-left">
-                            Producto
-                          </th>
-                          <th scope="col" className="px-2 py-1 text-right">
-                            Cant.
-                          </th>
-                          <th scope="col" className="px-2 py-1 text-right">
-                            Precio
-                          </th>
-                          <th scope="col" className="px-2 py-1 text-right">
-                            Importe
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line">
-                        {lineas.map((l) => (
-                          <tr key={l.productoId}>
-                            <td className="px-2 py-1.5">
-                              <span className="font-medium text-ink">
-                                {l.nombre}
-                              </span>
-                              {l.codigo && (
-                                <span className="ml-2 font-mono text-xs text-muted">
-                                  {l.codigo}
-                                </span>
-                              )}
-                              <CodigosBarras
-                                codigos={l.codigosBarras}
-                                max={1}
-                              />
-                              {!l.aplicaIva && (
-                                <Badge tone="info" className="ml-2">
-                                  Sin IVA
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="px-2 py-1.5 text-right tabular-nums">
-                              {l.cantidad}
-                            </td>
-                            <td className="px-2 py-1.5 text-right tabular-nums">
-                              {formatoMoneda(l.precioUnitario)}
-                            </td>
-                            <td className="px-2 py-1.5 text-right font-medium tabular-nums">
-                              {formatoMoneda(l.cantidad * l.precioUnitario)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="rounded-md border border-line">
+                    <DataTable
+                      columnas={COLUMNAS_REVISION}
+                      items={lineas}
+                      rowKey={(l) => l.productoId}
+                      caption="Artículos por cobrar"
+                      emptyTitle="Sin artículos"
+                      emptyDescripcion="Agrega productos para cobrar."
+                    />
                   </div>
                 </div>
 

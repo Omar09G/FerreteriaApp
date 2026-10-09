@@ -15,6 +15,11 @@ export default {
 	escribirPh: "Type a message…",
 	enviar: "Send",
 	cerrar: "Close",
+	eliminar: "Delete chat",
+	confirmarEliminar: "Delete conversation",
+	eliminarDesc: "You will leave the conversation and it will disappear from your list. Other participants keep it.",
+	eliminada: "Conversation deleted.",
 	errorAbrir: "Could not open the conversation.",
 	errorEnviar: "Could not send the message.",
+	errorEliminar: "Could not delete the conversation.",
 } as const;

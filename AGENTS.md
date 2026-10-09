@@ -57,6 +57,28 @@ frontend never reads DB `.env` — Vite bakes `VITE_*` at build time.
   proxy, not backend CORS. Auth travels in HttpOnly cookies (`rt`/`at`),
   frontend never reads tokens from JS.
 
+## Skills obligatorias (usar siempre)
+
+> Fuente: `.opencode/skills/` (7 skills UI presentes). No inventar estilos fuera de estas.
+
+- **Frontend UI (obligatorio):**
+  - `ui-ux-pro-max` — inteligencia principal para cualquier diseño, revisión,
+    fix o nueva página/componente. Flujo: `search.py "<tipo> <industria> <keywords>" --design-system -p "Ferreteria Integral"` → `--domain ux|chart|icons` puntual → `--stack react` para implementación.
+  - `ui-styling` — implementación con Tailwind v4 + patrón shadcn/ui + `references/`.
+    Componer desde `src/components/ui/`, nunca duplicar Button/Card/Dialog/DataTable.
+  - `design-system` — tokens en 3 capas (primitive → semantic → component).
+    Tokens viven en `ferreteriaFront/src/index.css` (`:root` + `.dark` + `@theme inline`).
+    Prohibido hex hardcodeado en componentes; validar con `validate-tokens`.
+  - `brand` — voz ferretera es-MX, identidad cálida (naranja #c2410c), `docs/brand-guidelines.md` es fuente si existe.
+- **Secundarias UI (bajo demanda):** `design` / `slides` / `banner-design` solo para
+  presentaciones, posters o assets marketing. No usar para el POS/admin diario.
+- **Backend (usar siempre):** `java-architect` + `spring-boot-engineer` para
+  controllers/servicios; `springboot-security` para auth/cookies/RBAC;
+  `jpa-patterns` para entidades/N+1; `postgres-patterns` + `sql-pro` para
+  queries/triggers; `test-master` + `tdd-workflow` para cobertura JaCoCo.
+- **Transversal:** `code-reviewer` antes de cada PR; `security-reviewer` si toca
+  auth/input/pagos; `git-workflow` para ramas/commits.
+
 ## Frontend (`ferreteriaFront/`)
 
 - `bun run dev` (proxy `/api → http://localhost:8080`, override

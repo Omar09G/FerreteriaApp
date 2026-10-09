@@ -49,10 +49,10 @@ export default function MejoresDiasPage() {
 				<Card titulo="Total acumulado por día de la semana">
 					<ResponsiveContainer width="100%" height={280}>
 						<BarChart data={data} margin={{ left: 8, right: 8 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-							<XAxis dataKey="diaSemana" stroke="#57534e" fontSize={12} />
+							<CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
+							<XAxis dataKey="diaSemana" stroke="var(--color-muted)" fontSize={12} />
 							<YAxis
-								stroke="#57534e"
+								stroke="var(--color-muted)"
 								fontSize={12}
 								tickFormatter={(v: number) => formatoMoneda(v)}
 								width={90}
@@ -65,7 +65,7 @@ export default function MejoresDiasPage() {
 							/>
 							<Bar
 								dataKey="totalAcumulado"
-								fill="#f97316"
+								fill="var(--color-accent)"
 								radius={[3, 3, 0, 0]}
 								name="Total acumulado"
 							/>

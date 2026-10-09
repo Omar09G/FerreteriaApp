@@ -673,7 +673,7 @@ function PromocionForm({
                   key={p.productoId}
                   type="button"
                   onClick={() => quitarProducto(p.productoId)}
-                  className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-red-50"
+                  className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-red-50 dark:hover:bg-red-950/40"
                 >
                   <span className="font-mono text-muted">{p.codigo}</span>
                   <CodigosBarras codigos={p.codigosBarras} max={1} /> ·{" "}
@@ -886,7 +886,7 @@ export default function PromocionesPage() {
                 aria-label={t("catalogo.promociones.aria.eliminar", {
                   nombre: v.nombre,
                 })}
-                className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={v.usosActual > 0}
                 title={
                   v.usosActual > 0

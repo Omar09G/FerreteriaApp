@@ -357,6 +357,25 @@ function CompraForm({
   );
 }
 
+const COLUMNAS_DETALLE: Columna<Compra["detalles"][number]>[] = [
+  { key: "producto", header: "Producto", render: (d) => d.producto },
+  { key: "cantidad", header: "Cant.", align: "right", render: (d) => d.cantidad },
+  {
+    key: "costo",
+    header: "Costo",
+    align: "right",
+    render: (d) => formatoMoneda(d.costoUnitario),
+  },
+  {
+    key: "importe",
+    header: "Importe",
+    align: "right",
+    render: (d) => (
+      <span className="font-medium">{formatoMoneda(d.importeLinea)}</span>
+    ),
+  },
+];
+
 function DetalleCompra({ compra }: { compra: Compra }) {
   return (
     <div className="space-y-3 text-sm">
@@ -409,41 +428,13 @@ function DetalleCompra({ compra }: { compra: Compra }) {
         <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
           Partidas
         </p>
-        <div className="overflow-x-auto rounded-md border border-line">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas text-xs uppercase tracking-wide text-muted">
-              <tr>
-                <th scope="col" className="px-2 py-1 text-left">
-                  Producto
-                </th>
-                <th scope="col" className="px-2 py-1 text-right">
-                  Cant.
-                </th>
-                <th scope="col" className="px-2 py-1 text-right">
-                  Costo
-                </th>
-                <th scope="col" className="px-2 py-1 text-right">
-                  Importe
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {compra.detalles.map((d) => (
-                <tr key={d.compraDetalleId}>
-                  <td className="px-2 py-1.5">{d.producto}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">
-                    {d.cantidad}
-                  </td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">
-                    {formatoMoneda(d.costoUnitario)}
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-medium tabular-nums">
-                    {formatoMoneda(d.importeLinea)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="rounded-md border border-line">
+          <DataTable
+            columnas={COLUMNAS_DETALLE}
+            items={compra.detalles}
+            rowKey={(d) => d.compraDetalleId}
+            caption={`Partidas de la compra ${compra.folio}`}
+          />
         </div>
       </div>
 

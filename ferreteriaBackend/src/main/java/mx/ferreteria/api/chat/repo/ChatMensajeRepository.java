@@ -15,6 +15,8 @@ public interface ChatMensajeRepository extends JpaRepository<ChatMensaje, Long> 
     Page<ChatMensaje> findByConversacionIdAndEliminadaEnIsNullOrderByCreadaEnDesc(
             Long conversacionId, Pageable pageable);
 
+    /** Borrado físico al vaciarse la conversación (nadie la ve ya). */
+    void deleteByConversacionId(Long conversacionId);
     /** Último mensaje visible de la conversación (para la lista). */
     ChatMensaje findFirstByConversacionIdAndEliminadaEnIsNullOrderByCreadaEnDesc(
             Long conversacionId);

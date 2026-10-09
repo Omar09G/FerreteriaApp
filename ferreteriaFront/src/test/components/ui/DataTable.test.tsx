@@ -14,7 +14,7 @@ const columnas: Columna<Fila>[] = [
 ];
 
 describe("DataTable", () => {
-	it("muestra spinner cuando loading", () => {
+	it("muestra skeleton cuando loading", () => {
 		render(
 			<DataTable columnas={columnas} items={undefined} loading rowKey={(f) => f.id} />,
 		);

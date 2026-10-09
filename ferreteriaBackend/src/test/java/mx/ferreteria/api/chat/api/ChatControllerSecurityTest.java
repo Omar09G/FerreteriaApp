@@ -64,4 +64,13 @@ class ChatControllerSecurityTest {
         assertThat(ann).isNotNull();
         assertThat(ann.value()).contains("isAuthenticated()");
     }
+
+    @Test
+    @DisplayName("salir requiere autenticación")
+    void salirRequiereAuth() throws Exception {
+        var m = ChatController.class.getMethod("salir", Long.class);
+        PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
+        assertThat(ann).isNotNull();
+        assertThat(ann.value()).contains("isAuthenticated()");
+    }
 }

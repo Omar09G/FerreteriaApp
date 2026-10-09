@@ -118,6 +118,12 @@ public class BandejaService {
         return repo.marcarTodasLeidas(usuarioId, Instant.now());
     }
 
+    /** Borra el historial ya leído del usuario (las no leídas se conservan). */
+    @Transactional
+    public long eliminarLeidas(int usuarioId) {
+        return repo.eliminarLeidas(usuarioId);
+    }
+
     /** Purga nocturna del historial (retención 90 días). */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int purgarAntiguas() {

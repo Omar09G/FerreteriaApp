@@ -4,6 +4,11 @@ export default {
 	sinAvisos: "No alerts for now.",
 	verTodas: "See all",
 	marcarTodas: "Mark all as read",
+	eliminarLeidas: "Delete read",
+	confirmarEliminar: "Delete read alerts",
+	eliminarDesc: "Read alerts will be deleted. This cannot be undone.",
+	eliminadas: "Read alerts deleted.",
+	errorEliminar: "Could not delete the alerts.",
 	cargando: "Loading alerts…",
 	tipos: {
 		VENTA_TICKET: "Sale",

@@ -114,24 +114,24 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
     {
       label: "Utilidad bruta",
       value: formatoMoneda(corte.utilidadBruta),
-      tone: "text-emerald-700 dark:text-emerald-400",
+      tone: "text-emerald-700 dark:text-emerald-400 dark:text-emerald-400",
     },
     {
       label: "Margen",
       value: `${formatoNumero(corte.margenPct)}%`,
       tone:
         corte.margenPct >= 25
-          ? "text-emerald-700 dark:text-emerald-400"
+          ? "text-emerald-700 dark:text-emerald-400 dark:text-emerald-400"
           : corte.margenPct >= 10
             ? "text-amber-700 dark:text-amber-400"
-            : "text-red-700 dark:text-red-400",
+            : "text-red-700 dark:text-red-400 dark:text-red-400",
     },
     {
       label: "Pérdidas inventario",
       value: formatoMoneda(corte.perdidasInventario),
       tone:
         corte.perdidasInventario !== 0
-          ? "text-red-700 dark:text-red-400"
+          ? "text-red-700 dark:text-red-400 dark:text-red-400"
           : undefined,
     },
   ];
@@ -141,12 +141,12 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
     {
       label: "Entradas efectivo",
       value: formatoMoneda(corte.entradasEfectivo),
-      tone: "text-emerald-700 dark:text-emerald-400",
+      tone: "text-emerald-700 dark:text-emerald-400 dark:text-emerald-400",
     },
     {
       label: "Salidas efectivo",
       value: formatoMoneda(corte.salidasEfectivo),
-      tone: "text-red-700 dark:text-red-400",
+      tone: "text-red-700 dark:text-red-400 dark:text-red-400",
     },
     {
       label: "Egresos no efectivo",
@@ -170,10 +170,10 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
       label: "Diferencia",
       value: `${corte.diferencia > 0 ? "+" : ""}${formatoMoneda(corte.diferencia)}`,
       tone: diferenciaCero
-        ? "text-emerald-700 dark:text-emerald-400"
+        ? "text-emerald-700 dark:text-emerald-400 dark:text-emerald-400"
         : diferenciaPositiva
           ? "text-amber-700 dark:text-amber-400"
-          : "text-red-700 dark:text-red-400",
+          : "text-red-700 dark:text-red-400 dark:text-red-400",
     },
   ];
 
@@ -239,7 +239,7 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
             · {formatoMoneda(corte.diferencia)}
           </Badge>
           <span
-            className={`text-xs font-medium ${corte.resultadoCaja === "CUADRADO" ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}
+            className={`text-xs font-medium ${corte.resultadoCaja === "CUADRADO" ? "text-emerald-700 dark:text-emerald-400 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}
           >
             {corte.resultadoCaja}
           </span>
@@ -313,7 +313,7 @@ function ResumenCorte({ corte }: { corte: CorteCaja }) {
                   {salidas.map(([k, v]) => (
                     <span
                       key={k}
-                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
+                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-400 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400"
                       title={`${k}: ${formatoMoneda(Math.abs(v))}`}
                     >
                       <span className="truncate">{k}</span>
@@ -423,19 +423,19 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
     new Set(base.flatMap((c) => Object.keys(parseJson(c.desgloseFormasPago)))),
   ).sort();
   const coloresFormas: Record<string, string> = {
-    Efectivo: "#16a34a",
-    "Transferencia SPEI": "#2563eb",
-    "Tarjeta de crédito": "#ea580c",
-    "Tarjeta de débito": "#9333ea",
-    EFECTIVO: "#16a34a",
+    Efectivo: "var(--color-chart-2)",
+    "Transferencia SPEI": "var(--color-chart-3)",
+    "Tarjeta de crédito": "var(--color-chart-1)",
+    "Tarjeta de débito": "var(--color-chart-4)",
+    EFECTIVO: "var(--color-chart-2)",
   };
   const fallbackColors = [
-    "#0ea5e9",
-    "#f59e0b",
-    "#84cc16",
-    "#e11d48",
-    "#14b8a6",
-    "#a855f7",
+    "var(--color-chart-1)",
+    "var(--color-chart-2)",
+    "var(--color-chart-3)",
+    "var(--color-chart-4)",
+    "var(--color-chart-5)",
+    "var(--color-chart-6)",
   ];
   const dataFormas = base.map((c) => {
     const parsed = parseJson(c.desgloseFormasPago);
@@ -448,7 +448,7 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
   });
 
   const tabClass = (active: boolean) =>
-    `rounded-md px-3 py-1.5 text-xs font-medium ${active ? "bg-primary text-white" : "bg-canvas text-muted hover:text-ink"}`;
+    `rounded-md px-3 py-1.5 text-xs font-medium ${active ? "bg-primary text-on-primary" : "bg-canvas text-muted hover:text-ink"}`;
 
   return (
     <div className="space-y-4">
@@ -488,10 +488,10 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
         <>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={dataVentas} margin={{ left: 8, right: 8, top: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
               <XAxis
                 dataKey="label"
-                stroke="#57534e"
+                stroke="var(--color-muted)"
                 fontSize={12}
                 interval={0}
                 angle={-15}
@@ -499,7 +499,7 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
                 height={60}
               />
               <YAxis
-                stroke="#57534e"
+                stroke="var(--color-muted)"
                 fontSize={12}
                 width={90}
                 tickFormatter={(v: number) => formatoMoneda(v)}
@@ -514,13 +514,13 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
               <Bar
                 dataKey="totalVendido"
                 name="Total vendido"
-                fill="#ea580c"
+                fill="var(--color-chart-1)"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="utilidadBruta"
                 name="Utilidad"
-                fill="#16a34a"
+                fill="var(--color-chart-2)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
@@ -560,7 +560,7 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
                     <td className="px-2 py-1.5 text-right font-medium tabular-nums">
                       {formatoMoneda(d.totalVendido)}
                     </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-emerald-700">
+                    <td className="px-2 py-1.5 text-right tabular-nums text-emerald-700 dark:text-emerald-400">
                       {formatoMoneda(d.utilidadBruta)}
                     </td>
                     <td className="px-2 py-1.5 text-right tabular-nums">
@@ -595,7 +595,7 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
             </table>
           </div>
           {base.some((c) => c.costoVentas === 0) && (
-            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <p className="rounded-md border border-line bg-warmbg px-3 py-2 text-xs text-muted">
               Nota: {base.filter((c) => c.costoVentas === 0).length} de{" "}
               {base.length} cortes tienen costo_ventas=0 ⇒ margen 100%. Para
               utilidad real, asegurar costo_actual en productos.
@@ -611,10 +611,10 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
               data={dataEfectivo}
               margin={{ left: 8, right: 8, top: 8 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-              <XAxis dataKey="label" stroke="#57534e" fontSize={12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
+              <XAxis dataKey="label" stroke="var(--color-muted)" fontSize={12} />
               <YAxis
-                stroke="#57534e"
+                stroke="var(--color-muted)"
                 fontSize={12}
                 width={90}
                 tickFormatter={(v: number) => formatoMoneda(v)}
@@ -624,31 +624,31 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
               <Bar
                 dataKey="fondoApertura"
                 name="Fondo"
-                fill="#a3a3a3"
+                fill="var(--color-muted)"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="entradasEfectivo"
                 name="Entradas ef."
-                fill="#16a34a"
+                fill="var(--color-chart-2)"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="salidasEfectivo"
                 name="Salidas ef."
-                fill="#dc2626"
+                fill="var(--color-error)"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="dineroEsperado"
                 name="Esperado"
-                fill="#0ea5e9"
+                fill="var(--color-chart-5)"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="egresosNoEfectivo"
                 name="Egresos no ef."
-                fill="#f59e0b"
+                fill="var(--color-chart-6)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
@@ -687,10 +687,10 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
                     <td className="px-2 py-1.5 text-right tabular-nums">
                       {formatoMoneda(d.fondoApertura)}
                     </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-emerald-700">
+                    <td className="px-2 py-1.5 text-right tabular-nums text-emerald-700 dark:text-emerald-400">
                       {formatoMoneda(d.entradasEfectivo)}
                     </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-red-700">
+                    <td className="px-2 py-1.5 text-right tabular-nums text-red-700 dark:text-red-400">
                       {formatoMoneda(d.salidasEfectivo)}
                     </td>
                     <td className="px-2 py-1.5 text-right font-medium tabular-nums">
@@ -700,7 +700,7 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
                       {formatoMoneda(d.dineroContado)}
                     </td>
                     <td
-                      className={`px-2 py-1.5 text-right tabular-nums ${d.diferencia === 0 ? "text-emerald-700" : "text-red-700"}`}
+                      className={`px-2 py-1.5 text-right tabular-nums ${d.diferencia === 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}
                     >
                       {formatoMoneda(d.diferencia)}
                     </td>
@@ -725,10 +725,10 @@ function GraficaCortes({ cortes }: { cortes: CorteCaja[] }) {
                   data={dataFormas}
                   margin={{ left: 8, right: 8, top: 8 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-                  <XAxis dataKey="label" stroke="#57534e" fontSize={12} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
+                  <XAxis dataKey="label" stroke="var(--color-muted)" fontSize={12} />
                   <YAxis
-                    stroke="#57534e"
+                    stroke="var(--color-muted)"
                     fontSize={12}
                     width={90}
                     tickFormatter={(v: number) => formatoMoneda(v)}
@@ -1137,7 +1137,7 @@ export default function CajaPage() {
                                     </span>
                                   </span>
                                   <span
-                                    className={`shrink-0 font-medium tabular-nums ${m.tipo === "ENTRADA" ? "text-green-700" : "text-red-700"}`}
+                                    className={`shrink-0 font-medium tabular-nums ${m.tipo === "ENTRADA" ? "text-green-700" : "text-red-700 dark:text-red-400"}`}
                                   >
                                     {m.tipo === "ENTRADA" ? "+" : "−"}{" "}
                                     {formatoMoneda(m.monto)}

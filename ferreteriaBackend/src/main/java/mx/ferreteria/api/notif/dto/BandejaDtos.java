@@ -20,4 +20,7 @@ public final class BandejaDtos {
 
     public record NoLeidasResponse(long noLeidas) {
     }
+
+    public record EliminadasResponse(long eliminadas) {
+    }
 }
