@@ -75,6 +75,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise((res) => window.setTimeout(res, ms));
 }
 
+/**
+ * Rutas públicas del flujo de entrada. Si el refresh falla ESTANDO aquí,
+ * redirigir a /login?expired=1 recargaría la página en loop: al montar, el
+ * bootstrap reintenta /auth/me, vuelve a fallar y redirige otra vez. Además
+ * cada ciclo quema el bucket de rate-limit de /auth (compartido por IP en
+ * anónimo), hasta bloquear el propio login. Desde aquí basta con limpiar la
+ * sesión y dejar que los guards decidan.
+ */
+const RUTAS_AUTH_PUBLICAS = ["/login", "/auth"];
+
+export function esRutaAuthPublica(pathname: string): boolean {
+  return RUTAS_AUTH_PUBLICAS.some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`),
+  );
+}
+
 function isRetryable(error: AxiosError): boolean {
   if (!error.response) return true;
   return error.response.status >= 500;
@@ -124,8 +140,12 @@ http.interceptors.response.use(
         return http(original);
       } catch {
         useAuthStore.getState().clearSession();
-        // Contrato: sesión irrecuperable → /login?expired=1 para avisar.
-        if (typeof window !== "undefined") {
+        // Contrato: sesión irrecuperable → /login?expired=1 para avisar,
+        // pero SOLO desde rutas privadas (ver esRutaAuthPublica).
+        if (
+          typeof window !== "undefined" &&
+          !esRutaAuthPublica(window.location.pathname)
+        ) {
           window.location.href = "/login?expired=1";
         }
         return Promise.reject(

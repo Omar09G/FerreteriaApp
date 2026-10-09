@@ -1,10 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type {
-  AxiosResponse,
-  InternalAxiosRequestConfig,
-} from "axios";
+import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 
-import http, { ensureCsrfCookie } from "@/lib/api/client-base";
+import http, { ensureCsrfCookie, esRutaAuthPublica } from "@/lib/api/client-base";
+import { useAuthStore } from "@/store/auth";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -113,5 +111,103 @@ describe("client-base: ensureCsrfCookie", () => {
     const spy = vi.spyOn(http, "get") as unknown as ReturnType<typeof vi.fn>;
     spy.mockRejectedValueOnce(new Error("red caída"));
     await expect(ensureCsrfCookie()).resolves.toBeUndefined();
+  });
+});
+
+describe("client-base: esRutaAuthPublica", () => {
+  it.each(["/login", "/login/", "/auth/otp", "/auth/callback"])(
+    "considera pública %s",
+    (ruta) => {
+      expect(esRutaAuthPublica(ruta)).toBe(true);
+    },
+  );
+
+  it.each(["/", "/dashboard", "/authcallback", "/authx"])(
+    "considera privada %s",
+    (ruta) => {
+      expect(esRutaAuthPublica(ruta)).toBe(false);
+    },
+  );
+});
+
+describe("client-base: refresh fallido", () => {
+  const ubicacionOriginal = window.location;
+
+  function simularRuta(pathname: string): string[] {
+    const redirecciones: string[] = [];
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        get pathname() {
+          return pathname;
+        },
+        get href() {
+          return `http://localhost:5173${pathname}`;
+        },
+        set href(v: string) {
+          redirecciones.push(v);
+        },
+      },
+    });
+    return redirecciones;
+  }
+
+  function error401(codigo: string): AxiosError {
+    return new AxiosError(
+      codigo,
+      "ERR_BAD_REQUEST",
+      {} as InternalAxiosRequestConfig,
+      {},
+      {
+        status: 401,
+        data: {
+          success: false,
+          errorCode: codigo,
+          codigo,
+          errorMessage: codigo,
+        },
+      } as AxiosResponse,
+    );
+  }
+
+  afterEach(() => {
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: ubicacionOriginal,
+    });
+  });
+
+  /** Request que falla con 401 y refresh que también falla. */
+  async function requestConSesionMuerta(): Promise<unknown> {
+    const adapter = async (): Promise<never> => {
+      throw error401("TOKEN_EXPIRADO");
+    };
+    const post = vi.spyOn(http, "post") as unknown as ReturnType<typeof vi.fn>;
+    post.mockRejectedValueOnce(error401("CREDENCIALES_INVALIDAS"));
+    const clear = vi.spyOn(useAuthStore.getState(), "clearSession");
+    try {
+      await http.get("/auth/me", { adapter });
+      return null;
+    } catch (err) {
+      return { err, redirigido: clear.mock.calls.length > 0 };
+    } finally {
+      clear.mockRestore();
+      post.mockRestore();
+    }
+  }
+
+  it("en /login limpia sesión sin redirigir (sin loop)", async () => {
+    const redirecciones = simularRuta("/login");
+    const resultado = (await requestConSesionMuerta()) as {
+      redirigido: boolean;
+    };
+    expect(resultado.redirigido).toBe(true);
+    expect(redirecciones).toEqual([]);
+  });
+
+  it("en ruta privada redirige a /login?expired=1", async () => {
+    const redirecciones = simularRuta("/dashboard");
+    await requestConSesionMuerta();
+    expect(redirecciones).toEqual(["/login?expired=1"]);
   });
 });
