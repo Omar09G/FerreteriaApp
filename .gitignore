@@ -31,3 +31,4 @@ SKILL.md
 skills-lock.json
 .vscode/
 node_modules/
+.codex/
