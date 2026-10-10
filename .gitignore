@@ -35,3 +35,14 @@ node_modules/
 # UI generados localmente (design-system persistido y brand local, no versionar)
 ferreteriaFront/design-system/
 ferreteriaFront/docs/brand-guidelines.md
+
+# Build / deps / cobertura (no versionar artefactos generados)
+build/
+dist/
+.gradle/
+coverage/
+*.log
+ferreteriaBackend/bin/
+ferreteriaBackend/build/
+ferreteriaFront/dist/
+ferreteriaFront/coverage/

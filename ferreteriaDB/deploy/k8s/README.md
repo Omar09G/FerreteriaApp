@@ -16,6 +16,8 @@ kubectl -n ferreteria logs job/ferreteria-db-init -f
 
 kubectl apply -f 20-pgbouncer.yaml
 kubectl apply -f 30-networkpolicy.yaml
+kubectl apply -f 45-backend.yaml
+kubectl apply -f 50-backend-hpa.yaml
 
 # Probar conexión desde un pod temporal
 kubectl -n ferreteria run psql-test --rm -it --image=postgres:17-alpine -- \

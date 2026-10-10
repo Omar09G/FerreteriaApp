@@ -1,41 +1,35 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
 
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { esApiError } from "@/lib/api/client";
 import { apiAlmacenes } from "@/lib/api/catalogo";
 import {
-	apiCajas,
 	apiActualizarCaja,
 	apiActualizarEstadoCaja,
+	apiCajas,
 	apiCrearCaja,
 } from "@/lib/api/caja";
 import type { Almacen, Caja, CajaRequest } from "@/lib/api/types";
-import { useTieneRol } from "@/store/auth";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { DataTable, type Columna } from "@/components/ui/DataTable";
-import { ExportarExcel } from "@/components/ui/ExportarExcel";
-import { Dialog } from "@/components/ui/Dialog";
 import { Input, Select } from "@/components/ui/Input";
-import { Spinner } from "@/components/ui/Spinner";
-import { useToast } from "@/components/ui/Toast";
+import {
+	CrudAdminTemplate,
+	type CrudColumnasCtx,
+	type CrudFormProps,
+} from "@/components/admin/CrudAdminTemplate";
 
 function CajaForm({
-	almacenes,
 	guardando,
 	registro,
 	onGuardar,
 	onClose,
-}: {
-	almacenes: Almacen[];
-	guardando: boolean;
-	registro: Caja | null;
-	onGuardar: (body: CajaRequest) => void;
-	onClose: () => void;
-}) {
+}: CrudFormProps<Caja, CajaRequest>) {
+	const almacenes = useQuery({
+		queryKey: ["almacenes-caja"],
+		queryFn: apiAlmacenes,
+	});
+	const listaAlmacenes: Almacen[] = almacenes.data ?? [];
+
 	const [nombre, setNombre] = useState(registro?.nombre ?? "");
 	const [almacenId, setAlmacenId] = useState<number | "">(
 		registro?.almacenId ?? "",
@@ -70,7 +64,7 @@ function CajaForm({
 				}
 			>
 				<option value="">Selecciona…</option>
-				{almacenes.map((a) => (
+				{listaAlmacenes.map((a) => (
 					<option key={a.almacenId} value={a.almacenId}>
 						{a.nombre}
 					</option>
@@ -101,99 +95,23 @@ function CajaForm({
 	);
 }
 
-export default function CajasAdminPage() {
-	useDocumentTitle("Administrar cajas");
-	const { error: mostrarError, success: mostrarExito } = useToast();
-	const queryClient = useQueryClient();
-	const puedeAdministrar = useTieneRol(["ADMINISTRADOR"]);
-
-	const [dialogoAbierto, setDialogoAbierto] = useState(false);
-	const [editing, setEditing] = useState<Caja | null>(null);
-	const [aDesactivar, setADesactivar] = useState<Caja | null>(null);
-	const [aReactivar, setAReactivar] = useState<Caja | null>(null);
-
-	const cajas = useQuery({ queryKey: ["cajas-admin"], queryFn: apiCajas });
-	const almacenes = useQuery({
-		queryKey: ["almacenes-caja"],
-		queryFn: apiAlmacenes,
-	});
-
-	const invalidar = () => {
-		queryClient.invalidateQueries({ queryKey: ["cajas-admin"] });
-		queryClient.invalidateQueries({ queryKey: ["cajas"] });
-	};
-
-	const crear = useMutation({
-		mutationFn: (body: CajaRequest) => apiCrearCaja(body),
-		onSuccess: () => {
-			mostrarExito("Caja creada.");
-			setDialogoAbierto(false);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const editar = useMutation({
-		mutationFn: (body: CajaRequest) => apiActualizarCaja(editing!.cajaId, body),
-		onSuccess: () => {
-			mostrarExito("Caja actualizada.");
-			setDialogoAbierto(false);
-			setEditing(null);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const desactivar = useMutation({
-		mutationFn: (id: number) => apiActualizarEstadoCaja(id, false),
-		onSuccess: () => {
-			mostrarExito("Caja dada de baja.");
-			setADesactivar(null);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const reactivar = useMutation({
-		mutationFn: (id: number) => apiActualizarEstadoCaja(id, true),
-		onSuccess: () => {
-			mostrarExito("Caja reactivada.");
-			setAReactivar(null);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const ver = cajas.data ?? [];
-
-	const toggleActiva = (c: Caja) => {
-		if (c.activa) {
-			setADesactivar(c);
-		} else {
-			reactivar.mutate(c.cajaId);
-		}
-	};
-
-	const columnas: Columna<Caja>[] = [
+function columnasCaja({ toggle, editar }: CrudColumnasCtx<Caja>) {
+	return [
 		{
 			key: "nombre",
 			header: "Caja",
-			exportar: (c) => c.nombre,
-			render: (c) => <span className="font-medium text-ink">{c.nombre}</span>,
+			exportar: (c: Caja) => c.nombre,
+			render: (c: Caja) => <span className="font-medium text-ink">{c.nombre}</span>,
 		},
-		{ key: "almacen", header: "Almacén", exportar: (c) => c.almacenNombre, render: (c) => c.almacenNombre },
+		{ key: "almacen", header: "Almacén", exportar: (c: Caja) => c.almacenNombre, render: (c: Caja) => c.almacenNombre },
 		{
 			key: "activa",
 			header: "Activa",
-			render: (c) => (
+			render: (c: Caja) => (
 				<input
 					type="checkbox"
 					checked={c.activa}
-					onChange={() => toggleActiva(c)}
+					onChange={() => toggle(c)}
 					aria-label={`Caja ${c.nombre} activa`}
 					className="h-4 w-4 accent-orange-600"
 				/>
@@ -202,16 +120,13 @@ export default function CajasAdminPage() {
 		{
 			key: "__acciones",
 			header: "Acciones",
-			render: (c) => (
+			render: (c: Caja) => (
 				<div className="flex gap-1">
 					<Button hotkey="F4"
 						variant="ghost"
 						size="sm"
 						aria-label="Editar"
-						onClick={() => {
-							setEditing(c);
-							setDialogoAbierto(true);
-						}}
+						onClick={() => editar(c)}
 					>
 						<Pencil className="h-4 w-4" />
 					</Button>
@@ -219,92 +134,46 @@ export default function CajasAdminPage() {
 			),
 		},
 	];
+}
 
-	if (!puedeAdministrar) {
-		return (
-			<div className="p-6 text-muted">
-				No tienes permisos para administrar cajas.
-			</div>
-		);
-	}
-
+export default function CajasAdminPage() {
 	return (
-		<div className="space-y-4 p-6">
-			<header className="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<h1 className="text-xl font-bold text-ink">Administrar cajas</h1>
-					<p className="text-sm text-muted">
-						Da de alta, modifica o da de baja las cajas que usan turnos de caja.
-					</p>
-				</div>
-				<Button hotkey="F4"
-					onClick={() => {
-						setEditing(null);
-						setDialogoAbierto(true);
-					}}
-					variant="primary"
-				>
-					<Plus className="h-4 w-4" /> Nueva caja
-				</Button>
-			</header>
-
-			<Card
-			actions={<ExportarExcel columnas={columnas} items={ver} archivo="cajas" />}
-		>
-				{cajas.isLoading ? (
-					<Spinner />
-				) : (
-					<DataTable
-						columnas={columnas}
-						items={ver}
-						rowKey={(c) => c.cajaId}
-						emptyTitle="Sin cajas"
-						emptyDescripcion="No hay cajas registradas."
-					/>
-				)}
-			</Card>
-
-			<Dialog
-				open={dialogoAbierto}
-				onClose={() => setDialogoAbierto(false)}
-				title={editing ? "Editar caja" : "Nueva caja"}
-				width="max-w-md"
-			>
-				<CajaForm
-					almacenes={almacenes.data ?? []}
-					guardando={crear.isPending || editar.isPending}
-					registro={editing}
-					onGuardar={(body) =>
-						editing ? editar.mutate(body) : crear.mutate(body)
-					}
-					onClose={() => setDialogoAbierto(false)}
-				/>
-			</Dialog>
-
-			<ConfirmDialog
-				open={Boolean(aDesactivar)}
-				title="Dar de baja la caja"
-				confirmLabel="Dar de baja"
-				busy={desactivar.isPending}
-				onCancel={() => setADesactivar(null)}
-				onConfirm={() => aDesactivar && desactivar.mutate(aDesactivar.cajaId)}
-			>
-				¿Seguro que quieres dar de baja la caja{" "}
-				<strong>{aDesactivar?.nombre}</strong>? Dejará de aparecer en el
-				selector de cajas.
-			</ConfirmDialog>
-
-			<ConfirmDialog
-				open={Boolean(aReactivar)}
-				title="Reactivar la caja"
-				confirmLabel="Reactivar"
-				busy={reactivar.isPending}
-				onCancel={() => setAReactivar(null)}
-				onConfirm={() => aReactivar && reactivar.mutate(aReactivar.cajaId)}
-			>
-				¿Seguro que quieres reactivar la caja{" "}
-				<strong>{aReactivar?.nombre}</strong>?
-			</ConfirmDialog>
-		</div>
+		<CrudAdminTemplate<Caja, CajaRequest>
+			config={{
+				titulo: "Administrar cajas",
+				subtitulo:
+					"Da de alta, modifica o da de baja las cajas que usan turnos de caja.",
+				botonNuevo: "Nueva caja",
+				dialogoNuevo: "Nueva caja",
+				dialogoEditar: "Editar caja",
+				sinPermiso: "No tienes permisos para administrar cajas.",
+				queryKey: ["cajas-admin"],
+				queryFn: apiCajas,
+				queryKeysInvalidar: [["cajas-admin"], ["cajas"]],
+				crear: apiCrearCaja,
+				actualizar: apiActualizarCaja,
+				cambiarEstado: apiActualizarEstadoCaja,
+				getId: (c) => c.cajaId,
+				getActivo: (c) => c.activa,
+				columnas: columnasCaja,
+				archivoExcel: "cajas",
+				emptyTitle: "Sin cajas",
+				emptyDescripcion: "No hay cajas registradas.",
+				Form: CajaForm,
+				bajaTitulo: "Dar de baja la caja",
+				bajaConfirmLabel: "Dar de baja",
+				bajaTexto: (c) => (
+					<>
+						¿Seguro que quieres dar de baja la caja{" "}
+						<strong>{c.nombre}</strong>? Dejará de aparecer en el
+						selector de cajas.
+					</>
+				),
+				msgCreado: "Caja creada.",
+				msgActualizado: "Caja actualizada.",
+				msgBaja: "Caja dada de baja.",
+				msgReactivado: "Caja reactivada.",
+			}}
+		/>
 	);
 }

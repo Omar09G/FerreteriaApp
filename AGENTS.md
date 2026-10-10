@@ -28,7 +28,7 @@ frontend never reads DB `.env` — Vite bakes `VITE_*` at build time.
 - Schema: edit `ferreteriaDB/scripts/`, then `./gradlew generateMigrations`
   (regenerates ONLY `V1__base.sql`/`V2__parametria.sql` + `db/demo/05_dummy.sql`).
   Never hand-edit generated files (header: NO EDITAR A MANO). New schema changes
-  go as hand-written incremental `V<N>__*.sql` (now at V16) in the same dir AND
+  go as hand-written incremental `V<N>__*.sql` (now at V36) in the same dir AND
   mirrored in `ferreteriaDB/scripts/` (kept in sync, e.g. V16 ↔ `02_tablas.sql`).
 - `ferreteriaBackend/bin/` holds tracked stale build copies — never edit or read
   as source; source is always `src/main/...`.

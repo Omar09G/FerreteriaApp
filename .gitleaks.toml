@@ -1,0 +1,24 @@
+# Gitleaks: usa las reglas por defecto y solo permite los placeholders
+# documentados y las credenciales demo (scoping por archivo para no
+# ocultar fugas reales en otros archivos).
+[extend]
+useDefault = true
+
+# Placeholders estructurales (nunca son secretos reales).
+[[allowlist]]
+description = "placeholders estructurales"
+paths = ['ferreteriaDB/deploy/k8s/00-base\.yaml$', 'ferreteriaDB/deploy/k8s/45-backend\.yaml$']
+regexes = ["REPLACE_ME_VIA_EXTERNAL_SECRETS"]
+
+# .env.example: valores cambia_* / minioadmin / test son defaults de dev local.
+# El guard SecretosProdGuard aborta el arranque en prod si siguen presentes.
+[[allowlist]]
+description = "defaults de dev documentados en .env.example"
+paths = ['ferreteriaDB/deploy/\.env\.example$']
+regexes = ["cambia_[a-z_]+", "minioadmin"]
+
+# Credenciales demo versionadas a proposito (perfil demo/dev, nunca prod).
+[[allowlist]]
+description = "usuarios demo de scripts (dev únicamente)"
+paths = ['ferreteriaDB/scripts/04_admin\.sql$', 'ferreteriaDB/scripts/05_dummy\.sql$']
+regexes = ["Admin123\\*", "Cajero123\\*", "Vendedor123\\*", "Almacen123\\*"]

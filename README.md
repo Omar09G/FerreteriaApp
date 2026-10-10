@@ -161,6 +161,27 @@ bun run lint && bun run build     # los tests también deben tipar (tsc)
   `src/telemetry/otel.ts` (la rama OTLP real exige collector con red;
   en jsdom solo se cubre el modo noop).
 
+## CI y despliegue Kubernetes
+
+- **CI** (`.github/workflows/ci.yml`, corre en push a `main` y PRs):
+  `gitleaks` → backend (`./gradlew build`: compila + tests + gates JaCoCo) →
+  frontend (`bun install` + `bun run lint` + `bun run test` = `vitest run` +
+  `bun run build`). SonarQube/Fortify quedan como job comentado hasta tener
+  servidor y tokens (`SONAR_TOKEN`).
+- **Secretos** — `.gitleaks.toml` usa las reglas por defecto y solo permite
+  placeholders documentados (`REPLACE_ME_VIA_EXTERNAL_SECRETS`, `cambia_*` de
+  `.env.example`, credenciales demo de `04_admin.sql`/`05_dummy.sql` con
+  alcance por archivo). Nada real se commitea: `deploy/.env` está git-ignorado
+  y los Secrets de K8s se sustituyen con SealedSecrets/ExternalSecrets/Vault.
+- **K8s** (`ferreteriaDB/deploy/k8s/`, orden de aplicado en su README):
+  `00-base` (namespace + `ferreteria-db-secret` placeholder) →
+  `10-postgres` → `40-migration-job` → `20-pgbouncer` →
+  `45-backend` (Service + Deployment `ferreteria-backend`, 2 réplicas,
+  `JWT_SECRET` desde `ferreteria-backend-secret`, probes
+  `startup/liveness` a `/actuator/health/liveness` y `readiness` a
+  `/actuator/health/readiness`) → `50-backend-hpa` (2–8 réplicas por CPU 70% +
+  p95) + PDB. Operador: fijar `CORS_ALLOWED_ORIGINS` real antes del deploy.
+
 ## Puertos y conexiones (dev local)
 
 La app corre con `bootRun` + `bun run dev` en el host; solo datos, storage y

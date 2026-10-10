@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil } from "lucide-react";
 
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { esApiError } from "@/lib/api/client";
 import {
 	apiActualizarAlmacen,
 	apiActualizarEstadoAlmacen,
@@ -11,28 +8,20 @@ import {
 	apiCrearAlmacen,
 } from "@/lib/api/catalogo";
 import type { Almacen, AlmacenRequest } from "@/lib/api/types";
-import { useTieneRol } from "@/store/auth";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { DataTable, type Columna } from "@/components/ui/DataTable";
-import { ExportarExcel } from "@/components/ui/ExportarExcel";
-import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
-import { Spinner } from "@/components/ui/Spinner";
-import { useToast } from "@/components/ui/Toast";
+import {
+	CrudAdminTemplate,
+	type CrudColumnasCtx,
+	type CrudFormProps,
+} from "@/components/admin/CrudAdminTemplate";
 
 function AlmacenForm({
 	guardando,
 	registro,
 	onGuardar,
 	onClose,
-}: {
-	guardando: boolean;
-	registro: Almacen | null;
-	onGuardar: (body: AlmacenRequest) => void;
-	onClose: () => void;
-}) {
+}: CrudFormProps<Almacen, AlmacenRequest>) {
 	const [nombre, setNombre] = useState(registro?.nombre ?? "");
 	const [direccion, setDireccion] = useState(registro?.direccion ?? "");
 	const [telefono, setTelefono] = useState(registro?.telefono ?? "");
@@ -98,111 +87,35 @@ function AlmacenForm({
 	);
 }
 
-export default function AlmacenesAdminPage() {
-	useDocumentTitle("Administrar almacenes");
-	const { error: mostrarError, success: mostrarExito } = useToast();
-	const queryClient = useQueryClient();
-	const puedeAdministrar = useTieneRol(["ADMINISTRADOR"]);
-
-	const [dialogoAbierto, setDialogoAbierto] = useState(false);
-	const [editing, setEditing] = useState<Almacen | null>(null);
-	const [aDesactivar, setADesactivar] = useState<Almacen | null>(null);
-	const [aReactivar, setAReactivar] = useState<Almacen | null>(null);
-
-	const almacenes = useQuery({
-		queryKey: ["almacenes-admin"],
-		queryFn: apiAlmacenesTodos,
-	});
-
-	const invalidar = () => {
-		queryClient.invalidateQueries({ queryKey: ["almacenes-admin"] });
-		queryClient.invalidateQueries({ queryKey: ["almacenes"] });
-	};
-
-	const crear = useMutation({
-		mutationFn: (body: AlmacenRequest) => apiCrearAlmacen(body),
-		onSuccess: () => {
-			mostrarExito("Almacén creado.");
-			setDialogoAbierto(false);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const editar = useMutation({
-		mutationFn: (body: AlmacenRequest) =>
-			apiActualizarAlmacen(editing!.almacenId, body),
-		onSuccess: () => {
-			mostrarExito("Almacén actualizado.");
-			setDialogoAbierto(false);
-			setEditing(null);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const desactivar = useMutation({
-		mutationFn: (id: number) => apiActualizarEstadoAlmacen(id, false),
-		onSuccess: () => {
-			mostrarExito("Almacén dado de baja.");
-			setADesactivar(null);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const reactivar = useMutation({
-		mutationFn: (id: number) => apiActualizarEstadoAlmacen(id, true),
-		onSuccess: () => {
-			mostrarExito("Almacén reactivado.");
-			setAReactivar(null);
-			invalidar();
-		},
-		onError: (err) =>
-			mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err)),
-	});
-
-	const ver = almacenes.data ?? [];
-
-	const toggleActivo = (a: Almacen) => {
-		if (a.activo) {
-			setADesactivar(a);
-		} else {
-			reactivar.mutate(a.almacenId);
-		}
-	};
-
-	const columnas: Columna<Almacen>[] = [
+function columnasAlmacen({ toggle, editar }: CrudColumnasCtx<Almacen>) {
+	return [
 		{
 			key: "nombre",
 			header: "Almacén",
-			exportar: (a) => a.nombre,
-			render: (a) => <span className="font-medium text-ink">{a.nombre}</span>,
+			exportar: (a: Almacen) => a.nombre,
+			render: (a: Almacen) => <span className="font-medium text-ink">{a.nombre}</span>,
 		},
 		{
 			key: "direccion",
 			header: "Dirección",
-			exportar: (a) => a.direccion ?? "—",
-			render: (a) => a.direccion ?? "—",
+			exportar: (a: Almacen) => a.direccion ?? "—",
+			render: (a: Almacen) => a.direccion ?? "—",
 		},
-		{ key: "telefono", header: "Teléfono", exportar: (a) => a.telefono ?? "—", render: (a) => a.telefono ?? "—" },
+		{ key: "telefono", header: "Teléfono", exportar: (a: Almacen) => a.telefono ?? "—", render: (a: Almacen) => a.telefono ?? "—" },
 		{
 			key: "esPuntoVenta",
 			header: "Punto de venta",
-			exportar: (a) => (a.esPuntoVenta ? "Sí" : "No"),
-			render: (a) => (a.esPuntoVenta ? "Sí" : "No"),
+			exportar: (a: Almacen) => (a.esPuntoVenta ? "Sí" : "No"),
+			render: (a: Almacen) => (a.esPuntoVenta ? "Sí" : "No"),
 		},
 		{
 			key: "activo",
 			header: "Activo",
-			render: (a) => (
+			render: (a: Almacen) => (
 				<input
 					type="checkbox"
 					checked={a.activo}
-					onChange={() => toggleActivo(a)}
+					onChange={() => toggle(a)}
 					aria-label={`Almacén ${a.nombre} activo`}
 					className="h-4 w-4 accent-orange-600"
 				/>
@@ -211,16 +124,13 @@ export default function AlmacenesAdminPage() {
 		{
 			key: "__acciones",
 			header: "Acciones",
-			render: (a) => (
+			render: (a: Almacen) => (
 				<div className="flex gap-1">
 					<Button
 						variant="ghost"
 						size="sm"
 						aria-label="Editar"
-						onClick={() => {
-							setEditing(a);
-							setDialogoAbierto(true);
-						}}
+						onClick={() => editar(a)}
 					>
 						<Pencil className="h-4 w-4" />
 					</Button>
@@ -228,93 +138,46 @@ export default function AlmacenesAdminPage() {
 			),
 		},
 	];
+}
 
-	if (!puedeAdministrar) {
-		return (
-			<div className="p-6 text-muted">
-				No tienes permisos para administrar almacenes.
-			</div>
-		);
-	}
-
+export default function AlmacenesAdminPage() {
 	return (
-		<div className="space-y-4 p-6">
-			<header className="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<h1 className="text-xl font-bold text-ink">Administrar almacenes</h1>
-					<p className="text-sm text-muted">
-						Da de alta, modifica o da de baja los almacenes de la empresa.
-					</p>
-				</div>
-				<Button hotkey="F4"
-					onClick={() => {
-						setEditing(null);
-						setDialogoAbierto(true);
-					}}
-					variant="primary"
-				>
-					<Plus className="h-4 w-4" /> Nuevo almacén
-				</Button>
-			</header>
-
-			<Card
-			actions={<ExportarExcel columnas={columnas} items={ver} archivo="almacenes" />}
-		>
-				{almacenes.isLoading ? (
-					<Spinner />
-				) : (
-					<DataTable
-						columnas={columnas}
-						items={ver}
-						rowKey={(a) => a.almacenId}
-						emptyTitle="Sin almacenes"
-						emptyDescripcion="No hay almacenes registrados."
-					/>
-				)}
-			</Card>
-
-			<Dialog
-				open={dialogoAbierto}
-				onClose={() => setDialogoAbierto(false)}
-				title={editing ? "Editar almacén" : "Nuevo almacén"}
-				width="max-w-md"
-			>
-				<AlmacenForm
-					guardando={crear.isPending || editar.isPending}
-					registro={editing}
-					onGuardar={(body) =>
-						editing ? editar.mutate(body) : crear.mutate(body)
-					}
-					onClose={() => setDialogoAbierto(false)}
-				/>
-			</Dialog>
-
-			<ConfirmDialog
-				open={Boolean(aDesactivar)}
-				title="Dar de baja el almacén"
-				confirmLabel="Dar de baja"
-				busy={desactivar.isPending}
-				onCancel={() => setADesactivar(null)}
-				onConfirm={() =>
-					aDesactivar && desactivar.mutate(aDesactivar.almacenId)
-				}
-			>
-				¿Seguro que quieres dar de baja el almacén{" "}
-				<strong>{aDesactivar?.nombre}</strong>? Dejará de aparecer en los
-				selectores de almacén.
-			</ConfirmDialog>
-
-			<ConfirmDialog
-				open={Boolean(aReactivar)}
-				title="Reactivar el almacén"
-				confirmLabel="Reactivar"
-				busy={reactivar.isPending}
-				onCancel={() => setAReactivar(null)}
-				onConfirm={() => aReactivar && reactivar.mutate(aReactivar.almacenId)}
-			>
-				¿Seguro que quieres reactivar el almacén{" "}
-				<strong>{aReactivar?.nombre}</strong>?
-			</ConfirmDialog>
-		</div>
+		<CrudAdminTemplate<Almacen, AlmacenRequest>
+			config={{
+				titulo: "Administrar almacenes",
+				subtitulo:
+					"Da de alta, modifica o da de baja los almacenes de la empresa.",
+				botonNuevo: "Nuevo almacén",
+				dialogoNuevo: "Nuevo almacén",
+				dialogoEditar: "Editar almacén",
+				sinPermiso: "No tienes permisos para administrar almacenes.",
+				queryKey: ["almacenes-admin"],
+				queryFn: apiAlmacenesTodos,
+				queryKeysInvalidar: [["almacenes-admin"], ["almacenes"]],
+				crear: apiCrearAlmacen,
+				actualizar: apiActualizarAlmacen,
+				cambiarEstado: apiActualizarEstadoAlmacen,
+				getId: (a) => a.almacenId,
+				getActivo: (a) => a.activo,
+				columnas: columnasAlmacen,
+				archivoExcel: "almacenes",
+				emptyTitle: "Sin almacenes",
+				emptyDescripcion: "No hay almacenes registrados.",
+				Form: AlmacenForm,
+				bajaTitulo: "Dar de baja el almacén",
+				bajaConfirmLabel: "Dar de baja",
+				bajaTexto: (a) => (
+					<>
+						¿Seguro que quieres dar de baja el almacén{" "}
+						<strong>{a.nombre}</strong>? Dejará de aparecer en los
+						selectores de almacén.
+					</>
+				),
+				msgCreado: "Almacén creado.",
+				msgActualizado: "Almacén actualizado.",
+				msgBaja: "Almacén dado de baja.",
+				msgReactivado: "Almacén reactivado.",
+			}}
+		/>
 	);
 }
