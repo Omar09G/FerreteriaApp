@@ -1,0 +1,4 @@
+#!/bin/sh
+# Hook pre-commit del monorepo. El backend lo cubre CI (Gradle es muy pesado
+# para un hook); aquí solo eslint --fix sobre archivos staged del front.
+cd ferreteriaFront && bunx lint-staged

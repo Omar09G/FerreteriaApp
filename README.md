@@ -170,9 +170,13 @@ bun run lint && bun run build     # los tests también deben tipar (tsc)
 
 - **CI** (`.github/workflows/ci.yml`, corre en push a `main` y PRs):
   `gitleaks` → backend (`./gradlew build`: compila + tests + gates JaCoCo) →
-  frontend (`bun install` + `bun run lint` + `bun run test` = `vitest run` +
+  frontend (  `bun install` + `bun run lint` + `bun run test` = `vitest run` +
   `bun run build`). SonarQube/Fortify quedan como job comentado hasta tener
   servidor y tokens (`SONAR_TOKEN`).
+- **Hooks y bundle** — pre-commit con husky + lint-staged (`eslint --fix` sobre
+  staged del front; el backend lo cubre CI). Tras clonar: `git config
+  core.hooksPath .husky`. Presupuesto de bundle en CI
+  (`bun run check:bundle`: chunk inicial gzip ≤190 kB, total ≤1000 kB).
 - **Secretos** — `.gitleaks.toml` usa las reglas por defecto y solo permite
   placeholders documentados (`REPLACE_ME_VIA_EXTERNAL_SECRETS`, `cambia_*` de
   `.env.example`, credenciales demo de `04_admin.sql`/`05_dummy.sql` con

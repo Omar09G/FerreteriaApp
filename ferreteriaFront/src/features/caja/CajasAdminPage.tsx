@@ -155,6 +155,8 @@ export default function CajasAdminPage() {
 				cambiarEstado: apiActualizarEstadoCaja,
 				getId: (c) => c.cajaId,
 				getActivo: (c) => c.activa,
+				conEstado: (c, activa) => ({ ...c, activa }),
+				conCambios: (c, body) => ({ ...c, ...body }),
 				columnas: columnasCaja,
 				archivoExcel: "cajas",
 				emptyTitle: "Sin cajas",

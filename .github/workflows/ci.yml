@@ -45,6 +45,7 @@ jobs:
       # de Bun y no resuelve el alias @/ de Vite).
       - run: bun run test
       - run: bun run build
+      - run: bun run check:bundle
 
   # SonarQube / Fortify: conectar cuando haya servidor y tokens.
   # sonar:

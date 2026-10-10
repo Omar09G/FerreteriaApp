@@ -43,6 +43,10 @@ export interface CrudAdminConfig<TItem, TRequest> {
 	cambiarEstado: (id: number, activo: boolean) => Promise<unknown>;
 	getId: (item: TItem) => number;
 	getActivo: (item: TItem) => boolean;
+	/** Parche optimista del toggle (checkbox): se aplica al confirmar, con rollback si falla. */
+	conEstado: (item: TItem, activo: boolean) => TItem;
+	/** Parche optimista de edición (merge del request sobre el item). */
+	conCambios: (item: TItem, body: TRequest) => TItem;
 	columnas: (ctx: CrudColumnasCtx<TItem>) => Columna<TItem>[];
 	archivoExcel: string;
 	emptyTitle: string;
@@ -59,8 +63,9 @@ export interface CrudAdminConfig<TItem, TRequest> {
 
 /**
  * Plantilla para páginas admin de alta/baja/cambio (cajas, almacenes, …).
- * Comportamiento unificado: 4 mutaciones con toast + invalidación,
- * baja con confirmación, reactivación directa y gate ADMINISTRADOR.
+ * Comportamiento unificado: crear pesimista (flujo con diálogo) + editar y
+ * toggle optimistas con rollback, toast, invalidación, baja con confirmación,
+ * reactivación directa y gate ADMINISTRADOR.
  */
 export function CrudAdminTemplate<TItem, TRequest>({
 	config,
@@ -87,6 +92,23 @@ export function CrudAdminTemplate<TItem, TRequest>({
 	const mostrarErrorMutacion = (err: unknown) =>
 		mostrarError(esApiError(err) ? err.mensajeParaUsuario() : String(err));
 
+	// Parche optimista sobre la lista cacheada, con snapshot para rollback.
+	// Solo editar y toggle son optimistas: crear sigue pesimista porque su
+	// flujo vive dentro del diálogo (el usuario ya espera el Guardar).
+	const parcheLista = async (aplica: (items: TItem[]) => TItem[]) => {
+		await queryClient.cancelQueries({ queryKey: config.queryKey });
+		const previo = queryClient.getQueryData<TItem[]>(config.queryKey);
+		if (previo !== undefined) {
+			queryClient.setQueryData<TItem[]>(config.queryKey, aplica(previo));
+		}
+		return { previo };
+	};
+	const revertirLista = (ctx: { previo: TItem[] | undefined } | undefined) => {
+		if (ctx?.previo !== undefined) {
+			queryClient.setQueryData<TItem[]>(config.queryKey, ctx.previo);
+		}
+	};
+
 	const crear = useMutation({
 		mutationFn: (body: TRequest) => config.crear(body),
 		onSuccess: () => {
@@ -100,32 +122,64 @@ export function CrudAdminTemplate<TItem, TRequest>({
 	const editar = useMutation({
 		mutationFn: (body: TRequest) =>
 			config.actualizar(config.getId(editing!), body),
+		onMutate: async (body) => {
+			const id = editing ? config.getId(editing) : -1;
+			return parcheLista((items) =>
+				items.map((item) =>
+					config.getId(item) === id ? config.conCambios(item, body) : item,
+				),
+			);
+		},
 		onSuccess: () => {
 			mostrarExito(config.msgActualizado);
 			setDialogoAbierto(false);
 			setEditing(null);
 			invalidar();
 		},
-		onError: mostrarErrorMutacion,
+		onError: (err, _body, ctx) => {
+			revertirLista(ctx);
+			mostrarErrorMutacion(err);
+			invalidar();
+		},
 	});
 
 	const desactivar = useMutation({
 		mutationFn: (id: number) => config.cambiarEstado(id, false),
+		onMutate: (id) =>
+			parcheLista((items) =>
+				items.map((item) =>
+					config.getId(item) === id ? config.conEstado(item, false) : item,
+				),
+			),
 		onSuccess: () => {
 			mostrarExito(config.msgBaja);
 			setADesactivar(null);
 			invalidar();
 		},
-		onError: mostrarErrorMutacion,
+		onError: (err, _id, ctx) => {
+			revertirLista(ctx);
+			mostrarErrorMutacion(err);
+			invalidar();
+		},
 	});
 
 	const reactivar = useMutation({
 		mutationFn: (id: number) => config.cambiarEstado(id, true),
+		onMutate: (id) =>
+			parcheLista((items) =>
+				items.map((item) =>
+					config.getId(item) === id ? config.conEstado(item, true) : item,
+				),
+			),
 		onSuccess: () => {
 			mostrarExito(config.msgReactivado);
 			invalidar();
 		},
-		onError: mostrarErrorMutacion,
+		onError: (err, _id, ctx) => {
+			revertirLista(ctx);
+			mostrarErrorMutacion(err);
+			invalidar();
+		},
 	});
 
 	const toggle = (item: TItem) => {

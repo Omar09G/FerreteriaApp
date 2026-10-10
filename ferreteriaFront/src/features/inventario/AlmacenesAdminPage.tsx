@@ -159,6 +159,16 @@ export default function AlmacenesAdminPage() {
 				cambiarEstado: apiActualizarEstadoAlmacen,
 				getId: (a) => a.almacenId,
 				getActivo: (a) => a.activo,
+				conEstado: (a, activo) => ({ ...a, activo }),
+				// AlmacenRequest trae opcionales/nulos (form con campos no
+				// obligatorios): fusión explícita para no ensuciar el item.
+				conCambios: (a, body) => ({
+					...a,
+					nombre: body.nombre,
+					direccion: body.direccion ?? a.direccion,
+					telefono: body.telefono ?? a.telefono,
+					esPuntoVenta: body.esPuntoVenta ?? a.esPuntoVenta,
+				}),
 				columnas: columnasAlmacen,
 				archivoExcel: "almacenes",
 				emptyTitle: "Sin almacenes",

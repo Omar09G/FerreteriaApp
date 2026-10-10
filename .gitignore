@@ -46,3 +46,7 @@ ferreteriaBackend/bin/
 ferreteriaBackend/build/
 ferreteriaFront/dist/
 ferreteriaFront/coverage/
+# Excepción: script de presupuesto de bundle (el resto de scripts/ sigue ignorado)
+!ferreteriaFront/scripts/
+ferreteriaFront/scripts/*
+!ferreteriaFront/scripts/check-bundle.mjs

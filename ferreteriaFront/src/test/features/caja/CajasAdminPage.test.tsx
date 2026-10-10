@@ -14,6 +14,7 @@ import {
 	apiCajas,
 	apiCrearCaja,
 } from "@/lib/api/caja";
+import type { Caja } from "@/lib/api/types";
 import { useAuthStore } from "@/store/auth";
 
 vi.mock("sweetalert2", () => ({
@@ -294,6 +295,33 @@ describe("CajasAdminPage (profundización)", () => {
 		);
 	});
 
+	it("aplica la baja optimista antes de que responda el backend", async () => {
+		comoAdmin();
+		const user = userEvent.setup();
+		let resolver!: (v: Caja | PromiseLike<Caja>) => void;
+		vi.mocked(apiActualizarEstadoCaja).mockImplementationOnce(
+			() =>
+				new Promise((res) => {
+					resolver = res;
+				}),
+		);
+		renderPage();
+		await screen.findByText("Caja Central");
+		const check = screen.getByRole("checkbox", {
+			name: "Caja Caja Central activa",
+		});
+		await user.click(check);
+		const dialogo = await screen.findByRole("dialog", {
+			name: "Dar de baja la caja",
+		});
+		await user.click(
+			within(dialogo).getByRole("button", { name: "Dar de baja" }),
+		);
+		// Sin resolver la promesa: el checkbox ya se apagó (optimista).
+		await waitFor(() => expect(check).not.toBeChecked());
+		resolver({ cajaId: 1 } as never);
+	});
+
 	it("cancela la baja sin llamar al backend", async () => {
 		comoAdmin();
 		const user = userEvent.setup();
@@ -335,6 +363,12 @@ describe("CajasAdminPage (profundización)", () => {
 			expect(vi.mocked(Swal.fire)).toHaveBeenCalledWith(
 				expect.objectContaining({ text: expect.stringContaining("tiene turno") }),
 			),
+		);
+		// Rollback: el checkbox vuelve a encendido (verdad del servidor).
+		await waitFor(() =>
+			expect(
+				screen.getByRole("checkbox", { name: "Caja Caja Central activa" }),
+			).toBeChecked(),
 		);
 	});
 
