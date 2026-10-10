@@ -87,6 +87,12 @@ spec:
               value: "8080"
             - name: REQUEST_ID_MODE
               value: GENERATE
+            # BACK-ESC-001: rate limit distribuido (capacidad global con HPA).
+            # Redis efímero de 25-redis.yaml; sin URI el arranque aborta.
+            - name: RATE_LIMIT_DISTRIBUTED
+              value: "true"
+            - name: RATE_LIMIT_REDIS_URI
+              value: "redis://redis.ferreteria.svc.cluster.local:6379"
             # Operador: fijar orígenes reales del front (sin wildcard + credentials).
             - name: CORS_ALLOWED_ORIGINS
               value: "https://example.invalid"

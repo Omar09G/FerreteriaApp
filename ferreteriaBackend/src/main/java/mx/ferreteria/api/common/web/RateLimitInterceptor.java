@@ -1,7 +1,6 @@
 package mx.ferreteria.api.common.web;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -14,20 +13,17 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
-import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import mx.ferreteria.api.common.i18n.ErrorCode;
 import mx.ferreteria.api.common.security.UserPrincipal;
 
 /**
- * Rate limit por controller (PLAN M7) usando bucket4j en memoria (Caffeine).
+ * Rate limit por controller (PLAN M7) con buckets locales (Caffeine) o
+ * compartidos (Redis) según {@code app.rate-limit.distributed}.
  * <p>
  * Aislamiento por controller (clave del bucket:
  * {@code perfil:controllerClassName:userOrIp}). Esto evita el bloqueo en
@@ -56,30 +52,33 @@ import mx.ferreteria.api.common.security.UserPrincipal;
  * {@code WebMvcTypeExcludeFilter} de {@code @WebMvcTest} escanea clases que
  * implementan {@code HandlerInterceptor}; marcarlas como componentes rompe los
  * slices. Por eso se instancia manualmente desde {@code RateLimitConfig}.
+ *
+ * <p>
+ * El backend de buckets se inyecta ({@code RateLimitBuckets}): local por
+ * defecto, Redis compartido con {@code distributed=true}. Se mantiene el
+ * constructor de 3 argumentos (local) para no romper los slices/tests.
  */
-@RequiredArgsConstructor
 public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final RateLimitProperties props;
     private final MessageSource messages;
     private final ObjectMapper objectMapper;
-    private volatile Cache<String, Bucket> buckets;
+    private final RateLimitBuckets buckets;
 
-    private Cache<String, Bucket> buckets() {
-        Cache<String, Bucket> actual = buckets;
-        if (actual == null) {
-            synchronized (this) {
-                actual = buckets;
-                if (actual == null) {
-                    actual = Caffeine.newBuilder()
-                            .maximumSize(Math.max(1L, props.cacheMaxSize()))
-                            .expireAfterAccess(Duration.ofMinutes(Math.max(1L, props.cacheTtlMinutes())))
-                            .build();
-                    buckets = actual;
-                }
-            }
-        }
-        return actual;
+    public RateLimitInterceptor(
+            RateLimitProperties props, MessageSource messages, ObjectMapper objectMapper) {
+        this(props, messages, objectMapper, new LocalRateLimitBuckets(props));
+    }
+
+    public RateLimitInterceptor(
+            RateLimitProperties props,
+            MessageSource messages,
+            ObjectMapper objectMapper,
+            RateLimitBuckets buckets) {
+        this.props = props;
+        this.messages = messages;
+        this.objectMapper = objectMapper;
+        this.buckets = buckets;
     }
 
     @Override
@@ -108,7 +107,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         RateLimitProperties.Grupo grupo = props.grupo(perfil);
         String usuarioOIp = claveDe(request);
         String clave = perfil + ":" + controllerId + ":" + usuarioOIp;
-        Bucket bucket = buckets().get(clave, k -> nuevoBucket(grupo));
+        Bucket bucket = buckets.resolve(clave, grupo);
 
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
         response.setHeader("X-RateLimit-Limit", Integer.toString(grupo.capacity()));
@@ -181,15 +180,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             }
         }
         return req.getRemoteAddr();
-    }
-
-    private static Bucket nuevoBucket(RateLimitProperties.Grupo g) {
-        Bandwidth limit = Bandwidth.builder()
-                .capacity(Math.max(1L, g.capacity()))
-                .refillGreedy(Math.max(1L, g.refillPerSecond()), Duration.ofSeconds(1))
-                .build();
-
-        return Bucket.builder().addLimit(limit).build();
     }
 
     private static long segundosDeEspera(ConsumptionProbe probe) {

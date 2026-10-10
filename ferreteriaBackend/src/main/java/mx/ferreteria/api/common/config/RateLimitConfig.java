@@ -8,6 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+import mx.ferreteria.api.common.web.RateLimitBucketsFactory;
 import mx.ferreteria.api.common.web.RateLimitInterceptor;
 import mx.ferreteria.api.common.web.RateLimitProperties;
 
@@ -28,7 +29,12 @@ public class RateLimitConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new RateLimitInterceptor(rateLimitProperties, messages, objectMapper))
+        // BACK-ESC-001: con distributed=true los buckets viven en Redis y la
+        // capacidad es global entre réplicas; si falta la URI se aborta aquí
+        // (fail-fast en arranque, no en la primera petición).
+        registry.addInterceptor(new RateLimitInterceptor(
+                        rateLimitProperties, messages, objectMapper,
+                        RateLimitBucketsFactory.create(rateLimitProperties)))
                 .addPathPatterns("/**");
     }
 }

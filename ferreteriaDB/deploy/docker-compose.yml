@@ -88,6 +88,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # BD vía PgBouncer
       PG_HOST: ${PG_HOST:-pgbouncer}
@@ -126,6 +128,10 @@ services:
       RATE_LIMIT_AUTH_REFILL: ${RATE_LIMIT_AUTH_REFILL:-1}
       RATE_LIMIT_CATALOGO_CAPACITY: ${RATE_LIMIT_CATALOGO_CAPACITY:-1200}
       RATE_LIMIT_CATALOGO_REFILL: ${RATE_LIMIT_CATALOGO_REFILL:-40}
+      # BACK-ESC-001: en compose default true (servicio redis abajo). bootRun
+      # fuera de compose usa el default de application.yml (false, local).
+      RATE_LIMIT_DISTRIBUTED: ${RATE_LIMIT_DISTRIBUTED:-true}
+      RATE_LIMIT_REDIS_URI: ${RATE_LIMIT_REDIS_URI:-redis://redis:6379}
       # Request ID
       REQUEST_ID_MODE: ${REQUEST_ID_MODE:-GENERATE}
       # MinIO (fotos de entidades). ENDPOINT es visto por el backend en la
@@ -609,6 +615,27 @@ services:
       start_period: 30s
     mem_limit: 512m
     cpus: 1.0
+
+  # =================================================================
+  # Redis — backend del rate limit distribuido (BACK-ESC-001).
+  # Sin persistencia ni puertos al host: los buckets se reconstruyen solos
+  # (TTL = tiempo de recarga al máximo + 1 min) y solo el backend lo usa.
+  # =================================================================
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    container_name: ferreteria-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    mem_limit: 160m
+    cpus: 0.5
 
   # =================================================================
   # Mailpit — SMTP de mentira para dev: atrapa los emails transaccionales

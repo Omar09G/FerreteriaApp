@@ -22,7 +22,7 @@ public record RateLimitProperties(
         @DefaultValue("30") long cacheTtlMinutes,
         /**
          * BACK-ESC-001: true = usar Redis para buckets compartidos entre replicas
-         * (requiere bucket4j-redis + spring-boot-starter-data-redis + RATE_LIMIT_REDIS_URI).
+         * (requiere bucket4j-redis + lettuce-core + RATE_LIMIT_REDIS_URI).
          * false = Caffeine local (cada replica cuenta por separado, multiplica N veces).
          */
         @DefaultValue("false") boolean distributed,

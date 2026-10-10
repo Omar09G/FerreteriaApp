@@ -34,6 +34,12 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
     // M7 endurecimiento: rate limiting por controller (bucket4j) con buckets en memoria (Caffeine)
     implementation("com.bucket4j:bucket4j-core:8.10.1")
+    // BACK-ESC-001: rate limit distribuido (buckets compartidos entre replicas).
+    // Solo se activa con RATE_LIMIT_DISTRIBUTED=true + RATE_LIMIT_REDIS_URI;
+    // por defecto el limitador sigue en Caffeine local sin tocar Redis.
+    // lettuce-core viene gestionado por el BOM de Spring Boot (sin version).
+    implementation("com.bucket4j:bucket4j-redis:8.10.1")
+    implementation("io.lettuce:lettuce-core")
     implementation("com.github.ben-manes.caffeine:caffeine")
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("io.jsonwebtoken:jjwt-api:0.13.0")

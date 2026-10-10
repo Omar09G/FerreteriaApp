@@ -180,12 +180,17 @@ bun run lint && bun run build     # los tests también deben tipar (tsc)
   y los Secrets de K8s se sustituyen con SealedSecrets/ExternalSecrets/Vault.
 - **K8s** (`ferreteriaDB/deploy/k8s/`, orden de aplicado en su README):
   `00-base` (namespace + `ferreteria-db-secret` placeholder) →
-  `10-postgres` → `40-migration-job` → `20-pgbouncer` →
+  `10-postgres` → `40-migration-job` → `20-pgbouncer` → `25-redis` (rate limit
+  distribuido, efímero por diseño) →
   `45-backend` (Service + Deployment `ferreteria-backend`, 2 réplicas,
   `JWT_SECRET` desde `ferreteria-backend-secret`, probes
   `startup/liveness` a `/actuator/health/liveness` y `readiness` a
   `/actuator/health/readiness`) → `50-backend-hpa` (2–8 réplicas por CPU 70% +
   p95) + PDB. Operador: fijar `CORS_ALLOWED_ORIGINS` real antes del deploy.
+- **Rate limit distribuido** (`BACK-ESC-001`) — con `RATE_LIMIT_DISTRIBUTED=true`
+  + `RATE_LIMIT_REDIS_URI` los buckets viven en Redis (capacidad global entre
+  réplicas, apto para HPA); sin URI el arranque aborta (fail-fast). En
+  `false` (default fuera de compose) sigue Caffeine local por réplica.
 
 ## Puertos y conexiones (dev local)
 
