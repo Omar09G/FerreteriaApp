@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   AlertCircle,
   Barcode,
@@ -481,7 +482,9 @@ export default function PosPage() {
     },
     onSuccess: async (venta) => {
       setConfirmAbierto(false);
-      mostrarExito(`Venta ${venta.folio} registrada.`);
+      // Sonner (no Swal): feedback instantáneo del cobro con folio y total.
+      // El diálogo "Venta registrada" con el ticket sigue existiendo abajo.
+      toast.success(`Venta ${venta.folio} por ${formatoMoneda(venta.total)}`);
       const entregadoNum = Number(recibido);
       const entregado =
         Number.isFinite(entregadoNum) && entregadoNum > 0

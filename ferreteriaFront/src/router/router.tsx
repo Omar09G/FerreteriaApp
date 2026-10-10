@@ -9,6 +9,8 @@
  */
 /* eslint-disable react-refresh/only-export-components */
 import { createBrowserRouter } from "react-router-dom";
+import { MotionConfig } from "motion/react";
+import { Toaster } from "sonner";
 
 import { NotFound } from "@/components/errors/PageStates";
 import { AppShell } from "@/components/layout/AppShell";
@@ -21,11 +23,18 @@ import { publicRoutes, privateRoutes } from "./registry";
  * Layout raiz: Toast + AppShell. AppShell ya contiene su propio <Outlet />
  * dentro de <main> (linea 551), por lo que aqui no se añade otro Outlet.
  * Suspense para lazy pages vive dentro de AppShell alrededor de su Outlet.
+ *
+ * MotionConfig reducedMotion="user" respeta prefers-reduced-motion
+ * (convención motion-reduce: de Skeleton/Spinner). Toaster de sonner:
+ * solo para feedback nuevo del POS; el resto sigue en useToast/Swal.
  */
 function ShellPrivada() {
   return (
     <ToastProvider>
-      <AppShell />
+      <MotionConfig reducedMotion="user">
+        <AppShell />
+        <Toaster richColors position="top-right" />
+      </MotionConfig>
     </ToastProvider>
   );
 }

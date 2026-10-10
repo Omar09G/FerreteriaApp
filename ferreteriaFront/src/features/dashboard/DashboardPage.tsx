@@ -15,6 +15,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion, useReducedMotion, useSpring, useTransform } from "motion/react";
 
 import type { ReactNode } from "react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -71,18 +72,50 @@ function fraseNarrativa(
   return { icono, lineas };
 }
 
+/**
+ * Número que cuenta hacia arriba con spring. Respeta reduced-motion
+ * (salta al valor final) y usa tabular-nums del padre para no brincar.
+ */
+function ContadorAnimado({
+  valor,
+  formato,
+}: {
+  valor: number;
+  formato: (n: number) => string;
+}) {
+  const reducido = useReducedMotion();
+  const spring = useSpring(0, { stiffness: 80, damping: 20 });
+  useEffect(() => {
+    spring.set(valor);
+  }, [valor, spring]);
+  const texto = useTransform(spring, (v) => formato(v));
+  if (reducido) return <>{formato(valor)}</>;
+  return <motion.span>{texto}</motion.span>;
+}
+
 function KPI({
   icono,
   label,
   valor,
   alerta,
+  indice = 0,
+  numerico,
 }: {
   icono: ReactNode;
   label: string;
   valor: string;
   alerta?: "warn" | "danger";
+  /** Posición en la cuadrícula para entrada escalonada. */
+  indice?: number;
+  /** Si se indica, el valor cuenta hacia arriba en vez de aparecer fijo. */
+  numerico?: { valor: number; formato: (n: number) => string };
 }) {
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: indice * 0.05, duration: 0.3 }}
+    >
     <Card className="p-5">
       <div className="flex items-center gap-3">
         <span
@@ -100,11 +133,16 @@ function KPI({
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
           <p className="truncate text-lg font-bold tabular-nums text-ink">
-            {valor}
+            {numerico ? (
+              <ContadorAnimado valor={numerico.valor} formato={numerico.formato} />
+            ) : (
+              valor
+            )}
           </p>
         </div>
       </div>
     </Card>
+    </motion.div>
   );
 }
 
@@ -242,39 +280,55 @@ export default function DashboardPage() {
               icono={<TrendingUp className="h-5 w-5" />}
               label="Ventas en rango"
               valor={formatoMoneda(data.ventasEnRango)}
+              indice={0}
+              numerico={{ valor: data.ventasEnRango, formato: formatoMoneda }}
             />
             <KPI
               icono={<ReceiptText className="h-5 w-5" />}
               label="Tickets"
               valor={String(data.ticketsEnRango)}
+              indice={1}
+              numerico={{
+                valor: data.ticketsEnRango,
+                formato: (n) => String(Math.round(n)),
+              }}
             />
             <KPI
               icono={<Undo2 className="h-5 w-5" />}
               label="Devoluciones"
               valor={`${data.devolucionesEnRango} · ${formatoMoneda(data.totalDevueltoEnRango)}`}
               alerta={data.devolucionesEnRango > 0 ? "warn" : undefined}
+              indice={2}
             />
             <KPI
               icono={<ShoppingBag className="h-5 w-5" />}
               label="Ticket promedio"
               valor={formatoMoneda(data.ticketPromedioEnRango)}
+              indice={3}
+              numerico={{ valor: data.ticketPromedioEnRango, formato: formatoMoneda }}
             />
             <KPI
               icono={<Banknote className="h-5 w-5" />}
               label="Saldo por cobrar"
               valor={formatoMoneda(data.saldoPorCobrar)}
               alerta={data.saldoPorCobrar > 0 ? "warn" : undefined}
+              indice={4}
+              numerico={{ valor: data.saldoPorCobrar, formato: formatoMoneda }}
             />
             <KPI
               icono={<AlertTriangle className="h-5 w-5" />}
               label="Cobranza vencida"
               valor={formatoMoneda(data.cobranzaVencida)}
               alerta={data.cobranzaVencida > 0 ? "danger" : undefined}
+              indice={5}
+              numerico={{ valor: data.cobranzaVencida, formato: formatoMoneda }}
             />
             <KPI
               icono={<Boxes className="h-5 w-5" />}
               label="Valor de inventario"
               valor={formatoMoneda(data.valorInventario)}
+              indice={6}
+              numerico={{ valor: data.valorInventario, formato: formatoMoneda }}
             />
             {data.productosAgotados > 0 ? (
               <Link to="/inventario/stock?soloBajoStock=1" className="block">
@@ -283,6 +337,11 @@ export default function DashboardPage() {
                   label="Productos agotados"
                   valor={String(data.productosAgotados)}
                   alerta="danger"
+                  indice={7}
+                  numerico={{
+                    valor: data.productosAgotados,
+                    formato: (n) => String(Math.round(n)),
+                  }}
                 />
               </Link>
             ) : (
@@ -290,17 +349,28 @@ export default function DashboardPage() {
                 icono={<ClipboardList className="h-5 w-5" />}
                 label="Productos agotados"
                 valor="0"
+                indice={7}
               />
             )}
             <KPI
               icono={<TrendingUp className="h-5 w-5" />}
               label="Promociones activas"
               valor={String(data.promocionesActivas)}
+              indice={8}
+              numerico={{
+                valor: data.promocionesActivas,
+                formato: (n) => String(Math.round(n)),
+              }}
             />
             <KPI
               icono={<Store className="h-5 w-5" />}
               label="Cajas abiertas"
               valor={String(data.cajasAbiertas)}
+              indice={9}
+              numerico={{
+                valor: data.cajasAbiertas,
+                formato: (n) => String(Math.round(n)),
+              }}
             />
           </div>
 

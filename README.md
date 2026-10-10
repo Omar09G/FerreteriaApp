@@ -7,7 +7,7 @@ aplicación web (SPA).
 |---|---|---|
 | [`ferreteriaDB/`](ferreteriaDB/) | Modelo de datos y despliegue de la BD | PostgreSQL 14+, Podman Compose / Kubernetes / Terraform |
 | [`ferreteriaBackend/`](ferreteriaBackend/) | API REST | Spring Boot 3, Java 21, Flyway, JUnit/JaCoCo |
-| [`ferreteriaFront/`](ferreteriaFront/) | SPA de caja, inventario y reportes | React 19, Vite 8, TypeScript, TanStack Query, Tailwind |
+| [`ferreteriaFront/`](ferreteriaFront/) | SPA de caja, inventario y reportes | React 19, Vite 8, TypeScript, TanStack Query, Tailwind, motion, sonner |
 
 ## Arquitectura
 
@@ -160,6 +160,11 @@ bun run lint && bun run build     # los tests también deben tipar (tsc)
 - **Exclusiones de cobertura** — `src/main.tsx`, `src/vite-env.d.ts` y
   `src/telemetry/otel.ts` (la rama OTLP real exige collector con red;
   en jsdom solo se cubre el modo noop).
+- **Animación** — `motion` (tap global en `Button`, enter/exit en `Dialog`,
+  stagger opt-in `animada` en `DataTable`, contadores con spring en dashboard)
+  + `sonner` solo para feedback nuevo del POS (`<Toaster/>` en el shell
+  privado). Todo respeta `prefers-reduced-motion` (`MotionConfig
+  reducedMotion="user"` + `motion-reduce:`); `useToast`/Swal sigue intacto.
 
 ## CI y despliegue Kubernetes
 

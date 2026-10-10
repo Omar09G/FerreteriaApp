@@ -110,7 +110,8 @@ describe("DashboardPage (smoke)", () => {
 		]) {
 			expect(await screen.findByText(kpi)).toBeInTheDocument();
 		}
-		expect(screen.getByText("320")).toBeInTheDocument();
+		// El contador del KPI anima desde 0 con spring: esperar el valor final.
+		expect(await screen.findByText("320", {}, { timeout: 5000 })).toBeInTheDocument();
 	});
 
   it("muestra el enlace a reportes detallados", async () => {

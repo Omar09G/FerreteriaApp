@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 
 import { EmptyState } from "./EmptyState";
 import { TableSkeleton } from "./Skeleton";
@@ -26,6 +27,12 @@ interface DataTableProps<T> {
 	emptyTitle?: string;
 	emptyDescripcion?: string;
 	caption?: string;
+	/**
+	 * Entrada escalonada por fila (stagger). Opt-in y apagada por defecto:
+	 * DataTable es compartida por ~30 páginas y el cambio debe ser
+	 * progresivo. Respeta reduced-motion vía MotionConfig.
+	 */
+	animada?: boolean;
 }
 
 export function DataTable<T>({
@@ -36,6 +43,7 @@ export function DataTable<T>({
 	emptyTitle,
 	emptyDescripcion,
 	caption,
+	animada = false,
 }: DataTableProps<T>) {
 	if (loading) {
 		return <TableSkeleton />;
@@ -62,8 +70,26 @@ export function DataTable<T>({
 						))}
 					</tr>
 				</thead>
-				<tbody className="divide-y divide-line">
-					{items.map((item) => (
+			<tbody className="divide-y divide-line">
+				{items.map((item, index) =>
+					animada ? (
+						<motion.tr
+							key={rowKey(item)}
+							className="hover:bg-warmbg"
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: Math.min(index, 15) * 0.04, duration: 0.25 }}
+						>
+							{columnas.map((c) => (
+								<td
+									key={c.key}
+									className={`px-3 py-2 align-middle ${c.align === "right" ? "text-right tabular-nums" : ""} ${c.className ?? ""}`}
+								>
+									{c.render(item)}
+								</td>
+							))}
+						</motion.tr>
+					) : (
 						<tr key={rowKey(item)} className="hover:bg-warmbg">
 							{columnas.map((c) => (
 								<td
@@ -74,8 +100,9 @@ export function DataTable<T>({
 								</td>
 							))}
 						</tr>
-					))}
-				</tbody>
+					),
+				)}
+			</tbody>
 			</table>
 		</div>
 	);

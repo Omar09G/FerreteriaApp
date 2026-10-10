@@ -186,6 +186,7 @@ export function CrudAdminTemplate<TItem, TRequest>({
 						rowKey={(item) => config.getId(item)}
 						emptyTitle={config.emptyTitle}
 						emptyDescripcion={config.emptyDescripcion}
+						animada
 					/>
 				)}
 			</Card>

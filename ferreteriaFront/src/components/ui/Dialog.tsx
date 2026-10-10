@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
 
 import { useT } from "@/i18n";
@@ -94,47 +95,61 @@ export function Dialog({
 		};
 	}, [open]);
 
-	if (!open) return null;
-
-	return (
-		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-			role="button"
-			tabIndex={-1}
-			aria-label={t("comun.cerrar")}
-			onMouseDown={(e) => {
-				if (e.target === e.currentTarget) onClose();
-			}}
-			onKeyDown={(e) => {
-				if (e.key === "Escape") onClose();
-			}}
-		>
-			<section
-				ref={sectionRef}
-				role="dialog"
-				aria-modal="true"
-				aria-label={title}
-				tabIndex={-1}
-				className={`w-full ${width} rounded-lg border border-line bg-surface shadow-xl outline-none`}
-			>
-				<header className="flex items-center justify-between border-b border-line px-4 py-3">
-					<h2 className="text-base font-semibold text-ink">{title}</h2>
-					<button
-						type="button"
-						onClick={onClose}
-						aria-label={t("comun.cerrar")}
-						className="rounded p-1 text-muted hover:bg-warmbg"
-					>
-						<X className="h-5 w-5" />
-					</button>
-				</header>
-				<div className="max-h-[70vh] overflow-auto px-4 py-4">{children}</div>
-				{footer && (
-					<footer className="flex justify-end gap-2 border-t border-line px-4 py-3">
-						{footer}
-					</footer>
-				)}
-			</section>
-		</div>
-	);
+  // AnimatePresence interno: el exit necesita el componente montado,
+  // y este Dialog retorna null al cerrar (por eso no se anima desde fuera).
+  // Respeta reduced-motion vía MotionConfig (router). Roles/aria intactos.
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="button"
+          tabIndex={-1}
+          aria-label={t("comun.cerrar")}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onClose();
+          }}
+        >
+          <motion.section
+            ref={sectionRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            tabIndex={-1}
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+            className={`w-full ${width} rounded-lg border border-line bg-surface shadow-xl outline-none`}
+          >
+            <header className="flex items-center justify-between border-b border-line px-4 py-3">
+              <h2 className="text-base font-semibold text-ink">{title}</h2>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t("comun.cerrar")}
+                className="rounded p-1 text-muted hover:bg-warmbg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </header>
+            <div className="max-h-[70vh] overflow-auto px-4 py-4">{children}</div>
+            {footer && (
+              <footer className="flex justify-end gap-2 border-t border-line px-4 py-3">
+                {footer}
+              </footer>
+            )}
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
