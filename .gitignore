@@ -4,26 +4,29 @@ graphify-out/
 .opencode/
 CLAUDE.md
 ECC/
-audits/*
-!audits/findings.yaml
-!audits/coverage.yaml
-!audits/stacks.yaml
-docs/*
-!docs/MEJORAS_ECC.md
-!docs/MEJORAS_ECC.v1.md
-!docs/secrets.md
-scripts/*
-!scripts/parse_audit.py
-!scripts/validate.py
-!scripts/render.py
-!scripts/pipeline.sh
-!scripts/README.md
+# NOTA: las reglas de tooling van ancladas a raíz (/...). Sin el ancla,
+# `scripts/` ignoraba también ferreteriaDB/scripts (fuente canónica SQL)
+# y ferreteriaFront/scripts (check-bundle) para archivos nuevos.
+/audits/*
+!/audits/findings.yaml
+!/audits/coverage.yaml
+!/audits/stacks.yaml
+/docs/*
+!/docs/MEJORAS_ECC.md
+!/docs/MEJORAS_ECC.v1.md
+!/docs/secrets.md
+/scripts/*
+!/scripts/parse_audit.py
+!/scripts/validate.py
+!/scripts/render.py
+!/scripts/pipeline.sh
+!/scripts/README.md
 *.class
 *.xml
 .idea/
-scripts/
-audits/
-docs/
+/scripts/
+/audits/
+/docs/
 PLAN_APP_MOVIL.md
 PLAN_CODIGO_BARRAS.md
 .agents/
@@ -46,7 +49,3 @@ ferreteriaBackend/bin/
 ferreteriaBackend/build/
 ferreteriaFront/dist/
 ferreteriaFront/coverage/
-# Excepción: script de presupuesto de bundle (el resto de scripts/ sigue ignorado)
-!ferreteriaFront/scripts/
-ferreteriaFront/scripts/*
-!ferreteriaFront/scripts/check-bundle.mjs

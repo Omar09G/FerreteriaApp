@@ -133,29 +133,18 @@ pgbackrest --stanza=ferreteria info --output=json | jq
 pgbackrest --stanza=ferreteria expire
 ```
 
-### 4.3 Cron — backup diario (ver también comentario en `docker-compose.yml`)
+### 4.3 Cron — backup diario (operativo vía `deploy/backup.sh`)
 
-```cron
-# /etc/cron.d/pgbackrest — ejecuta como usuario postgres
-# Full semanal domingo 02:00, diff resto de días 02:00
-0 2 * * 0 postgres pgbackrest --stanza=ferreteria --type=full backup >> /var/log/pgbackrest/backup.log 2>&1
-0 2 * * 1-6 postgres pgbackrest --stanza=ferreteria --type=diff backup >> /var/log/pgbackrest/backup.log 2>&1
-# Expiración diaria 03:00
-0 3 * * * postgres pgbackrest --stanza=ferreteria expire >> /var/log/pgbackrest/expire.log 2>&1
+```bash
+# Cron en el HOST (una sola vez, usuario con acceso a podman).
+# Full semanal domingo 02:00, diff resto de días 02:00, expiración 03:00.
+0 2 * * 0 cd /ruta/a/ferreteriaDB/deploy && ./backup.sh full >> /var/log/pgbackrest/backup.log 2>&1
+0 2 * * 1-6 cd /ruta/a/ferreteriaDB/deploy && ./backup.sh diff >> /var/log/pgbackrest/backup.log 2>&1
+0 3 * * * cd /ruta/a/ferreteriaDB/deploy && ./backup.sh expire >> /var/log/pgbackrest/expire.log 2>&1
 ```
 
-En Docker/Podman sin cron del host, usar sidecar o `ofelia`/`supercronic`:
-
-```yaml
-# Ejemplo sidecar en docker-compose.yml (comentario de referencia)
-# pgbackrest-cron:
-#   image: postgres:17-alpine
-#   volumes:
-#     - pg_data_primary:/var/lib/postgresql/data:ro
-#     - pgbackrest_repo:/backups
-#     - ./conf/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
-#   command: supercronic /etc/cron.d/pgbackrest
-```
+`backup.sh` ejecuta pgBackRest dentro de `postgres-primary` (ya trae el
+binario). Verificación manual: `./backup.sh check && ./backup.sh info`.
 
 ---
 
@@ -248,10 +237,13 @@ Alertar si:
 
 ## 8. Checklist producción
 
-- [ ] `repo1-path=/backups` en volumen/NFS/S3 separado de `pg_data_primary`
-- [ ] `stanza-create` + `check` exitosos
-- [ ] `archive_mode=on`, `wal_level=replica`, `archive_command` verificados con `SHOW`
-- [ ] Cron de backup + expire probado (logs sin error)
+- [x] `repo1-path=/backups` en volumen separado de `pg_data_primary`
+  (`pgbackrest_repo` en compose, montado en `postgres-primary`)
+- [x] `stanza-create` + `check` (auto en primer init vía
+  `conf/init/14_pgbackrest_stanza.sh`; revalidar con `./backup.sh check`)
+- [x] `archive_mode=on`, `wal_level=replica`, `archive_command` en
+  `conf/postgresql.conf` (imagen con binario: `docker/postgres.Dockerfile`)
+- [ ] Cron de backup + expire con la línea del host (§4.3) y logs sin error
 - [ ] Restore de prueba en entorno staging (documentar fecha del último drill)
 - [ ] Monitor `pg_stat_archiver` en `postgres-exporter` / Prometheus
 

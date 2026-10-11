@@ -65,13 +65,15 @@ BEGIN
     SELECT empleado_id INTO v_e_vend   FROM rh.empleados WHERE email='vendedor@ferreteria.local';
     SELECT empleado_id INTO v_e_alm    FROM rh.empleados WHERE email='almacen@ferreteria.local';
 
-    INSERT INTO seg.usuarios (empleado_id, username, email, password_hash)
-    VALUES (v_e_cajero, 'cajero1', 'cajero@ferreteria.local',   crypt('Cajero123*',   gen_salt('bf',12))),
-           (v_e_vend,   'vendedor1','vendedor@ferreteria.local',crypt('Vendedor123*', gen_salt('bf',12)))
+    -- Usuarios demo: password conocido solo para dev; se exige cambio en
+    -- primer login igual que el admin de 04_admin.sql.
+    INSERT INTO seg.usuarios (empleado_id, username, email, password_hash, debe_cambiar_password)
+    VALUES (v_e_cajero, 'cajero1', 'cajero@ferreteria.local',   crypt('Cajero123*',   gen_salt('bf',12)), true),
+           (v_e_vend,   'vendedor1','vendedor@ferreteria.local',crypt('Vendedor123*', gen_salt('bf',12)), true)
     ON CONFLICT (username) DO NOTHING;
 
-    INSERT INTO seg.usuarios (empleado_id, username, email, password_hash)
-    VALUES (v_e_alm, 'almacen1', 'almacen@ferreteria.local', crypt('Almacen123*', gen_salt('bf',12)))
+    INSERT INTO seg.usuarios (empleado_id, username, email, password_hash, debe_cambiar_password)
+    VALUES (v_e_alm, 'almacen1', 'almacen@ferreteria.local', crypt('Almacen123*', gen_salt('bf',12)), true)
     ON CONFLICT (username) DO NOTHING;
 
     SELECT usuario_id INTO v_u_cajero FROM seg.usuarios WHERE username='cajero1';

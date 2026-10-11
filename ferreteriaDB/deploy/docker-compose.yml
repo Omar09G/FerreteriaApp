@@ -9,14 +9,18 @@
 # CON RÉPLICA DE LECTURA (perfil opcional):
 #   podman compose --profile replica up -d
 #
-# BACKUP PITR (DB-ESC-008) — ver deploy/BACKUP.md:
-#   pgBackRest stanza=ferreteria repo1-path=/backups
-#   archive_command = 'pgbackrest --stanza=ferreteria archive-push %p'
-#   Cron diario host/sidecar:
-#     0 2 * * 0 postgres pgbackrest --stanza=ferreteria --type=full backup
-#     0 2 * * 1-6 postgres pgbackrest --stanza=ferreteria --type=diff backup
-#   Volumen repo recomendado (separado de pg_data_primary):
-#     pgbackrest_repo:/backups  -> montar en postgres-primary y sidecar cron
+# BACKUP PITR (DB-ESC-008) — operativo, ver deploy/BACKUP.md:
+#   - postgres-primary se construye de docker/postgres.Dockerfile
+#     (postgres:17-alpine + pgbackrest) con archive_mode=on y repo en
+#     el volumen pgbackrest_repo:/backups (separado de pg_data_primary).
+#     Si tu .env fija PG_IMAGE a una imagen SIN pgbackrest, el archivado
+#     falla visible en logs (usa la imagen del build o haz build).
+#   - La stanza se crea sola en el primer init; si falla, manual:
+#       podman compose exec postgres-primary pgbackrest --stanza=ferreteria stanza-create
+#   - Backups programados = UNA línea de cron en el host (ver deploy/backup.sh):
+#       0 2 * * 0 .../backup.sh full  |  0 2 * * 1-6 .../backup.sh diff
+#       0 3 * * * .../backup.sh expire
+#   - Restore = destructivo y manual (BACKUP.md §5).
 #
 # Arquitectura:
 #   browser ──► frontend:80 (nginx, host 8080)
@@ -373,7 +377,12 @@ services:
   # PostgreSQL PRIMARIO (escrituras)
   # =================================================================
   postgres-primary:
-    image: ${PG_IMAGE:-postgres:17-alpine}
+    # DB-ESC-008: imagen local con pgbackrest (sin ella archive_command no
+    # existe). Rebuild de ~1 min la primera vez que se levante tras este cambio.
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
+    image: ${PG_IMAGE:-ferreteria/postgres:17-pgbackrest}
     container_name: ferreteria-postgres-primary
     restart: unless-stopped
     environment:
@@ -402,6 +411,10 @@ services:
       # en un despliegue que parezca productivo.
       - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      # DB-ESC-008: conf + repo de pgBackRest + auto-stanza en primer init.
+      - ./conf/pgbackrest/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+      - ./conf/init/14_pgbackrest_stanza.sh:/docker-entrypoint-initdb.d/14_pgbackrest_stanza.sh:ro
+      - pgbackrest_repo:/backups
     ports:
       # Solo localhost: la app entra por PgBouncer (6432); 5432 directo es
       # solo para admin local. Sin bind exponía postgres a la LAN.
@@ -422,7 +435,9 @@ services:
   # RÉPLICA DE LECTURA (perfil opcional)
   # =================================================================
   postgres-replica:
-    image: ${PG_IMAGE:-postgres:17-alpine}
+    # Réplica fija al upstream: no archiva (está en recovery) y no necesita
+    # pgbackrest; así un PG_IMAGE custom del operador no la rompe.
+    image: postgres:17-alpine
     container_name: ferreteria-postgres-replica
     restart: unless-stopped
     profiles: ["replica"]
@@ -674,8 +689,9 @@ volumes:
   rabbitmq_data:
   pg_data_primary:
   pg_data_replica:
-  # pgBackRest repo — PITR (DB-ESC-008). Descomentar cuando se habilite pgBackRest:
-  # pgbackrest_repo:  # -> /backups  repo1-path=/backups  stanza=ferreteria
+  # pgBackRest repo — PITR (DB-ESC-008). Separado de pg_data_primary a
+  # propósito: si se pierde el disco de datos, los backups sobreviven.
+  pgbackrest_repo: # -> /backups  repo1-path=/backups  stanza=ferreteria
   prometheus_data:
   grafana_data:
   tempo_data:
