@@ -83,10 +83,10 @@ public class OtpEmailSender {
     private static String html(String codigo, int ttlMinutos) {
         String caja = "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">"
                 + "<tr>"
-                + "<td align=\"center\" style=\"background:#fff7ed;border:1px solid #fed7aa;"
+                + "<td align=\"center\" style=\"background:#f0fdfa;border:1px solid #99f6e0;"
                 + "border-radius:10px;padding:14px 28px;"
                 + "font-family:'Courier New',Courier,monospace;font-size:32px;font-weight:bold;"
-                + "letter-spacing:10px;color:#7c2d12;\">"
+                + "letter-spacing:10px;color:#115e59;\">"
                 + EmailPlantilla.escapar(codigo)
                 + "</td></tr></table>";
         return EmailPlantilla.documento(

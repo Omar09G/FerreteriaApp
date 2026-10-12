@@ -10,7 +10,7 @@ public final class EmailPlantilla {
 
     public static final String MARCA = "El Tornillo Feliz";
     public static final String SUBTITULO = "Sistema de punto de venta";
-    static final String COLOR_MARCA = "#c2410c";
+    static final String COLOR_MARCA = "#0f766e";
 
     private EmailPlantilla() {
     }
@@ -55,16 +55,16 @@ public final class EmailPlantilla {
         String nota = notaHtml == null ? "" : notaHtml;
         return "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"></head>"
-                + "<body style=\"margin:0;padding:0;background-color:#f5f1ea;\">"
+                + "<body style=\"margin:0;padding:0;background-color:#f2f4f4;\">"
                 + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">"
                 + "<tr><td align=\"center\" style=\"padding:32px 16px;\">"
                 + "<table role=\"presentation\" width=\"520\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" "
                 + "style=\"max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden; "
-                + "border:1px solid #e7e0d3;\">"
+                + "border:1px solid #dde5e4;\">"
                 + "<tr><td align=\"center\" style=\"background:" + COLOR_MARCA + ";padding:22px 24px;\">"
                 + "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;"
                 + "color:#ffffff;\">&#x1F528; " + MARCA + "</div>"
-                + "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#ffedd5; "
+                + "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#ccfbf1; "
                 + "margin-top:4px;\">" + SUBTITULO + "</div>"
                 + "</td></tr>"
                 + "<tr><td style=\"padding:28px 28px 8px 28px;font-family:Arial,Helvetica,sans-serif; "
@@ -95,7 +95,7 @@ public final class EmailPlantilla {
     /** Envuelve filas de detalle en una tabla de ancho completo. */
     public static String detalles(String filasHtml) {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
-                + "border=\"0\" style=\"background:#fff7ed;border:1px solid #fed7aa;"
+                + "border=\"0\" style=\"background:#f0fdfa;border:1px solid #99f6e0;"
                 + "border-radius:10px;padding:10px 18px;\">"
                 + filasHtml + "</table>";
     }
@@ -109,11 +109,11 @@ public final class EmailPlantilla {
         StringBuilder th = new StringBuilder();
         for (int i = 0; i < encabezados.length; i++) {
             boolean ultimo = i == encabezados.length - 1;
-            th.append("<th align=\"").append(ultimo ? "right" : "left").append("\" ").append("style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;").append("font-weight:bold;color:#78716c;padding:6px 8px;").append("border-bottom:1px solid #fed7aa;\">")
+            th.append("<th align=\"").append(ultimo ? "right" : "left").append("\" ").append("style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;").append("font-weight:bold;color:#78716c;padding:6px 8px;").append("border-bottom:1px solid #99f6e0;\">")
                     .append(escapar(encabezados[i])).append("</th>");
         }
-        String borde = alerta ? "#fecaca" : "#fed7aa";
-        String fondo = alerta ? "#fef2f2" : "#fff7ed";
+        String borde = alerta ? "#fecaca" : "#99f6e0";
+        String fondo = alerta ? "#fef2f2" : "#f0fdfa";
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
                 + "border=\"0\" style=\"background:" + fondo + ";border:1px solid " + borde + ";"
                 + "border-radius:10px;padding:6px 10px;margin-bottom:14px;\">"

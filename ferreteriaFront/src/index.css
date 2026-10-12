@@ -3,11 +3,11 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --primary: #c2410c;
-  --primary-hover: #9a3412;
+  --primary: #0f766e;
+  --primary-hover: #115e59;
   --on-primary: #ffffff;
-  --accent: #f97316;
-  --warmbg: #fff7ed;
+  --accent: #d97706;
+  --warmbg: #f0fdfa;
   --canvas: #fafaf9;
   --surface: #ffffff;
   --ink: #1c1917;
@@ -17,38 +17,38 @@
   --success: #16a34a;
   --warning: #d97706;
   --error: #dc2626;
-  /* Sidebar: siempre oscuro cálido (no sigue a primary en dark) */
-  --sidebar: #7c2d12;
+  /* Sidebar: siempre oscuro (no sigue a primary en dark) */
+  --sidebar: #0f2e2b;
   /* Paleta de gráficos (series de datos, no UI) */
-  --chart-1: #ea580c;
-  --chart-2: #16a34a;
+  --chart-1: #0f766e;
+  --chart-2: #d97706;
   --chart-3: #2563eb;
-  --chart-4: #9333ea;
-  --chart-5: #0ea5e9;
-  --chart-6: #f59e0b;
+  --chart-4: #7c3aed;
+  --chart-5: #0891b2;
+  --chart-6: #65a30d;
 }
 
 .dark {
-  --primary: #fb923c;
-  --primary-hover: #f97316;
-  --on-primary: #1c1917;
-  --accent: #fb923c;
-  --warmbg: #2a2522;
-  --canvas: #15130f;
-  --surface: #201c18;
-  --ink: #f2efec;
-  --muted: #a8a29e;
-  --line: #44403c;
+  --primary: #5eead4;
+  --primary-hover: #2dd4bf;
+  --on-primary: #06201c;
+  --accent: #fbbf24;
+  --warmbg: #122625;
+  --canvas: #101414;
+  --surface: #171e1d;
+  --ink: #eef4f3;
+  --muted: #9fb3b0;
+  --line: #2b3b39;
   --success: #4ade80;
   --warning: #fbbf24;
   --error: #f87171;
-  --sidebar: #221610;
-  --chart-1: #fb923c;
-  --chart-2: #4ade80;
+  --sidebar: #0a1a18;
+  --chart-1: #5eead4;
+  --chart-2: #fbbf24;
   --chart-3: #60a5fa;
   --chart-4: #c084fc;
-  --chart-5: #38bdf8;
-  --chart-6: #fbbf24;
+  --chart-5: #22d3ee;
+  --chart-6: #a3e635;
 }
 
 /* Tokens semánticos → consumen variables que cambian con .dark */

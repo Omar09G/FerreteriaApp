@@ -68,7 +68,7 @@ function AlmacenForm({
 					type="checkbox"
 					checked={esPuntoVenta}
 					onChange={(e) => setEsPuntoVenta(e.target.checked)}
-					className="h-4 w-4 accent-orange-600"
+					className="h-4 w-4 accent-primary"
 				/>
 				Es punto de venta
 			</label>
@@ -117,7 +117,7 @@ function columnasAlmacen({ toggle, editar }: CrudColumnasCtx<Almacen>) {
 					checked={a.activo}
 					onChange={() => toggle(a)}
 					aria-label={`Almacén ${a.nombre} activo`}
-					className="h-4 w-4 accent-orange-600"
+					className="h-4 w-4 accent-primary"
 				/>
 			),
 		},

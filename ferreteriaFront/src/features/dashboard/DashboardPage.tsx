@@ -124,7 +124,7 @@ function KPI({
               ? "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400"
               : alerta === "warn"
                 ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
-                : "bg-orange-100 text-primary dark:bg-orange-950/40"
+                : "bg-warmbg text-primary"
           }`}
           aria-hidden
         >
@@ -250,7 +250,7 @@ export default function DashboardPage() {
                   ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400"
                   : relato.icono === "up"
                     ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400"
-                    : "bg-orange-100 text-primary dark:bg-orange-950/40"
+                    : "bg-warmbg text-primary"
               }`}
               aria-hidden
             >

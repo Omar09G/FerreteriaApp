@@ -92,7 +92,7 @@ export default function ReportesIndexPage() {
 						<Card className="h-full p-4 transition-colors hover:border-primary">
 							<div className="flex items-start gap-3">
 								<span
-									className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-primary"
+									className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-warmbg text-primary"
 									aria-hidden
 								>
 									{e.icono}

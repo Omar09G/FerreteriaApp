@@ -312,7 +312,7 @@ public class EmailNotificacionSender {
 
     private static String seccionTabla(String titulo, boolean alerta, String[] encabezados,
             String filas) {
-        String colorTitulo = alerta ? "#991b1b" : "#7c2d12";
+        String colorTitulo = alerta ? "#991b1b" : "#115e59";
         return "<div style=\"text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:14px;"
                 + "font-weight:bold;color:" + colorTitulo + ";margin:6px 0 8px 0;\">"
                 + EmailPlantilla.escapar(titulo) + "</div>"

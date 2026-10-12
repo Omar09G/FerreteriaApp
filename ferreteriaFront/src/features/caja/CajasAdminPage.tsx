@@ -75,7 +75,7 @@ function CajaForm({
 					type="checkbox"
 					checked={activa}
 					onChange={(e) => setActiva(e.target.checked)}
-					className="h-4 w-4 accent-orange-600"
+					className="h-4 w-4 accent-primary"
 				/>
 				Activa
 			</label>
@@ -113,7 +113,7 @@ function columnasCaja({ toggle, editar }: CrudColumnasCtx<Caja>) {
 					checked={c.activa}
 					onChange={() => toggle(c)}
 					aria-label={`Caja ${c.nombre} activa`}
-					className="h-4 w-4 accent-orange-600"
+					className="h-4 w-4 accent-primary"
 				/>
 			),
 		},

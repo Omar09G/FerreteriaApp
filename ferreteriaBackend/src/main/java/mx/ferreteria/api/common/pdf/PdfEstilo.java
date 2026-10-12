@@ -29,18 +29,18 @@ import com.lowagie.text.pdf.PdfWriter;
 public final class PdfEstilo {
 
     public static final String MARCA = "El Tornillo Feliz";
-    public static final java.awt.Color COLOR_MARCA = new java.awt.Color(0xC2, 0x41, 0x0C);
-    public static final java.awt.Color COLOR_MARCA_OSCURO = new java.awt.Color(0x7C, 0x2D, 0x12);
+    public static final java.awt.Color COLOR_MARCA = new java.awt.Color(0x0F, 0x76, 0x6E);
+    public static final java.awt.Color COLOR_MARCA_OSCURO = new java.awt.Color(0x11, 0x5E, 0x59);
     public static final java.awt.Color GRIS_TEXTO = new java.awt.Color(0x29, 0x25, 0x24);
     public static final java.awt.Color GRIS_SUAVE = new java.awt.Color(0x78, 0x71, 0x6C);
-    public static final java.awt.Color FONDO_CLARO = new java.awt.Color(0xFF, 0xF7, 0xED);
-    public static final java.awt.Color BORDE_CLARO = new java.awt.Color(0xFE, 0xD7, 0xAA);
+    public static final java.awt.Color FONDO_CLARO = new java.awt.Color(0xF0, 0xFD, 0xFA);
+    public static final java.awt.Color BORDE_CLARO = new java.awt.Color(0x99, 0xF6, 0xE0);
     public static final java.awt.Color FONDO_ALERTA = new java.awt.Color(0xFE, 0xF2, 0xF2);
     public static final java.awt.Color BORDE_ALERTA = new java.awt.Color(0xFE, 0xCA, 0xCA);
     public static final java.awt.Color VERDE_OK = new java.awt.Color(0x16, 0x65, 0x2D);
     public static final java.awt.Color ROJO_ALERTA = new java.awt.Color(0xB9, 0x1C, 0x1C);
     public static final java.awt.Color FONDO_ENCABEZADO = new java.awt.Color(0x29, 0x25, 0x24);
-    public static final java.awt.Color FONDO_FILA_ALT = new java.awt.Color(0xFA, 0xF7, 0xF1);
+    public static final java.awt.Color FONDO_FILA_ALT = new java.awt.Color(0xF5, 0xF5, 0xF4);
 
     private static final Locale LOCALE_MX = new Locale("es", "MX");
     private static final DateTimeFormatter FECHA_CORTE = DateTimeFormatter.ofPattern("dd/MM/yyyy");

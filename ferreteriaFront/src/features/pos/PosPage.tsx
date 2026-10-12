@@ -940,7 +940,7 @@ export default function PosPage() {
               </Button>
               {modoBarcode && (
                 <span
-                  className="inline-flex h-9 items-center gap-1 rounded-md border border-primary/40 bg-orange-100 px-2 text-xs font-medium text-primary"
+                  className="inline-flex h-9 items-center gap-1 rounded-md border border-primary/40 bg-warmbg px-2 text-xs font-medium text-primary"
                   aria-live="polite"
                 >
                   <Barcode className="h-3.5 w-3.5" /> código

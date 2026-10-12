@@ -181,7 +181,7 @@ function DevolucionForm({
 								onChange={(e) => marcar(d.ventaDetalleId, e.target.checked)}
 								aria-label={`Devolver ${d.productoNombre}`}
 								title={agotada ? "Ya devuelto por completo" : undefined}
-								className="h-4 w-4 rounded border-line accent-orange-600 disabled:opacity-40"
+								className="h-4 w-4 rounded border-line accent-primary disabled:opacity-40"
 							/>
 							<span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
 								{d.productoNombre}

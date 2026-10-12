@@ -49,7 +49,7 @@ export default function Otp() {
 
   if (!challenge) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-orange-700 via-primary to-orange-900 p-4 dark:from-stone-950 dark:via-sidebar dark:to-stone-950">
+      <div className="flex min-h-screen items-center justify-center bg-canvas p-4">
         <div className="w-full max-w-sm rounded-xl border border-white/20 bg-surface p-6 text-center shadow-2xl">
           <p className="mb-4 text-sm text-muted">{t("auth.otp.sinDesafio")}</p>
           <Link to="/login" className="text-sm font-semibold text-primary hover:underline">
@@ -129,7 +129,7 @@ export default function Otp() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-orange-700 via-primary to-orange-900 p-4 dark:from-stone-950 dark:via-sidebar dark:to-stone-950">
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-4">
       <div className="w-full max-w-sm rounded-xl border border-white/20 bg-surface p-6 shadow-2xl">
         <h1 className="text-center text-lg font-bold text-ink">{t("auth.otp.titulo")}</h1>
         <p className="mb-4 text-center text-sm text-muted">{t("auth.otp.subtitulo")}</p>
@@ -149,7 +149,7 @@ export default function Otp() {
                   onClick={() => setCanalElegido("email")}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm font-semibold transition ${
                     canal === "email"
-                      ? "border-primary bg-orange-50 text-ink dark:bg-orange-950/30"
+                      ? "border-primary bg-warmbg text-ink"
                       : "border-line text-muted hover:bg-warmbg"
                   }`}
                 >
@@ -170,7 +170,7 @@ export default function Otp() {
                   onClick={() => setCanalElegido("whatsapp")}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm font-semibold transition ${
                     canal === "whatsapp"
-                      ? "border-primary bg-orange-50 text-ink dark:bg-orange-950/30"
+                      ? "border-primary bg-warmbg text-ink"
                       : "border-line text-muted hover:bg-warmbg"
                   }`}
                 >
