@@ -105,16 +105,19 @@ public class AuthController {
 
     /**
      * Segunda fase (común a password y Google): verifica el código y emite
-     * las cookies `at` y `rt`.
+     * las cookies `at` y `rt`. Con sesión vigente en otro equipo y sin
+     * `forzarCierre`, responde 409 SESION_ACTIVA para pedir confirmación.
      */
     @PostMapping("/otp/verificar")
     @RateLimited("auth")
     @ApiResponse(responseCode = "200", description = "OTP OK; cookies `at` y `rt` emitidas")
     @ApiResponse(responseCode = "401", description = "Código erróneo/expirado (OTP_INVALIDO/OTP_EXPIRADO)")
+    @ApiResponse(responseCode = "409", description = "Sesión activa en otro equipo (SESION_ACTIVA)")
     @ApiResponse(responseCode = "429", description = "Intentos agotados (OTP_AGOTADO)")
     public ResponseEntity<TokenResponse> otpVerificar(@Valid @RequestBody OtpVerificarRequest req,
             HttpServletRequest http) {
-        LoginResult result = otpService.verificar(req.challengeId(), req.codigo(), meta(http));
+        LoginResult result = otpService.verificar(req.challengeId(), req.codigo(), meta(http),
+                req.forzarCierre());
         return sesion(result);
     }
 

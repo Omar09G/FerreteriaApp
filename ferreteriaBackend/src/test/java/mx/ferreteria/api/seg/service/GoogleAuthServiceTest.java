@@ -129,7 +129,7 @@ class GoogleAuthServiceTest {
         var user = new AuthUser(7, "cajero1", "hash", true, false, 42);
         when(usuarios.findByGoogleSub("sub-1")).thenReturn(Optional.of(user));
         when(otp.crearDesafio(eq(7), any())).thenReturn("ch-7");
-        var ch = new OtpChallengeResponse("ch-7", List.of("email"), "ca***@x", null, 300);
+        var ch = new OtpChallengeResponse("ch-7", List.of("email"), "ca***@x", null, 300, false, null);
         when(authService.desafioPara(7, "ch-7")).thenReturn(ch);
 
         assertThat(service.callback("code-abc")).isSameAs(ch);
@@ -147,7 +147,7 @@ class GoogleAuthServiceTest {
         when(usuarios.findByGoogleSub("sub-9")).thenReturn(Optional.empty());
         when(usuarios.findByEmail("nuevo@ferreteria.local")).thenReturn(Optional.of(user));
         when(otp.crearDesafio(eq(9), any())).thenReturn("ch-9");
-        var ch = new OtpChallengeResponse("ch-9", List.of("email"), "nu***@x", null, 300);
+        var ch = new OtpChallengeResponse("ch-9", List.of("email"), "nu***@x", null, 300, false, null);
         when(authService.desafioPara(9, "ch-9")).thenReturn(ch);
 
         assertThat(service.callback("code-abc")).isSameAs(ch);

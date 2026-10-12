@@ -15,6 +15,7 @@ public enum ErrorCode {
     OTP_AGOTADO("error.auth.otp-agotado", HttpStatus.TOO_MANY_REQUESTS),
     OAUTH_FALLIDO("error.auth.oauth-fallido", HttpStatus.UNAUTHORIZED),
     CANAL_NO_DISPONIBLE("error.auth.canal-no-disponible", HttpStatus.UNPROCESSABLE_ENTITY),
+    SESION_ACTIVA("error.auth.sesion-activa", HttpStatus.CONFLICT),
 
     // validación / paginación / correlación
     CAMPO_REQUERIDO("error.validacion.campo-requerido", HttpStatus.BAD_REQUEST),

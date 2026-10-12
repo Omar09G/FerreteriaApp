@@ -76,13 +76,21 @@ public final class AuthDtos {
      * login devuelve un desafío OTP en vez de tokens. El frontend lo usa para
      * mostrar la pantalla de canal + código. Los destinos van enmascarados
      * (anti-enumeración: existen pero no se revelan completos).
+     * {@code sesionActiva} avisa que el usuario ya tiene una sesión vigente
+     * en otro equipo: el frontend debe pedir confirmación antes de verificar
+     * el código (el backend exige {@code forzarCierre=true} en ese caso).
+     * {@code ubicacionNueva} es la ubicación aproximada (ciudad/región/país
+     * por GeoIP) del intento actual, o null si no se resolvió: sirve para que
+     * la confirmación muestre desde dónde es el nuevo inicio.
      */
     public record OtpChallengeResponse(
             String challengeId,
             List<String> canales,
             String emailEnmascarado,
             String whatsappEnmascarado,
-            long expiraEnSegundos) { }
+            long expiraEnSegundos,
+            boolean sesionActiva,
+            String ubicacionNueva) { }
 
     public record OtpEnviarRequest(
             @NotBlank @Size(max = 64) String challengeId,
@@ -90,7 +98,17 @@ public final class AuthDtos {
 
     public record OtpVerificarRequest(
             @NotBlank @Size(max = 64) String challengeId,
-            @NotBlank @Pattern(regexp = "^\\d{6}$") String codigo) { }
+            @NotBlank @Pattern(regexp = "^\\d{6}$") String codigo,
+            /**
+             * Confirmación explícita de takeover single-session: si el usuario
+             * tiene una sesión vigente en otro equipo, verificar sin este flag
+             * se rechaza con SESION_ACTIVA (409). Ausente = false.
+             */
+            boolean forzarCierre) {
+        public OtpVerificarRequest(String challengeId, String codigo) {
+            this(challengeId, codigo, false);
+        }
+    }
 
     /** URL de autorización de Google generada por el backend (redirect). */
     public record GoogleInitResponse(String url) { }

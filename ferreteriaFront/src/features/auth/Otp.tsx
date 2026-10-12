@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { KeyRound, Mail, MessageCircle } from "lucide-react";
 
-import { ensureCsrfCookie, mensajeError } from "@/lib/api/client";
+import { ensureCsrfCookie, esApiError, mensajeError } from "@/lib/api/client";
 import { apiSolicitarOtp, apiVerificarOtp } from "@/lib/api/endpoints";
 import type { OtpCanal } from "@/lib/api/types";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/i18n";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -36,6 +37,9 @@ export default function Otp() {
   const [enviando, setEnviando] = useState(false);
   const [verificando, setVerificando] = useState(false);
   const [espera, setEspera] = useState(0);
+  // Takeover single-session: el challenge avisa si hay sesión vigente en
+  // otro equipo; el 409 SESION_ACTIVA cubre la carrera (apareció después).
+  const [takeoverAbierto, setTakeoverAbierto] = useState(false);
 
   useEffect(() => {
     if (espera <= 0) return;
@@ -81,6 +85,18 @@ export default function Otp() {
 
   const verificar = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Sesión vigente avisada por el challenge: pedir confirmación explícita
+    // antes de verificar (cerrar la anterior es irreversible).
+    if (challenge?.sesionActiva) {
+      setError(null);
+      setTakeoverAbierto(true);
+      return;
+    }
+    await ejecutarVerificacion(false);
+  };
+
+  const ejecutarVerificacion = async (forzarCierre: boolean) => {
+    if (!challenge) return;
     setError(null);
     setVerificando(true);
     try {
@@ -88,15 +104,28 @@ export default function Otp() {
       const token = await apiVerificarOtp({
         challengeId: challenge.challengeId,
         codigo: codigo.trim(),
+        forzarCierre,
       });
       setChallenge(null);
       setSession(token);
       navigate(destino, { replace: true });
     } catch (err) {
+      // Carrera: la otra sesión apareció después del challenge. El desafío
+      // sigue válido (el backend no lo consume en 409): reintentar tras
+      // confirmar usa el mismo código.
+      if (esApiError(err) && err.codigo === "SESION_ACTIVA") {
+        setTakeoverAbierto(true);
+        return;
+      }
       setError(mensajeError(err));
     } finally {
       setVerificando(false);
     }
+  };
+
+  const confirmarTakeover = () => {
+    setTakeoverAbierto(false);
+    void ejecutarVerificacion(true);
   };
 
   return (
@@ -199,6 +228,25 @@ export default function Otp() {
           </form>
         )}
       </div>
+      <ConfirmDialog
+        open={takeoverAbierto}
+        title={t("auth.otp.sesionActivaTitulo")}
+        confirmLabel={t("auth.otp.sesionActivaConfirmar")}
+        cancelLabel={t("auth.otp.sesionActivaCancelar")}
+        tone="danger"
+        busy={verificando}
+        onCancel={() => setTakeoverAbierto(false)}
+        onConfirm={confirmarTakeover}
+      >
+        <p className="text-sm text-muted">{t("auth.otp.sesionActivaTexto")}</p>
+        {challenge?.ubicacionNueva && (
+          <p className="mt-2 text-sm font-semibold text-ink">
+            {t("auth.otp.sesionActivaUbicacion", {
+              ubicacion: challenge.ubicacionNueva,
+            })}
+          </p>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }

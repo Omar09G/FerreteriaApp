@@ -3,6 +3,7 @@ package mx.ferreteria.api.seg.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -119,7 +120,7 @@ class OtpServiceTest {
     void desafio_ok() {
         when(otp.findByChallengeId("ch-1")).thenReturn(Optional.of(pendiente()));
         var ch = new mx.ferreteria.api.seg.dto.AuthDtos.OtpChallengeResponse("ch-1",
-                java.util.List.of("email"), "ca***@x", null, 300);
+                java.util.List.of("email"), "ca***@x", null, 300, false, null);
         when(authService.desafioPara(7, "ch-1")).thenReturn(ch);
 
         assertThat(service.desafio("ch-1")).isSameAs(ch);
@@ -183,13 +184,41 @@ class OtpServiceTest {
         var esperado = new LoginResult(
                 new mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse("acc", null, 28800, null),
                 "ref");
-        when(authService.emitirSesion(eq(7), any())).thenReturn(esperado);
+        when(authService.emitirSesion(eq(7), any(), eq(false))).thenReturn(esperado);
 
         LoginResult r = service.verificar("ch-1", "482913", RequestMeta.UNKNOWN);
 
         assertThat(r).isSameAs(esperado);
         verify(otp).consumir("ch-1");
-        verify(authService).emitirSesion(eq(7), any());
+        verify(authService).emitirSesion(eq(7), any(), eq(false));
+    }
+
+    @Test
+    @DisplayName("verificar con forzarCierre: propaga la confirmación de takeover")
+    void verificar_forzarCierre_propaga() {
+        when(otp.findByChallengeId("ch-1")).thenReturn(Optional.of(conCodigo("482913", 0)));
+        var esperado = new LoginResult(
+                new mx.ferreteria.api.seg.dto.AuthDtos.TokenResponse("acc", null, 28800, null),
+                "ref");
+        when(authService.emitirSesion(eq(7), any(), eq(true))).thenReturn(esperado);
+
+        LoginResult r = service.verificar("ch-1", "482913", RequestMeta.UNKNOWN, true);
+
+        assertThat(r).isSameAs(esperado);
+        verify(authService).emitirSesion(eq(7), any(), eq(true));
+    }
+
+    @Test
+    @DisplayName("verificar con sesión activa y sin forzar: SESION_ACTIVA sin consumir el desafío")
+    void verificar_sesionActivaSinForzar_rejected() {
+        when(otp.findByChallengeId("ch-1")).thenReturn(Optional.of(conCodigo("482913", 0)));
+        when(usuarios.tieneSesionActiva(7)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.verificar("ch-1", "482913", RequestMeta.UNKNOWN))
+                .isInstanceOfSatisfying(ValidacionException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.SESION_ACTIVA));
+        verify(otp, never()).consumir(anyString());
+        verify(authService, never()).emitirSesion(anyInt(), any(), anyBoolean());
     }
 
     @Test
@@ -213,7 +242,7 @@ class OtpServiceTest {
                 .isInstanceOfSatisfying(ValidacionException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.OTP_AGOTADO));
         verify(otp).revocar("ch-1");
-        verify(authService, never()).emitirSesion(anyInt(), any());
+        verify(authService, never()).emitirSesion(anyInt(), any(), anyBoolean());
     }
 
     @Test

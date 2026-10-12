@@ -73,6 +73,10 @@ export interface OtpChallenge {
   emailEnmascarado: string | null;
   whatsappEnmascarado: string | null;
   expiraEnSegundos: number;
+  /** True cuando el usuario ya tiene una sesión vigente en otro equipo. */
+  sesionActiva: boolean;
+  /** Ubicación aproximada del intento actual, o null si no se resolvió. */
+  ubicacionNueva: string | null;
 }
 
 export type OtpCanal = "email" | "whatsapp";
@@ -85,6 +89,11 @@ export interface OtpEnviarRequest {
 export interface OtpVerificarRequest {
   challengeId: string;
   codigo: string;
+  /**
+   * Confirmación explícita de takeover single-session. Sin este flag y con
+   * sesión vigente en otro equipo, el backend responde 409 SESION_ACTIVA.
+   */
+  forzarCierre?: boolean;
 }
 
 export interface GoogleInit {

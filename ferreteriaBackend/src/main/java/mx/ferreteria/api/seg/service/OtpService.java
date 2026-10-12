@@ -98,10 +98,22 @@ public class OtpService {
     /**
      * Verifica el código y, si es correcto, emite la sesión (par at/rt).
      * Agota intentos → revoca el desafío (OTP_AGOTADO); expirado →
-     * OTP_EXPIRADO; erróneo → OTP_INVALIDO.
+     * OTP_EXPIRADO; erróneo → OTP_INVALIDO. Con sesión vigente en otro equipo
+     * y sin {@code forzarCierre}, la emisión se rechaza con SESION_ACTIVA.
      */
     @Transactional
     public LoginResult verificar(String challengeId, String codigo, RequestMeta meta) {
+        return verificar(challengeId, codigo, meta, false);
+    }
+
+    /**
+     * Verifica el código y emite la sesión, propagando la confirmación
+     * explícita de takeover single-session hasta
+     * {@link AuthService#emitirSesion(int, RequestMeta, boolean)}.
+     */
+    @Transactional
+    public LoginResult verificar(String challengeId, String codigo, RequestMeta meta,
+            boolean forzarCierre) {
         var desafio = otp.findByChallengeId(challengeId).orElse(null);
         if (desafio == null || desafio.consumidoEn() != null || desafio.revocadoEn() != null
                 || desafio.codigoHash() == null) {
@@ -125,9 +137,17 @@ public class OtpService {
             }
             throw new ValidacionException(ErrorCode.OTP_INVALIDO);
         }
+        // Single-session: avisar ANTES de consumir para que el desafío siga
+        // válido cuando el usuario confirme el takeover y reintente con
+        // forzarCierre. emitirSesion re-valida (red de seguridad anti-TOCTOU).
+        if (!forzarCierre && usuarios.tieneSesionActiva(desafio.usuarioId())) {
+            log.info("otp verificado pero hay sesion activa usuario_id={}; se pide confirmación",
+                    desafio.usuarioId());
+            throw new ValidacionException(ErrorCode.SESION_ACTIVA);
+        }
         otp.consumir(challengeId);
         log.info("otp verificado usuario_id={} canal={}", desafio.usuarioId(), desafio.canal());
-        return authService.emitirSesion(desafio.usuarioId(), meta);
+        return authService.emitirSesion(desafio.usuarioId(), meta, forzarCierre);
     }
 
     private boolean enviarWhatsApp(String numero, String codigo) {

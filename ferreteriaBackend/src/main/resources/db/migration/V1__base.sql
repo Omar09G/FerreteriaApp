@@ -300,6 +300,12 @@ CREATE TABLE IF NOT EXISTS seg.sesiones (
     usuario_id         INTEGER NOT NULL REFERENCES seg.usuarios(usuario_id),
     ip_address         INET,
     user_agent         TEXT,
+    -- Ubicación aproximada del login por GeoIP (V37). Solo texto
+    -- ciudad/región/país, nunca coordenadas. NULL si no se pudo resolver
+    -- (IP privada, sin base GeoIP o lookup fallido).
+    ciudad             VARCHAR(120),
+    region             VARCHAR(120),
+    pais               VARCHAR(120),
     inicio             TIMESTAMPTZ NOT NULL DEFAULT now(),
     fin                TIMESTAMPTZ,
     cerrada_por_logout BOOLEAN NOT NULL DEFAULT false

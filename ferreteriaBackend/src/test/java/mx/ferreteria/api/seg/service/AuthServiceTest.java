@@ -77,6 +77,15 @@ class AuthServiceTest {
     @Mock
     OtpGateway otp;
 
+    @Mock
+    OtpEmailSender emailAviso;
+
+    @Mock
+    OtpWhatsappPort whatsappAviso;
+
+    @Mock
+    GeoIpService geo;
+
     final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     JwtService jwtService;
     AuthService service;
@@ -90,14 +99,14 @@ class AuthServiceTest {
         service = new AuthService(gateway, admin, empleados, encoder,
                 jwtService,
                 new AuthCookieProperties(false, "Lax", "/api/v1/auth", "rt", "at"),
-                otp, new OtpProperties(5, 5, 60, 6));
+                otp, new OtpProperties(5, 5, 60, 6), emailAviso, whatsappAviso, geo);
     }
 
     private void mockUserOk() {
         when(gateway.findByUsername("cajero1")).thenReturn(Optional.of(activo));
         when(gateway.findById(7)).thenReturn(Optional.of(activo));
         when(gateway.rolesOf(7)).thenReturn(List.of("VENDEDOR"));
-        when(gateway.abrirSesion(eq(7), any(), any())).thenReturn(1);
+        when(gateway.abrirSesion(eq(7), any(), any(), any(), any(), any())).thenReturn(1);
         when(otp.crearDesafio(eq(7), any())).thenReturn("challenge-1");
         when(gateway.contactosDe(7)).thenReturn(Optional.of(
                 new AuthUserGateway.Contactos("cajero1@ferreteria.local", "5551234567", null)));
@@ -116,11 +125,12 @@ class AuthServiceTest {
         assertThat(ch.emailEnmascarado()).isEqualTo("ca***@ferreteria.local");
         assertThat(ch.whatsappEnmascarado()).isEqualTo("***567");
         assertThat(ch.expiraEnSegundos()).isEqualTo(300);
+        assertThat(ch.sesionActiva()).isFalse();
 
         verify(gateway).resetFailedAttempts(7);
         verify(otp).crearDesafio(eq(7), eq(java.time.Duration.ofMinutes(5)));
         // primera fase: sin sesión ni tokens todavía
-        verify(gateway, never()).abrirSesion(anyInt(), any(), any());
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any(), any(), any(), any());
         verify(gateway, never()).saveRefreshToken(anyInt(), anyString(), any());
     }
 
@@ -139,11 +149,131 @@ class AuthServiceTest {
         assertThat(r.usuario().username()).isEqualTo("cajero1");
         assertThat(r.usuario().roles()).containsExactly("VENDEDOR");
 
-        verify(gateway).abrirSesion(eq(7), any(), any());
+        verify(gateway).abrirSesion(eq(7), any(), any(), any(), any(), any());
         verify(gateway).revokeAllRefreshTokens(7); // login nuevo = una sola sesión activa
+        verify(gateway).cerrarSesionesActivas(7);
         verify(gateway).saveRefreshToken(eq(7),
                 eq(JwtService.sha256Base64(result.refreshRaw())), any(Instant.class));
         verify(gateway).updateUltimoLogin(7);
+        // sin sesión previa no hay avisos de takeover
+        verifyNoInteractions(emailAviso, whatsappAviso);
+    }
+
+    @Test
+    @DisplayName("login avisa sesionActiva cuando hay refresh vigente en otro equipo")
+    void login_conSesionActiva_avisaEnDesafio() {
+        mockUserOk();
+        when(gateway.tieneSesionActiva(7)).thenReturn(true);
+
+        OtpChallengeResponse ch = service.login(new LoginRequest("cajero1", "Secreta123"),
+                RequestMeta.UNKNOWN);
+
+        assertThat(ch.challengeId()).isEqualTo("challenge-1");
+        assertThat(ch.sesionActiva()).isTrue();
+        // primera fase: el bloqueo real ocurre al verificar el OTP, no aquí
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("emitirSesion con sesión activa y sin forzar: SESION_ACTIVA sin emitir nada")
+    void emitirSesion_sesionActivaSinForzar_rejected() {
+        mockUserOk();
+        when(gateway.tieneSesionActiva(7)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.emitirSesion(7, RequestMeta.UNKNOWN))
+                .isInstanceOfSatisfying(ValidacionException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.SESION_ACTIVA));
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any(), any(), any(), any());
+        verify(gateway, never()).saveRefreshToken(anyInt(), anyString(), any());
+        verifyNoInteractions(emailAviso, whatsappAviso);
+    }
+
+    @Test
+    @DisplayName("emitirSesion con forzarCierre: cierra anterior, emite y avisa por correo+whatsapp")
+    void emitirSesion_forzarCierre_takeoverConAvisos() {
+        mockUserOk();
+        when(gateway.tieneSesionActiva(7)).thenReturn(true);
+
+        LoginResult result = service.emitirSesion(7, RequestMeta.UNKNOWN, true);
+
+        assertThat(result.refreshRaw()).isNotBlank();
+        verify(gateway).cerrarSesionesActivas(7);
+        verify(gateway).revokeAllRefreshTokens(7);
+        verify(gateway).abrirSesion(eq(7), any(), any(), any(), any(), any());
+        verify(emailAviso).enviarAvisoSesionCerrada(eq("cajero1@ferreteria.local"), any());
+        verify(whatsappAviso).enviarTexto(eq("5551234567"), anyString());
+    }
+
+    @Test
+    @DisplayName("takeover con correo caído: el login igual se emite (aviso best-effort)")
+    void emitirSesion_avisoEmailFalla_loginIgualOk() {
+        mockUserOk();
+        when(gateway.tieneSesionActiva(7)).thenReturn(true);
+        org.mockito.Mockito.doThrow(new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE))
+                .when(emailAviso).enviarAvisoSesionCerrada(anyString(), any());
+
+        LoginResult result = service.emitirSesion(7, RequestMeta.UNKNOWN, true);
+
+        assertThat(result.refreshRaw()).isNotBlank();
+        verify(whatsappAviso).enviarTexto(eq("5551234567"), anyString());
+    }
+
+    @Test
+    @DisplayName("emitirSesion persiste la ubicación GeoIP de la IP actual")
+    void emitirSesion_conGeoIp_persisteUbicacion() {
+        mockUserOk();
+        when(geo.buscar("8.8.8.8")).thenReturn(Optional.of(
+                new GeoIpService.Ubicacion("Guadalajara", "Jalisco", "México")));
+
+        service.emitirSesion(7, new RequestMeta("8.8.8.8", "agent-x"));
+
+        verify(gateway).abrirSesion(eq(7), eq("8.8.8.8"), eq("agent-x"),
+                eq("Guadalajara"), eq("Jalisco"), eq("México"));
+    }
+
+    @Test
+    @DisplayName("emitirSesion sin GeoIP: abre sesión con ubicación null")
+    void emitirSesion_sinGeoIp_ubicacionNull() {
+        mockUserOk();
+        when(geo.buscar(any())).thenReturn(Optional.empty());
+
+        service.emitirSesion(7, new RequestMeta("8.8.8.8", "agent-x"));
+
+        verify(gateway).abrirSesion(eq(7), eq("8.8.8.8"), eq("agent-x"),
+                isNull(), isNull(), isNull());
+        verifyNoInteractions(emailAviso, whatsappAviso);
+    }
+
+    @Test
+    @DisplayName("takeover incluye la ciudad del nuevo inicio en los avisos")
+    void emitirSesion_takeover_avisaConUbicacion() {
+        mockUserOk();
+        when(gateway.tieneSesionActiva(7)).thenReturn(true);
+        when(geo.buscar("8.8.8.8")).thenReturn(Optional.of(
+                new GeoIpService.Ubicacion("Guadalajara", "Jalisco", "México")));
+
+        service.emitirSesion(7, new RequestMeta("8.8.8.8", "agent-x"), true);
+
+        verify(emailAviso).enviarAvisoSesionCerrada("cajero1@ferreteria.local",
+                "Guadalajara, Jalisco, México");
+        org.mockito.ArgumentCaptor<String> texto =
+                org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(whatsappAviso).enviarTexto(eq("5551234567"), texto.capture());
+        assertThat(texto.getValue()).contains("Guadalajara, Jalisco, México");
+    }
+
+    @Test
+    @DisplayName("login informa ubicacionNueva del intento actual en el desafío")
+    void login_conGeoIp_informaUbicacion() {
+        mockUserOk();
+        when(geo.buscar("8.8.8.8")).thenReturn(Optional.of(
+                new GeoIpService.Ubicacion("Guadalajara", null, "México")));
+
+        OtpChallengeResponse ch = service.login(new LoginRequest("cajero1", "Secreta123"),
+                new RequestMeta("8.8.8.8", "agent-x"));
+
+        assertThat(ch.sesionActiva()).isFalse();
+        assertThat(ch.ubicacionNueva()).isEqualTo("Guadalajara, México");
     }
 
     @Test
@@ -159,7 +289,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> service.emitirSesion(99, RequestMeta.UNKNOWN))
                 .isInstanceOfSatisfying(ValidacionException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CREDENCIALES_INVALIDAS));
-        verify(gateway, never()).abrirSesion(anyInt(), any(), any());
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -172,7 +302,7 @@ class AuthServiceTest {
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CREDENCIALES_INVALIDAS));
 
         verify(gateway, never()).saveRefreshToken(anyInt(), anyString(), any());
-        verify(gateway, never()).abrirSesion(anyInt(), any(), any());
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -412,7 +542,7 @@ class AuthServiceTest {
                 RequestMeta.UNKNOWN))
                 .isInstanceOfSatisfying(ValidacionException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CUENTA_BLOQUEADA));
-        verify(gateway, never()).abrirSesion(anyInt(), any(), any());
+        verify(gateway, never()).abrirSesion(anyInt(), any(), any(), any(), any(), any());
         verify(otp, never()).crearDesafio(anyInt(), any());
     }
 
@@ -477,7 +607,7 @@ class AuthServiceTest {
         LoginResult r = service.emitirSesion(7, null);
 
         assertThat(r.refreshRaw()).isNotBlank();
-        verify(gateway).abrirSesion(eq(7), isNull(), isNull());
+        verify(gateway).abrirSesion(eq(7), isNull(), isNull(), isNull(), isNull(), isNull());
     }
 
     @Test
@@ -487,7 +617,7 @@ class AuthServiceTest {
 
         service.emitirSesion(7, new RequestMeta("1.2.3.4", "agent-x"));
 
-        verify(gateway).abrirSesion(7, "1.2.3.4", "agent-x");
+        verify(gateway).abrirSesion(eq(7), eq("1.2.3.4"), eq("agent-x"), isNull(), isNull(), isNull());
     }
 
     // ── changePassword: politica y ramas ────────────────────────────

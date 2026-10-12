@@ -38,5 +38,11 @@ export default {
 		sinDesafio: "There is no pending verification. Please sign in again.",
 		volverLogin: "Back to sign in",
 		errorGoogle: "Could not sign in with Google. Please try again.",
+		sesionActivaTitulo: "Active session on another device",
+		sesionActivaTexto:
+			"Your account is already signed in on another device. If you continue, the previous session will close and we'll notify you by email and WhatsApp.",
+		sesionActivaUbicacion: "New sign-in detected from {{ubicacion}}.",
+		sesionActivaConfirmar: "Yes, close it",
+		sesionActivaCancelar: "Cancel",
 	},
 } as const;

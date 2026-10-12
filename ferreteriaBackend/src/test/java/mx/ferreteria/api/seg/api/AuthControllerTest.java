@@ -89,7 +89,7 @@ class AuthControllerTest {
                 when(authService.login(any(LoginRequest.class), any(RequestMeta.class)))
                                 .thenReturn(new OtpChallengeResponse("ch-1",
                                                 java.util.List.of("email", "whatsapp"),
-                                                "ca***@ferreteria.local", "***567", 300));
+                                                "ca***@ferreteria.local", "***567", 300, false, null));
 
                 mvc.perform(post("/api/v1/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -107,7 +107,7 @@ class AuthControllerTest {
         void otpDesafio_ok() throws Exception {
                 when(otpService.desafio("ch-1"))
                                 .thenReturn(new OtpChallengeResponse("ch-1",
-                                                java.util.List.of("email"), "ca***@x", null, 300));
+                                                java.util.List.of("email"), "ca***@x", null, 300, false, null));
 
                 mvc.perform(get("/api/v1/auth/otp/desafio")
                                 .queryParam("challengeId", "ch-1"))
@@ -142,7 +142,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("POST /auth/otp/verificar valido -> 200 con tokens y Set-Cookie rt/at")
         void otpVerificar_valid_returnsTokens() throws Exception {
-                when(otpService.verificar(eq("ch-1"), eq("482913"), any(RequestMeta.class)))
+                when(otpService.verificar(eq("ch-1"), eq("482913"), any(RequestMeta.class), eq(false)))
                                 .thenReturn(new LoginResult(
                                                 new TokenResponse("acc.jwt", null, 28800, ME),
                                                 "ref.jwt"));
@@ -168,6 +168,31 @@ class AuthControllerTest {
                                 .andExpect(cookie().path("rt", "/api/v1/auth"))
                                 .andExpect(cookie().httpOnly("at", true))
                                 .andExpect(cookie().path("at", "/"));
+        }
+
+        @Test
+        @DisplayName("POST /auth/otp/verificar con forzarCierre propaga la confirmación de takeover")
+        void otpVerificar_forzarCierre_propagado() throws Exception {
+                when(otpService.verificar(eq("ch-1"), eq("482913"), any(RequestMeta.class), eq(true)))
+                                .thenReturn(new LoginResult(
+                                                new TokenResponse("acc.jwt", null, 28800, ME),
+                                                "ref.jwt"));
+                when(authService.buildRefreshCookie("ref.jwt"))
+                                .thenReturn(org.springframework.http.ResponseCookie.from("rt", "ref.jwt")
+                                                .httpOnly(true).secure(false).path("/api/v1/auth")
+                                                .maxAge(java.time.Duration.ofHours(8)).sameSite("Lax").build());
+                when(authService.buildAccessCookie("acc.jwt"))
+                                .thenReturn(org.springframework.http.ResponseCookie.from("at", "acc.jwt")
+                                                .httpOnly(true).secure(false).path("/")
+                                                .maxAge(java.time.Duration.ofHours(8)).sameSite("Lax").build());
+
+                mvc.perform(post("/api/v1/auth/otp/verificar")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"challengeId\":\"ch-1\",\"codigo\":\"482913\",\"forzarCierre\":true}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true));
+                org.mockito.Mockito.verify(otpService)
+                                .verificar(eq("ch-1"), eq("482913"), any(RequestMeta.class), eq(true));
         }
 
         @Test
@@ -199,7 +224,7 @@ class AuthControllerTest {
         void googleCallback_ok_redirects() throws Exception {
                 when(googleAuthService.callback("code-abc"))
                                 .thenReturn(new OtpChallengeResponse("ch-9",
-                                                java.util.List.of("email"), "nu***@x", null, 300));
+                                                java.util.List.of("email"), "nu***@x", null, 300, false, null));
 
                 mvc.perform(get("/api/v1/auth/oauth2/google/callback")
                                 .queryParam("code", "code-abc"))

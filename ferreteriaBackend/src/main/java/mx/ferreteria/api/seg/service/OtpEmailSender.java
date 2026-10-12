@@ -46,6 +46,31 @@ public class OtpEmailSender {
         return mx.ferreteria.api.common.privacy.DatosSensibles.enmascararEmail(email);
     }
 
+    /**
+     * Aviso de takeover single-session: la sesión anterior se cerró porque el
+     * usuario inició sesión en otro equipo. Mismo contrato que
+     * {@link #enviarCodigo}: lanza SERVICIO_NO_DISPONIBLE si el SMTP falla; el
+     * llamador (AuthService) lo trata como best-effort para no bloquear el
+     * login cuando el correo cae.
+     *
+     * @param ubicacionNueva ciudad/región/país del nuevo inicio, o null si no
+     *        se resolvió (no se menciona en ese caso).
+     */
+    public void enviarAvisoSesionCerrada(String to, String ubicacionNueva) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject("Tu sesión se cerró — " + EmailPlantilla.MARCA);
+            helper.setText(textoPlanoAviso(ubicacionNueva), htmlAviso(ubicacionNueva));
+            mailSender.send(message);
+            log.info("aviso sesion cerrada enviado to={}", enmascarar(to));
+        } catch (Exception e) {
+            log.warn("aviso sesion email fallo to={} err={}", enmascarar(to), e.getMessage());
+            throw new ValidacionException(ErrorCode.SERVICIO_NO_DISPONIBLE);
+        }
+    }
+
     private static String textoPlano(String codigo, int ttlMinutos) {
         return "Hola,\n\n"
                 + "Tu código de verificación de " + EmailPlantilla.MARCA + " es:\n\n"
@@ -71,5 +96,32 @@ public class OtpEmailSender {
                 "Vence en <strong>" + ttlMinutos + " minutos</strong> y solo puede usarse "
                         + "una vez. Si no solicitaste este c&oacute;digo, ignora este mensaje "
                         + "y revisa la seguridad de tu cuenta.");
+    }
+
+    private static String textoPlanoAviso(String ubicacionNueva) {
+        return "Hola,\n\n"
+                + "Tu sesión de " + EmailPlantilla.MARCA + " se cerró porque iniciaste "
+                + "sesión en otro equipo"
+                + (ubicacionNueva == null || ubicacionNueva.isBlank()
+                        ? ".\n\n" : " desde " + ubicacionNueva + ".\n\n")
+                + "Si fuiste tú, ignora este mensaje. Si no fuiste tú, cambia tu "
+                + "contraseña de inmediato y avisa a tu administrador.\n\n"
+                + "— " + EmailPlantilla.MARCA;
+    }
+
+    private static String htmlAviso(String ubicacionNueva) {
+        String filas = EmailPlantilla.fila("Motivo", "Nuevo inicio de sesión en otro equipo")
+                + ((ubicacionNueva == null || ubicacionNueva.isBlank()) ? ""
+                        : EmailPlantilla.fila("Ubicación aproximada", ubicacionNueva));
+        String bloque = EmailPlantilla.detalles(filas);
+        return EmailPlantilla.documento(
+                "Tu sesi&oacute;n anterior se cerr&oacute;:",
+                "Detectamos un nuevo inicio de sesi&oacute;n con tu usuario en otro "
+                        + "equipo, así que cerramos la sesi&oacute;n anterior para mantener "
+                        + "una sola sesi&oacute;n activa.",
+                bloque,
+                "Si fuiste t&uacute;, ignora este mensaje. Si <strong>no</strong> fuiste "
+                        + "t&uacute;, cambia tu contrase&ntilde;a de inmediato y avisa a tu "
+                        + "administrador.");
     }
 }

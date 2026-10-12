@@ -65,6 +65,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     // Email transaccional (dev: Mailpit; prod: SMTP real).
     implementation("org.springframework.boot:spring-boot-starter-mail")
+    // GeoIP local (MaxMind GeoLite2-City): ubicación aproximada del login
+    // sin llamadas externas. La base .mmdb NO se versiona (licencia MaxMind):
+    // se apunta con GEOIP_DB_PATH; sin archivo el servicio se deshabilita solo.
+    implementation("com.maxmind.geoip2:geoip2:4.2.1")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

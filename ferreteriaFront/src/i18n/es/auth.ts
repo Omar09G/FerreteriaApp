@@ -38,5 +38,11 @@ export default {
 		sinDesafio: "No hay una verificación pendiente. Vuelve a iniciar sesión.",
 		volverLogin: "Volver al inicio de sesión",
 		errorGoogle: "No fue posible iniciar sesión con Google. Intenta de nuevo.",
+		sesionActivaTitulo: "Sesión activa en otro equipo",
+		sesionActivaTexto:
+			"Tu usuario ya tiene una sesión abierta en otro equipo. Si continúas, se cerrará la sesión anterior y te avisaremos por correo y WhatsApp.",
+		sesionActivaUbicacion: "Nuevo inicio detectado desde {{ubicacion}}.",
+		sesionActivaConfirmar: "Sí, cerrar la anterior",
+		sesionActivaCancelar: "Cancelar",
 	},
 } as const;

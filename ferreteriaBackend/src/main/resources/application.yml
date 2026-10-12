@@ -137,6 +137,13 @@ app:
       max-intentos: ${OTP_MAX_INTENTOS:5}
       reenvio-segundos: ${OTP_REENVIO_SEGUNDOS:60}
       longitud: 6
+    # Ubicación aproximada del login (ciudad/región/país por GeoIP local,
+    # MaxMind GeoLite2-City, sin llamadas externas). Vacío = deshabilitado
+    # (el login guarda nulls). Para habilitar: crear cuenta gratuita en
+    # maxmind.com, descargar GeoLite2-City.mmdb y apuntar GEOIP_DB_PATH al
+    # archivo (p. ej. /opt/geoip/GeoLite2-City.mmdb). La base NO se versiona.
+    geoip:
+      db-path: ${GEOIP_DB_PATH:}
     # Login con Google (redirect iniciado por el backend; el secret nunca
     # llega al frontend). Sin estas vars el botón Google responde OAUTH_FALLIDO.
     google:

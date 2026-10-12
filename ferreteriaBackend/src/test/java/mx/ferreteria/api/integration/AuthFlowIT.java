@@ -229,6 +229,68 @@ class AuthFlowIT {
     }
 
     @Test
+    @DisplayName("segundo equipo: challenge avisa sesionActiva, verificar sin forzar da 409 y con forzar hace takeover con aviso")
+    void takeoverRequiereConfirmacion() {
+        loginConOtp();
+        bandeja.limpiar();
+
+        // segundo login: el desafío informa que hay sesión activa en otro equipo
+        var okReq = new HttpEntity<>(
+                "{\"username\":\"testuser\",\"password\":\"Secreta123\"}", json());
+        var ok = rest.postForEntity("/api/v1/auth/login", okReq, String.class);
+        assertThat(ok.getStatusCode().value()).isEqualTo(200);
+        String challengeJson = body(ok);
+        ChallengeResp ch;
+        try {
+            var node = om.readTree(challengeJson);
+            ch = new ChallengeResp(node.path("challengeId").asText(),
+                    om.readValue(node.path("canales").toString(), java.util.List.class));
+            assertThat(node.path("sesionActiva").asBoolean()).isTrue();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+
+        var envReq = new HttpEntity<>("{\"challengeId\":\"" + ch.challengeId()
+                + "\",\"canal\":\"whatsapp\"}", json());
+        assertThat(rest.postForEntity("/api/v1/auth/otp/enviar", envReq, String.class)
+                .getStatusCode().value()).isEqualTo(200);
+        assertThat(bandeja.mensajes()).hasSize(1);
+        Matcher m = Pattern.compile("(\\d{6})")
+                .matcher(bandeja.mensajes().get(0).asunto());
+        assertThat(m.find()).isTrue();
+        String codigo = m.group(1);
+        bandeja.limpiar();
+
+        // sin confirmación: 409 SESION_ACTIVA y el desafío sigue válido
+        var sinForzar = new HttpEntity<>("{\"challengeId\":\"" + ch.challengeId()
+                + "\",\"codigo\":\"" + codigo + "\"}", json());
+        var r409 = rest.postForEntity("/api/v1/auth/otp/verificar", sinForzar, String.class);
+        assertThat(r409.getStatusCode().value()).isEqualTo(409);
+        assertThat(r409.getBody()).contains("SESION_ACTIVA");
+
+        // con confirmación: takeover (200) + aviso de cierre por whatsapp
+        var conForzar = new HttpEntity<>("{\"challengeId\":\"" + ch.challengeId()
+                + "\",\"codigo\":\"" + codigo + "\",\"forzarCierre\":true}", json());
+        var ok2 = rest.postForEntity("/api/v1/auth/otp/verificar", conForzar, String.class);
+        assertThat(ok2.getStatusCode().value()).isEqualTo(200);
+        TokenResp t2 = tokens(body(ok2));
+        assertThat(t2.accessToken()).isNotBlank();
+        assertThat(bandeja.mensajes()).hasSize(1);
+        assertThat(bandeja.mensajes().get(0).asunto()).contains("sesión se cerró");
+
+        // la sesión anterior quedó cerrada en la bitácora (solo la nueva sigue abierta)
+        Integer abiertas = jdbc.queryForObject(
+                "SELECT count(*) FROM seg.sesiones WHERE usuario_id=" + usuarioId
+                + " AND fin IS NULL", Integer.class);
+        assertThat(abiertas).isEqualTo(1);
+        // sin base GeoIP en tests la ubicación queda null (fail-open)
+        String ciudad = jdbc.queryForObject(
+                "SELECT ciudad FROM seg.sesiones WHERE usuario_id=" + usuarioId
+                + " AND fin IS NULL", String.class);
+        assertThat(ciudad).isNull();
+    }
+
+    @Test
     @DisplayName("OTP erróneo repetido agota intentos; refresh rota revocando el hash viejo")
     void otpAgotadoYRefreshRotation() {
         var okReq = new HttpEntity<>(

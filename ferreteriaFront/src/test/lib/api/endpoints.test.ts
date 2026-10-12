@@ -60,6 +60,8 @@ describe("endpoints: auth", () => {
       emailEnmascarado: "ad***@x",
       whatsappEnmascarado: "***567",
       expiraEnSegundos: 300,
+      sesionActiva: false,
+      ubicacionNueva: null,
     };
     mock.post.mockResolvedValueOnce({ data: { success: true, data: challenge } });
     await expect(apiLogin(payload)).resolves.toEqual(challenge);

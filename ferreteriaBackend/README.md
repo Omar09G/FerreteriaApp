@@ -63,6 +63,9 @@ export GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=...
 export GOOGLE_REDIRECT_URI=http://localhost:8080/api/v1/auth/oauth2/google/callback
 # OTP (defaults: 5 min / 5 intentos / reenvío 60 s)
 export OTP_TTL_MINUTOS=5 OTP_MAX_INTENTOS=5 OTP_REENVIO_SEGUNDOS=60
+# GeoIP opcional: ubicación aproximada del login (requiere cuenta gratuita
+# MaxMind y descargar GeoLite2-City.mmdb; sin esto guarda nulls)
+export GEOIP_DB_PATH=/opt/geoip/GeoLite2-City.mmdb
 ```
 
 En dev el OTP por WhatsApp cae a la bandeja mock en memoria y el email a

@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Otp from "@/features/auth/Otp";
 import { apiSolicitarOtp, apiVerificarOtp } from "@/lib/api/endpoints";
 import { ensureCsrfCookie } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/errors";
 import { useAuthStore } from "@/store/auth";
 
 vi.mock("@/lib/api/endpoints", () => ({
@@ -13,12 +14,26 @@ vi.mock("@/lib/api/endpoints", () => ({
   apiVerificarOtp: vi.fn(),
 }));
 
-vi.mock("@/lib/api/client", () => ({
-  ensureCsrfCookie: vi.fn(),
-  mensajeError: vi.fn((e: unknown) =>
-    e instanceof Error ? e.message : String(e),
-  ),
-}));
+vi.mock("@/lib/api/client", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/api/client")>();
+  return {
+    ...real,
+    ensureCsrfCookie: vi.fn(),
+    mensajeError: vi.fn((e: unknown) =>
+      e instanceof Error ? e.message : String(e),
+    ),
+  };
+});
+
+function errorSesionActiva() {
+  return new ApiError({
+    success: false,
+    data: null,
+    errorCode: 409,
+    codigo: "SESION_ACTIVA",
+    errorMessage: "Ya tienes una sesión activa en otro equipo.",
+  });
+}
 
 const CHALLENGE = {
   challengeId: "ch-1",
@@ -26,6 +41,8 @@ const CHALLENGE = {
   emailEnmascarado: "ad***@x",
   whatsappEnmascarado: "***567",
   expiraEnSegundos: 300,
+  sesionActiva: false,
+  ubicacionNueva: null,
 };
 
 function renderPage() {
@@ -100,6 +117,7 @@ describe("Otp", () => {
       expect(apiVerificarOtp).toHaveBeenCalledWith({
         challengeId: "ch-1",
         codigo: "482913",
+        forzarCierre: false,
       });
     });
     expect(await screen.findByText("Panel")).toBeInTheDocument();
@@ -113,5 +131,110 @@ describe("Otp", () => {
     renderPage();
     await user.click(screen.getByRole("button", { name: "Enviar código" }));
     expect(await screen.findByText("Sin destino")).toBeInTheDocument();
+  });
+
+  it("con sesión activa pide confirmación y reintenta con forzarCierre", async () => {
+    const user = userEvent.setup();
+    useAuthStore.getState().setChallenge(
+      { ...CHALLENGE, sesionActiva: true } as never,
+    );
+    vi.mocked(apiVerificarOtp).mockResolvedValue({
+      accessToken: "tok-abc",
+      expiresInSeconds: 900,
+      usuario: { usuarioId: 1, username: "admin", roles: ["ADMINISTRADOR"] },
+    } as never);
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Enviar código" }));
+    await user.type(await screen.findByLabelText(/Código de 6 dígitos/), "482913");
+    await user.click(screen.getByRole("button", { name: /Verificar/ }));
+    // Sin confirmación no se verifica: se abre el diálogo de takeover.
+    expect(apiVerificarOtp).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Sesión activa en otro equipo"),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Sí, cerrar la anterior" }),
+    );
+    await vi.waitFor(() => {
+      expect(apiVerificarOtp).toHaveBeenCalledWith({
+        challengeId: "ch-1",
+        codigo: "482913",
+        forzarCierre: true,
+      });
+    });
+    expect(await screen.findByText("Panel")).toBeInTheDocument();
+  });
+
+  it("el 409 SESION_ACTIVA abre el diálogo y conserva el código para reintentar", async () => {
+    const user = userEvent.setup();
+    useAuthStore.getState().setChallenge({ ...CHALLENGE } as never);
+    vi.mocked(apiVerificarOtp)
+      .mockRejectedValueOnce(errorSesionActiva())
+      .mockResolvedValue({
+        accessToken: "tok-abc",
+        expiresInSeconds: 900,
+        usuario: { usuarioId: 1, username: "admin", roles: ["ADMINISTRADOR"] },
+      } as never);
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Enviar código" }));
+    await user.type(await screen.findByLabelText(/Código de 6 dígitos/), "482913");
+    await user.click(screen.getByRole("button", { name: /Verificar/ }));
+    await vi.waitFor(() => {
+      expect(apiVerificarOtp).toHaveBeenCalledWith({
+        challengeId: "ch-1",
+        codigo: "482913",
+        forzarCierre: false,
+      });
+    });
+    expect(
+      await screen.findByText("Sesión activa en otro equipo"),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Sí, cerrar la anterior" }),
+    );
+    await vi.waitFor(() => {
+      expect(apiVerificarOtp).toHaveBeenCalledWith({
+        challengeId: "ch-1",
+        codigo: "482913",
+        forzarCierre: true,
+      });
+    });
+    expect(await screen.findByText("Panel")).toBeInTheDocument();
+  });
+
+  it("muestra la ubicación del nuevo inicio cuando el backend la informa", async () => {
+    const user = userEvent.setup();
+    useAuthStore.getState().setChallenge(
+      {
+        ...CHALLENGE,
+        sesionActiva: true,
+        ubicacionNueva: "Guadalajara, Jalisco, México",
+      } as never,
+    );
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Enviar código" }));
+    await user.type(await screen.findByLabelText(/Código de 6 dígitos/), "482913");
+    await user.click(screen.getByRole("button", { name: /Verificar/ }));
+    expect(
+      await screen.findByText("Nuevo inicio detectado desde Guadalajara, Jalisco, México."),
+    ).toBeInTheDocument();
+  });
+
+  it("cancelar el takeover cierra el diálogo sin verificar", async () => {
+    const user = userEvent.setup();
+    useAuthStore.getState().setChallenge(
+      { ...CHALLENGE, sesionActiva: true } as never,
+    );
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Enviar código" }));
+    await user.type(await screen.findByLabelText(/Código de 6 dígitos/), "482913");
+    await user.click(screen.getByRole("button", { name: /Verificar/ }));
+    expect(
+      await screen.findByText("Sesión activa en otro equipo"),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(apiVerificarOtp).not.toHaveBeenCalled();
+    // Sigue en la pantalla OTP con el código intacto.
+    expect(screen.getByLabelText(/Código de 6 dígitos/)).toHaveValue("482913");
   });
 });

@@ -37,8 +37,10 @@ import mx.ferreteria.api.common.security.OtpProperties;
 
 /**
  * Login/refresh/logout/registro/change-password contra seg.usuarios (BCrypt
- * pgcrypto $2a$ compatible). Login con UNA SOLA SESIÓN ACTIVA: revoca todos los
- * refresh tokens previos del usuario (seg.refresh_tokens.revoked_at). Refresh
+ * pgcrypto $2a$ compatible). Login con UNA SOLA SESIÓN ACTIVA: sin
+ * confirmación explícita no se emite sesión si hay un refresh vigente en otro
+ * equipo (SESION_ACTIVA 409); con confirmación se revocan los refresh previos
+ * (seg.refresh_tokens.revoked_at) y se avisa por correo + WhatsApp. Refresh
  * con ROTACIÓN + defensa: un token ya revocado/expirado marca "ya expiró".
  *
  * <p>El refresh token se entrega al browser como cookie HttpOnly (XSS-proof). El
@@ -61,6 +63,9 @@ public class AuthService {
     private final AuthCookieProperties cookieProps;
     private final OtpGateway otp;
     private final OtpProperties otpProps;
+    private final OtpEmailSender emailAviso;
+    private final OtpWhatsappPort whatsappAviso;
+    private final GeoIpService geo;
 
     /** Ambiente (APP_AMBIENTE): en prod las cookies de auth exigen Secure. */
     @Value("${app.ambiente:dev}")
@@ -158,31 +163,70 @@ public class AuthService {
 
         String challengeId = otp.crearDesafio(user.usuarioId(),
                 java.time.Duration.ofMinutes(otpProps.ttlMinutos()));
-        return desafioPara(user.usuarioId(), challengeId);
+        return desafioPara(user.usuarioId(), challengeId,
+                meta == null ? null : meta.ip());
     }
 
     /**
      * Segunda fase (común a password y Google): emite el par at/rt + sesión
      * tras el OTP verificado. Contiene la lógica de sesión única, rotación y
      * auditoría del antiguo login directo.
+     *
+     * <p>Sin {@code forzarCierre} y con sesión vigente en otro equipo, se
+     * rechaza con SESION_ACTIVA (409) para que el frontend pida confirmación
+     * explícita antes del takeover.</p>
      */
     @Transactional
     public LoginResult emitirSesion(int usuarioId, RequestMeta meta) {
+        return emitirSesion(usuarioId, meta, false);
+    }
+
+    /**
+     * Emite la sesión exigiendo confirmación cuando hay takeover: si existe
+     * un refresh vigente de este usuario y {@code forzarCierre} es false, no
+     * se emite nada (SESION_ACTIVA). Con {@code forzarCierre=true} se cierra
+     * la sesión anterior (refresh + bitácora) y se avisa por correo y
+     * WhatsApp (best-effort: un canal caído no bloquea el login).
+     */
+    @Transactional
+    public LoginResult emitirSesion(int usuarioId, RequestMeta meta, boolean forzarCierre) {
         var user = gateway.findById(usuarioId)
                 .orElseThrow(() -> new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS));
         if (!user.activo()) {
             throw new ValidacionException(ErrorCode.CREDENCIALES_INVALIDAS);
         }
 
+        boolean habiaActiva = gateway.tieneSesionActiva(usuarioId);
+        if (habiaActiva && !forzarCierre) {
+            log.info("login bloqueado por sesion activa usuario_id={}", usuarioId);
+            throw new ValidacionException(ErrorCode.SESION_ACTIVA);
+        }
+
         List<String> roles = gateway.rolesOf(user.usuarioId());
         var principal = new UserPrincipal(user.usuarioId(), user.username(),
                 user.empleadoId(), roles);
 
+        // Cierra filas abiertas previas (takeover o rastros sin logout) antes
+        // de abrir la nueva: la bitácora nunca acumula dos abiertas.
+        gateway.cerrarSesionesActivas(user.usuarioId());
+
+        // Ubicación aproximada del nuevo inicio (GeoIP local, best-effort:
+        // null si la IP es privada o no hay base cargada).
+        var ubicacion = geo.buscar(meta == null ? null : meta.ip()).orElse(null);
+
         int sesion = gateway.abrirSesion(user.usuarioId(),
-                meta == null ? null : meta.ip(), meta == null ? null : meta.userAgent());
+                meta == null ? null : meta.ip(), meta == null ? null : meta.userAgent(),
+                ubicacion == null ? null : ubicacion.ciudad(),
+                ubicacion == null ? null : ubicacion.region(),
+                ubicacion == null ? null : ubicacion.pais());
 
         // UNICA sesión activa: invalida cualquier refresh emitido antes de este login
         gateway.revokeAllRefreshTokens(user.usuarioId());
+
+        if (habiaActiva) {
+            avisarTakeover(user.usuarioId(),
+                    ubicacion == null ? null : ubicacion.texto());
+        }
 
         String access = jwtService.createAccessToken(principal);
         String refresh = jwtService.createRefreshToken(user.usuarioId(), sesion);
@@ -198,6 +242,15 @@ public class AuthService {
 
     /** Arma el desafío con canales disponibles y destinos enmascarados. */
     public OtpChallengeResponse desafioPara(int usuarioId, String challengeId) {
+        return desafioPara(usuarioId, challengeId, null);
+    }
+
+    /**
+     * Arma el desafío incluyendo la ubicación aproximada del intento actual
+     * (para que el diálogo de takeover muestre desde dónde es el nuevo
+     * inicio). {@code ipActual} null = no se informa ubicación.
+     */
+    public OtpChallengeResponse desafioPara(int usuarioId, String challengeId, String ipActual) {
         var contactos = gateway.contactosDe(usuarioId).orElse(null);
         String email = contactos == null ? null : contactos.email();
         String whatsapp = contactos == null ? null
@@ -213,7 +266,46 @@ public class AuthService {
         return new OtpChallengeResponse(challengeId, List.copyOf(canales),
                 email == null || email.isBlank() ? null : OtpEmailSender.enmascarar(email),
                 whatsapp == null || whatsapp.isBlank() ? null : enmascararTelefono(whatsapp),
-                (long) otpProps.ttlMinutos() * 60);
+                (long) otpProps.ttlMinutos() * 60,
+                gateway.tieneSesionActiva(usuarioId),
+                ipActual == null ? null : geo.buscar(ipActual)
+                        .map(GeoIpService.Ubicacion::texto).filter(t -> !t.isBlank()).orElse(null));
+    }
+
+    /**
+     * Avisa el takeover por los dos canales del usuario (correo + WhatsApp),
+     * indicando desde dónde fue el nuevo inicio cuando se conoce la ciudad.
+     * Best-effort a propósito: si un canal falla, solo se registra en el log
+     * (el login ya quedó emitido y no debe revertirse por un aviso).
+     */
+    private void avisarTakeover(int usuarioId, String ubicacionNueva) {
+        var contactos = gateway.contactosDe(usuarioId).orElse(null);
+        if (contactos == null) {
+            return;
+        }
+        if (contactos.email() != null && !contactos.email().isBlank()) {
+            try {
+                emailAviso.enviarAvisoSesionCerrada(contactos.email(), ubicacionNueva);
+            } catch (Exception e) {
+                log.warn("aviso takeover email fallo usuario_id={} err={}",
+                        usuarioId, e.getMessage());
+            }
+        }
+        String numero = contactos.whatsapp() != null && !contactos.whatsapp().isBlank()
+                ? contactos.whatsapp() : contactos.telefono();
+        if (numero != null && !numero.isBlank()) {
+            try {
+                String texto = "El Tornillo Feliz: tu sesión se cerró porque iniciaste sesión "
+                        + "en otro equipo"
+                        + (ubicacionNueva == null || ubicacionNueva.isBlank()
+                                ? "." : " desde " + ubicacionNueva + ".")
+                        + " Si no fuiste tú, cambia tu contraseña de inmediato.";
+                whatsappAviso.enviarTexto(numero, texto);
+            } catch (Exception e) {
+                log.warn("aviso takeover whatsapp fallo usuario_id={} err={}",
+                        usuarioId, e.getMessage());
+            }
+        }
     }
 
     static String enmascararTelefono(String telefono) {

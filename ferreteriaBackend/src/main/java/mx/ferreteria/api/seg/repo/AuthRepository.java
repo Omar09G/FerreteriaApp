@@ -213,6 +213,27 @@ public class AuthRepository implements AuthUserGateway {
         }
 
         @Override
+        public boolean tieneSesionActiva(int usuarioId) {
+                Boolean hay = jdbc.sql("""
+                                SELECT EXISTS(SELECT 1 FROM seg.refresh_tokens
+                                 WHERE usuario_id = :id AND revoked_at IS NULL
+                                   AND expires_at > now())
+                                """)
+                                .param("id", usuarioId)
+                                .query(Boolean.class)
+                                .single();
+                return Boolean.TRUE.equals(hay);
+        }
+
+        @Override
+        public void cerrarSesionesActivas(int usuarioId) {
+                jdbc.sql("UPDATE seg.sesiones SET fin = now() "
+                                + "WHERE usuario_id = :id AND fin IS NULL")
+                                .param("id", usuarioId)
+                                .update();
+        }
+
+        @Override
         public void updateUltimoLogin(int usuarioId) {
                 jdbc.sql("UPDATE seg.usuarios SET ultimo_login = now() WHERE usuario_id = :id")
                                 .param("id", usuarioId)
@@ -236,13 +257,17 @@ public class AuthRepository implements AuthUserGateway {
         }
 
         @Override
-        public int abrirSesion(int usuarioId, String ip, String userAgent) {
+        public int abrirSesion(int usuarioId, String ip, String userAgent,
+                        String ciudad, String region, String pais) {
                 return jdbc.sql("""
-                                INSERT INTO seg.sesiones (usuario_id, ip_address, user_agent)
-                                VALUES (:u, CAST(COALESCE(:ip,'0.0.0.0') AS inet), COALESCE(:ua,''))
+                                INSERT INTO seg.sesiones (usuario_id, ip_address, user_agent,
+                                    ciudad, region, pais)
+                                VALUES (:u, CAST(COALESCE(:ip,'0.0.0.0') AS inet), COALESCE(:ua,''),
+                                    :ciu, :reg, :pai)
                                 RETURNING sesion_id
                                 """)
                                 .param("u", usuarioId).param("ip", ip).param("ua", userAgent)
+                                .param("ciu", ciudad).param("reg", region).param("pai", pais)
                                 .query(Integer.class)
                                 .single();
         }

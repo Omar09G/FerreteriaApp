@@ -60,13 +60,29 @@ public interface AuthUserGateway {
     /** Revoca TODAS las sesiones previas del usuario (login nuevo = single-active). */
     void revokeAllRefreshTokens(int usuarioId);
 
+    /**
+     * True si el usuario tiene al menos un refresh vigente (no revocado y no
+     * expirado): es la fuente de verdad de "sesión activa", porque el access
+     * JWT es stateless y sigue válido hasta su expiración aunque el refresh
+     * ya esté revocado.
+     */
+    boolean tieneSesionActiva(int usuarioId);
+
+    /**
+     * Cierra las filas abiertas de seg.sesiones (fin IS NULL) del usuario.
+     * Se llama en cada emisión de sesión para que la bitácora no acumule
+     * sesiones abiertas fantasma (p. ej. refresh vencido sin logout).
+     */
+    void cerrarSesionesActivas(int usuarioId);
+
     void updateUltimoLogin(int usuarioId);
 
     void incrementFailedAttempts(int usuarioId);
 
     void resetFailedAttempts(int usuarioId);
 
-    int abrirSesion(int usuarioId, String ip, String userAgent);
+    int abrirSesion(int usuarioId, String ip, String userAgent,
+            String ciudad, String region, String pais);
 
     void cerrarSesion(int sesionId);
 }
