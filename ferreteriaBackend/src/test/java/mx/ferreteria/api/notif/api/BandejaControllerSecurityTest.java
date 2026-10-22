@@ -11,7 +11,8 @@ class BandejaControllerSecurityTest {
     @Test
     @DisplayName("stream requiere autenticación")
     void streamRequiereAuth() throws Exception {
-        var m = BandejaController.class.getMethod("stream");
+        var m = BandejaController.class.getMethod("stream",
+                jakarta.servlet.http.HttpServletRequest.class);
         PreAuthorize ann = m.getAnnotation(PreAuthorize.class);
         assertThat(ann).isNotNull();
         assertThat(ann.value()).contains("isAuthenticated()");

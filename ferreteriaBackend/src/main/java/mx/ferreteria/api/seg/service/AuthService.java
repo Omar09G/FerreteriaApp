@@ -66,6 +66,7 @@ public class AuthService {
     private final OtpEmailSender emailAviso;
     private final OtpWhatsappPort whatsappAviso;
     private final GeoIpService geo;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     /** Ambiente (APP_AMBIENTE): en prod las cookies de auth exigen Secure. */
     @Value("${app.ambiente:dev}")
@@ -185,8 +186,9 @@ public class AuthService {
      * Emite la sesión exigiendo confirmación cuando hay takeover: si existe
      * un refresh vigente de este usuario y {@code forzarCierre} es false, no
      * se emite nada (SESION_ACTIVA). Con {@code forzarCierre=true} se cierra
-     * la sesión anterior (refresh + bitácora) y se avisa por correo y
-     * WhatsApp (best-effort: un canal caído no bloquea el login).
+     * la sesión anterior (refresh + bitácora), se avisa por correo y WhatsApp
+     * y se publica {@link SesionDesplazadaEvent} para el cierre push en tiempo
+     * real (best-effort: un canal caído no bloquea el login).
      */
     @Transactional
     public LoginResult emitirSesion(int usuarioId, RequestMeta meta, boolean forzarCierre) {
@@ -226,6 +228,11 @@ public class AuthService {
         if (habiaActiva) {
             avisarTakeover(user.usuarioId(),
                     ubicacion == null ? null : ubicacion.texto());
+            // Evento para el push en tiempo real (el hook de notificaciones lo
+            // consume AFTER_COMMIT y cierra las pestañas de las sesiones
+            // anteriores; la nueva se excluye por su id).
+            events.publishEvent(new SesionDesplazadaEvent(user.usuarioId(), sesion,
+                    ubicacion == null ? null : ubicacion.texto()));
         }
 
         String access = jwtService.createAccessToken(principal);

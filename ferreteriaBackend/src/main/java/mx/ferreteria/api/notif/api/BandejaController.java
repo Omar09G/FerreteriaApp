@@ -13,7 +13,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import mx.ferreteria.api.common.security.AuthCookieProperties;
+import mx.ferreteria.api.common.security.JwtService;
 import mx.ferreteria.api.common.security.UserPrincipal;
 import mx.ferreteria.api.common.web.PageQuery;
 import mx.ferreteria.api.notif.dto.BandejaDtos.BandejaResponse;
@@ -36,15 +39,41 @@ public class BandejaController {
 
     private final BandejaService bandejaService;
     private final RealtimePushService pushService;
+    private final JwtService jwtService;
+    private final AuthCookieProperties cookieProps;
 
     /**
      * Stream de eventos (text/event-stream). El front reconecta solo con
-     * EventSource y recupera lo perdido desde el historial.
+     * EventSource y recupera lo perdido desde el historial. La suscripción
+     * queda ligada a la sesión del refresh HttpOnly para poder excluirla de
+     * su propio desplazamiento single-session.
      */
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public SseEmitter stream() {
-        return pushService.suscribir(UserPrincipal.actual().usuarioId());
+    public SseEmitter stream(HttpServletRequest request) {
+        return pushService.suscribir(UserPrincipal.actual().usuarioId(), sesionDe(request));
+    }
+
+    /**
+     * Sesión del suscriptor (claim ses del refresh). Null si no hay cookie o
+     * el refresh no parsea: ese emisor recibe todo (comportamiento previo).
+     */
+    private Integer sesionDe(HttpServletRequest request) {
+        try {
+            if (request.getCookies() == null) {
+                return null;
+            }
+            for (var c : request.getCookies()) {
+                if (cookieProps.refreshName().equals(c.getName())
+                        && c.getValue() != null && !c.getValue().isBlank()) {
+                    return jwtService.parseRefresh(c.getValue())
+                            .get(JwtService.CLAIM_SES, Integer.class);
+                }
+            }
+        } catch (RuntimeException ignored) {
+            // refresh ilegible/expirado: suscripción sin sesión (recibe todo)
+        }
+        return null;
     }
 
     /** Historial paginado (?page=0&size=20), más recientes primero. */

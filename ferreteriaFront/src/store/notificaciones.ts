@@ -165,7 +165,28 @@ export function useNotificacionesStream(activo: boolean) {
 		};
 		src.addEventListener("notificacion", (ev) => {
 			try {
-				const n = desdeEventoStream(JSON.parse((ev as MessageEvent).data));
+				const datos = JSON.parse((ev as MessageEvent).data) as {
+					id: number;
+					tipo: string;
+					titulo: string;
+					detalle: string | null;
+					refTipo: string;
+					refId: number;
+					creadaEn: string;
+				};
+				// Takeover single-session: el backend desplazó esta sesión.
+				// Cierre inmediato (sin esperar al refresh): se corta el
+				// stream para no reconectar y se va al login con aviso.
+				if (datos.tipo === "SESION_DESPLAZADA") {
+					if (!useAuthStore.getState().autenticado) return;
+					cerrado = true;
+					src.close();
+					useAuthStore.getState().clearSession();
+					useNotificacionesStore.getState().reset();
+					window.location.href = "/login?cerrada=1";
+					return;
+				}
+				const n = desdeEventoStream(datos);
 				const nuevo = useNotificacionesStore.getState().recibir(n);
 				if (!nuevo) return;
 				for (const key of clavesInvalidar(n)) {

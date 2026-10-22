@@ -39,6 +39,9 @@ export default function Login() {
   // Aviso de sesión expirada: el interceptor redirige aquí con ?expired=1
   // cuando el refresh falla (contrato client-base → /login?expired=1).
   const avisoExpirada = params.get("expired") === "1" ? t("errores.sesionExpirada") : null;
+  // Aviso de takeover: el push SESION_DESPLAZADA redirige con ?cerrada=1
+  // cuando otro equipo desplazó esta sesión (cierre inmediato, sin refresh).
+  const avisoDesplazada = params.get("cerrada") === "1" ? t("errores.sesionDesplazada") : null;
   const destinoCrudo = registro?.from ?? "/dashboard";
   // Allowlist de redirect interno: solo rutas absolutas del SPA (bloquea
   // //evil, https: y javascript: forjados en location.state).
@@ -137,6 +140,14 @@ export default function Login() {
             className="mb-3 rounded-md bg-amber-50 p-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
           >
             {avisoExpirada}
+          </p>
+        )}
+        {!error && !avisoExpirada && avisoDesplazada && (
+          <p
+            role="status"
+            className="mb-3 rounded-md bg-amber-50 p-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+          >
+            {avisoDesplazada}
           </p>
         )}
         <div className="flex w-full flex-col gap-5">

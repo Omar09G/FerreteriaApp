@@ -5,4 +5,6 @@ export default {
 	desconocido: "Unknown error",
 	generico: "An unexpected error occurred. Please try again.",
 	sesionExpirada: "Your session expired or was closed on another device.",
+	sesionDesplazada:
+		"Your session was closed because you signed in on another device. If it wasn't you, change your password.",
 } as const;

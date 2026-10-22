@@ -100,6 +100,17 @@ describe("Login (smoke)", () => {
     expect(await screen.findByText("Pantalla OTP")).toBeInTheDocument();
   });
 
+  it("con ?cerrada=1 avisa que otro equipo desplazó la sesión", () => {
+    render(
+      <MemoryRouter initialEntries={["/login?cerrada=1"]}>
+        <Login />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(/Tu sesión se cerró porque iniciaste sesión en otro equipo/),
+    ).toBeInTheDocument();
+  });
+
   it("muestra el error cuando el login falla", async () => {
     const user = userEvent.setup();
     vi.mocked(apiLogin).mockRejectedValueOnce(new Error("Credenciales inválidas"));

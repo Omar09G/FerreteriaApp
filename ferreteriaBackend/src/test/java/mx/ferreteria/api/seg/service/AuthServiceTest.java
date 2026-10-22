@@ -86,6 +86,9 @@ class AuthServiceTest {
     @Mock
     GeoIpService geo;
 
+    @Mock
+    org.springframework.context.ApplicationEventPublisher events;
+
     final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     JwtService jwtService;
     AuthService service;
@@ -99,7 +102,7 @@ class AuthServiceTest {
         service = new AuthService(gateway, admin, empleados, encoder,
                 jwtService,
                 new AuthCookieProperties(false, "Lax", "/api/v1/auth", "rt", "at"),
-                otp, new OtpProperties(5, 5, 60, 6), emailAviso, whatsappAviso, geo);
+                otp, new OtpProperties(5, 5, 60, 6), emailAviso, whatsappAviso, geo, events);
     }
 
     private void mockUserOk() {
@@ -155,8 +158,9 @@ class AuthServiceTest {
         verify(gateway).saveRefreshToken(eq(7),
                 eq(JwtService.sha256Base64(result.refreshRaw())), any(Instant.class));
         verify(gateway).updateUltimoLogin(7);
-        // sin sesión previa no hay avisos de takeover
+        // sin sesión previa no hay avisos ni evento de desplazamiento
         verifyNoInteractions(emailAviso, whatsappAviso);
+        verify(events, never()).publishEvent(any());
     }
 
     @Test
@@ -202,6 +206,10 @@ class AuthServiceTest {
         verify(gateway).abrirSesion(eq(7), any(), any(), any(), any(), any());
         verify(emailAviso).enviarAvisoSesionCerrada(eq("cajero1@ferreteria.local"), any());
         verify(whatsappAviso).enviarTexto(eq("5551234567"), anyString());
+        // evento push para cerrar las pestañas anteriores (excluye la nueva)
+        verify(events).publishEvent(org.mockito.ArgumentMatchers.argThat(
+                (Object e) -> e instanceof SesionDesplazadaEvent se
+                        && se.usuarioId() == 7 && se.nuevaSesionId() == 1));
     }
 
     @Test

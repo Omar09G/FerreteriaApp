@@ -1,10 +1,12 @@
 package mx.ferreteria.api.notif.api;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
@@ -21,8 +23,13 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.Cookie;
 import mx.ferreteria.api.common.error.DbErrorTranslator;
+import mx.ferreteria.api.common.security.AuthCookieProperties;
+import mx.ferreteria.api.common.security.JwtService;
 import mx.ferreteria.api.common.web.WebMvcTestProps;
 import mx.ferreteria.api.notif.dto.BandejaDtos.BandejaResponse;
 import mx.ferreteria.api.notif.dto.BandejaDtos.NoLeidasResponse;
@@ -33,8 +40,7 @@ import mx.ferreteria.api.notif.service.RealtimePushService;
 @AutoConfigureMockMvc(addFilters = false)
 @Import({ DbErrorTranslator.class, WebMvcTestProps.class, BandejaControllerTest.SliceConfig.class })
 @MockitoBean(types = { mx.ferreteria.api.common.security.JwtAuthFilter.class,
-                mx.ferreteria.api.common.security.RestAuthEntryPoint.class,
-                mx.ferreteria.api.common.security.JwtService.class })
+                mx.ferreteria.api.common.security.RestAuthEntryPoint.class })
 class BandejaControllerTest {
 
         @Autowired
@@ -45,6 +51,12 @@ class BandejaControllerTest {
 
         @MockitoBean
         RealtimePushService pushService;
+
+        @MockitoBean
+        JwtService jwtService;
+
+        @MockitoBean
+        AuthCookieProperties cookieProps;
 
         @org.springframework.boot.test.context.TestConfiguration
         static class SliceConfig {
@@ -115,5 +127,37 @@ class BandejaControllerTest {
                 mvc.perform(delete("/api/v1/notificaciones/leidas"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.data.eliminadas").value(4));
+        }
+
+        @Test
+        @DisplayName("GET /stream con cookie rt liga la suscripción a la sesión del refresh")
+        void stream_conCookie_suscribeConSesion() throws Exception {
+                when(cookieProps.refreshName()).thenReturn("rt");
+                Claims claims = org.mockito.Mockito.mock(Claims.class);
+                when(claims.get(JwtService.CLAIM_SES, Integer.class)).thenReturn(7);
+                when(jwtService.parseRefresh("ref.jwt")).thenReturn(claims);
+                when(pushService.suscribir(org.mockito.ArgumentMatchers.anyInt(),
+                                org.mockito.ArgumentMatchers.any()))
+                                                .thenReturn(new SseEmitter(30_000L));
+
+                mvc.perform(get("/api/v1/notificaciones/stream")
+                                .cookie(new Cookie("rt", "ref.jwt")))
+                                                .andExpect(request().asyncStarted());
+                verify(pushService).suscribir(org.mockito.ArgumentMatchers.anyInt(),
+                                org.mockito.ArgumentMatchers.eq(7));
+        }
+
+        @Test
+        @DisplayName("GET /stream sin cookie suscribe sin sesión (recibe todo)")
+        void stream_sinCookie_suscribeSinSesion() throws Exception {
+                when(cookieProps.refreshName()).thenReturn("rt");
+                when(pushService.suscribir(org.mockito.ArgumentMatchers.anyInt(),
+                                org.mockito.ArgumentMatchers.any()))
+                                                .thenReturn(new SseEmitter(30_000L));
+
+                mvc.perform(get("/api/v1/notificaciones/stream"))
+                                                .andExpect(request().asyncStarted());
+                verify(pushService).suscribir(org.mockito.ArgumentMatchers.anyInt(),
+                                org.mockito.ArgumentMatchers.isNull());
         }
 }
