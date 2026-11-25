@@ -56,8 +56,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 				toast: true,
 				position: "top-end",
 				icon: ICON[tipo],
+				iconColor: `var(--${tipo})`,
 				title: t(TITULO_KEY[tipo]),
 				text: mensaje,
+				customClass: {
+					popup: `app-toast app-toast--${tipo}`,
+				},
 				showConfirmButton: false,
 				timer: tipo === "error" ? 8000 : 5000,
 				timerProgressBar: true,

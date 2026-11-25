@@ -165,7 +165,7 @@ class ExceptionsAndHandlerTest {
     @DisplayName("handleNoHandler: ruta no definida -> 403 ACCESO_DENEGADO (no 500)")
     void handleNoHandler_returnsForbidden() {
         var response = handler.handleNoHandler(
-                new NoResourceFoundException(HttpMethod.GET, "/ruta-fantasma"), request);
+                new NoResourceFoundException(HttpMethod.GET, "/ruta-fantasma", "/ruta-fantasma"), request);
         assertThat(response.getStatusCode().value()).isEqualTo(403);
         assertThat(response.getBody().get("errorCode")).isEqualTo(403);
         assertThat(response.getBody().get("codigo")).isEqualTo("ACCESO_DENEGADO");

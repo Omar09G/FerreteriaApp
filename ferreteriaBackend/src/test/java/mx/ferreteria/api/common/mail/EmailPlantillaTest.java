@@ -24,6 +24,9 @@ class EmailPlantillaTest {
                 "Nota final.");
 
         assertThat(html).contains(EmailPlantilla.MARCA);
+        assertThat(html).contains(EmailPlantilla.COLOR_MARCA);
+        assertThat(html).contains("background-color:#fffaf5");
+        assertThat(html).contains("background:#fff7ed");
         assertThat(html).contains("Mi título");
         assertThat(html).contains("$116.00");
         assertThat(html).contains("Nota final.");

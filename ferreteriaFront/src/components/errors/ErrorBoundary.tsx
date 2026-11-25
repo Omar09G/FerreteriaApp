@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
 					className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-6 text-center"
 					role="alert"
 				>
-					<AlertTriangle className="h-10 w-10 text-amber-600" aria-hidden />
+					<AlertTriangle className="h-10 w-10 text-warning" aria-hidden />
 					<h1 className="text-lg font-semibold text-ink">
 						{tFuera("paginas.algoFallo")}
 					</h1>

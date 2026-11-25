@@ -41,8 +41,6 @@ spring:
       '[hibernate.default_batch_fetch_size]': 32
   flyway:
     locations: classpath:db/migration   # generadas por :generateMigrations
-    #Solo para DESA enabled: false
-    enabled: false 
 
   servlet:
     multipart:

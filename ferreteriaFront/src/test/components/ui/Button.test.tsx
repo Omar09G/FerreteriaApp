@@ -50,7 +50,7 @@ describe("Button", () => {
 			</Button>,
 		);
 		const btn = screen.getByRole("button", { name: "Eliminar" });
-		expect(btn.className).toContain("bg-red-600");
+		expect(btn.className).toContain("bg-error-solid");
 		expect(btn.className).toContain("px-5");
 	});
 });

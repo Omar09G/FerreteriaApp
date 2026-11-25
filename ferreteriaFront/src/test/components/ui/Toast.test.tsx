@@ -40,7 +40,13 @@ describe("Toast", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Exito" }));
 		expect(fireMock).toHaveBeenCalledWith(
-			expect.objectContaining({ toast: true, icon: "success", text: "ok" }),
+			expect.objectContaining({
+				toast: true,
+				icon: "success",
+				text: "ok",
+				iconColor: "var(--success)",
+				customClass: { popup: "app-toast app-toast--success" },
+			}),
 		);
 	});
 

@@ -42,18 +42,18 @@ export function CampoWidget({
 							{hotkey}
 						</kbd>
 					)}
-					{required && <span className="text-red-600"> *</span>}
+					{required && <span className="text-error"> *</span>}
 				</span>
 			)}
 			{children}
 			{hint && !error && <span className="text-xs text-muted">{hint}</span>}
-			{error && <span className="text-xs text-red-600">{error}</span>}
+			{error && <span className="text-xs text-error">{error}</span>}
 		</label>
 	);
 }
 
 const BASE =
-	"rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-2 focus:outline-primary disabled:bg-warmbg";
+	"rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted transition-colors focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-warmbg disabled:opacity-70";
 
 export const Input = forwardRef<
 	HTMLInputElement,
@@ -92,7 +92,7 @@ export const Input = forwardRef<
 					disabled={disabled}
 					aria-invalid={Boolean(error)}
 					aria-keyshortcuts={hotkey || undefined}
-					className={`${BASE} ${icono ? "pl-9" : ""} ${error ? "border-red-500" : ""} ${className}`}
+					className={`${BASE} ${icono ? "pl-9" : ""} ${error ? "border-error" : ""} ${className}`}
 					{...rest}
 				/>
 			</span>
@@ -130,7 +130,7 @@ export const Select = forwardRef<
 				disabled={disabled}
 				aria-invalid={Boolean(error)}
 				aria-keyshortcuts={hotkey || undefined}
-				className={`${BASE} ${error ? "border-red-500" : ""} ${className}`}
+				className={`${BASE} ${error ? "border-error" : ""} ${className}`}
 				{...rest}
 			>
 				{children}

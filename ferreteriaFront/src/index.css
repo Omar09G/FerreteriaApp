@@ -3,47 +3,88 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --primary: #0f766e;
-  --primary-hover: #115e59;
-  --on-primary: #ffffff;
-  --accent: #d97706;
-  --warmbg: #f0fdfa;
-  --canvas: #fafaf9;
-  --surface: #ffffff;
-  --ink: #1c1917;
-  --muted: #57534e;
-  --line: #e7e5e4;
-  /* Semánticos (estados, no UI base) */
-  --success: #16a34a;
-  --warning: #d97706;
-  --error: #dc2626;
-  /* Sidebar: siempre oscuro (no sigue a primary en dark) */
-  --sidebar: #0f2e2b;
-  /* Paleta de gráficos (series de datos, no UI) */
-  --chart-1: #0f766e;
-  --chart-2: #d97706;
-  --chart-3: #2563eb;
+  color-scheme: light;
+
+  /* Primitivos de marca y estados */
+  --brand-50: #fff7ed;
+  --brand-100: #ffedd5;
+  --brand-300: #fdba74;
+  --brand-500: #f97316;
+  --brand-700: #c2410c;
+  --brand-800: #9a3412;
+  --neutral-0: #ffffff;
+  --neutral-50: #fffaf5;
+  --neutral-100: #f4efeb;
+  --neutral-200: #e7ded7;
+  --neutral-500: #766a61;
+  --neutral-600: #655d55;
+  --neutral-950: #1c1917;
+  --green-300: #86efac;
+  --green-700: #15803d;
+  --green-800: #166534;
+  --green-900: #14532d;
+  --red-300: #fca5a5;
+  --red-700: #b91c1c;
+  --red-800: #991b1b;
+  --red-900: #7f1d1d;
+  --amber-300: #fcd34d;
+  --amber-800: #92400e;
+  --blue-300: #93c5fd;
+  --blue-700: #1d4ed8;
+
+  /* Semánticos: componentes y páginas consumen estos alias */
+  --primary: var(--brand-700);
+  --primary-hover: var(--brand-800);
+  --on-primary: var(--neutral-0);
+  --accent: #b45309;
+  --warmbg: var(--brand-50);
+  --canvas: var(--neutral-50);
+  --surface: var(--neutral-0);
+  --ink: var(--neutral-950);
+  --muted: var(--neutral-600);
+  --line: var(--neutral-200);
+  --success: var(--green-700);
+  --success-solid: var(--green-700);
+  --success-solid-hover: var(--green-800);
+  --warning: var(--amber-800);
+  --error: var(--red-700);
+  --error-solid: var(--red-700);
+  --error-solid-hover: var(--red-800);
+  --info: var(--blue-700);
+  --sidebar: #25160f;
+
+  /* Series de datos */
+  --chart-1: var(--brand-700);
+  --chart-2: #b45309;
+  --chart-3: var(--blue-700);
   --chart-4: #7c3aed;
-  --chart-5: #0891b2;
-  --chart-6: #65a30d;
+  --chart-5: #0f766e;
+  --chart-6: #4d7c0f;
 }
 
 .dark {
-  --primary: #5eead4;
-  --primary-hover: #2dd4bf;
-  --on-primary: #06201c;
+  color-scheme: dark;
+
+  --primary: #fb923c;
+  --primary-hover: var(--brand-300);
+  --on-primary: #27140c;
   --accent: #fbbf24;
-  --warmbg: #122625;
-  --canvas: #101414;
-  --surface: #171e1d;
-  --ink: #eef4f3;
-  --muted: #9fb3b0;
-  --line: #2b3b39;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --error: #f87171;
-  --sidebar: #0a1a18;
-  --chart-1: #5eead4;
+  --warmbg: #2b2019;
+  --canvas: #14110f;
+  --surface: #211b17;
+  --ink: #f7f0e9;
+  --muted: #c1b6ab;
+  --line: #45382f;
+  --success: var(--green-300);
+  --success-solid: var(--green-900);
+  --success-solid-hover: var(--green-800);
+  --warning: var(--amber-300);
+  --error: var(--red-300);
+  --error-solid: var(--red-900);
+  --error-solid-hover: var(--red-800);
+  --info: var(--blue-300);
+  --sidebar: #1e140f;
+  --chart-1: #fb923c;
   --chart-2: #fbbf24;
   --chart-3: #60a5fa;
   --chart-4: #c084fc;
@@ -51,7 +92,7 @@
   --chart-6: #a3e635;
 }
 
-/* Tokens semánticos → consumen variables que cambian con .dark */
+/* Tokens de componente: puente entre Tailwind y los semánticos */
 @theme inline {
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
@@ -64,8 +105,13 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-success: var(--success);
+  --color-success-solid: var(--success-solid);
+  --color-success-solid-hover: var(--success-solid-hover);
   --color-warning: var(--warning);
   --color-error: var(--error);
+  --color-error-solid: var(--error-solid);
+  --color-error-solid-hover: var(--error-solid-hover);
+  --color-info: var(--info);
   --color-sidebar: var(--sidebar);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -82,6 +128,7 @@
 
   body {
     @apply bg-canvas text-ink antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-feature-settings: "cv02", "cv03";
   }
 
@@ -106,5 +153,59 @@
   }
   ::-webkit-scrollbar-track {
     background: transparent;
+  }
+
+  ::selection {
+    color: var(--on-primary);
+    background: var(--primary);
+  }
+}
+
+.swal2-popup.app-toast {
+  --toast-accent: var(--primary);
+  max-width: min(28rem, calc(100vw - 2rem));
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--toast-accent);
+  border-radius: 0.875rem;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 16px 40px rgb(28 25 23 / 18%);
+}
+
+.app-toast--success {
+  --toast-accent: var(--success);
+}
+
+.app-toast--error {
+  --toast-accent: var(--error);
+}
+
+.app-toast--warning {
+  --toast-accent: var(--warning);
+}
+
+.app-toast--info {
+  --toast-accent: var(--info);
+}
+
+.swal2-popup.app-toast .swal2-title {
+  color: var(--ink);
+  font-size: 0.9375rem;
+}
+
+.swal2-popup.app-toast .swal2-html-container {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.swal2-popup.app-toast .swal2-timer-progress-bar {
+  background: var(--toast-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swal2-popup.app-toast {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

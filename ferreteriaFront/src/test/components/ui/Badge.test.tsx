@@ -11,7 +11,7 @@ describe("Badge", () => {
 
 	it("aplica el tono indicado", () => {
 		render(<Badge tone="success">Pagado</Badge>);
-		expect(screen.getByText("Pagado").className).toContain("text-green-700");
+		expect(screen.getByText("Pagado").className).toContain("text-success");
 	});
 
 	it("usa el tono default por omisión", () => {
@@ -23,12 +23,12 @@ describe("Badge", () => {
 describe("EstadoBadge", () => {
 	it("mapea COMPLETADA a success", () => {
 		render(<EstadoBadge estado="COMPLETADA" />);
-		expect(screen.getByText("COMPLETADA").className).toContain("text-green-700");
+		expect(screen.getByText("COMPLETADA").className).toContain("text-success");
 	});
 
 	it("mapea CANCELADA a danger", () => {
 		render(<EstadoBadge estado="CANCELADA" />);
-		expect(screen.getByText("CANCELADA").className).toContain("text-red-700");
+		expect(screen.getByText("CANCELADA").className).toContain("text-error");
 	});
 
 	it("usa tono default para estados desconocidos", () => {

@@ -66,7 +66,7 @@ export function NotificacionBell() {
 				<Bell className="h-4 w-4" />
 				{noLeidas > 0 && (
 					<span
-						className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white"
+						className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-surface bg-error-solid px-1 text-[10px] font-bold text-white"
 						aria-live="polite"
 					>
 						{noLeidas > 99 ? "99+" : noLeidas}

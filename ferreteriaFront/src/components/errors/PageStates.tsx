@@ -50,7 +50,7 @@ export function ErrorPagina() {
 			className="flex min-h-[50vh] flex-col items-center justify-center gap-3 p-6 text-center"
 			role="alert"
 		>
-			<AlertTriangle className="h-10 w-10 text-amber-600" aria-hidden />
+			<AlertTriangle className="h-10 w-10 text-warning" aria-hidden />
 			<h1 className="text-lg font-semibold text-ink">
 				{t("paginas.noSePudoMostrar")}
 			</h1>

@@ -10,7 +10,7 @@ public final class EmailPlantilla {
 
     public static final String MARCA = "El Tornillo Feliz";
     public static final String SUBTITULO = "Sistema de punto de venta";
-    static final String COLOR_MARCA = "#0f766e";
+    static final String COLOR_MARCA = "#c2410c";
 
     private EmailPlantilla() {
     }
@@ -36,9 +36,9 @@ public final class EmailPlantilla {
     public static String fila(String etiqueta, String valor) {
         return "<tr>"
                 + "<td style=\"padding:6px 0;font-family:Arial,Helvetica,sans-serif;"
-                + "font-size:14px;color:#78716c;\">" + escapar(etiqueta) + "</td>"
+                + "font-size:14px;color:#655d55;\">" + escapar(etiqueta) + "</td>"
                 + "<td align=\"right\" style=\"padding:6px 0;font-family:Arial,Helvetica,sans-serif;"
-                + "font-size:14px;font-weight:bold;color:#292524;\">" + escapar(valor) + "</td>"
+                + "font-size:14px;font-weight:bold;color:#29231f;\">" + escapar(valor) + "</td>"
                 + "</tr>";
     }
 
@@ -55,37 +55,37 @@ public final class EmailPlantilla {
         String nota = notaHtml == null ? "" : notaHtml;
         return "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"></head>"
-                + "<body style=\"margin:0;padding:0;background-color:#f2f4f4;\">"
+                + "<body style=\"margin:0;padding:0;background-color:#fffaf5;\">"
                 + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">"
                 + "<tr><td align=\"center\" style=\"padding:32px 16px;\">"
                 + "<table role=\"presentation\" width=\"520\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" "
                 + "style=\"max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden; "
-                + "border:1px solid #dde5e4;\">"
+                + "border:1px solid #e7ded7;\">"
                 + "<tr><td align=\"center\" style=\"background:" + COLOR_MARCA + ";padding:22px 24px;\">"
                 + "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:bold;"
                 + "color:#ffffff;\">&#x1F528; " + MARCA + "</div>"
-                + "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#ccfbf1; "
+                + "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#ffedd5; "
                 + "margin-top:4px;\">" + SUBTITULO + "</div>"
                 + "</td></tr>"
                 + "<tr><td style=\"padding:28px 28px 8px 28px;font-family:Arial,Helvetica,sans-serif; "
-                + "font-size:15px;color:#292524;\">"
+                + "font-size:15px;color:#29231f;\">"
                 + "Hola,"
                 + "</td></tr>"
                 + "<tr><td style=\"padding:0 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px; "
-                + "font-weight:bold;color:#292524;\">"
+                + "font-weight:bold;color:#29231f;\">"
                 + escapar(titulo)
                 + "</td></tr>"
                 + "<tr><td style=\"padding:8px 28px 0 28px;font-family:Arial,Helvetica,sans-serif;"
-                + "font-size:15px;color:#292524;line-height:1.5;\">"
+                + "font-size:15px;color:#29231f;line-height:1.5;\">"
                 + introHtml
                 + "</td></tr>"
                 + "<tr><td align=\"center\" style=\"padding:20px 28px;\">" + bloqueHtml + "</td></tr>"
                 + "<tr><td style=\"padding:0 28px;font-family:Arial,Helvetica,sans-serif; "
-                + "font-size:13px;color:#78716c;line-height:1.5;\">"
+                + "font-size:13px;color:#655d55;line-height:1.5;\">"
                 + nota
                 + "</td></tr>"
                 + "<tr><td align=\"center\" style=\"padding:20px 28px 24px 28px; "
-                + "font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#a8a29e;\">"
+                + "font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#766a61;\">"
                 + "Este es un mensaje autom&aacute;tico, no respondas a este correo.<br>"
                 + "&copy; " + MARCA
                 + "</td></tr>"
@@ -95,7 +95,7 @@ public final class EmailPlantilla {
     /** Envuelve filas de detalle en una tabla de ancho completo. */
     public static String detalles(String filasHtml) {
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
-                + "border=\"0\" style=\"background:#f0fdfa;border:1px solid #99f6e0;"
+                + "border=\"0\" style=\"background:#fff7ed;border:1px solid #fed7aa;"
                 + "border-radius:10px;padding:10px 18px;\">"
                 + filasHtml + "</table>";
     }
@@ -106,14 +106,14 @@ public final class EmailPlantilla {
      * @param alerta true = montos en rojo (deudas vencidas).
      */
     public static String tabla(String[] encabezados, String filasHtml, boolean alerta) {
+        String borde = alerta ? "#fecaca" : "#fed7aa";
+        String fondo = alerta ? "#fef2f2" : "#fff7ed";
         StringBuilder th = new StringBuilder();
         for (int i = 0; i < encabezados.length; i++) {
             boolean ultimo = i == encabezados.length - 1;
-            th.append("<th align=\"").append(ultimo ? "right" : "left").append("\" ").append("style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;").append("font-weight:bold;color:#78716c;padding:6px 8px;").append("border-bottom:1px solid #99f6e0;\">")
+            th.append("<th align=\"").append(ultimo ? "right" : "left").append("\" ").append("style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;").append("font-weight:bold;color:#655d55;padding:6px 8px;").append("border-bottom:1px solid ").append(borde).append(";\">")
                     .append(escapar(encabezados[i])).append("</th>");
         }
-        String borde = alerta ? "#fecaca" : "#99f6e0";
-        String fondo = alerta ? "#fef2f2" : "#f0fdfa";
         return "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
                 + "border=\"0\" style=\"background:" + fondo + ";border:1px solid " + borde + ";"
                 + "border-radius:10px;padding:6px 10px;margin-bottom:14px;\">"
@@ -123,17 +123,17 @@ public final class EmailPlantilla {
     /** Fila de partida: proveedor, detalle y saldo (alineado a la derecha). */
     public static String filaTabla(String proveedor, String detalle, String saldo,
             boolean alerta) {
-        String colorSaldo = alerta ? "#b91c1c" : "#292524";
+        String colorSaldo = alerta ? "#b91c1c" : "#29231f";
         return "<tr>"
                 + "<td style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;"
-                + "color:#292524;padding:6px 8px;border-bottom:1px solid #f0ebe0;\">"
+                + "color:#29231f;padding:6px 8px;border-bottom:1px solid #f4efeb;\">"
                 + escapar(proveedor) + "</td>"
                 + "<td style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;"
-                + "color:#78716c;padding:6px 8px;border-bottom:1px solid #f0ebe0;\">"
+                + "color:#655d55;padding:6px 8px;border-bottom:1px solid #f4efeb;\">"
                 + escapar(detalle) + "</td>"
                 + "<td align=\"right\" style=\"font-family:Arial,Helvetica,sans-serif;font-size:13px;"
                 + "font-weight:bold;color:" + colorSaldo + ";padding:6px 8px;"
-                + "border-bottom:1px solid #f0ebe0;white-space:nowrap;\">"
+                + "border-bottom:1px solid #f4efeb;white-space:nowrap;\">"
                 + escapar(saldo) + "</td>"
                 + "</tr>";
     }
@@ -142,7 +142,7 @@ public final class EmailPlantilla {
     public static String filaResto(int restantes) {
         return "<tr><td colspan=\"3\" align=\"center\" "
                 + "style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;"
-                + "color:#78716c;padding:8px;\">"
+                + "color:#655d55;padding:8px;\">"
                 + "… y " + restantes + " m&aacute;s en el sistema.</td></tr>";
     }
 }

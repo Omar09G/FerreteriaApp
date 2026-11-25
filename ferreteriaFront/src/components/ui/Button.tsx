@@ -16,8 +16,9 @@ const VARIANTES: Record<Variant, string> = {
 	secondary:
 		"bg-surface text-ink border border-line hover:bg-warmbg disabled:bg-warmbg",
 	ghost: "text-primary hover:bg-warmbg disabled:text-muted",
-	danger: "bg-red-600 text-white hover:bg-red-700 disabled:bg-line",
-	success: "bg-green-600 text-white hover:bg-green-700 disabled:bg-line",
+	danger: "bg-error-solid text-white hover:bg-error-solid-hover disabled:bg-line",
+	success:
+		"bg-success-solid text-white hover:bg-success-solid-hover disabled:bg-line",
 };
 
 const TAMANOS: Record<Size, string> = {
@@ -106,7 +107,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 			title={computedTitle}
 			onClick={onClick}
 			whileTap={isDisabled ? undefined : { scale: 0.97 }}
-			className={`inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:cursor-not-allowed disabled:text-muted ${VARIANTES[variant]} ${TAMANOS[size]} ${className}`}
+			className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:text-muted ${VARIANTES[variant]} ${TAMANOS[size]} ${className}`}
 			{...rest}
 		>
 			{shouldShowKbd && (

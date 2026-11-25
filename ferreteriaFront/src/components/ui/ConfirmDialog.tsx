@@ -13,8 +13,8 @@ interface ConfirmDialogProps {
 }
 
 const CONFIRM_CLASS: Record<NonNullable<ConfirmDialogProps["tone"]>, string> = {
-	danger: "bg-red-600 text-white hover:bg-red-700",
-	success: "bg-green-600 text-white hover:bg-green-700",
+	danger: "bg-error-solid text-white hover:bg-error-solid-hover",
+	success: "bg-success-solid text-white hover:bg-success-solid-hover",
 	primary: "bg-primary text-on-primary hover:bg-primary-hover",
 };
 
@@ -48,7 +48,7 @@ export function ConfirmDialog({
 						type="button"
 						onClick={onConfirm}
 						disabled={busy}
-						className={`rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50 ${CONFIRM_CLASS[tone]}`}
+						className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${CONFIRM_CLASS[tone]}`}
 					>
 						{busy ? "Procesando…" : confirmLabel}
 					</button>

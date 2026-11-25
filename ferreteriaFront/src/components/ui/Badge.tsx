@@ -4,13 +4,10 @@ type Tone = "default" | "success" | "danger" | "warning" | "info";
 
 const TONE: Record<Tone, string> = {
 	default: "bg-warmbg text-ink border-line",
-	success:
-		"bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400 dark:border-green-900/60",
-	danger:
-		"bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/60",
-	warning:
-		"bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60",
-	info: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/60",
+	success: "bg-success/10 text-success border-success/25",
+	danger: "bg-error/10 text-error border-error/25",
+	warning: "bg-warning/10 text-warning border-warning/25",
+	info: "bg-info/10 text-info border-info/25",
 };
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -26,7 +23,7 @@ export function Badge({
 }: BadgeProps) {
 	return (
 		<span
-			className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium ${TONE[tone]} ${className}`}
+			className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium ${TONE[tone]} ${className}`}
 			{...rest}
 		>
 			{children}
