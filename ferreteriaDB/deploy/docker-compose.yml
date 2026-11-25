@@ -11,7 +11,7 @@
 #
 # BACKUP PITR (DB-ESC-008) — operativo, ver deploy/BACKUP.md:
 #   - postgres-primary se construye de docker/postgres.Dockerfile
-#     (postgres:17-alpine + pgbackrest) con archive_mode=on y repo en
+#     (postgres:17.11-alpine3.24 + pgbackrest) con archive_mode=on y repo en
 #     el volumen pgbackrest_repo:/backups (separado de pg_data_primary).
 #     Si tu .env fija PG_IMAGE a una imagen SIN pgbackrest, el archivado
 #     falla visible en logs (usa la imagen del build o haz build).
@@ -70,7 +70,7 @@ services:
       start_period: 10s
 
   # =================================================================
-  # BACKEND — Spring Boot 3 / Java 21
+  # BACKEND — Spring Boot 4.1 / Java 21
   # =================================================================
   backend:
     build:
@@ -79,7 +79,7 @@ services:
       args:
         # Si querés que el agent no haga nada: OTEL_SDK_DISABLED=true.
         # Por defecto exporta trazas+metrics+logs al collector.
-        OTEL_AGENT_VERSION: 2.10.0
+        OTEL_AGENT_VERSION: 2.34.0
     image: ferreteria/backend:latest
     container_name: ferreteria-backend
     restart: unless-stopped
@@ -88,7 +88,7 @@ services:
         condition: service_healthy
       postgres-primary:
         condition: service_healthy
-      minio:
+      floci:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -138,8 +138,8 @@ services:
       RATE_LIMIT_REDIS_URI: ${RATE_LIMIT_REDIS_URI:-redis://redis:6379}
       # Request ID
       REQUEST_ID_MODE: ${REQUEST_ID_MODE:-GENERATE}
-      # MinIO (fotos de entidades). ENDPOINT es visto por el backend en la
-      # red interna; PUBLIC_URL es lo que se guarda en foto_url y ve el browser.
+      # MinIO heredado: solo se usa con STORAGE_PROVEEDOR=minio y el perfil
+      # minio-legacy. Floci es el proveedor normal.
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Define MINIO_ROOT_USER en .env}
@@ -147,9 +147,8 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-ferreteria-fotos}
       # Bucket PRIVADO separado para PDFs de ticket/nómina (nunca el de fotos).
       MINIO_DOCS_BUCKET: ${MINIO_DOCS_BUCKET:-ferreteria-tickets}
-      # Proveedor de fotos: minio (default) o floci. Con floci, ENDPOINT es
-      # el DNS interno y PUBLIC_URL lo que ve el browser.
-      STORAGE_PROVEEDOR: ${STORAGE_PROVEEDOR:-minio}
+      # Proveedor de fotos/documentos: Floci local por defecto.
+      STORAGE_PROVEEDOR: ${STORAGE_PROVEEDOR:-floci}
       FLOCI_ENDPOINT: ${FLOCI_ENDPOINT:-http://floci:4566}
       FLOCI_PUBLIC_URL: ${FLOCI_PUBLIC_URL:-http://localhost:4566}
       FLOCI_REGION: ${FLOCI_REGION:-us-east-1}
@@ -216,7 +215,7 @@ services:
   # OpenTelemetry Collector — recibe OTLP del backend + browser
   # =================================================================
   otel-collector:
-    image: ${OTEL_COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.111.0}
+    image: ${OTEL_COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.166.0@sha256:3e18fe04181de50bdd72e23ad4a4d6214b54351e63d496f1c58127cc4541ad7f}
     container_name: ferreteria-otel-collector
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yaml"]
@@ -243,7 +242,7 @@ services:
   # postgres-exporter — métricas nativas de PostgreSQL en Prometheus
   # =================================================================
   postgres-exporter:
-    image: ${POSTGRES_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:v0.16.0}
+    image: ${POSTGRES_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:v0.21.1@sha256:3b8e05a84282cd1199ad2fb6c66f362738bf4c68c1547d8f4226a34a7dd6d8d7}
     container_name: ferreteria-postgres-exporter
     restart: unless-stopped
     depends_on:
@@ -282,7 +281,7 @@ services:
   # Prometheus — scrapea OTel Collector + postgres-exporter + backend
   # =================================================================
   prometheus:
-    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.0}
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06}
     container_name: ferreteria-prometheus
     restart: unless-stopped
     command:
@@ -315,7 +314,7 @@ services:
   # Grafana — dashboards provisionados (Ferretería / Overview)
   # =================================================================
   grafana:
-    image: ${GRAFANA_IMAGE:-grafana/grafana:11.3.0}
+    image: ${GRAFANA_IMAGE:-grafana/grafana:13.3.2@sha256:81556409ba48b2b922e0adb69a2511337d8ba7578f11962eefa6149a2d815101}
     container_name: ferreteria-grafana
     restart: unless-stopped
     environment:
@@ -349,7 +348,7 @@ services:
   # via jaeger/explore. Persistencia en volumen para no perder spans.
   # =================================================================
   tempo:
-    image: ${TEMPO_IMAGE:-grafana/tempo:2.6.1}
+    image: ${TEMPO_IMAGE:-grafana/tempo:2.10.10@sha256:12b0820f13ffa10ce956b6e9acc3b03f3cffded99109be6cc09d106fe56e5d38}
     container_name: ferreteria-tempo
     restart: unless-stopped
     command: ["-config.file=/etc/tempo/config.yaml"]
@@ -382,7 +381,7 @@ services:
     build:
       context: .
       dockerfile: docker/postgres.Dockerfile
-    image: ${PG_IMAGE:-ferreteria/postgres:17-pgbackrest}
+    image: ${PG_IMAGE:-ferreteria/postgres:17.11-pgbackrest}
     container_name: ferreteria-postgres-primary
     restart: unless-stopped
     environment:
@@ -437,7 +436,7 @@ services:
   postgres-replica:
     # Réplica fija al upstream: no archiva (está en recovery) y no necesita
     # pgbackrest; así un PG_IMAGE custom del operador no la rompe.
-    image: postgres:17-alpine
+    image: postgres:17.11-alpine3.24@sha256:e5d2edd28b1f8d40a0a6c0c9cdc545b19b56a0d5d88f94bc11a97d970d4700d0
     container_name: ferreteria-postgres-replica
     restart: unless-stopped
     profiles: ["replica"]
@@ -474,7 +473,7 @@ services:
   # PgBOUNCER — pooling transaccional (la app SIEMPRE va aquí)
   # =================================================================
   pgbouncer:
-    image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:1.23.1@sha256:b233da853939e49ffccd8fb6560a5c72aaca4ad29ec7fa7a07893bda7a6feca9}
+    image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:1.25.2@sha256:c0c55b277858ca308eb5df7baf8b83fbaea60b2c666604f29d8fe25e9decac68}
     container_name: ferreteria-pgbouncer
     restart: unless-stopped
     depends_on:
@@ -531,12 +530,11 @@ services:
       - db-net
 
   # =================================================================
-  # MinIO — almacenamiento S3-compatible para fotos de entidades
-  # (clientes, proveedores, empleados, productos). El backend crea el
-  # bucket al arrancar si no existe y lo deja en lectura pública.
-  # Consola web: http://localhost:9001 (MINIO_ROOT_USER/PASSWORD).
+  # MinIO comunitario archivado — solo rollback/migración explícita.
+  # No arranca en el perfil normal; el volumen minio_data se conserva.
   # =================================================================
   minio:
+    profiles: ["minio-legacy"]
     image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
     container_name: ferreteria-minio
     restart: unless-stopped
@@ -559,47 +557,28 @@ services:
       - app-net
 
   # =================================================================
-  # Floci — emulador AWS local (S3 para fotos de entidades).
-  # Alternativa a MinIO: el backend lo usa cuando
-  # STORAGE_PROVEEDOR=floci (default: minio, MinIO sigue vivo).
-  # S3 es in-process: NO requiere /var/run/docker.sock. Consola web
-  # desactivada (su sidecar sí pediría el socket).
+  # Floci — emulador S3 local para fotos y documentos; proveedor predeterminado.
+  # La UI sidecar está desactivada para no montar el socket de Podman/Docker.
   # Persistencia: hybrid + volumen (la imagen trae memory por defecto
   # y todo se pierde al reiniciar). Ver conf de storage en docs Floci.
   # =================================================================
   floci:
-    image: ${FLOCI_IMAGE:-floci/floci:2.1.0}
+    image: ${FLOCI_IMAGE:-floci/floci:2.1.0@sha256:f5aa8c18302cedb4f2385f5c4e455b3efc77fee6bf7b6e5d1712b2817ba102db}
     container_name: ferreteria-floci
     restart: unless-stopped
     environment:
       FLOCI_STORAGE_MODE: ${FLOCI_STORAGE_MODE:-hybrid}
       FLOCI_STORAGE_PERSISTENT_PATH: /app/data
-      # Authz S3: con true Floci rechaza keys firmadas desconocidas, pero la
-      # consola floci-ui firma como cuenta 000000000000 (su adapter usa el
-      # account id como access key) y Floci solo reconoce `test` → la UI
-      # devuelve 403 InvalidAccessKeyId al listar. Se queda en false (default
-      # upstream): el backend siempre firma con test/test y las fotos son
-      # públicas por diseño igual que en MinIO.
-      FLOCI_SERVICES_S3_ENFORCE_AUTH: ${FLOCI_ENFORCE_AUTH:-false}
-      # Podman rootless: el socket de usuario es 600 del host UID y la
-      # imagen dropea a 1001 (que no lo puede abrir: crash del sidecar UI).
-      # Sin drop (sigue siendo el usuario host, no root real) abre el
-      # socket y persiste con dueño legible en el host. Solo dev local.
-      FLOCI_RUN_AS_ROOT: "true"
-      # Consola web (_floci/ui): la levanta como sidecar vía el socket del
-      # motor de contenedores. Con podman rootless se monta el socket de
-      # usuario (ver PODMAN_SOCKET); sin socket, poner "false".
-      FLOCI_SERVICES_UI_ENABLED: ${FLOCI_UI_ENABLED:-true}
+      FLOCI_SERVICES_S3_ENFORCE_AUTH: "true"
+      FLOCI_RUN_AS_ROOT: "false"
+      FLOCI_SERVICES_UI_ENABLED: "false"
     ports:
-      - "${FLOCI_HOST_PORT:-4566}:4566"
+      - "127.0.0.1:${FLOCI_HOST_PORT:-4566}:4566"
     volumes:
       - floci_data:/app/data
-      - ${PODMAN_SOCKET:-/run/podman/podman.sock}:/var/run/docker.sock
     networks:
       - app-net
-    # La imagen oficial trae su propio HEALTHCHECK (GET /_floci/health),
-    # así que no se define uno aquí. El backend NO depende de floci en
-    # el arranque (MinIO es el default y el bucket se crea perezoso).
+    # La imagen oficial trae su propio HEALTHCHECK (GET /_floci/health).
     mem_limit: 512m
     cpus: 1.0
 
@@ -609,7 +588,7 @@ services:
   # Consola management: http://localhost:15672 (RABBITMQ_USER/PASSWORD).
   # =================================================================
   rabbitmq:
-    image: ${RABBITMQ_IMAGE:-rabbitmq:4-management}
+    image: ${RABBITMQ_IMAGE:-rabbitmq:4-management@sha256:1c70aa901955dff9c3c86975cf77a9498a6e3448336a2e049dde888b44f9b977}
     container_name: ferreteria-rabbitmq
     restart: unless-stopped
     environment:
@@ -637,7 +616,7 @@ services:
   # (TTL = tiempo de recarga al máximo + 1 min) y solo el backend lo usa.
   # =================================================================
   redis:
-    image: ${REDIS_IMAGE:-redis:7-alpine}
+    image: ${REDIS_IMAGE:-redis:8.10.3-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3}
     container_name: ferreteria-redis
     restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
@@ -658,7 +637,7 @@ services:
   # El backend NO depende de él al arrancar (JavaMail conecta perezoso).
   # =================================================================
   mailpit:
-    image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.27}
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.34.0@sha256:23a2ef85bc50853ab3093645d1d64679afd8887e89da5e48a88940c172591a4e}
     container_name: ferreteria-mailpit
     restart: unless-stopped
     ports:

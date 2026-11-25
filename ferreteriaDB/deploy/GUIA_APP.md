@@ -51,14 +51,16 @@ host              red app-net                          red db-net            red
 | Servicio | Imagen | Rol |
 |---|---|---|
 | `frontend` | `ferreteria/frontend` (nginx) | SPA React, proxy `/api` → backend |
-| `backend` | `ferreteria/backend` (Java 21, OTel agent) | API REST Spring Boot 3.3 |
-| `postgres-primary` | `postgres:17-alpine` | Base de datos (escrituras) |
-| `pgbouncer` | `pgbouncer/pgbouncer` | Pool de conexiones (transaction mode) |
-| `otel-collector` | `otel/opentelemetry-collector-contrib:0.111.0` | Recepción OTLP → Prometheus + Tempo |
-| `tempo` | `grafana/tempo:2.6.1` | Backend de trazas (backend + browser) |
-| `postgres-exporter` | `prometheuscommunity/postgres-exporter:v0.16.0` | Métricas nativas de Postgres |
-| `prometheus` | `prom/prometheus:v2.55.0` | Time-series + alertas |
-| `grafana` | `grafana/grafana:11.3.0` | Dashboards + trazas (provisionados) |
+| `backend` | `ferreteria/backend` (Java 21, OTel agent) | API REST Spring Boot 4.1 |
+| `floci` | `floci/floci:2.1.0` | Proveedor S3 predeterminado para fotos y PDFs; autenticación habilitada |
+| `minio` | `minio/minio` (legacy) | No arranca por defecto; requiere `--profile minio-legacy` |
+| `postgres-primary` | `postgres:17.11-alpine3.24` | Base de datos (escrituras) |
+| `pgbouncer` | `pgbouncer/pgbouncer:1.25.2` | Pool de conexiones (transaction mode) |
+| `otel-collector` | `otel/opentelemetry-collector-contrib:0.166.0` | Recepción OTLP → Prometheus + Tempo |
+| `tempo` | `grafana/tempo:2.10.10` | Backend de trazas (backend + browser) |
+| `postgres-exporter` | `prometheuscommunity/postgres-exporter:v0.21.1` | Métricas nativas de Postgres |
+| `prometheus` | `prom/prometheus:v3.16.0` | Time-series + alertas |
+| `grafana` | `grafana/grafana:13.3.2` | Dashboards + trazas (provisionados) |
 
 Rutas de datos: `frontend → backend → pgbouncer → postgres`.
 Observabilidad: `backend/browser → otel-collector → prometheus → grafana` (métricas) y `otel-collector → tempo → grafana` (trazas); `postgres-exporter → prometheus`.
@@ -87,6 +89,12 @@ Observabilidad: `backend/browser → otel-collector → prometheus → grafana` 
 El archivo `.env` **en este directorio** es la fuente única de credenciales en
 runtime (Postgres, PgBouncer, backend, Grafana).
 
+El proveedor de almacenamiento predeterminado es Floci (`STORAGE_PROVEEDOR=floci`).
+La UI Floci está deshabilitada y el puerto S3 se publica solo en `127.0.0.1`; el
+compose estándar no monta el socket de Podman/Docker. MinIO es legado y solo se
+activa explícitamente con `podman compose --profile minio-legacy up -d minio`.
+Si ya existe un `.env`, cambia manualmente `STORAGE_PROVEEDOR` a `floci`.
+
 ```bash
 cd ferreteriaDB/deploy
 cp .env.example .env
@@ -111,11 +119,11 @@ Observabilidad (opcional, tienen valores por defecto):
 OTEL_SDK_DISABLED=false                       # true = apaga telemetría backend
 VITE_OTEL_ENABLED=true                        # telemetría del browser
 VITE_OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-OTEL_COLLECTOR_IMAGE=otel/opentelemetry-collector-contrib:0.111.0
-TEMPO_IMAGE=grafana/tempo:2.6.1
-PROMETHEUS_IMAGE=prom/prometheus:v2.55.0
-GRAFANA_IMAGE=grafana/grafana:11.3.0
-POSTGRES_EXPORTER_IMAGE=prometheuscommunity/postgres-exporter:v0.16.0
+OTEL_COLLECTOR_IMAGE=otel/opentelemetry-collector-contrib:0.166.0@sha256:3e18fe04181de50bdd72e23ad4a4d6214b54351e63d496f1c58127cc4541ad7f
+TEMPO_IMAGE=grafana/tempo:2.10.10@sha256:12b0820f13ffa10ce956b6e9acc3b03f3cffded99109be6cc09d106fe56e5d38
+PROMETHEUS_IMAGE=prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
+GRAFANA_IMAGE=grafana/grafana:13.3.2@sha256:81556409ba48b2b922e0adb69a2511337d8ba7578f11962eefa6149a2d815101
+POSTGRES_EXPORTER_IMAGE=prometheuscommunity/postgres-exporter:v0.21.1@sha256:3b8e05a84282cd1199ad2fb6c66f362738bf4c68c1547d8f4226a34a7dd6d8d7
 ```
 
 > El **frontend** lee sus variables `VITE_*` en **build time** (quedan embebidas

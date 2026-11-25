@@ -26,10 +26,14 @@ metadata:
   name: ferreteria-backend-secret
   namespace: ferreteria
 type: Opaque
-# BACK-SEC-003: sin valores reales. Sustituir con SealedSecrets/ExternalSecrets/Vault
-# antes del primer deploy. JWT_SECRET ≥32 bytes base64 (fail-fast en JwtService).
+# Sin valores reales. Sustituir con SealedSecrets/ExternalSecrets/Vault antes
+# del primer deploy. JWT_SECRET ≥32 bytes base64 (fail-fast en JwtService).
 stringData:
   JWT_SECRET: "REPLACE_ME_VIA_EXTERNAL_SECRETS"
+  MINIO_ENDPOINT: "REPLACE_WITH_MAINTAINED_S3_ENDPOINT"
+  MINIO_PUBLIC_URL: "REPLACE_WITH_PUBLIC_S3_URL"
+  MINIO_ACCESS_KEY: "REPLACE_ME_VIA_EXTERNAL_SECRETS"
+  MINIO_SECRET_KEY: "REPLACE_ME_VIA_EXTERNAL_SECRETS"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -85,6 +89,22 @@ spec:
                 secretKeyRef: { name: ferreteria-backend-secret, key: JWT_SECRET }
             - name: SERVER_PORT
               value: "8080"
+            # K8s no despliega Floci: el adaptador MinIO se configura contra
+            # un endpoint S3-compatible mantenido por el operador.
+            - name: STORAGE_PROVEEDOR
+              value: minio
+            - name: MINIO_ENDPOINT
+              valueFrom:
+                secretKeyRef: { name: ferreteria-backend-secret, key: MINIO_ENDPOINT }
+            - name: MINIO_PUBLIC_URL
+              valueFrom:
+                secretKeyRef: { name: ferreteria-backend-secret, key: MINIO_PUBLIC_URL }
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: { name: ferreteria-backend-secret, key: MINIO_ACCESS_KEY }
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef: { name: ferreteria-backend-secret, key: MINIO_SECRET_KEY }
             - name: REQUEST_ID_MODE
               value: GENERATE
             # BACK-ESC-001: rate limit distribuido (capacidad global con HPA).

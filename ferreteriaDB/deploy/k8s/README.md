@@ -21,10 +21,16 @@ kubectl apply -f 45-backend.yaml
 kubectl apply -f 50-backend-hpa.yaml
 
 # Probar conexión desde un pod temporal
-kubectl -n ferreteria run psql-test --rm -it --image=postgres:17-alpine -- \
+kubectl -n ferreteria run psql-test --rm -it --image=postgres:17.11-alpine3.24@sha256:e5d2edd28b1f8d40a0a6c0c9cdc545b19b56a0d5d88f94bc11a97d970d4700d0 -- \
   psql -h pgbouncer -p 6432 -U ferreteria_app -d ferreteria \
   -c "SELECT * FROM ven.vw_resumen_dashboard;"
 ```
+
+Antes de aplicar `45-backend.yaml`, sustituye los placeholders de
+`ferreteria-backend-secret` con SealedSecrets/ExternalSecrets/Vault. Kubernetes
+usa el adaptador S3-compatible (`STORAGE_PROVEEDOR=minio`), pero no despliega
+Floci ni MinIO: `MINIO_ENDPOINT`, `MINIO_PUBLIC_URL`, `MINIO_ACCESS_KEY` y
+`MINIO_SECRET_KEY` deben apuntar a un servicio de almacenamiento mantenido.
 
 ## Escalamiento
 

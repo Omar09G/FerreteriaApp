@@ -9,7 +9,7 @@ jobs:
   gitleaks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
@@ -22,8 +22,8 @@ jobs:
       run:
         working-directory: ferreteriaBackend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
@@ -37,8 +37,10 @@ jobs:
       run:
         working-directory: ferreteriaFront
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ferreteriaFront/.bun-version
       - run: bun install --frozen-lockfile
       - run: bun run lint
       # bun run test = vitest run (bun test a secas usa el runner propio
@@ -52,5 +54,5 @@ jobs:
   #   needs: [backend, frontend]
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v7
   #     - run: ./ferreteriaBackend/gradlew sonar -Dsonar.token=${{ secrets.SONAR_TOKEN }}

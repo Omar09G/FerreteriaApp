@@ -6,7 +6,7 @@ aplicación web (SPA).
 | Proyecto | Descripción | Stack |
 |---|---|---|
 | [`ferreteriaDB/`](ferreteriaDB/) | Modelo de datos y despliegue de la BD | PostgreSQL 14+, Podman Compose / Kubernetes / Terraform |
-| [`ferreteriaBackend/`](ferreteriaBackend/) | API REST | Spring Boot 3, Java 21, Flyway, JUnit/JaCoCo |
+| [`ferreteriaBackend/`](ferreteriaBackend/) | API REST | Spring Boot 4.1, Java 21, Flyway, JUnit/JaCoCo |
 | [`ferreteriaFront/`](ferreteriaFront/) | SPA de caja, inventario y reportes | React 19, Vite 8, TypeScript, TanStack Query, Tailwind, motion, sonner |
 
 ## Arquitectura
@@ -39,9 +39,8 @@ flowchart LR
         PGB["pgbouncer :6432"]
         PG["postgres :5432<br/>(admin directo)"]
         REPL["réplica :5433<br/>(solo lectura)"]
-        MINIO["minio :9000 API<br/>:9001 consola"]
-        FLOCI["floci :4566<br/>(S3 local)"]
-        FUI["floci-ui<br/>(sidecar, socket podman)"]
+        FLOCI["floci :4566<br/>(S3 local predeterminado)"]
+        MINIO["minio :9000 API<br/>(perfil heredado opcional)"]
         RAB["rabbitmq :5672 AMQP<br/>:15672 mgmt"]
         MP["mailpit :1025 SMTP<br/>:8025 bandeja"]
         OBS["otel :4317 · prom :9090<br/>grafana :3000 · tempo :3200"]
@@ -60,12 +59,8 @@ flowchart LR
     BE -->|"JDBC prepareThreshold=0"| PGB
     PGB -->|"pool transaction"| PG
     PG -->|"streaming"| REPL
-    BOOT -->|"fotos (público)"| MINIO
-    BE -->|"fotos (público)"| MINIO
-    BOOT -->|"PDFs (privado, proveedor=config)"| FLOCI
-    BE -->|"PDFs (privado, proveedor=config)"| FLOCI
-    FUI -.->|"lista buckets"| FLOCI
-    FUI -.->|"lista buckets"| MINIO
+    BOOT -->|"fotos + PDFs (S3)"| FLOCI
+    BE -->|"fotos + PDFs (S3)"| FLOCI
     BOOT -->|"exchange ferreteria.events<br/>cola notificacion.jobs + DLQ"| RAB
     BE -->|"exchange ferreteria.events<br/>cola notificacion.jobs + DLQ"| RAB
     BOOT -->|"SMTP"| MP
@@ -77,20 +72,22 @@ flowchart LR
     BOOT -.->|"si proveedor=evolution"| EVO
     U -->|"ver emails"| MP
     U -->|"ver colas"| RAB
-    U -->|"ver fotos/PDFs"| FUI
+    U -->|"fotos públicas"| FLOCI
     U -->|"ver métricas"| OBS
 ```
 
 Notas:
 - En dev local el backend (`bootRun :8080`) habla con la infra de compose por
-  `localhost` (PgBouncer `:6432`, MinIO `:9000`, Floci `:4566`, RabbitMQ
+  `localhost` (PgBouncer `:6432`, Floci `:4566`, RabbitMQ
   `:5672`, Mailpit `:1025`); dentro de compose usa DNS interno
-  (`pgbouncer`, `minio`, `floci`, `rabbitmq`, `mailpit`) con los mismos puertos
-  de contenedor.
+  (`pgbouncer`, `floci`, `rabbitmq`, `mailpit`) con los mismos puertos de
+  contenedor; `minio` solo aparece al activar `minio-legacy`.
 - El backend **nunca** toca Postgres directo (`:5432` es solo admin) ni la
   réplica (`:5433`, lectura para reportes).
-- Buckets: `ferreteria-fotos` (público) en MinIO o Floci según
-  `STORAGE_PROVEEDOR`; `ferreteria-tickets` (privado) en el mismo proveedor.
+- Buckets: `ferreteria-fotos` (público) y `ferreteria-tickets` (privado) en
+  Floci local por defecto. El contenedor comunitario MinIO está archivado y
+  solo se inicia con el perfil `minio-legacy`; el adaptador `minio` también
+  puede apuntar a un servicio S3 externo mantenido.
 - Observabilidad (`otel`, `prometheus`, `grafana`, `tempo`,
   `postgres-exporter`) es opcional y no afecta el flujo funcional.
 
@@ -114,8 +111,8 @@ Detalles y comandos de pruebas/build en el README de cada proyecto.
 > `podman compose up -d` en `ferreteriaDB/deploy` y luego `bootRun` + `bun run dev`.
 > El `.env` del backend ya incluye el bloque de notificaciones
 > (`APP_NOTIF_ENABLED=true`, `RABBITMQ_*`, `MAIL_*`), así que el `bootRun`
-> levanta con jobs+email sin exports extra. La UI de Floci (`floci-ui`)
-> reaparece ~1 min después de `floci`; recargar la página para ver las bandejas.
+> levanta con jobs+email sin exports extra. Floci arranca sin UI y sin montar
+> el socket de Podman/Docker.
 
 ## Tests (cómo correrlos)
 
@@ -208,39 +205,35 @@ observabilidad van en contenedores (`ferreteriaDB/deploy`, red `db-net`/`app-net
 | PostgreSQL primario | `ferreteria-postgres-primary` | 5432 | admin directo (la app usa PgBouncer) |
 | PostgreSQL réplica | `ferreteria-postgres-replica` | 5433 | solo lectura |
 | PgBouncer | `ferreteria-pgbouncer` | 6432 | conexión de la app (`PG_HOST/PORT`) |
-| MinIO API (fotos) | `ferreteria-minio` | 9000 | S3 + URLs públicas `http://localhost:9000/ferreteria-fotos/…` |
-| MinIO consola | `ferreteria-minio` | 9001 | http://localhost:9001 (usuario `MINIO_ROOT_USER`) |
-| Floci S3 (fotos) | `ferreteria-floci` | 4566 | S3 local; backend lo usa con `STORAGE_PROVEEDOR=floci` (default: `minio`) |
-| Floci consola web | sidecar `floci-ui` | 4500 | http://localhost:4500 (o vía http://localhost:4566/_floci/ui); requiere socket del motor (ver `PODMAN_SOCKET`) |
-| Backend contenerizado (opcional) | `ferreteria-backend` | 8081 | swagger/health directo; dentro de compose usa `MINIO_ENDPOINT=http://minio:9000` |
+| Floci S3 (fotos + PDFs) | `ferreteria-floci` | 4566 | S3 local; proveedor predeterminado, publicado solo en loopback |
+| MinIO legado (opcional) | `ferreteria-minio` | 9000 / 9001 | Solo con `--profile minio-legacy`; upstream archivado |
+| Floci UI | — | — | Deshabilitada por defecto; no se monta el socket de Podman/Docker |
+| Backend contenerizado (opcional) | `ferreteria-backend` | 8081 | swagger/health directo; dentro de compose usa `FLOCI_ENDPOINT=http://floci:4566` |
 | Frontend contenerizado (opcional) | `ferreteria-frontend` | 8080 | Nginx `:80`; solo prod/staging (choca con bootRun) |
 | RabbitMQ (notificaciones) | `ferreteria-rabbitmq` | 5672 + 15672 | AMQP (`RABBITMQ_USER/PASSWORD`) y consola mgmt http://localhost:15672 |
 | Mailpit (email dev) | `ferreteria-mailpit` | 1025 + 8025 | SMTP de mentira; bandeja en http://localhost:8025 |
 
 Notas:
-- Proveedor de fotos (`STORAGE_PROVEEDOR=minio|floci`, default `minio`):
-  MinIO (`minio:9000` interno, `MINIO_PUBLIC_URL` al browser) o Floci S3
-  (`floci:4566` interno, `FLOCI_PUBLIC_URL` al browser). En ambos hay dos
-  URLs distintas con propósito distinto: **ENDPOINT** = lo que usa el backend
+- Proveedor de fotos/documentos (`STORAGE_PROVEEDOR=floci` por defecto):
+  Floci S3 (`floci:4566` interno, `FLOCI_PUBLIC_URL` al browser). MinIO solo
+  queda para rollback explícito (`STORAGE_PROVEEDOR=minio` y perfil
+  `minio-legacy`). El proveedor activo usa dos URLs distintas con propósito
+  distinto: **ENDPOINT** = lo que usa el backend
   en red interna para subir; **PUBLIC_URL** = base de la URL que se guarda en
   `foto_url`/`imagen_url` y resuelve el browser (debe ser alcanzable desde
   quien use la app, no necesariamente localhost).
-- `bootRun` en host usa `MINIO_ENDPOINT=http://localhost:9000` (el DNS `minio`
-  solo existe dentro de la red compose). `MINIO_PUBLIC_URL` debe ser alcanzable
-  desde el browser (dev: `http://localhost:9000`). Con Floci es igual:
-  `FLOCI_ENDPOINT=http://localhost:4566` en host, `http://floci:4566` en compose.
+- `bootRun` en host usa `FLOCI_ENDPOINT=http://localhost:4566`; en Compose usa
+  `http://floci:4566`. `FLOCI_PUBLIC_URL` debe ser alcanzable desde el browser
+  (dev: `http://localhost:4566`). El puerto se limita a loopback.
 - Subir fotos: `POST /api/v1/archivos/imagen` (multipart `archivo`,
   jpeg/png/webp ≤5 MB, requiere rol operativo + header `X-XSRF-TOKEN`) →
   `201 { data: { url } }` → esa URL pública va en `fotoUrl`/`imagenUrl` del
   create/update. El backend optimiza a JPEG, renombra a UUID y crea el bucket
-  público solo si no existe. Con Floci la consola muestra los objetos en
-  http://localhost:4500.
-- Floci va con `FLOCI_ENFORCE_AUTH=false` (default upstream): con `true` la
-  consola `floci-ui` no lista nada (firma como cuenta `000000000000` y Floci
-  solo reconoce la key `test` → 403 `InvalidAccessKeyId`). El backend siempre
-  firma con `test`/`test`, así que el flujo no se ve afectado.
-- La imagen de subida requiere imagen `quay.io/minio/minio` (Docker Hub
-  rechaza el pull del tag fijado en el compose).
+  público solo si no existe.
+- Floci exige autenticación S3; el backend firma con `test`/`test`. La consola
+  está deshabilitada para no conceder acceso al socket del motor.
+- MinIO comunitario está archivado y no recibe nuevas imágenes de seguridad;
+  se conserva como perfil heredado opcional, no como servicio predeterminado.
 
 ## Notificaciones (ticket PDF / nómina pagada)
 
@@ -248,8 +241,8 @@ Notas:
   `NominaPagadaEvent`; los dominios no dependen del módulo `notif`). El hook
   `AFTER_COMMIT` crea el job en `notif.notificacion_jobs` y lo procesa en tx
   propia (`REQUIRES_NEW`): genera el PDF (OpenPDF, datos solo de BD), lo sube al
-  bucket PRIVADO `ferreteria-tickets` (claves `tickets/`/`nominas/`, proveedor
-  `minio|floci`), refleja la clave en
+  bucket PRIVADO `ferreteria-tickets` (claves `tickets/`/`nominas/`, Floci por
+  defecto), refleja la clave en
   `ven.ventas.pdf_url`, publica en el exchange `ferreteria.events` y el consumer
   envía por **email** (adjunto) / **Telegram** (`sendDocument`, si hay token+chat) /
   **WhatsApp** (mock en proceso por default; Evolution API real con
@@ -298,7 +291,7 @@ Notas:
 - **Decisión SSE vs WebSocket (registrada)** — se usa SSE porque el flujo es
   unidireccional (servidor→navegador; el envío va por POST), reusa la auth por
   cookies sin handshake custom, no añade dependencias (`SseEmitter` viene en
-  `spring-boot-starter-web`; nada de `socket.io`/`stomp` en el front),
+  `spring-boot-starter-webmvc`; nada de `socket.io`/`stomp` en el front),
   reconecta solo (`EventSource` + `Last-Event-ID` + historial) y nginx ya trae
   `proxy_buffering off`. **Futura migración a WebSocket**: revisar solo si se
   pide algo realmente bidireccional (p. ej. "X está escribiendo…" en vivo o
@@ -316,16 +309,13 @@ Notas:
   pública); override con `MINIO_DOCS_BUCKET`/`FLOCI_DOCS_BUCKET`.
 - **Verificación E2E** — tras un `POST /api/v1/ventas`: job en `ENVIADA` con
   `pdf_url` en `notif.notificacion_jobs` (= `ven.ventas.pdf_url`), objeto en el
-  bucket `ferreteria-tickets` (`tickets/<id>.pdf`, visible en `floci-ui` →
-  Storage o MinIO consola),
+  bucket `ferreteria-tickets` (`tickets/<id>.pdf` en Floci; la UI está
+  deshabilitada por defecto),
   1 publicado/1 entregado en la cola `notificacion.jobs` (DLQ vacía) y email con
   el PDF adjunto en Mailpit (http://localhost:8025). Los POST mutantes exigen
   CSRF (`GET /api/v1/auth/csrf-init` + header `X-XSRF-TOKEN`).
-- **Troubleshooting floci-ui** — si el explorador responde 403
-  `InvalidAccessKeyId` al listar: debe estar `FLOCI_ENFORCE_AUTH=false` (la
-  consola firma como cuenta `000000000000` y Floci solo reconoce la key `test`)
-  y recrear el servicio (`podman compose up -d floci`, el sidecar reaparece
-  solo). Credenciales de la consola: `test`/`test`.
+- **Floci UI** — deshabilitada por defecto; no desactives la autenticación S3
+  ni montes el socket de Podman/Docker para uso normal.
 - **BD existentes** — Flyway va deshabilitado en la app, así que un volumen con
   esquema viejo no se migra solo: aplicar en orden los deltas idempotentes de
   `ferreteriaDB/migrations/` (p. ej. `delta_ventas_motivo_cancelacion.sql`,

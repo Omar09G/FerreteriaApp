@@ -1,6 +1,6 @@
 # ferreteria-backend
 
-API REST Spring Boot 3 / Java 21 sobre PostgreSQL (`../ferreteriaDB`).
+API REST Spring Boot 4.1 / Java 21 sobre PostgreSQL (`../ferreteriaDB`).
 Frontend: `../ferreteriaFront` · Index raíz: `../README.md`.
 
 ## Requisitos
@@ -22,6 +22,12 @@ export PG_HOST=localhost PG_PORT=6432 PG_USER=ferreteria_app PG_PASSWORD=<ver de
 ./gradlew bootRun
 # salud: http://localhost:8080/actuator/health
 ```
+
+El almacenamiento local usa Floci por defecto (`FLOCI_ENDPOINT=http://localhost:4566`);
+levanta el compose para subir fotos y PDFs. El adaptador `STORAGE_PROVEEDOR=minio`
+es compatible con servicios S3 externos; el contenedor comunitario MinIO solo
+se conserva para rollback local (`--profile minio-legacy`). Kubernetes fija ese
+adaptador y requiere un endpoint S3-compatible mantenido, configurado mediante Secrets.
 
 ## Perfiles
 

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.27.0@sha256:bde3983e9c939224420ddaf6b784cc30e09b035a4dea01f581230c50809f372e
 # ============================================================================
 # Ferretería "El Tornillo Feliz" — Frontend (Vite/React 19)
 # ----------------------------------------------------------------------------
@@ -17,7 +17,7 @@
 # ----------------------------------------------------------------------------
 # Stage 1: build
 # ----------------------------------------------------------------------------
-FROM oven/bun:1-alpine AS build
+FROM oven/bun:1.4.5-alpine@sha256:da816670775f4c2b4e990b6b1847cf5540dcdc721a42033dd331ce7a88ba6a3b AS build
 WORKDIR /app
 
 # ─── Manejo del .env ────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ RUN test -f dist/index.html || (echo "ERROR: dist/index.html no se generó" && e
 # ----------------------------------------------------------------------------
 # Stage 2: runtime (nginx)
 # ----------------------------------------------------------------------------
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.30.7-alpine3.24@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3 AS runtime
 
 # wget para el healthcheck, tzdata para logs en hora local
 RUN apk add --no-cache wget tzdata && \

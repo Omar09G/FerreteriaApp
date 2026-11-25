@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.27.0@sha256:bde3983e9c939224420ddaf6b784cc30e09b035a4dea01f581230c50809f372e
 # ============================================================================
-# Ferretería "El Tornillo Feliz" — Backend (Spring Boot 3 + Java 21)
+# Ferretería "El Tornillo Feliz" — Backend (Spring Boot 4.1 + Java 21)
 # ----------------------------------------------------------------------------
 # Multi-stage con cache mounts de BuildKit. Compatible con:
 #   - docker buildx
@@ -14,7 +14,7 @@
 # ----------------------------------------------------------------------------
 # Stage 1: build
 # ----------------------------------------------------------------------------
-FROM gradle:8.10.2-jdk21 AS build
+FROM gradle:9.9.2-jdk21@sha256:f8c4f7de6ec4f367cbf7fc46db08129ea6a6e9487995bb705c61fbc20f3bc545 AS build
 WORKDIR /home/gradle/project
 
 # Cache de descriptores Gradle: solo cambia si build.gradle.kts/gradle.properties
@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/home/gradle/.gradle \
 # ----------------------------------------------------------------------------
 # Stage 2: runtime
 # ----------------------------------------------------------------------------
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:21-jre-alpine@sha256:5d7689f47d670aca766b9503a70bccc2d73b4eb9221ae8f714ae958313c4ce70 AS runtime
 
 # wget para el healthcheck, curl para descargar el OTel agent
 RUN apk add --no-cache wget curl tzdata && \
@@ -51,9 +51,9 @@ WORKDIR /app
 # Auto-instrumenta HTTP (Spring WebFilter, Tomcat), JDBC (HikariCP, Hibernate),
 # R2DBC, Kafka, etc. Configurado vía env vars OTEL_* (ver docker-compose).
 # Si OTEL_SDK_DISABLED=true el agent no hace nada (ahorra CPU en dev local).
-ARG OTEL_AGENT_VERSION=2.10.0
-# Pin verificado 2026-09-17 contra el release upstream (sha256 del jar).
-ARG OTEL_AGENT_SHA256=d05f6e36fac8db629263a6aaec2841cc934d064d7b19bfe38425b604b8b54926
+ARG OTEL_AGENT_VERSION=2.34.0
+# SHA-256 del asset oficial del release v2.34.0.
+ARG OTEL_AGENT_SHA256=da44154cea128257779c8a782b9651fd7c0c6aa177cd3810f9a867ac8509555d
 RUN curl -fsSL -o /opt/opentelemetry-javaagent.jar \
     "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar" \
  && echo "${OTEL_AGENT_SHA256}  /opt/opentelemetry-javaagent.jar" | sha256sum -c - \

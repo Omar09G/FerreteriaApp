@@ -7,8 +7,8 @@ app_password         = "CambiaApp2026!"
 replication_password = "CambiaReplica2026!"
 
 # Imágenes
-pg_image         = "postgres:17-alpine"
-pgbouncer_image  = "pgbouncer/pgbouncer:1.23.1"
+pg_image         = "postgres:17.11-alpine3.24@sha256:e5d2edd28b1f8d40a0a6c0c9cdc545b19b56a0d5d88f94bc11a97d970d4700d0"
+pgbouncer_image  = "pgbouncer/pgbouncer:1.25.2@sha256:c0c55b277858ca308eb5df7baf8b83fbaea60b2c666604f29d8fe25e9decac68"
 
 # Escalamiento VERTICAL de PostgreSQL (ajustar a la capacidad del clúster)
 pg_cpu_request    = "500m"

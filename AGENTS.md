@@ -1,7 +1,7 @@
 # AGENTS.md — Sistema Integral de Ferretería
 
 Monorepo (ES docs): `ferreteriaDB/` (PostgreSQL, schema source of truth) ·
-`ferreteriaBackend/` (Spring Boot 3 / Java 21, `/api/v1` on `:8080`) ·
+`ferreteriaBackend/` (Spring Boot 4.1 / Java 21, `/api/v1` on `:8080`) ·
 `ferreteriaFront/` (React 19 + Vite 8 + TS, dev on `:5173`).
 Root `README.md` + per-project READMEs are accurate; trust them over memory.
 `CLAUDE.md` holds graphify rules — use `graphify query/path/explain` first for

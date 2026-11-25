@@ -1,7 +1,7 @@
 plugins {
     java
     jacoco
-    id("org.springframework.boot") version "3.4.13"
+    id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -10,14 +10,21 @@ version = "0.0.1-SNAPSHOT"
 
 java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 
+// Boot 4.1.2 BOM defaults are vulnerable to CVE-2026-110879; stay on the
+// compatible Jackson LTS lines with their corrected releases.
+extra["jackson-bom.version"] = "3.1.8"
+extra["jackson-2-bom.version"] = "2.21.8"
+
 repositories { mavenCentral() }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Compatibilidad temporal: varios componentes usan ObjectMapper de Jackson 2.
+    implementation("org.springframework.boot:spring-boot-jackson2")
     // Métricas Prometheus nativas vía Spring Boot Actuator + Micrometer.
     // Complementa al OTel agent (que se enfoca en trazas/logs) — el /actuator/prometheus
     // expone métricas JVM/HTTP/HikariCP sin pasar por el collector.
@@ -26,12 +33,12 @@ dependencies {
     // trazas/métricas/logs programáticamente (sin javaagent). El javaagent en Docker
     // ya hace auto-instrumentación, pero tener el SDK disponible permite agregar
     // trazas manuales en puntos críticos (login, checkout, etc.).
-    implementation("io.opentelemetry:opentelemetry-api:1.66.0")
-    implementation("io.opentelemetry:opentelemetry-sdk:1.66.0")
-    implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.66.0")
-    implementation("io.opentelemetry:opentelemetry-exporter-logging:1.66.0")
+    implementation("io.opentelemetry:opentelemetry-api:1.68.0")
+    implementation("io.opentelemetry:opentelemetry-sdk:1.68.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.68.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-logging:1.68.0")
     implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
     // M7 endurecimiento: rate limiting por controller (bucket4j) con buckets en memoria (Caffeine)
     implementation("com.bucket4j:bucket4j-core:8.10.1")
     // BACK-ESC-001: rate limit distribuido (buckets compartidos entre replicas).
@@ -74,6 +81,7 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
     testImplementation("org.testcontainers:postgresql")

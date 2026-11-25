@@ -86,8 +86,8 @@ nano .env
 | `POSTGRES_ADMIN_PASSWORD` | Sí | Password del superusuario `postgres` (job de migración, mantenimiento) |
 | `POSTGRES_APP_PASSWORD`   | Sí | Password del rol `ferreteria_app` — el que usa el POS/backend vía PgBouncer |
 | `REPLICATION_PASSWORD`    | Solo con réplica | Password del rol `replicator` (streaming) |
-| `PG_IMAGE`                | No | Imagen PostgreSQL (`postgres:17-alpine`) — fijar por digest en prod |
-| `PGBOUNCER_IMAGE`         | No | `pgbouncer/pgbouncer:latest` — fijar tag/digest en prod |
+| `PG_IMAGE`                | No | Imagen local con pgBackRest, basada en PostgreSQL 17.11 fijado por digest |
+| `PGBOUNCER_IMAGE`         | No | `pgbouncer/pgbouncer:1.25.2` — fijada por digest |
 | `PG_MEM_LIMIT`            | No | Límite de RAM del contenedor (default `2g`) |
 | `PG_CPUS`                 | No | CPUs asignadas (default `2.0`) |
 | `PG_SHM_SIZE`             | No | Memoria compartida para paralelismo (default `256mb`) |
@@ -184,7 +184,7 @@ podman logs -f ferreteria-postgres-primary
 #    y el estado healthy:  podman ps
 
 # 4) Probar la aplicación a través del pool
-podman run --rm --network ferreteria-db_db-backend postgres:17-alpine \
+podman run --rm --network ferreteria-db_db-backend postgres:17.11-alpine3.24@sha256:e5d2edd28b1f8d40a0a6c0c9cdc545b19b56a0d5d88f94bc11a97d970d4700d0 \
   psql "host=ferreteria-pgbouncer port=6432 dbname=ferreteria \
         user=ferreteria_app password=<POSTGRES_APP_PASSWORD>" \
   -c "SELECT * FROM ven.vw_resumen_dashboard;"
@@ -361,7 +361,7 @@ Description=Ferreteria PostgreSQL Primario
 After=network-online.target
 
 [Container]
-Image=docker.io/library/postgres:17-alpine
+Image=docker.io/library/postgres:17.11-alpine3.24@sha256:e5d2edd28b1f8d40a0a6c0c9cdc545b19b56a0d5d88f94bc11a97d970d4700d0
 ContainerName=ferreteria-postgres-primary
 EnvironmentFile=%h/Documentos/Proyectos/JAVA/ferreteriaDB/deploy/.env
 Network=ferreteria-db_db-backend
