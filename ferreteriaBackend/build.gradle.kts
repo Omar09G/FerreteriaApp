@@ -54,7 +54,7 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
     runtimeOnly("org.postgresql:postgresql")
     // Fotos de entidades: SDK S3-compatible para MinIO autohospedado.
-    implementation("io.minio:minio:8.6.0")
+    implementation("io.minio:minio:9.0.4")
     // Fotos vía Floci (S3 local): AWS SDK v2 con endpointOverride. El BOM
     // alinea auth/http-client; apache-client es el transporte HTTP.
     implementation(platform("software.amazon.awssdk:bom:2.55.1"))
