@@ -563,7 +563,7 @@ services:
   # y todo se pierde al reiniciar). Ver conf de storage en docs Floci.
   # =================================================================
   floci:
-    image: ${FLOCI_IMAGE:-floci/floci:2.1.0@sha256:f5aa8c18302cedb4f2385f5c4e455b3efc77fee6bf7b6e5d1712b2817ba102db}
+    image: ${FLOCI_IMAGE:-floci/floci:2.5.0@sha256:a0fbf944d7f338cc0856f1ef83831ea749ff2be71956eb7a7fce08fc21458e19}
     container_name: ferreteria-floci
     restart: unless-stopped
     environment:
