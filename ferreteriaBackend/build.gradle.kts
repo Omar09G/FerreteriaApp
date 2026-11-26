@@ -1,7 +1,7 @@
 plugins {
     java
     jacoco
-    id("org.springframework.boot") version "4.1.2"
+    id("org.springframework.boot") version "4.2.0"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -38,7 +38,7 @@ dependencies {
     implementation("io.opentelemetry:opentelemetry-exporter-otlp:1.68.0")
     implementation("io.opentelemetry:opentelemetry-exporter-logging:1.68.0")
     implementation("org.flywaydb:flyway-database-postgresql")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.1")
     // M7 endurecimiento: rate limiting por controller (bucket4j) con buckets en memoria (Caffeine)
     implementation("com.bucket4j:bucket4j-core:8.10.1")
     // BACK-ESC-001: rate limit distribuido (buckets compartidos entre replicas).
@@ -57,7 +57,7 @@ dependencies {
     implementation("io.minio:minio:8.6.0")
     // Fotos vía Floci (S3 local): AWS SDK v2 con endpointOverride. El BOM
     // alinea auth/http-client; apache-client es el transporte HTTP.
-    implementation(platform("software.amazon.awssdk:bom:2.55.1"))
+    implementation(platform("software.amazon.awssdk:bom:2.59.7"))
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:apache-client")
     // Decodificador WebP en Java puro (el ImageIO del JDK no lee WebP).
@@ -84,7 +84,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-resttestclient")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.1")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 }
