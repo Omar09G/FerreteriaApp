@@ -67,7 +67,7 @@ dependencies {
     // PDFs de ticket/nómina (OpenPDF, fork mantenida de iText 2.x, AGPL).
     implementation("com.github.librepdf:openpdf:1.3.43")
     // Excel del recordatorio de stock bajo (recordatorio diario a gerencia).
-    implementation("org.apache.poi:poi-ooxml:5.3.0")
+    implementation("org.apache.poi:poi-ooxml:6.0.0")
     // RabbitMQ: publisher/consumer de notificaciones (seam async).
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     // Email transaccional (dev: Mailpit; prod: SMTP real).
