@@ -65,7 +65,7 @@ dependencies {
     // a JPEG optimizado en OptimizadorImagen.
     implementation("org.sejda.imageio:webp-imageio:0.1.6")
     // PDFs de ticket/nómina (OpenPDF, fork mantenida de iText 2.x, AGPL).
-    implementation("com.github.librepdf:openpdf:1.3.43")
+    implementation("com.github.librepdf:openpdf:3.0.6")
     // Excel del recordatorio de stock bajo (recordatorio diario a gerencia).
     implementation("org.apache.poi:poi-ooxml:5.3.0")
     // RabbitMQ: publisher/consumer de notificaciones (seam async).
