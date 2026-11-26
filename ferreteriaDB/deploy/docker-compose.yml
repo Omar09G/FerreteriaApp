@@ -473,7 +473,7 @@ services:
   # PgBOUNCER — pooling transaccional (la app SIEMPRE va aquí)
   # =================================================================
   pgbouncer:
-    image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:1.25.2@sha256:c0c55b277858ca308eb5df7baf8b83fbaea60b2c666604f29d8fe25e9decac68}
+    image: ${PGBOUNCER_IMAGE:-pgbouncer/pgbouncer:1.25.2-20260911.206@sha256:1c30e9e68b0e8ea61304d9a33940aa8fcf993aae3f931035f4d8afa02b5f19c8}
     container_name: ferreteria-pgbouncer
     restart: unless-stopped
     depends_on:
